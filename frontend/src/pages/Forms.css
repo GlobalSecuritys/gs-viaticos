@@ -1,0 +1,214 @@
+/* ===== Shared Form Styles ===== */
+.form-root {
+  min-height: 100vh;
+  background: #0a0f1a;
+  color: #e2eaf5;
+  font-family: 'Inter', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding: 1.8rem 2rem 1.4rem;
+  background: #0d1520;
+  border-bottom: 1px solid #1a2e47;
+}
+
+.btn-back {
+  background: transparent;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  color: #5a7aa0;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+}
+
+.btn-back:hover {
+  border-color: #3B82F6;
+  color: #3B82F6;
+}
+
+.form-header-title h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #e2eaf5;
+  margin: 0 0 0.2rem;
+}
+
+.form-header-title p {
+  font-size: 0.85rem;
+  color: #4a6a8a;
+  margin: 0;
+}
+
+.form-body {
+  flex: 1;
+  padding: 2rem;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.viatico-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #7a9ec7;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.label-opt {
+  font-size: 0.72rem;
+  color: #3a5a7a;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: #0d1520;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #e2eaf5;
+  font-size: 0.92rem;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.form-group select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a6a8a' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.form-group select option {
+  background: #0d1826;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #2e4a68;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Color date input */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5) sepia(1) hue-rotate(180deg);
+  cursor: pointer;
+}
+
+.form-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.9rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #1a2e47;
+}
+
+.btn-primary {
+  background: #3B82F6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.6rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  font-family: inherit;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2563EB;
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  color: #5a7aa0;
+  padding: 0.75rem 1.4rem;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: #3B82F6;
+  color: #3B82F6;
+}
+
+@media (max-width: 640px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .form-body {
+    padding: 1.2rem;
+  }
+}

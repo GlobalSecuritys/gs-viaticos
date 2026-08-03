@@ -1,0 +1,232 @@
+/* ===== Mis Viáticos ===== */
+.mv-root {
+  min-height: 100vh;
+  background: #0a0f1a;
+  color: #e2eaf5;
+  font-family: 'Inter', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.mv-body {
+  flex: 1;
+  padding: 2rem;
+}
+
+.btn-back {
+  background: transparent;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  color: #5a7aa0;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+}
+
+.btn-back:hover {
+  border-color: #3B82F6;
+  color: #3B82F6;
+}
+
+.btn-nuevo {
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 8px;
+  color: #3B82F6;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.btn-nuevo:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.btn-primary {
+  background: #3B82F6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.6rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+
+.btn-primary:hover {
+  background: #2563EB;
+}
+
+/* Loading */
+.mv-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 4rem;
+  color: #4a6a8a;
+  font-size: 0.9rem;
+}
+
+.mv-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #1a2e47;
+  border-top-color: #3B82F6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty state */
+.mv-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 5rem 2rem;
+  text-align: center;
+  color: #4a6a8a;
+  font-size: 0.95rem;
+}
+
+.mv-empty-icon {
+  font-size: 3rem;
+  opacity: 0.4;
+}
+
+/* Error */
+.form-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Table */
+.mv-table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #1a2e47;
+}
+
+.mv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.mv-table thead {
+  background: #0d1826;
+}
+
+.mv-table th {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #4a6a8a;
+  border-bottom: 1px solid #1a2e47;
+  white-space: nowrap;
+}
+
+.mv-table td {
+  padding: 1rem 1rem;
+  color: #c8d8e8;
+  border-bottom: 1px solid #111d2e;
+  vertical-align: middle;
+}
+
+.mv-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.mv-table tbody tr {
+  background: #0a1120;
+  transition: background 0.15s;
+}
+
+.mv-table tbody tr:hover {
+  background: #0e1829;
+}
+
+.td-date  { color: #7a9ec7; font-size: 0.84rem; white-space: nowrap; }
+.td-main  { font-weight: 500; color: #e2eaf5; }
+.td-ot    { font-family: 'Courier New', monospace; font-size: 0.82rem; color: #5a7aa0; }
+.td-valor { font-weight: 600; color: #e2eaf5; white-space: nowrap; }
+
+.text-right  { text-align: right; }
+.text-center { text-align: center; }
+
+/* Tipo badge */
+.badge-tipo {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #7aabdf;
+  border-radius: 6px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Estado badges */
+.badge-estado {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.28rem 0.75rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.badge-estado--pendiente {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #FBBF24;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
+}
+
+.badge-estado--aprobado {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34D399;
+}
+
+.badge-estado--rechazado {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #F87171;
+}
+
+@media (max-width: 720px) {
+  .mv-body { padding: 1rem; }
+  .mv-table th:nth-child(3),
+  .mv-table td:nth-child(3),
+  .mv-table th:nth-child(4),
+  .mv-table td:nth-child(4) {
+    display: none;
+  }
+}
