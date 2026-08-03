@@ -48,7 +48,7 @@ def upgrade() -> None:
         sa.Column('estado', sa.String(length=20), server_default='pendiente', nullable=False),
         sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
         sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-        sa.ForeignKeyConstraint(['usuario_id'], ['usuarios.id'], ondelete='RESTRICT'),
+        sa.ForeignKeyConstraint(['usuario_id'], ['usuarios.id'], name='viaticos_usuario_id_fkey', ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_viaticos_estado'), 'viaticos', ['estado'], unique=False)
