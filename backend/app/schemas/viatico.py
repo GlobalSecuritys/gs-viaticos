@@ -46,3 +46,10 @@ class ViaticoResponse(ViaticoBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class ViaticoAdminResponse(ViaticoResponse):
+    codigo_empleado: str | None = None
+    nombre: str
+    correo: str
+
+    model_config = ConfigDict(from_attributes=True)

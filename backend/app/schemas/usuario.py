@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 class UsuarioBase(BaseModel):
     nombre: str
     correo: EmailStr
-    codigo_empleado: str
+    codigo_empleado: str | None = None
 
 
 class UsuarioCreate(UsuarioBase):
@@ -60,3 +60,4 @@ class UsuarioRolUpdate(BaseModel):
         if v not in ("admin", "tecnico"):
             raise ValueError("El rol debe ser 'admin' o 'tecnico'")
         return v
+

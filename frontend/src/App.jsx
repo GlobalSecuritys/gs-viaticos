@@ -1,10 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
+import AdminRoute from './components/AdminRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import NuevoViatico from './pages/NuevoViatico';
 import MisViaticos from './pages/MisViaticos';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminUsuarios from './pages/AdminUsuarios';
+import AdminViaticos from './pages/AdminViaticos';
 
 export default function App() {
   return (
@@ -34,6 +38,30 @@ export default function App() {
               <PrivateRoute>
                 <MisViaticos />
               </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/usuarios"
+            element={
+              <AdminRoute>
+                <AdminUsuarios />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/viaticos"
+            element={
+              <AdminRoute>
+                <AdminViaticos />
+              </AdminRoute>
             }
           />
           <Route path="*" element={<Navigate to="/login" replace />} />

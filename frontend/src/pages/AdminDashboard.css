@@ -1,0 +1,210 @@
+.admin-root {
+    min-height: 100vh;
+    background: var(--color-bg-primary, #0B1929);
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 2.5rem;
+    background: var(--color-bg-secondary, #101E33);
+    border-bottom: 1px solid var(--color-gold, #D4AF37);
+}
+
+.admin-header-brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.admin-logo-img {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+}
+
+.admin-brand-name {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--color-gold, #D4AF37);
+}
+
+.admin-brand-sub {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted, #7a9ec7);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.admin-header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.admin-user-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: rgba(212, 175, 55, 0.08);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 999px;
+    padding: 0.4rem 1rem 0.4rem 0.4rem;
+}
+
+.admin-user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--color-gold, #D4AF37);
+    color: #0B1929;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.admin-user-email {
+    color: var(--color-text, #E8ECF1);
+    font-size: 0.85rem;
+}
+
+.admin-main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2.5rem;
+}
+
+.admin-welcome h1 {
+    color: var(--color-text, #E8ECF1);
+    font-size: 1.8rem;
+    margin: 0 0 0.2rem;
+}
+
+.admin-welcome p {
+    color: var(--color-gold, #D4AF37);
+    margin: 0 0 2rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.admin-section-title {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 2rem 0 1rem;
+}
+
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.admin-stat-card {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-left: 3px solid var(--color-accent-blue, #3B82F6);
+    border-radius: 12px;
+    padding: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.admin-stat-card--pendiente {
+    border-left-color: var(--color-pendiente, #F59E0B);
+}
+
+.admin-stat-card--aprobado {
+    border-left-color: var(--color-aprobado, #10B981);
+}
+
+.stat-label {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.stat-value {
+    color: var(--color-text, #E8ECF1);
+    font-size: 1.9rem;
+    font-weight: 700;
+}
+
+.admin-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.admin-action-btn {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-gold, #D4AF37);
+    color: var(--color-gold, #D4AF37);
+    border-radius: 10px;
+    padding: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: inherit;
+    position: relative;
+}
+
+.admin-action-btn:hover:not(:disabled) {
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.admin-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.badge-soon {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--color-text-muted, #7a9ec7);
+    font-weight: 400;
+    margin-top: 0.2rem;
+}
+
+.admin-activity-list {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 12px;
+    padding: 0.5rem 1.4rem;
+}
+
+.admin-activity-item {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--color-border, #1a2e47);
+    color: var(--color-text, #E8ECF1);
+    font-size: 0.9rem;
+}
+
+.admin-activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-accent-blue, #3B82F6);
+    flex-shrink: 0;
+}
+
+.admin-stat-card--rechazado {
+    border-left-color: var(--color-rechazado, #EF4444);
+}

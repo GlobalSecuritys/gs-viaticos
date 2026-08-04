@@ -29,7 +29,11 @@ export function AuthProvider({ children }) {
 
     localStorage.setItem('gs_user', JSON.stringify(userData));
     setUser(userData);
-    navigate('/dashboard');
+    if (userData.rol === 'admin') {
+      navigate('/admin');
+    } else {
+      navigate('/dashboard');
+    }
   }
 
   function logout() {
