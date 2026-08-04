@@ -67,3 +67,13 @@ def get_current_user(
             detail="Usuario inactivo"
         )
     return usuario
+
+def get_current_admin(
+    current_user: Annotated[Usuario, Depends(get_current_user)]
+) -> Usuario:
+    if current_user.rol != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Se requiere rol de administrador para esta acción"
+        )
+    return current_user

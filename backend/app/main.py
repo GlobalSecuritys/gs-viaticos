@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi.responses import RedirectResponse
+from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.viaticos import router as viaticos_router
 
@@ -29,8 +30,9 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(viaticos_router)
+app.include_router(admin_router)
 
 
-@app.get("/", tags=["Health"])
-def health_check():
-    return {"status": "ok", "message": "API de GS Viáticos operando correctamente"}
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/docs")

@@ -25,9 +25,18 @@ def registrar_usuario(
             detail="El correo electrónico ya se encuentra registrado"
         )
 
+    stmt_codigo = select(Usuario).where(Usuario.codigo_empleado == usuario_in.codigo_empleado)
+    codigo_existente = db.scalar(stmt_codigo)
+    if codigo_existente:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="El código de empleado ya se encuentra registrado."
+        )
+
     nuevo_usuario = Usuario(
         nombre=usuario_in.nombre,
         correo=usuario_in.correo,
+        codigo_empleado=usuario_in.codigo_empleado,
         password_hash=hash_password(usuario_in.password),
         rol="tecnico",
         activo=True

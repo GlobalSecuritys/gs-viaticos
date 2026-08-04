@@ -14,6 +14,7 @@ class Usuario(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
     correo: Mapped[str] = mapped_column(String(150), nullable=False, unique=True, index=True)
+    codigo_empleado: Mapped[str] = mapped_column(String(15), nullable=True, unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     rol: Mapped[str] = mapped_column(String(20), nullable=False, server_default="tecnico")
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true", default=True)

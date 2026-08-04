@@ -1,7 +1,33 @@
+:root {
+  /* 60% - Dominante */
+  --color-bg-primary: #0B1929;
+  --color-bg-secondary: #101E33;
+
+  /* 30% - Secundario (dorado de marca) */
+  --color-gold: #D4AF37;
+  --color-gold-dark: #B8912C;
+
+  /* 10% - Acento */
+  --color-text: #E8ECF1;
+  --color-text-muted: #7a9ec7;
+  --color-accent-blue: #3B82F6;
+  --color-accent-blue-hover: #2563EB;
+
+  /* Estados */
+  --color-pendiente: #F59E0B;
+  --color-aprobado: #10B981;
+  --color-rechazado: #EF4444;
+
+  /* Bordes */
+  --color-border: #1a2e47;
+}
+
 /* ===== Global Reset & Base Styles ===== */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
