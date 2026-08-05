@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import './AdminDashboard.css';
 import './AdminUsuarios.css';
 
 export default function AdminUsuarios() {
     const navigate = useNavigate();
+    const { user } = useAuth();
+
     const [usuarios, setUsuarios] = useState([]);
     const [busqueda, setBusqueda] = useState('');
     const [loading, setLoading] = useState(true);
@@ -26,13 +29,18 @@ export default function AdminUsuarios() {
         cargarUsuarios();
     }, []);
 
-    async function cambiarRol(id, rolActual) {
-        const nuevoRol = rolActual === 'admin' ? 'tecnico' : 'admin';
+    async function cambiarRol(id, nuevoRol) {
         try {
-            await api.put(`/admin/usuarios/${id}/rol`, { rol: nuevoRol });
-            await cargarUsuarios();
+            await api.put(`/admin/usuarios/${id}/rol`, {
+                rol: nuevoRol,
+            });
+
+            cargarUsuarios();
         } catch (err) {
-            setError('No se pudo cambiar el rol');
+            setError(
+                err.response?.data?.detail ||
+                'No se pudo cambiar el rol'
+            );
         }
     }
 
@@ -45,8 +53,17 @@ export default function AdminUsuarios() {
     return (
         <div className="admin-root">
             <div className="admin-main">
-                <button className="admin-back-btn" onClick={() => navigate('/admin')}>← Volver</button>
-                <h1 className="admin-page-title">Usuarios</h1>
+
+                <button
+                    className="admin-back-btn"
+                    onClick={() => navigate('/admin')}
+                >
+                    ← Volver
+                </button>
+
+                <h1 className="admin-page-title">
+                    Administración de Usuarios
+                </h1>
 
                 <input
                     type="text"
@@ -56,9 +73,14 @@ export default function AdminUsuarios() {
                     onChange={(e) => setBusqueda(e.target.value)}
                 />
 
-                {error && <p style={{ color: 'var(--color-rechazado, #EF4444)' }}>{error}</p>}
+                {error && (
+                    <p style={{ color: '#EF4444', marginBottom: '1rem' }}>
+                        {error}
+                    </p>
+                )}
+
                 {loading ? (
-                    <p style={{ color: 'var(--color-text-muted)' }}>Cargando usuarios...</p>
+                    <p>Cargando usuarios...</p>
                 ) : (
                     <table className="admin-table">
                         <thead>
@@ -67,25 +89,72 @@ export default function AdminUsuarios() {
                                 <th>Nombre</th>
                                 <th>Correo</th>
                                 <th>Rol</th>
-                                <th></th>
+                                <th>Cambiar rol</th>
                             </tr>
                         </thead>
+
                         <tbody>
                             {filtrados.map((u) => (
                                 <tr key={u.id}>
-                                    <td>{u.codigo_empleado || '—'}</td>                                    <td>{u.nombre}</td>
+                                    <td>{u.codigo_empleado || '—'}</td>
+
+                                    <td>{u.nombre}</td>
+
                                     <td>{u.correo}</td>
+
                                     <td>
-                                        <span className={`rol-badge rol-badge--${u.rol}`}>{u.rol.toUpperCase()}</span>
+                                        <span
+                                            className={`rol-badge ${u.rol === 'superadmin'
+                                                ? 'rol-badge--superadmin'
+                                                : `rol-badge--${u.rol}`
+                                                }`}
+                                        >
+                                            {u.rol.toUpperCase()}
+                                        </span>
                                     </td>
+
                                     <td>
-                                        <button className="admin-mini-btn" onClick={() => cambiarRol(u.id, u.rol)}>
-                                            Cambiar a {u.rol === 'admin' ? 'Técnico' : 'Admin'}
-                                        </button>
+                                        {u.rol === 'superadmin' ? (
+                                            <select
+                                                className="admin-select"
+                                                value="superadmin"
+                                                disabled
+                                            >
+                                                <option value="superadmin">
+                                                    SuperAdmin
+                                                </option>
+                                            </select>
+                                        ) : (
+                                            <select
+                                                className="admin-select"
+                                                value={u.rol}
+                                                onChange={(e) =>
+                                                    cambiarRol(
+                                                        u.id,
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                <option value="tecnico">
+                                                    Técnico
+                                                </option>
+
+                                                <option value="admin">
+                                                    Admin
+                                                </option>
+
+                                                {user?.rol === 'superadmin' && (
+                                                    <option value="superadmin">
+                                                        SuperAdmin
+                                                    </option>
+                                                )}
+                                            </select>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
+
                     </table>
                 )}
             </div>

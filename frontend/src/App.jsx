@@ -55,14 +55,7 @@ export default function App() {
               </AdminRoute>
             }
           />
-          <Route
-            path="/admin/viaticos"
-            element={
-              <AdminRoute>
-                <AdminViaticos />
-              </AdminRoute>
-            }
-          />
+
           <Route
             path="/admin/viaticos"
             element={

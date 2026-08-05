@@ -6,7 +6,7 @@ export default function AdminRoute({ children }) {
     if (!user) {
         return <Navigate to="/login" replace />;
     }
-    if (user.rol !== 'admin') {
+    if (user?.rol !== 'admin' && user?.rol !== 'superadmin') {
         return <Navigate to="/dashboard" replace />;
     }
     return children;

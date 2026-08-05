@@ -61,6 +61,11 @@
     color: var(--color-gold, #D4AF37);
 }
 
+.rol-badge--superadmin {
+    background: #7c3aed;
+    color: white;
+}
+
 .rol-badge--tecnico {
     background: rgba(59, 130, 246, 0.15);
     color: var(--color-accent-blue, #3B82F6);
@@ -74,4 +79,28 @@
     padding: 0.4rem 0.8rem;
     cursor: pointer;
     font-size: 0.8rem;
+}
+
+.rol-fijo {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: #4f46e5;
+    color: #fff;
+    font-weight: 600;
+    text-align: center;
+}
+
+.admin-select {
+    background: #16243a;
+    color: #fff;
+    border: 1px solid #2d4d75;
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.admin-select option {
+    background: #16243a;
+    color: #fff;
 }
