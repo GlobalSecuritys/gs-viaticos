@@ -7,6 +7,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.usuario import Usuario
+    from app.models.evidencia_viatico import EvidenciaViatico
 
 
 class Viatico(Base):
@@ -45,3 +46,9 @@ class Viatico(Base):
     )
 
     usuario: Mapped["Usuario"] = relationship("Usuario", back_populates="viaticos")
+    evidencias: Mapped[list["EvidenciaViatico"]] = relationship(
+        "EvidenciaViatico",
+        back_populates="viatico",
+        cascade="all, delete-orphan",
+        order_by="EvidenciaViatico.created_at",
+    )

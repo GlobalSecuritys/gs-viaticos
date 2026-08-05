@@ -88,7 +88,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Empty state */
@@ -171,13 +173,36 @@
   background: #0e1829;
 }
 
-.td-date  { color: #7a9ec7; font-size: 0.84rem; white-space: nowrap; }
-.td-main  { font-weight: 500; color: #e2eaf5; }
-.td-ot    { font-family: 'Courier New', monospace; font-size: 0.82rem; color: #5a7aa0; }
-.td-valor { font-weight: 600; color: #e2eaf5; white-space: nowrap; }
+.td-date {
+  color: #7a9ec7;
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
 
-.text-right  { text-align: right; }
-.text-center { text-align: center; }
+.td-main {
+  font-weight: 500;
+  color: #e2eaf5;
+}
+
+.td-ot {
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem;
+  color: #5a7aa0;
+}
+
+.td-valor {
+  font-weight: 600;
+  color: #e2eaf5;
+  white-space: nowrap;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
+}
 
 /* Tipo badge */
 .badge-tipo {
@@ -222,11 +247,30 @@
 }
 
 @media (max-width: 720px) {
-  .mv-body { padding: 1rem; }
+  .mv-body {
+    padding: 1rem;
+  }
+
   .mv-table th:nth-child(3),
   .mv-table td:nth-child(3),
   .mv-table th:nth-child(4),
   .mv-table td:nth-child(4) {
     display: none;
   }
+}
+
+.badge-evidencia {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--color-accent-blue, #3B82F6);
+}
+
+.badge-evidencia--vacio {
+  background: rgba(122, 158, 199, 0.1);
+  color: var(--color-text-muted, #7a9ec7);
+  font-weight: 400;
 }

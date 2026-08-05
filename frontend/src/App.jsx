@@ -9,7 +9,6 @@ import MisViaticos from './pages/MisViaticos';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsuarios from './pages/AdminUsuarios';
 import AdminViaticos from './pages/AdminViaticos';
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -53,6 +52,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <AdminUsuarios />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/viaticos"
+            element={
+              <AdminRoute>
+                <AdminViaticos />
               </AdminRoute>
             }
           />

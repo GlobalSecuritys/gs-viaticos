@@ -5,11 +5,11 @@ import './MisViaticos.css';
 
 const LABEL_TIPO = {
   alimentacion: 'Alimentación',
-  transporte:   'Transporte',
-  hotel:        'Hotel',
-  peajes:       'Peajes',
-  parqueadero:  'Parqueadero',
-  otros:        'Otros',
+  transporte: 'Transporte',
+  hotel: 'Hotel',
+  peajes: 'Peajes',
+  parqueadero: 'Parqueadero',
+  otros: 'Otros',
 };
 
 function formatCOP(value) {
@@ -28,8 +28,8 @@ function formatDate(dateStr) {
 export default function MisViaticos() {
   const navigate = useNavigate();
   const [viaticos, setViaticos] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     async function fetchViaticos() {
@@ -101,6 +101,7 @@ export default function MisViaticos() {
                   <th>OT</th>
                   <th>Tipo de Gasto</th>
                   <th className="text-right">Valor</th>
+                  <th className="text-center">Evidencia</th>
                   <th className="text-center">Estado</th>
                 </tr>
               </thead>
@@ -115,6 +116,15 @@ export default function MisViaticos() {
                       <span className="badge-tipo">{LABEL_TIPO[v.tipo_gasto] || v.tipo_gasto}</span>
                     </td>
                     <td className="text-right td-valor">{formatCOP(v.valor)}</td>
+                    <td className="text-center">
+                      {v.evidencias && v.evidencias.length > 0 ? (
+                        <span className="badge-evidencia">
+                          📎 {v.evidencias.length} {v.evidencias.length === 1 ? 'foto' : 'fotos'}
+                        </span>
+                      ) : (
+                        <span className="badge-evidencia badge-evidencia--vacio">Sin fotos</span>
+                      )}
+                    </td>
                     <td className="text-center">
                       <span className={`badge-estado badge-estado--${v.estado}`}>
                         {v.estado.charAt(0).toUpperCase() + v.estado.slice(1)}

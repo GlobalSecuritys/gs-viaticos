@@ -68,13 +68,17 @@ def listar_todos_los_viaticos(
 ):
     stmt = (
         select(Viatico)
-        .options(joinedload(Viatico.usuario))
+        .options(
+            joinedload(Viatico.usuario),
+            joinedload(Viatico.evidencias),
+        )
         .order_by(
             (Viatico.estado == "pendiente").desc(),
             Viatico.created_at.desc()
         )
     )
-    viaticos = db.scalars(stmt).all()
+
+    viaticos = db.execute(stmt).unique().scalars().all()
 
     resultado = []
     for v in viaticos:
@@ -92,6 +96,7 @@ def listar_todos_los_viaticos(
                 estado=v.estado,
                 created_at=v.created_at,
                 updated_at=v.updated_at,
+                evidencias=v.evidencias,
                 codigo_empleado=v.usuario.codigo_empleado,
                 nombre=v.usuario.nombre,
                 correo=v.usuario.correo,

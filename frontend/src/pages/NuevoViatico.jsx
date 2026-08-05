@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { subirEvidencias } from '../services/api';
+import SelectorEvidencias from '../components/SelectorEvidencias';
 import './Forms.css';
 
 const TIPOS_GASTO = [
-  { value: 'alimentacion',  label: 'Alimentación' },
-  { value: 'transporte',    label: 'Transporte' },
-  { value: 'hotel',         label: 'Hotel / Hospedaje' },
-  { value: 'peajes',        label: 'Peajes' },
-  { value: 'parqueadero',   label: 'Parqueadero' },
-  { value: 'otros',         label: 'Otros' },
+  { value: 'alimentacion', label: 'Alimentación' },
+  { value: 'transporte', label: 'Transporte' },
+  { value: 'hotel', label: 'Hotel / Hospedaje' },
+  { value: 'peajes', label: 'Peajes' },
+  { value: 'parqueadero', label: 'Parqueadero' },
+  { value: 'otros', label: 'Otros' },
 ];
 
 const INITIAL_STATE = {
@@ -27,7 +28,8 @@ export default function NuevoViatico() {
   const [form, setForm] = useState(INITIAL_STATE);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
+  const [archivos, setArchivos] = useState([]);
+  const [errorEvidencias, setErrorEvidencias] = useState('');
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -43,12 +45,29 @@ export default function NuevoViatico() {
       return;
     }
 
+    if (archivos.length === 0) {
+      setError('Debes adjuntar al menos 1 fotografía como evidencia.');
+      return;
+    }
+
     setLoading(true);
     try {
-      await api.post('/viaticos', {
+      const { data: viaticoCreado } = await api.post('/viaticos', {
         ...form,
         valor,
       });
+
+      try {
+        await subirEvidencias(viaticoCreado.id, archivos);
+      } catch (errEvidencias) {
+        setError(
+          'El viático se guardó, pero hubo un problema subiendo las fotografías. ' +
+          'Puedes intentar agregarlas más tarde desde el detalle del viático.'
+        );
+        setLoading(false);
+        return;
+      }
+
       navigate('/mis-viaticos');
     } catch (err) {
       const detail = err.response?.data?.detail;
@@ -178,6 +197,13 @@ export default function NuevoViatico() {
               placeholder="Detalle adicional del gasto…"
             />
           </div>
+
+          <SelectorEvidencias
+            archivos={archivos}
+            setArchivos={setArchivos}
+            error={errorEvidencias}
+            setError={setErrorEvidencias}
+          />
 
           <div className="form-actions">
             <button

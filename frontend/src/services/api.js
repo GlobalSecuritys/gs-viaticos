@@ -13,3 +13,12 @@ api.interceptors.request.use((config) => {
 });
 
 export default api;
+
+export async function subirEvidencias(viaticoId, archivos) {
+  const formData = new FormData();
+  archivos.forEach((a) => formData.append('files', a.file));
+
+  return api.post(`/viaticos/${viaticoId}/evidencias`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+}
