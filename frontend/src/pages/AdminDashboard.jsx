@@ -89,9 +89,6 @@ export default function AdminDashboard() {
                     <button className="admin-action-btn" onClick={() => navigate('/admin/personal')}>
                         Personal
                     </button>
-                    <button className="admin-action-btn" onClick={() => navigate('/admin/asignaciones')}>
-                        Asignaciones
-                    </button>
                 </div>
             </main>
         </div>

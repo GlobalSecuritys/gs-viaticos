@@ -1,6 +1,7 @@
-// Utilidades del módulo Personal.
-// Todo se calcula en el frontend usando datos existentes de
-// /admin/usuarios y /admin/viaticos. No modifica backend ni base de datos.
+// Utilidades para el módulo "Personal": formateo y derivación de
+// "asignación actual" a partir de los viáticos ya existentes.
+// No se crea ni modifica ningún dato en el backend: todo se calcula
+// en el cliente a partir de lo que ya devuelven /admin/usuarios y /admin/viaticos.
 
 export const LABEL_TIPO_GASTO = {
     alimentacion: 'Alimentación',
@@ -11,7 +12,9 @@ export const LABEL_TIPO_GASTO = {
     otros: 'Otros',
 };
 
-// El backend maneja rol (tecnico/admin/superadmin), no un cargo independiente.
+// El backend solo maneja "rol" (tecnico/admin/superadmin). No existe un campo
+// de "cargo" independiente, así que lo derivamos del rol para mostrarlo en el
+// perfil, tal como pide el diseño.
 export const LABEL_CARGO = {
     tecnico: 'Técnico',
     admin: 'Administrador',
@@ -28,10 +31,7 @@ const MESES_CORTO = [
     'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
 ];
 
-const DIAS_SEMANA = [
-    'Lunes', 'Martes', 'Miércoles', 'Jueves',
-    'Viernes', 'Sábado', 'Domingo',
-];
+const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 export function formatCOP(value) {
     return new Intl.NumberFormat('es-CO', {
@@ -41,22 +41,21 @@ export function formatCOP(value) {
     }).format(value || 0);
 }
 
-// Recibe YYYY-MM-DD y evita problemas de zona horaria.
+// Recibe 'YYYY-MM-DD' (como lo entrega la API) y evita problemas de huso
+// horario que da `new Date('YYYY-MM-DD')`.
 function parsearFechaISO(fechaStr) {
-    const [year, month, day] = String(fechaStr).split('-').map(Number);
+    const [year, month, day] = fechaStr.split('-').map(Number);
     return new Date(year, month - 1, day);
 }
 
 export function formatFechaLarga(fechaStr) {
     if (!fechaStr) return '—';
-
     const fecha = parsearFechaISO(fechaStr);
     return `${fecha.getDate()} ${MESES_LARGO[fecha.getMonth()]}`;
 }
 
 export function formatFechaCorta(fechaStr) {
     if (!fechaStr) return '—';
-
     const fecha = parsearFechaISO(fechaStr);
     return `${fecha.getDate()} ${MESES_CORTO[fecha.getMonth()]}`;
 }
@@ -65,171 +64,124 @@ export function hoyISO() {
     const hoy = new Date();
     const mes = String(hoy.getMonth() + 1).padStart(2, '0');
     const dia = String(hoy.getDate()).padStart(2, '0');
-
     return `${hoy.getFullYear()}-${mes}-${dia}`;
 }
 
+// Lunes de la semana que contiene `fechaBase` (Date). Semana Lunes→Domingo.
 export function inicioDeSemana(fechaBase = new Date()) {
     const fecha = new Date(fechaBase);
-    const diaSemana = fecha.getDay();
+    const diaSemana = fecha.getDay(); // 0=domingo .. 6=sábado
     const offset = diaSemana === 0 ? -6 : 1 - diaSemana;
-
     fecha.setDate(fecha.getDate() + offset);
     fecha.setHours(0, 0, 0, 0);
-
     return fecha;
 }
 
 export function finDeSemana(fechaBase = new Date()) {
     const inicio = inicioDeSemana(fechaBase);
     const fin = new Date(inicio);
-
     fin.setDate(fin.getDate() + 6);
-
     return fin;
 }
 
+// Número de semana ISO-8601 aproximado, suficiente para el label "Semana N".
 export function numeroDeSemana(fechaBase = new Date()) {
-    const fecha = new Date(
-        Date.UTC(
-            fechaBase.getFullYear(),
-            fechaBase.getMonth(),
-            fechaBase.getDate()
-        )
-    );
-
+    const fecha = new Date(Date.UTC(fechaBase.getFullYear(), fechaBase.getMonth(), fechaBase.getDate()));
     const diaSemana = fecha.getUTCDay() || 7;
     fecha.setUTCDate(fecha.getUTCDate() + 4 - diaSemana);
-
     const inicioAno = new Date(Date.UTC(fecha.getUTCFullYear(), 0, 1));
-
     return Math.ceil(((fecha - inicioAno) / 86400000 + 1) / 7);
 }
 
 export function nombreDia(fechaStr) {
     const fecha = parsearFechaISO(fechaStr);
     const diaSemana = fecha.getDay();
-
     return DIAS_SEMANA[diaSemana === 0 ? 6 : diaSemana - 1];
 }
 
 export function iniciales(nombre) {
     if (!nombre) return '?';
-
     const partes = nombre.trim().split(/\s+/);
-
-    if (partes.length === 1) {
-        return partes[0].slice(0, 2).toUpperCase();
-    }
-
+    if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
     return (partes[0][0] + partes[1][0]).toUpperCase();
 }
 
-// --- Actividad reciente basada únicamente en viáticos reales ---
+// --- Derivación de "Asignación actual" a partir de los viáticos existentes ---
+//
+// No existe en el backend un concepto de "asignación" con fecha de inicio/fin;
+// solo viáticos individuales con fecha, cliente, ciudad y ot (orden de trabajo).
+// Para mostrar la Sección 2 del perfil, agrupamos los viáticos del empleado por
+// (ot + cliente + ciudad) y tratamos cada grupo como una "asignación", tomando
+// la fecha mínima y máxima del grupo como Inicio/Final.
 
-function diasDesde(fechaStr) {
-    const fecha = parsearFechaISO(fechaStr);
-    const hoy = new Date();
+export function agruparAsignaciones(viaticos) {
+    const grupos = new Map();
 
-    hoy.setHours(0, 0, 0, 0);
-    fecha.setHours(0, 0, 0, 0);
-
-    return Math.round((hoy - fecha) / 86400000);
-}
-
-// Devuelve un viático existente con la fecha más reciente.
-// No agrupa registros ni deduce una asignación.
-export function obtenerActividadReciente(viaticos = []) {
-    if (!Array.isArray(viaticos) || viaticos.length === 0) {
-        return null;
+    for (const v of viaticos) {
+        const key = `${v.ot}|${v.cliente}|${v.ciudad}`;
+        if (!grupos.has(key)) {
+            grupos.set(key, { ot: v.ot, cliente: v.cliente, ciudad: v.ciudad, fechas: [] });
+        }
+        grupos.get(key).fechas.push(v.fecha);
     }
 
-    const ordenados = [...viaticos]
-        .filter((viatico) => viatico?.fecha)
-        .sort((a, b) => {
-            const porFecha = String(b.fecha).localeCompare(String(a.fecha));
-
-            if (porFecha !== 0) {
-                return porFecha;
-            }
-
-            return String(b.created_at ?? '').localeCompare(
-                String(a.created_at ?? '')
-            );
-        });
-
-    const ultimo = ordenados[0];
-
-    if (!ultimo) {
-        return null;
-    }
-
-    return {
-        cliente: ultimo.cliente,
-        ciudad: ultimo.ciudad,
-        ot: ultimo.ot,
-        fecha: ultimo.fecha,
-        diasDesde: diasDesde(ultimo.fecha),
-    };
+    return Array.from(grupos.values()).map((g) => {
+        const fechasOrdenadas = [...g.fechas].sort();
+        return {
+            ot: g.ot,
+            cliente: g.cliente,
+            ciudad: g.ciudad,
+            inicio: fechasOrdenadas[0],
+            final: fechasOrdenadas[fechasOrdenadas.length - 1],
+        };
+    });
 }
 
-export function contarViaticos(viaticos = []) {
-    return Array.isArray(viaticos) ? viaticos.length : 0;
-}
+// Devuelve la asignación "vigente": preferimos una que incluya la fecha de
+// hoy; si no hay ninguna en curso, mostramos la más reciente ya finalizada;
+// si tampoco hay, mostramos la próxima asignación futura más cercana.
+export function obtenerAsignacionActual(viaticos) {
+    const grupos = agruparAsignaciones(viaticos);
+    if (grupos.length === 0) return null;
 
-export function contarViaticosHoy(viaticos = []) {
     const hoy = hoyISO();
 
-    return Array.isArray(viaticos)
-        ? viaticos.filter((viatico) => viatico.fecha === hoy).length
-        : 0;
+    const enCurso = grupos
+        .filter((g) => g.inicio <= hoy && g.final >= hoy)
+        .sort((a, b) => b.final.localeCompare(a.final));
+    if (enCurso.length > 0) return { ...enCurso[0], estado: 'en_curso' };
+
+    const pasadas = grupos
+        .filter((g) => g.final < hoy)
+        .sort((a, b) => b.final.localeCompare(a.final));
+    if (pasadas.length > 0) return { ...pasadas[0], estado: 'finalizada' };
+
+    const futuras = grupos
+        .filter((g) => g.inicio > hoy)
+        .sort((a, b) => a.inicio.localeCompare(b.inicio));
+    if (futuras.length > 0) return { ...futuras[0], estado: 'proxima' };
+
+    return null;
 }
 
-export function etiquetaDiasDesde(dias) {
-    if (dias === 0) return 'Hoy';
-    if (dias === 1) return 'Ayer';
-    if (dias < 0) return 'Fecha futura';
+export const LABEL_ESTADO_ASIGNACION = {
+    en_curso: 'En curso',
+    finalizada: 'Finalizada',
+    proxima: 'Próxima',
+};
 
-    return `Hace ${dias} días`;
+// --- Filtros de tiempo (Sección 3) ---
+
+export function filtrarPorRango(viaticos, inicioISO, finISO) {
+    return viaticos.filter((v) => v.fecha >= inicioISO && v.fecha <= finISO);
 }
 
-// --- Filtros de tiempo ---
-
-export function filtrarPorRango(viaticos = [], inicioISO, finISO) {
-    if (!Array.isArray(viaticos)) return [];
-
-    return viaticos.filter(
-        (viatico) =>
-            viatico.fecha >= inicioISO &&
-            viatico.fecha <= finISO
-    );
-}
-
-export function resumen(viaticos = []) {
-    if (!Array.isArray(viaticos)) {
-        return {
-            total: 0,
-            cantidad: 0,
-            aprobados: 0,
-            pendientes: 0,
-            rechazados: 0,
-        };
-    }
-
+export function resumen(viaticos) {
     return {
-        total: viaticos.reduce(
-            (acumulado, viatico) => acumulado + Number(viatico.valor || 0),
-            0
-        ),
+        total: viaticos.reduce((acc, v) => acc + Number(v.valor), 0),
         cantidad: viaticos.length,
-        aprobados: viaticos.filter(
-            (viatico) => viatico.estado === 'aprobado'
-        ).length,
-        pendientes: viaticos.filter(
-            (viatico) => viatico.estado === 'pendiente'
-        ).length,
-        rechazados: viaticos.filter(
-            (viatico) => viatico.estado === 'rechazado'
-        ).length,
+        aprobados: viaticos.filter((v) => v.estado === 'aprobado').length,
+        pendientes: viaticos.filter((v) => v.estado === 'pendiente').length,
+        rechazados: viaticos.filter((v) => v.estado === 'rechazado').length,
     };
 }

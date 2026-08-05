@@ -9,9 +9,6 @@ import MisViaticos from './pages/MisViaticos';
 import AdminDashboard from './pages/AdminDashboard';
 import Personal from './pages/Personal';
 import PerfilEmpleado from './pages/PerfilEmpleado';
-import Asignaciones from './pages/Asignaciones';
-import NuevaAsignacion from './pages/NuevaAsignacion';
-import DetalleAsignacion from './pages/DetalleAsignacion';
 export default function App() {
   return (
     <BrowserRouter>
@@ -64,30 +61,6 @@ export default function App() {
             element={
               <AdminRoute>
                 <PerfilEmpleado />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/admin/asignaciones"
-            element={
-              <AdminRoute>
-                <Asignaciones />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/admin/asignaciones/nueva"
-            element={
-              <AdminRoute>
-                <NuevaAsignacion />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/admin/asignaciones/:id"
-            element={
-              <AdminRoute>
-                <DetalleAsignacion />
               </AdminRoute>
             }
           />

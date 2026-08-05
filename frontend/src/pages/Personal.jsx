@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { listarAsignaciones } from '../services/asignaciones';
 import {
     LABEL_CARGO,
     formatFechaCorta,
     iniciales,
+    obtenerAsignacionActual,
 } from '../utils/personal';
-import { LABEL_TIPO_ASIGNACION, obtenerAsignacionActivaDeTecnico } from '../utils/asignaciones';
 import './Personal.css';
 
 export default function Personal() {
     const navigate = useNavigate();
 
     const [usuarios, setUsuarios] = useState([]);
-    const [asignaciones, setAsignaciones] = useState([]);
+    const [viaticos, setViaticos] = useState([]);
     const [busqueda, setBusqueda] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -22,22 +21,16 @@ export default function Personal() {
     useEffect(() => {
         async function cargar() {
             try {
-                const { data } = await api.get('/admin/usuarios');
-                setUsuarios(data);
+                const [resUsuarios, resViaticos] = await Promise.all([
+                    api.get('/admin/usuarios'),
+                    api.get('/admin/viaticos'),
+                ]);
+                setUsuarios(resUsuarios.data);
+                setViaticos(resViaticos.data);
             } catch {
                 setError('No se pudo cargar el personal.');
             } finally {
                 setLoading(false);
-            }
-
-            // Las asignaciones se cargan aparte y de forma tolerante: mientras el
-            // backend de Fase 2 no exista todavía, la tarjeta simplemente mostrará
-            // "Sin asignación activa" en vez de romper la carga de Personal.
-            try {
-                const resAsignaciones = await listarAsignaciones();
-                setAsignaciones(resAsignaciones.data);
-            } catch {
-                setAsignaciones([]);
             }
         }
         cargar();
@@ -45,10 +38,11 @@ export default function Personal() {
 
     const empleados = useMemo(() => {
         return usuarios.map((u) => {
-            const asignacionActiva = obtenerAsignacionActivaDeTecnico(asignaciones, u.id);
-            return { ...u, asignacionActiva };
+            const viaticosUsuario = viaticos.filter((v) => v.usuario_id === u.id);
+            const asignacion = obtenerAsignacionActual(viaticosUsuario);
+            return { ...u, asignacion };
         });
-    }, [usuarios, asignaciones]);
+    }, [usuarios, viaticos]);
 
     const filtrados = empleados.filter((e) =>
         e.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -91,17 +85,17 @@ export default function Personal() {
                                     {LABEL_CARGO[e.rol] || e.rol}
                                 </span>
 
-                                {e.asignacionActiva ? (
+                                {e.asignacion ? (
                                     <>
                                         <p className="personal-card-asignacion">
-                                            {LABEL_TIPO_ASIGNACION[e.asignacionActiva.tipo] || e.asignacionActiva.tipo} - {e.asignacionActiva.ciudad}
+                                            {e.asignacion.ot} - {e.asignacion.ciudad}
                                         </p>
                                         <p className="personal-card-fechas">
-                                            {formatFechaCorta(e.asignacionActiva.fecha_inicio)} → {formatFechaCorta(e.asignacionActiva.fecha_fin)}
+                                            {formatFechaCorta(e.asignacion.inicio)} → {formatFechaCorta(e.asignacion.final)}
                                         </p>
                                     </>
                                 ) : (
-                                    <p className="personal-card-sin-asignacion">Sin asignación activa</p>
+                                    <p className="personal-card-sin-asignacion">Sin viáticos registrados</p>
                                 )}
 
                                 <button

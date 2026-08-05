@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import ModalEvidencia from '../components/ModalEvidencia';
-import { listarAsignaciones } from '../services/asignaciones';
 import {
     LABEL_CARGO,
+    LABEL_ESTADO_ASIGNACION,
     LABEL_TIPO_GASTO,
     filtrarPorRango,
     finDeSemana,
@@ -15,12 +15,11 @@ import {
     inicioDeSemana,
     nombreDia,
     numeroDeSemana,
+    obtenerAsignacionActual,
     resumen,
 } from '../utils/personal';
-import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION, CLASE_ESTADO_ASIGNACION, obtenerAsignacionActivaDeTecnico } from '../utils/asignaciones';
 import './Personal.css';
 import './PerfilEmpleado.css';
-import '../components/AsignacionCard.css';
 
 const FILTROS = [
     { id: 'hoy', label: 'Hoy' },
@@ -41,7 +40,6 @@ export default function PerfilEmpleado() {
 
     const [usuario, setUsuario] = useState(null);
     const [viaticos, setViaticos] = useState([]);
-    const [asignaciones, setAsignaciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [filtro, setFiltro] = useState('mes');
@@ -96,23 +94,11 @@ export default function PerfilEmpleado() {
             } finally {
                 setLoading(false);
             }
-
-            // Tolerante: si el backend de Asignaciones (Fase 2) aún no existe,
-            // la sección simplemente mostrará "Sin asignación activa".
-            try {
-                const resAsignaciones = await listarAsignaciones();
-                setAsignaciones(resAsignaciones.data);
-            } catch {
-                setAsignaciones([]);
-            }
         }
         cargar();
     }, [id]);
 
-    const asignacionActiva = useMemo(
-        () => obtenerAsignacionActivaDeTecnico(asignaciones, id),
-        [asignaciones, id]
-    );
+    const asignacion = useMemo(() => obtenerAsignacionActual(viaticos), [viaticos]);
 
     const viaticosFiltrados = useMemo(() => {
         if (filtro === 'hoy') {
@@ -188,43 +174,36 @@ export default function PerfilEmpleado() {
                     </div>
                 </div>
 
-                {/* Sección 2: Asignación actual (entidad real de Fase 2, ya no inferida de viáticos) */}
+                {/* Sección 2: Asignación actual */}
                 <h2 className="admin-section-title">Asignación actual</h2>
-                {asignacionActiva ? (
+                {asignacion ? (
                     <div className="asignacion-card">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                            <h3 className="asignacion-ot" style={{ margin: 0 }}>
-                                {LABEL_TIPO_ASIGNACION[asignacionActiva.tipo] || asignacionActiva.tipo}
-                            </h3>
-                            <span className={`estado-asignacion ${CLASE_ESTADO_ASIGNACION[asignacionActiva.estado] || ''}`}>
-                                {LABEL_ESTADO_ASIGNACION[asignacionActiva.estado] || asignacionActiva.estado}
-                            </span>
-                        </div>
+                        <h3 className="asignacion-ot">{asignacion.ot}</h3>
                         <div className="perfil-info-grid">
                             <div>
                                 <span className="modal-info-label">Cliente</span>
-                                <span className="modal-info-valor">{asignacionActiva.cliente}</span>
-                            </div>
-                            <div>
-                                <span className="modal-info-label">Empresa</span>
-                                <span className="modal-info-valor">{asignacionActiva.empresa || '—'}</span>
+                                <span className="modal-info-valor">{asignacion.cliente}</span>
                             </div>
                             <div>
                                 <span className="modal-info-label">Ciudad</span>
-                                <span className="modal-info-valor">{asignacionActiva.ciudad}</span>
+                                <span className="modal-info-valor">{asignacion.ciudad}</span>
                             </div>
                             <div>
                                 <span className="modal-info-label">Inicio</span>
-                                <span className="modal-info-valor">{formatFechaLarga(asignacionActiva.fecha_inicio)}</span>
+                                <span className="modal-info-valor">{formatFechaLarga(asignacion.inicio)}</span>
                             </div>
                             <div>
                                 <span className="modal-info-label">Final</span>
-                                <span className="modal-info-valor">{formatFechaLarga(asignacionActiva.fecha_fin)}</span>
+                                <span className="modal-info-valor">{formatFechaLarga(asignacion.final)}</span>
+                            </div>
+                            <div>
+                                <span className="modal-info-label">Estado</span>
+                                <span className="modal-info-valor">{LABEL_ESTADO_ASIGNACION[asignacion.estado]}</span>
                             </div>
                         </div>
                     </div>
                 ) : (
-                    <p style={{ color: 'var(--color-text-muted)' }}>Sin asignación activa.</p>
+                    <p style={{ color: 'var(--color-text-muted)' }}>Este empleado no tiene viáticos registrados.</p>
                 )}
 
                 {/* Sección 3: Filtros de tiempo */}
