@@ -1,0 +1,76 @@
+.asig-card {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 14px;
+    padding: 1.2rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.asig-card:hover {
+    border-color: var(--color-gold, #D4AF37);
+}
+
+.asig-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.3rem;
+}
+
+.asig-card-tipo {
+    color: var(--color-gold, #D4AF37);
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+}
+
+.asig-card-tecnico {
+    color: var(--color-text, #E8ECF1);
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.asig-card-cliente {
+    color: var(--color-text, #E8ECF1);
+    margin: 0;
+    font-size: 0.88rem;
+}
+
+.asig-card-ciudad,
+.asig-card-fechas {
+    color: var(--color-text-muted, #7a9ec7);
+    margin: 0;
+    font-size: 0.82rem;
+}
+
+.estado-asignacion {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.estado-asignacion--pendiente {
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--color-gold, #D4AF37);
+}
+
+.estado-asignacion--en-curso {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--color-aprobado, #10B981);
+}
+
+.estado-asignacion--finalizada {
+    background: rgba(122, 158, 199, 0.15);
+    color: var(--color-text-muted, #7a9ec7);
+}
+
+.estado-asignacion--cancelada {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--color-rechazado, #EF4444);
+}

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
+import ModalEvidencia from '../components/ModalEvidencia';
+import { listarAsignaciones } from '../services/asignaciones';
 import {
     LABEL_CARGO,
     LABEL_TIPO_GASTO,
-    etiquetaDiasDesde,
     filtrarPorRango,
     finDeSemana,
     formatCOP,
@@ -14,17 +15,18 @@ import {
     inicioDeSemana,
     nombreDia,
     numeroDeSemana,
-    obtenerActividadReciente,
     resumen,
 } from '../utils/personal';
+import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION, CLASE_ESTADO_ASIGNACION, obtenerAsignacionActivaDeTecnico } from '../utils/asignaciones';
 import './Personal.css';
 import './PerfilEmpleado.css';
+import '../components/AsignacionCard.css';
 
 const FILTROS = [
     { id: 'hoy', label: 'Hoy' },
     { id: 'semana', label: 'Semana' },
     { id: 'mes', label: 'Mes' },
-    { id: 'personalizado', label: 'Rango' },
+    { id: 'personalizado', label: 'Personalizado' },
 ];
 
 function aISO(date) {
@@ -39,9 +41,36 @@ export default function PerfilEmpleado() {
 
     const [usuario, setUsuario] = useState(null);
     const [viaticos, setViaticos] = useState([]);
+    const [asignaciones, setAsignaciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [filtro, setFiltro] = useState('mes');
+    const [seleccionado, setSeleccionado] = useState(null);
+
+    async function recargarViaticos() {
+        const resViaticos = await api.get('/admin/viaticos');
+        setViaticos(resViaticos.data.filter((v) => String(v.usuario_id) === id));
+    }
+
+    async function aprobar(viaticoId) {
+        try {
+            await api.put(`/admin/viaticos/${viaticoId}/aprobar`);
+            setSeleccionado(null);
+            recargarViaticos();
+        } catch {
+            setError('No se pudo aprobar el viático.');
+        }
+    }
+
+    async function rechazar(viaticoId) {
+        try {
+            await api.put(`/admin/viaticos/${viaticoId}/rechazar`);
+            setSeleccionado(null);
+            recargarViaticos();
+        } catch {
+            setError('No se pudo rechazar el viático.');
+        }
+    }
 
     const [hoy] = useState(() => new Date());
     const [inicioMesISO] = useState(() => aISO(new Date(hoy.getFullYear(), hoy.getMonth(), 1)));
@@ -67,11 +96,23 @@ export default function PerfilEmpleado() {
             } finally {
                 setLoading(false);
             }
+
+            // Tolerante: si el backend de Asignaciones (Fase 2) aún no existe,
+            // la sección simplemente mostrará "Sin asignación activa".
+            try {
+                const resAsignaciones = await listarAsignaciones();
+                setAsignaciones(resAsignaciones.data);
+            } catch {
+                setAsignaciones([]);
+            }
         }
         cargar();
     }, [id]);
 
-    const actividad = useMemo(() => obtenerActividadReciente(viaticos), [viaticos]);
+    const asignacionActiva = useMemo(
+        () => obtenerAsignacionActivaDeTecnico(asignaciones, id),
+        [asignaciones, id]
+    );
 
     const viaticosFiltrados = useMemo(() => {
         if (filtro === 'hoy') {
@@ -147,41 +188,47 @@ export default function PerfilEmpleado() {
                     </div>
                 </div>
 
-                {/* Sección 2: Actividad reciente (solo datos reales; no se infiere ninguna asignación) */}
-                <h2 className="admin-section-title">Actividad reciente</h2>
-                {actividad ? (
+                {/* Sección 2: Asignación actual (entidad real de Fase 2, ya no inferida de viáticos) */}
+                <h2 className="admin-section-title">Asignación actual</h2>
+                {asignacionActiva ? (
                     <div className="asignacion-card">
-                        <p className="periodo-fecha">{etiquetaDiasDesde(actividad.diasDesde)}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                            <h3 className="asignacion-ot" style={{ margin: 0 }}>
+                                {LABEL_TIPO_ASIGNACION[asignacionActiva.tipo] || asignacionActiva.tipo}
+                            </h3>
+                            <span className={`estado-asignacion ${CLASE_ESTADO_ASIGNACION[asignacionActiva.estado] || ''}`}>
+                                {LABEL_ESTADO_ASIGNACION[asignacionActiva.estado] || asignacionActiva.estado}
+                            </span>
+                        </div>
                         <div className="perfil-info-grid">
                             <div>
-                                <span className="modal-info-label">Último cliente</span>
-                                <span className="modal-info-valor">{actividad.cliente}</span>
+                                <span className="modal-info-label">Cliente</span>
+                                <span className="modal-info-valor">{asignacionActiva.cliente}</span>
                             </div>
                             <div>
-                                <span className="modal-info-label">Última ciudad</span>
-                                <span className="modal-info-valor">{actividad.ciudad}</span>
+                                <span className="modal-info-label">Empresa</span>
+                                <span className="modal-info-valor">{asignacionActiva.empresa || '—'}</span>
                             </div>
                             <div>
-                                <span className="modal-info-label">Última OT</span>
-                                <span className="modal-info-valor">{actividad.ot}</span>
+                                <span className="modal-info-label">Ciudad</span>
+                                <span className="modal-info-valor">{asignacionActiva.ciudad}</span>
                             </div>
                             <div>
-                                <span className="modal-info-label">Fecha</span>
-                                <span className="modal-info-valor">{formatFechaLarga(actividad.fecha)}</span>
+                                <span className="modal-info-label">Inicio</span>
+                                <span className="modal-info-valor">{formatFechaLarga(asignacionActiva.fecha_inicio)}</span>
+                            </div>
+                            <div>
+                                <span className="modal-info-label">Final</span>
+                                <span className="modal-info-valor">{formatFechaLarga(asignacionActiva.fecha_fin)}</span>
                             </div>
                         </div>
                     </div>
                 ) : (
-                    <p style={{ color: 'var(--color-text-muted)' }}>Este empleado no tiene viáticos registrados.</p>
+                    <p style={{ color: 'var(--color-text-muted)' }}>Sin asignación activa.</p>
                 )}
 
                 {/* Sección 3: Filtros de tiempo */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
-                    <h2 className="admin-section-title">Viáticos por periodo</h2>
-                    <button className="admin-mini-btn" onClick={() => navigate('/admin/viaticos')}>
-                        Gestionar viáticos (aprobar/rechazar) →
-                    </button>
-                </div>
+                <h2 className="admin-section-title">Viáticos por periodo</h2>
 
                 <div className="filtro-tabs">
                     {FILTROS.map((f) => (
@@ -215,9 +262,19 @@ export default function PerfilEmpleado() {
                         viaticos={viaticosFiltrados}
                         resumenPeriodo={resumenPeriodo}
                         titulo={filtro === 'mes' ? 'Este mes' : 'Periodo seleccionado'}
+                        onVerDetalle={setSeleccionado}
                     />
                 )}
             </div>
+
+            {seleccionado && (
+                <ModalEvidencia
+                    viatico={seleccionado}
+                    onClose={() => setSeleccionado(null)}
+                    onAprobar={aprobar}
+                    onRechazar={rechazar}
+                />
+            )}
         </div>
     );
 }
@@ -278,7 +335,7 @@ function VistaSemana({ viaticos, resumenPeriodo }) {
     );
 }
 
-function VistaResumen({ viaticos, resumenPeriodo, titulo }) {
+function VistaResumen({ viaticos, resumenPeriodo, titulo, onVerDetalle }) {
     return (
         <div>
             <div className="admin-stats-grid" style={{ marginBottom: '1.5rem' }}>
@@ -317,6 +374,7 @@ function VistaResumen({ viaticos, resumenPeriodo, titulo }) {
                             <th>Valor</th>
                             <th>Evidencias</th>
                             <th>Estado</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -332,6 +390,11 @@ function VistaResumen({ viaticos, resumenPeriodo, titulo }) {
                                     <span className={`rol-badge rol-badge--${v.estado === 'pendiente' ? 'tecnico' : v.estado === 'aprobado' ? 'admin' : 'tecnico'}`}>
                                         {v.estado.toUpperCase()}
                                     </span>
+                                </td>
+                                <td>
+                                    <button className="admin-mini-btn" onClick={() => onVerDetalle(v)}>
+                                        Ver detalle
+                                    </button>
                                 </td>
                             </tr>
                         ))}

@@ -85,13 +85,12 @@ export default function AdminDashboard() {
                 )}
 
                 <h2 className="admin-section-title">Acciones rápidas</h2>
-
                 <div className="admin-actions-grid">
-                    <button
-                        className="admin-action-btn"
-                        onClick={() => navigate('/admin/personal')}
-                    >
+                    <button className="admin-action-btn" onClick={() => navigate('/admin/personal')}>
                         Personal
+                    </button>
+                    <button className="admin-action-btn" onClick={() => navigate('/admin/asignaciones')}>
+                        Asignaciones
                     </button>
                 </div>
             </main>

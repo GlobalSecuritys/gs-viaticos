@@ -1,0 +1,41 @@
+.asig-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+}
+
+.asig-btn-nueva {
+    width: auto;
+    margin-top: 0;
+    padding: 0.6rem 1.4rem;
+}
+
+.asig-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-bottom: 1.4rem;
+}
+
+.asig-filtros .admin-search-input {
+    flex: 1;
+    min-width: 220px;
+}
+
+.asig-filtros select {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 8px;
+    padding: 0 0.8rem;
+    color: var(--color-text, #E8ECF1);
+    font-family: inherit;
+}
+
+.asig-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.2rem;
+}

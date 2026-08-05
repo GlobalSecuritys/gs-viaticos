@@ -7,10 +7,11 @@ import Dashboard from './pages/Dashboard';
 import NuevoViatico from './pages/NuevoViatico';
 import MisViaticos from './pages/MisViaticos';
 import AdminDashboard from './pages/AdminDashboard';
-import AdminUsuarios from './pages/AdminUsuarios';
-import AdminViaticos from './pages/AdminViaticos';
 import Personal from './pages/Personal';
 import PerfilEmpleado from './pages/PerfilEmpleado';
+import Asignaciones from './pages/Asignaciones';
+import NuevaAsignacion from './pages/NuevaAsignacion';
+import DetalleAsignacion from './pages/DetalleAsignacion';
 export default function App() {
   return (
     <BrowserRouter>
@@ -66,21 +67,27 @@ export default function App() {
               </AdminRoute>
             }
           />
-
           <Route
-            path="/admin/usuarios"
+            path="/admin/asignaciones"
             element={
               <AdminRoute>
-                <AdminUsuarios />
+                <Asignaciones />
               </AdminRoute>
             }
           />
-
           <Route
-            path="/admin/viaticos"
+            path="/admin/asignaciones/nueva"
             element={
               <AdminRoute>
-                <AdminViaticos />
+                <NuevaAsignacion />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/asignaciones/:id"
+            element={
+              <AdminRoute>
+                <DetalleAsignacion />
               </AdminRoute>
             }
           />
