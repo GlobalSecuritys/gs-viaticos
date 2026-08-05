@@ -9,6 +9,8 @@ import MisViaticos from './pages/MisViaticos';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsuarios from './pages/AdminUsuarios';
 import AdminViaticos from './pages/AdminViaticos';
+import Personal from './pages/Personal';
+import PerfilEmpleado from './pages/PerfilEmpleado';
 export default function App() {
   return (
     <BrowserRouter>
@@ -47,6 +49,24 @@ export default function App() {
               </AdminRoute>
             }
           />
+          <Route
+            path="/admin/personal"
+            element={
+              <AdminRoute>
+                <Personal />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/admin/personal/:id"
+            element={
+              <AdminRoute>
+                <PerfilEmpleado />
+              </AdminRoute>
+            }
+          />
+
           <Route
             path="/admin/usuarios"
             element={

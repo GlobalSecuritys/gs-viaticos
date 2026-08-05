@@ -1,0 +1,83 @@
+.personal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 1.2rem;
+}
+
+.personal-card {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 14px;
+    padding: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.35rem;
+    transition: border-color 0.2s;
+}
+
+.personal-card:hover {
+    border-color: var(--color-gold, #D4AF37);
+}
+
+.personal-card--inactivo {
+    opacity: 0.55;
+}
+
+.personal-card-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--color-gold, #D4AF37);
+    color: #0B1929;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.personal-card-nombre {
+    color: var(--color-text, #E8ECF1);
+    font-size: 1.05rem;
+    margin: 0;
+}
+
+.personal-card-asignacion {
+    color: var(--color-text, #E8ECF1);
+    font-size: 0.85rem;
+    margin: 0.6rem 0 0;
+}
+
+.personal-card-fechas {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.8rem;
+    margin: 0.1rem 0 0;
+}
+
+.personal-card-sin-asignacion {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.8rem;
+    margin: 0.6rem 0 0;
+    font-style: italic;
+}
+
+.personal-card-btn {
+    margin-top: 1rem;
+    width: 100%;
+    background: none;
+    border: 1px solid var(--color-gold, #D4AF37);
+    color: var(--color-gold, #D4AF37);
+    border-radius: 8px;
+    padding: 0.6rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.personal-card-btn:hover {
+    background: rgba(212, 175, 55, 0.1);
+}

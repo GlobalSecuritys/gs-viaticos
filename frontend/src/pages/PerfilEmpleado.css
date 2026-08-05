@@ -1,0 +1,200 @@
+.perfil-header {
+    display: flex;
+    align-items: center;
+    gap: 1.4rem;
+    margin-bottom: 1.6rem;
+}
+
+.perfil-avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: var(--color-gold, #D4AF37);
+    color: #0B1929;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.6rem;
+    flex-shrink: 0;
+}
+
+.perfil-nombre {
+    color: var(--color-text, #E8ECF1);
+    margin: 0 0 0.2rem;
+    font-size: 1.5rem;
+}
+
+.perfil-cargo {
+    color: var(--color-text-muted, #7a9ec7);
+    margin: 0 0 0.5rem;
+}
+
+.perfil-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 1.5rem;
+}
+
+.perfil-info-grid>div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.modal-info-label {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.modal-info-valor {
+    color: var(--color-text, #E8ECF1);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.estado-pill {
+    display: inline-block;
+    width: fit-content;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.estado-pill--activo {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--color-aprobado, #10B981);
+}
+
+.estado-pill--inactivo {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--color-rechazado, #EF4444);
+}
+
+.asignacion-card {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-gold, #D4AF37);
+    border-radius: 12px;
+    padding: 1.4rem;
+    margin-bottom: 1.5rem;
+}
+
+.asignacion-ot {
+    color: var(--color-gold, #D4AF37);
+    margin: 0 0 0.8rem;
+    font-size: 1.1rem;
+}
+
+.filtro-tabs {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+}
+
+.filtro-tab {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    color: var(--color-text-muted, #7a9ec7);
+    border-radius: 999px;
+    padding: 0.5rem 1.2rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.filtro-tab--activo {
+    background: var(--color-gold, #D4AF37);
+    border-color: var(--color-gold, #D4AF37);
+    color: #0B1929;
+}
+
+.rango-personalizado {
+    display: flex;
+    gap: 1.2rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+}
+
+.rango-personalizado label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.8rem;
+}
+
+.rango-personalizado input {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    color: var(--color-text, #E8ECF1);
+    font-family: inherit;
+}
+
+.periodo-card {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 12px;
+    padding: 1.4rem;
+    margin-bottom: 1.5rem;
+}
+
+.periodo-fecha {
+    color: var(--color-gold, #D4AF37);
+    font-weight: 600;
+    margin: 0 0 0.8rem;
+}
+
+.checklist {
+    list-style: none;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.checklist li {
+    color: var(--color-text, #E8ECF1);
+    font-size: 0.9rem;
+}
+
+.semana-dia {
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--color-border, #1a2e47);
+}
+
+.semana-dia:last-of-type {
+    border-bottom: none;
+}
+
+.semana-dia-nombre {
+    display: block;
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.4rem;
+}
+
+.periodo-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--color-border, #1a2e47);
+    color: var(--color-text, #E8ECF1);
+    font-size: 1.1rem;
+}
