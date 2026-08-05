@@ -57,7 +57,6 @@ class UsuarioRolUpdate(BaseModel):
     @classmethod
     def validar_rol(cls, v: str) -> str:
         v = v.strip().lower()
-        if v not in ("admin", "tecnico"):
-            raise ValueError("El rol debe ser 'admin' o 'tecnico'")
+        if v not in ("superadmin", "admin", "tecnico"):
+            raise ValueError("El rol debe ser 'superadmin', 'admin' o 'tecnico'")
         return v
-

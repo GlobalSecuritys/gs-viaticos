@@ -1,3 +1,4 @@
+from app.core.security import get_current_superadmin
 from app.routers import viaticos
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,6 +13,7 @@ from app.core.security import get_current_admin
 from app.database import get_db
 from app.models.usuario import Usuario
 from app.schemas.usuario import AdminBootstrap, UsuarioResponse, UsuarioRolUpdate
+from app.core.security import get_current_admin
 
 router = APIRouter(prefix="/admin", tags=["Administración"])
 
@@ -45,7 +47,7 @@ def bootstrap_admin(
 def cambiar_rol_usuario(
     id: int,
     datos: UsuarioRolUpdate,
-    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    current_superadmin: Annotated[Usuario, Depends(get_current_superadmin)],
     db: Annotated[Session, Depends(get_db)]
 ):
     stmt = select(Usuario).where(Usuario.id == id)
@@ -56,6 +58,12 @@ def cambiar_rol_usuario(
             detail="Usuario no encontrado"
         )
 
+    if usuario.id == current_superadmin.id and datos.rol != "superadmin":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes quitarte el rol de superadministrador."
+        )
+    
     usuario.rol = datos.rol
     db.commit()
     db.refresh(usuario)

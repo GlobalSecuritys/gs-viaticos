@@ -71,9 +71,19 @@ def get_current_user(
 def get_current_admin(
     current_user: Annotated[Usuario, Depends(get_current_user)]
 ) -> Usuario:
-    if current_user.rol != "admin":
+    if current_user.rol not in ["admin", "superadmin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Se requiere rol de administrador para esta acción"
+        )
+    return current_user
+
+def get_current_superadmin(
+    current_user: Annotated[Usuario, Depends(get_current_user)]
+) -> Usuario:
+    if current_user.rol != "superadmin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Se requiere rol de superadministrador para esta acción"
         )
     return current_user
