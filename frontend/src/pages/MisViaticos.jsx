@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import './MisViaticos.css';
+import ModalEvidencia from '../components/ModalEvidencia';
 
 const LABEL_TIPO = {
   alimentacion: 'Alimentación',
@@ -30,6 +31,7 @@ export default function MisViaticos() {
   const [viaticos, setViaticos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [seleccionado, setSeleccionado] = useState(null);
 
   useEffect(() => {
     async function fetchViaticos() {
@@ -117,12 +119,18 @@ export default function MisViaticos() {
                     </td>
                     <td className="text-right td-valor">{formatCOP(v.valor)}</td>
                     <td className="text-center">
-                      {v.evidencias && v.evidencias.length > 0 ? (
-                        <span className="badge-evidencia">
-                          📎 {v.evidencias.length} {v.evidencias.length === 1 ? 'foto' : 'fotos'}
-                        </span>
+                      {v.evidencias?.length > 0 ? (
+                        <button
+                          onClick={() => setSeleccionado(v)}
+                          className="badge-evidencia"
+                          style={{ cursor: 'pointer' }}
+                        >
+                          📎 Ver evidencia
+                        </button>
                       ) : (
-                        <span className="badge-evidencia badge-evidencia--vacio">Sin fotos</span>
+                        <span className="badge-evidencia badge-evidencia--vacio">
+                          Sin fotos
+                        </span>
                       )}
                     </td>
                     <td className="text-center">
@@ -137,6 +145,13 @@ export default function MisViaticos() {
           </div>
         )}
       </div>
+      {seleccionado && (
+        <ModalEvidencia
+          viatico={seleccionado}
+          onClose={() => setSeleccionado(null)}
+          soloLectura={true}
+        />
+      )}
     </div>
   );
 }
