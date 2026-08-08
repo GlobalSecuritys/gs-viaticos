@@ -4,6 +4,7 @@ Este módulo centraliza la inicialización del SDK y expone
 funciones reutilizables para subir archivos.
 """
 
+import asyncio
 import logging
 from dataclasses import dataclass
 
@@ -79,6 +80,24 @@ def _validate_file(file: UploadFile, content: bytes) -> None:
         )
 
 
+def _upload_a_cloudinary_sync(content: bytes) -> dict:
+    """
+    Llamada bloqueante real al SDK de Cloudinary (I/O de red síncrono).
+    Se ejecuta siempre en un hilo aparte vía asyncio.to_thread, nunca
+    directamente en el event loop, para no bloquear el resto de peticiones
+    del servidor mientras dura la subida.
+    """
+    return cloudinary.uploader.upload(
+        content,
+        folder=VIATICOS_FOLDER,
+        resource_type="image",
+        quality="auto",
+        fetch_format="auto",
+        use_filename=True,
+        unique_filename=True,
+    )
+
+
 async def upload_evidencia_viatico(file: UploadFile) -> CloudinaryUploadResult:
     """
     Sube una imagen de evidencia de viático a Cloudinary.
@@ -88,15 +107,7 @@ async def upload_evidencia_viatico(file: UploadFile) -> CloudinaryUploadResult:
     _validate_file(file, content)
 
     try:
-        result = cloudinary.uploader.upload(
-            content,
-            folder=VIATICOS_FOLDER,
-            resource_type="image",
-            quality="auto",
-            fetch_format="auto",
-            use_filename=True,
-            unique_filename=True,
-        )
+        result = await asyncio.to_thread(_upload_a_cloudinary_sync, content)
 
     except CloudinaryError as exc:
         logger.error("Error al subir imagen a Cloudinary: %s", exc)
