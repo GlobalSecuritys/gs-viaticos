@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
+import { listarAsignaciones } from '../services/asignaciones';
+import {
+    LABEL_TIPO_ASIGNACION,
+    obtenerAsignacionesActivasDeTecnico,
+} from '../utils/asignaciones';
 import ModalEvidencia from '../components/ModalEvidencia';
 import {
     ICONO_TIPO_GASTO,
     LABEL_CARGO,
-    LABEL_ESTADO_ASIGNACION,
     LABEL_TIPO_GASTO,
     filtrarPorRango,
     finDeSemana,
@@ -14,7 +18,6 @@ import {
     hoyISO,
     iniciales,
     inicioDeSemana,
-    obtenerAsignacionActual,
     rangoSemanaDelMes,
     resumen,
     semanaDelMesActual,
@@ -52,6 +55,7 @@ export default function PerfilEmpleado() {
 
     const [usuario, setUsuario] = useState(null);
     const [viaticos, setViaticos] = useState([]);
+    const [asignaciones, setAsignaciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [filtro, setFiltro] = useState('mes');
@@ -111,11 +115,23 @@ export default function PerfilEmpleado() {
             } finally {
                 setLoading(false);
             }
+
+            // Aparte y tolerante a fallos: si /admin/asignaciones falla (tabla
+            // sin migrar, red, etc.) no debe tumbar la carga del resto del perfil.
+            try {
+                const resAsignaciones = await listarAsignaciones();
+                setAsignaciones(resAsignaciones.data);
+            } catch {
+                setAsignaciones([]);
+            }
         }
         cargar();
     }, [id]);
 
-    const asignacion = useMemo(() => obtenerAsignacionActual(viaticos), [viaticos]);
+    const asignacionesActivas = useMemo(
+        () => obtenerAsignacionesActivasDeTecnico(asignaciones, id),
+        [asignaciones, id]
+    );
 
     const viaticosFiltrados = useMemo(() => {
         if (filtro === 'hoy') {
@@ -195,49 +211,42 @@ export default function PerfilEmpleado() {
                     </div>
                 </div>
 
-                {/* Sección 2: Misión / asignación actual */}
+                {/* Sección 2: Misión / asignaciones actuales */}
                 <h2 className="pf-section-title">Asignación actual</h2>
-                {asignacion ? (
-                    <div className="pf-mision-card">
-                        <div className="pf-mision-top">
-                            <span className="pf-mision-label">📍 Asignación actual</span>
-                            <span className={`pf-mision-estado pf-mision-estado--${asignacion.estado}`}>
-                                {LABEL_ESTADO_ASIGNACION[asignacion.estado]}
-                            </span>
-                        </div>
+                {asignacionesActivas.length > 0 ? (
+                    <div className="pf-mision-lista">
+                        {asignacionesActivas.map((asignacion) => (
+                            <div className="pf-mision-card" key={asignacion.id}>
+                                <div className="pf-mision-top">
+                                    <span className="pf-mision-label">📍 Asignación actual</span>
+                                </div>
 
-                        <div className="pf-mision-grid">
-                            <div>
-                                <span className="pf-info-label">Cliente</span>
-                                <span className="pf-info-valor">{asignacion.cliente}</span>
-                            </div>
-                            <div>
-                                <span className="pf-info-label">Ciudad</span>
-                                <span className="pf-info-valor">{asignacion.ciudad}</span>
-                            </div>
-                            {/* Tipo (RTC/Oficina) y Supervisor: no existen todavía en el backend.
-                               Se muestran solo si algún día vienen en los datos — hoy no aparecen. */}
-                            {asignacion.tipo && (
-                                <div>
-                                    <span className="pf-info-label">Tipo</span>
-                                    <span className="pf-info-valor">{asignacion.tipo}</span>
+                                <div className="pf-mision-grid">
+                                    <div>
+                                        <span className="pf-info-label">Cliente</span>
+                                        <span className="pf-info-valor">{asignacion.cliente}</span>
+                                    </div>
+                                    <div>
+                                        <span className="pf-info-label">Ciudad</span>
+                                        <span className="pf-info-valor">{asignacion.ciudad}</span>
+                                    </div>
+                                    <div>
+                                        <span className="pf-info-label">Tipo</span>
+                                        <span className="pf-info-valor">
+                                            {LABEL_TIPO_ASIGNACION[asignacion.tipo] || asignacion.tipo}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="pf-info-label">Inicio</span>
+                                        <span className="pf-info-valor">{formatFechaLarga(asignacion.fecha_inicio)}</span>
+                                    </div>
+                                    <div>
+                                        <span className="pf-info-label">Final</span>
+                                        <span className="pf-info-valor">{formatFechaLarga(asignacion.fecha_fin)}</span>
+                                    </div>
                                 </div>
-                            )}
-                            {asignacion.supervisor && (
-                                <div>
-                                    <span className="pf-info-label">Supervisor</span>
-                                    <span className="pf-info-valor">{asignacion.supervisor}</span>
-                                </div>
-                            )}
-                            <div>
-                                <span className="pf-info-label">Inicio</span>
-                                <span className="pf-info-valor">{formatFechaLarga(asignacion.inicio)}</span>
                             </div>
-                            <div>
-                                <span className="pf-info-label">Final</span>
-                                <span className="pf-info-valor">{formatFechaLarga(asignacion.final)}</span>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 ) : (
                     <div className="pf-mision-vacia">No tienes asignaciones activas.</div>

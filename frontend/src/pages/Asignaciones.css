@@ -4,38 +4,71 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 1rem;
-    margin-bottom: 1.2rem;
+    margin-bottom: 1.6rem;
 }
 
 .asig-btn-nueva {
     width: auto;
     margin-top: 0;
-    padding: 0.6rem 1.4rem;
+    padding: 0.7rem 1.5rem;
+    font-weight: 700;
+    border-radius: 10px;
 }
 
 .asig-filtros {
     display: flex;
     flex-wrap: wrap;
     gap: 0.8rem;
-    margin-bottom: 1.4rem;
+    margin-bottom: 1rem;
 }
 
 .asig-filtros .admin-search-input {
     flex: 1;
-    min-width: 220px;
+    min-width: 240px;
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    color: var(--color-text, #E8ECF1);
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+
+.asig-filtros .admin-search-input::placeholder {
+    color: var(--color-text-muted, #7a9ec7);
+}
+
+.asig-filtros .admin-search-input:focus {
+    outline: none;
+    border-color: var(--color-gold, #D4AF37);
 }
 
 .asig-filtros select {
-    background: var(--color-bg-secondary, #101E33);
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--color-bg-secondary, #101E33) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a9ec7'/%3E%3C/svg%3E") no-repeat right 0.9rem center;
     border: 1px solid var(--color-border, #1a2e47);
-    border-radius: 8px;
-    padding: 0 0.8rem;
+    border-radius: 10px;
+    padding: 0.7rem 2.2rem 0.7rem 1rem;
     color: var(--color-text, #E8ECF1);
     font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.asig-filtros select:focus {
+    outline: none;
+    border-color: var(--color-gold, #D4AF37);
+}
+
+.asig-contador {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.82rem;
+    margin: 0 0 1.2rem;
 }
 
 .asig-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1.2rem;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.3rem;
 }

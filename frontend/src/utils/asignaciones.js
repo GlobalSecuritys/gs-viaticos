@@ -43,15 +43,29 @@ export const CLASE_ESTADO_ASIGNACION = {
 
 // Dada la lista completa de asignaciones (todas, de todos los técnicos) y un
 // tecnico_id, devuelve la asignación ACTIVA de ese técnico para mostrarla en
-// Personal/PerfilEmpleado. "Activa" = en_curso; si hay varias en_curso (no
-// debería, pero por robustez) se toma la de fecha_inicio más reciente. Si no
-// hay ninguna en_curso, se muestra null (tarjeta dirá "Sin asignación activa").
+// Personal/PerfilEmpleado. No existe una transición manual de "pendiente" a
+// "en_curso" en este módulo, así que "activa" = está en pendiente o en_curso
+// Y la fecha de hoy cae dentro de [fecha_inicio, fecha_fin]. Así, en cuanto
+// llega la fecha de inicio, la asignación aparece sola sin acción manual.
+// Si hay varias activas para el mismo técnico (no debería, pero por
+// robustez) se toma la de fecha_inicio más reciente.
 export function obtenerAsignacionActivaDeTecnico(asignaciones, tecnicoId) {
+    const activas = obtenerAsignacionesActivasDeTecnico(asignaciones, tecnicoId);
+    return activas.length === 0 ? null : activas[0];
+}
+
+// Igual que obtenerAsignacionActivaDeTecnico pero devuelve TODAS las
+// asignaciones activas del técnico (no solo una), ordenadas por fecha de
+// inicio ascendente. "Activa" = no está finalizada ni cancelada (incluye
+// tanto la que ya empezó como las próximas), ya que no existe una
+// transición manual de "pendiente" a "en_curso" en este módulo.
+export function obtenerAsignacionesActivasDeTecnico(asignaciones, tecnicoId) {
     const delTecnico = asignaciones.filter(
-        (a) => String(a.tecnico_id) === String(tecnicoId) && a.estado === 'en_curso'
+        (a) =>
+            String(a.tecnico_id) === String(tecnicoId) &&
+            (a.estado === 'pendiente' || a.estado === 'en_curso')
     );
-    if (delTecnico.length === 0) return null;
-    return [...delTecnico].sort((a, b) => (b.fecha_inicio || '').localeCompare(a.fecha_inicio || ''))[0];
+    return [...delTecnico].sort((a, b) => (a.fecha_inicio || '').localeCompare(b.fecha_inicio || ''));
 }
 
 export function filtrarAsignaciones(asignaciones, { busqueda = '', tipo = '', estado = '' } = {}) {

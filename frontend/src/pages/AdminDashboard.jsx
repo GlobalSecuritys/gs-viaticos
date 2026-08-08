@@ -139,6 +139,12 @@ export default function AdminDashboard() {
                     </div>
                 </div>
                 <div className="admin-header-right">
+                    <button
+                        className="btn-nav-asignaciones"
+                        onClick={() => navigate('/admin/asignaciones')}
+                    >
+                        Asignaciones
+                    </button>
                     <NotificationBell />
                     <div className="admin-user-pill">
                         <span className="admin-user-avatar">{user?.correo?.[0]?.toUpperCase()}</span>

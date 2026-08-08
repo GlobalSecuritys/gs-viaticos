@@ -82,6 +82,12 @@ export default function Asignaciones() {
 
                 {error && <p style={{ color: 'var(--color-rechazado, #EF4444)' }}>{error}</p>}
 
+                {!loading && !error && (
+                    <p className="asig-contador">
+                        {filtradas.length} {filtradas.length === 1 ? 'asignación encontrada' : 'asignaciones encontradas'}
+                    </p>
+                )}
+
                 {loading ? (
                     <p style={{ color: 'var(--color-text-muted)' }}>Cargando asignaciones...</p>
                 ) : filtradas.length === 0 ? (
