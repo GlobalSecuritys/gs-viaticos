@@ -18,7 +18,9 @@ export async function subirEvidencias(viaticoId, archivos) {
   const formData = new FormData();
   archivos.forEach((a) => formData.append('files', a.file));
 
-  return api.post(`/viaticos/${viaticoId}/evidencias`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  // No fijamos Content-Type manualmente: si se fija 'multipart/form-data'
+  // a mano, se pierde el parámetro "boundary" que el navegador genera
+  // automáticamente, y el backend no puede parsear los archivos.
+  // Dejamos que axios/el navegador lo calculen solos.
+  return api.post(`/viaticos/${viaticoId}/evidencias`, formData);
 }
