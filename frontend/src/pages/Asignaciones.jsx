@@ -10,7 +10,6 @@ export default function Asignaciones() {
     const navigate = useNavigate();
 
     const [asignaciones, setAsignaciones] = useState([]);
-    const [usuarios, setUsuarios] = useState([]);
     const [busqueda, setBusqueda] = useState('');
     const [tipo, setTipo] = useState('');
     const [estado, setEstado] = useState('');
@@ -24,7 +23,6 @@ export default function Asignaciones() {
                     listarAsignaciones(),
                     api.get('/admin/usuarios'),
                 ]);
-                setUsuarios(resUsuarios.data);
                 // Enriquecemos con el nombre del técnico para búsqueda/lectura rápida
                 // sin depender de que el backend lo incluya ya resuelto.
                 const usuariosPorId = new Map(resUsuarios.data.map((u) => [String(u.id), u]));

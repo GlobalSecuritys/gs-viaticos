@@ -45,11 +45,6 @@ export default function NuevoViatico() {
       return;
     }
 
-    if (archivos.length === 0) {
-      setError('Debes adjuntar al menos 1 fotografía como evidencia.');
-      return;
-    }
-
     setLoading(true);
     try {
       const { data: viaticoCreado } = await api.post('/viaticos', {
@@ -57,15 +52,17 @@ export default function NuevoViatico() {
         valor,
       });
 
-      try {
-        await subirEvidencias(viaticoCreado.id, archivos);
-      } catch (errEvidencias) {
-        setError(
-          'El viático se guardó, pero hubo un problema subiendo las fotografías. ' +
-          'Puedes intentar agregarlas más tarde desde el detalle del viático.'
-        );
-        setLoading(false);
-        return;
+      if (archivos.length > 0) {
+        try {
+          await subirEvidencias(viaticoCreado.id, archivos);
+        } catch (errEvidencias) {
+          setError(
+            'El viático se guardó, pero hubo un problema subiendo las fotografías. ' +
+            'Puedes intentar agregarlas más tarde desde el detalle del viático.'
+          );
+          setLoading(false);
+          return;
+        }
       }
 
       navigate('/mis-viaticos');

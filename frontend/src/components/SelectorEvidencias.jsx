@@ -48,7 +48,7 @@ export default function SelectorEvidencias({ archivos, setArchivos, error, setEr
 
     return (
         <div className="selector-evidencias">
-            <label className="form-group-label">Fotografías (1 a 5, máx. 5MB c/u)</label>
+            <label className="form-group-label">Fotografías (opcional, hasta 5, máx. 5MB c/u)</label>
 
             <div
                 className={`evidencias-dropzone ${dragActivo ? 'evidencias-dropzone--activo' : ''}`}

@@ -208,3 +208,280 @@
 .admin-stat-card--rechazado {
     border-left-color: var(--color-rechazado, #EF4444);
 }
+
+/* ===== Rediseño ejecutivo: layout de dos columnas ===== */
+
+.dash-error {
+    color: var(--color-rechazado, #EF4444);
+    margin-bottom: 1rem;
+}
+
+.dash-stat-value--money {
+    font-size: 1.55rem;
+    letter-spacing: -0.01em;
+}
+
+.dash-layout {
+    display: grid;
+    grid-template-columns: 1.65fr 1fr;
+    gap: 1.75rem;
+    margin-top: 2.5rem;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .dash-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- Columna izquierda: técnicos --- */
+
+.dash-tech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.1rem;
+}
+
+.dash-tech-card {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dash-tech-card:hover {
+    border-color: var(--color-gold, #D4AF37);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+}
+
+.dash-tech-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+}
+
+.dash-tech-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--color-gold, #D4AF37);
+    color: #0B1929;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.dash-badge-admin {
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    color: var(--color-gold, #D4AF37);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+}
+
+.dash-tech-nombre {
+    color: var(--color-text, #E8ECF1);
+    font-size: 1.08rem;
+    margin: 0.3rem 0 0.15rem;
+}
+
+.dash-tech-codigo {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.78rem;
+    margin-bottom: 1.1rem;
+}
+
+.dash-tech-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 0.9rem 0;
+    border-top: 1px solid var(--color-border, #1a2e47);
+    border-bottom: 1px solid var(--color-border, #1a2e47);
+    margin-bottom: 1.1rem;
+}
+
+.dash-tech-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.dash-tech-metric-value {
+    color: var(--color-text, #E8ECF1);
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.dash-tech-metric-label {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.dash-tech-btn {
+    background: none;
+    border: 1px solid var(--color-gold, #D4AF37);
+    color: var(--color-gold, #D4AF37);
+    border-radius: 9px;
+    padding: 0.65rem;
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.dash-tech-btn:hover {
+    background: rgba(212, 175, 55, 0.1);
+}
+
+/* --- Columna derecha: resumen de gastos --- */
+
+.dash-summary-panel {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 16px;
+    padding: 1.6rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+    position: sticky;
+    top: 1.5rem;
+}
+
+.dash-summary-title {
+    color: var(--color-text, #E8ECF1);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0 0 1.2rem;
+}
+
+.dash-period-tabs {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1.3rem;
+    flex-wrap: wrap;
+}
+
+.dash-period-btn {
+    background: transparent;
+    border: 1px solid var(--color-border, #1a2e47);
+    color: var(--color-text-muted, #7a9ec7);
+    border-radius: 999px;
+    padding: 0.4rem 0.85rem;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.dash-period-btn:hover {
+    border-color: var(--color-accent-blue, #3B82F6);
+    color: var(--color-text, #E8ECF1);
+}
+
+.dash-period-btn--activo {
+    background: rgba(212, 175, 55, 0.12);
+    border-color: var(--color-gold, #D4AF37);
+    color: var(--color-gold, #D4AF37);
+}
+
+.dash-summary-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(212, 175, 55, 0.04);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    color: var(--color-text, #E8ECF1);
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.dash-summary-toggle:hover {
+    border-color: var(--color-gold, #D4AF37);
+}
+
+.dash-summary-chevron {
+    color: var(--color-gold, #D4AF37);
+    transition: transform 0.2s ease;
+    display: inline-block;
+}
+
+.dash-summary-chevron--abierto {
+    transform: rotate(180deg);
+}
+
+.dash-summary-body {
+    margin-top: 1rem;
+}
+
+.dash-summary-empty {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.dash-summary-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.dash-summary-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.dash-summary-row-nombre {
+    color: var(--color-text, #E8ECF1);
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.dash-summary-row-linea {
+    flex: 1;
+    border-bottom: 1px dotted var(--color-border, #1a2e47);
+    margin-bottom: 0.25rem;
+}
+
+.dash-summary-row-valor {
+    color: var(--color-gold, #D4AF37);
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.dash-summary-total-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border, #1a2e47);
+    color: var(--color-text, #E8ECF1);
+    font-weight: 700;
+    font-size: 0.92rem;
+}

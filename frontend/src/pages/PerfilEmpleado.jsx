@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import ModalEvidencia from '../components/ModalEvidencia';
 import {
+    ICONO_TIPO_GASTO,
     LABEL_CARGO,
     LABEL_ESTADO_ASIGNACION,
     LABEL_TIPO_GASTO,
@@ -13,19 +14,24 @@ import {
     hoyISO,
     iniciales,
     inicioDeSemana,
-    nombreDia,
-    numeroDeSemana,
     obtenerAsignacionActual,
+    rangoSemanaDelMes,
     resumen,
+    semanaDelMesActual,
 } from '../utils/personal';
-import './Personal.css';
 import './PerfilEmpleado.css';
 
-const FILTROS = [
+const FILTROS_PERIODO = [
     { id: 'hoy', label: 'Hoy' },
     { id: 'semana', label: 'Semana' },
     { id: 'mes', label: 'Mes' },
     { id: 'personalizado', label: 'Personalizado' },
+];
+
+const FILTROS_TIPO_ASIGNACION = [
+    { id: 'todas', label: 'Todas' },
+    { id: 'rtc', label: 'RTC' },
+    { id: 'oficina', label: 'Oficina' },
 ];
 
 function aISO(date) {
@@ -33,6 +39,12 @@ function aISO(date) {
     const dia = String(date.getDate()).padStart(2, '0');
     return `${date.getFullYear()}-${mes}-${dia}`;
 }
+
+const LABEL_ESTADO_VIATICO = {
+    aprobado: 'Aprobado',
+    pendiente: 'Pendiente',
+    rechazado: 'Rechazado',
+};
 
 export default function PerfilEmpleado() {
     const { id } = useParams();
@@ -74,6 +86,11 @@ export default function PerfilEmpleado() {
     const [inicioMesISO] = useState(() => aISO(new Date(hoy.getFullYear(), hoy.getMonth(), 1)));
     const [rangoInicio, setRangoInicio] = useState(inicioMesISO);
     const [rangoFin, setRangoFin] = useState(hoyISO());
+    const [semanaNumero, setSemanaNumero] = useState(() => semanaDelMesActual(hoy));
+    // Filtro 2 (tipo de asignación): la UI queda lista, pero no filtra nada
+    // todavía porque el backend no tiene un campo que distinga RTC/Oficina
+    // por viático. Ver nota en el mensaje de entrega.
+    const [tipoAsignacion, setTipoAsignacion] = useState('todas');
 
     useEffect(() => {
         async function cargar() {
@@ -106,20 +123,22 @@ export default function PerfilEmpleado() {
             return filtrarPorRango(viaticos, h, h);
         }
         if (filtro === 'semana') {
-            return filtrarPorRango(
-                viaticos,
-                aISO(inicioDeSemana(hoy)),
-                aISO(finDeSemana(hoy))
-            );
+            const { inicio, fin } = rangoSemanaDelMes(semanaNumero, hoy);
+            return filtrarPorRango(viaticos, inicio, fin);
         }
         if (filtro === 'mes') {
             return filtrarPorRango(viaticos, inicioMesISO, hoyISO());
         }
         // personalizado
         return filtrarPorRango(viaticos, rangoInicio, rangoFin);
-    }, [filtro, viaticos, rangoInicio, rangoFin, hoy, inicioMesISO]);
+    }, [filtro, viaticos, rangoInicio, rangoFin, hoy, inicioMesISO, semanaNumero]);
 
     const resumenPeriodo = useMemo(() => resumen(viaticosFiltrados), [viaticosFiltrados]);
+
+    const viaticosOrdenados = useMemo(
+        () => [...viaticosFiltrados].sort((a, b) => b.fecha.localeCompare(a.fecha)),
+        [viaticosFiltrados]
+    );
 
     if (loading) {
         return (
@@ -135,114 +154,239 @@ export default function PerfilEmpleado() {
         return (
             <div className="admin-root">
                 <div className="admin-main">
-                    <button className="admin-back-btn" onClick={() => navigate('/admin/personal')}>← Volver</button>
+                    <button className="admin-back-btn" onClick={() => navigate('/admin')}>← Volver</button>
                     <p style={{ color: 'var(--color-rechazado, #EF4444)' }}>{error || 'Empleado no encontrado.'}</p>
                 </div>
             </div>
         );
     }
 
+    const esAdmin = usuario.rol === 'admin' || usuario.rol === 'superadmin';
+
     return (
         <div className="admin-root">
-            <div className="admin-main">
-                <button className="admin-back-btn" onClick={() => navigate('/admin/personal')}>← Volver a Personal</button>
+            <div className="admin-main pf-main">
 
-                {/* Sección 1: Información general */}
-                <div className="perfil-header">
-                    <div className="perfil-avatar">{iniciales(usuario.nombre)}</div>
-                    <div>
-                        <h1 className="perfil-nombre">{usuario.nombre}</h1>
-                        <p className="perfil-cargo">{LABEL_CARGO[usuario.rol] || usuario.rol}</p>
-                        <span className={`rol-badge rol-badge--${usuario.rol}`}>{usuario.rol.toUpperCase()}</span>
-                    </div>
-                </div>
-
-                <div className="perfil-info-grid">
-                    <div>
-                        <span className="modal-info-label">Código empleado</span>
-                        <span className="modal-info-valor">{usuario.codigo_empleado || '—'}</span>
-                    </div>
-                    <div>
-                        <span className="modal-info-label">Correo</span>
-                        <span className="modal-info-valor">{usuario.correo}</span>
-                    </div>
-                    <div>
-                        <span className="modal-info-label">Estado actual</span>
-                        <span className={`estado-pill ${usuario.activo ? 'estado-pill--activo' : 'estado-pill--inactivo'}`}>
+                {/* Sección 1: Cabecera del perfil */}
+                <div className="pf-card pf-header-card">
+                    <div className="pf-header-top">
+                        <button className="admin-back-btn" onClick={() => navigate('/admin')}>← Volver</button>
+                        <span className={`pf-estado-pill ${usuario.activo ? 'pf-estado-pill--activo' : 'pf-estado-pill--inactivo'}`}>
+                            <span className="pf-estado-dot" />
                             {usuario.activo ? 'Activo' : 'Inactivo'}
                         </span>
                     </div>
+
+                    <div className="pf-header-body">
+                        <div className="pf-avatar">{iniciales(usuario.nombre)}</div>
+                        <div className="pf-header-datos">
+                            <div className="pf-header-nombre-row">
+                                <h1 className="pf-nombre">{usuario.nombre}</h1>
+                                <span className={`pf-rol-badge ${esAdmin ? 'pf-rol-badge--admin' : 'pf-rol-badge--tecnico'}`}>
+                                    {LABEL_CARGO[usuario.rol] || usuario.rol}
+                                </span>
+                            </div>
+                            <div className="pf-header-meta">
+                                <span>Código: {usuario.codigo_empleado || '—'}</span>
+                                <span className="pf-header-meta-sep">•</span>
+                                <span>{usuario.correo}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Sección 2: Asignación actual */}
-                <h2 className="admin-section-title">Asignación actual</h2>
+                {/* Sección 2: Misión / asignación actual */}
+                <h2 className="pf-section-title">Asignación actual</h2>
                 {asignacion ? (
-                    <div className="asignacion-card">
-                        <h3 className="asignacion-ot">{asignacion.ot}</h3>
-                        <div className="perfil-info-grid">
+                    <div className="pf-mision-card">
+                        <div className="pf-mision-top">
+                            <span className="pf-mision-label">📍 Asignación actual</span>
+                            <span className={`pf-mision-estado pf-mision-estado--${asignacion.estado}`}>
+                                {LABEL_ESTADO_ASIGNACION[asignacion.estado]}
+                            </span>
+                        </div>
+
+                        <div className="pf-mision-grid">
                             <div>
-                                <span className="modal-info-label">Cliente</span>
-                                <span className="modal-info-valor">{asignacion.cliente}</span>
+                                <span className="pf-info-label">Cliente</span>
+                                <span className="pf-info-valor">{asignacion.cliente}</span>
                             </div>
                             <div>
-                                <span className="modal-info-label">Ciudad</span>
-                                <span className="modal-info-valor">{asignacion.ciudad}</span>
+                                <span className="pf-info-label">Ciudad</span>
+                                <span className="pf-info-valor">{asignacion.ciudad}</span>
+                            </div>
+                            {/* Tipo (RTC/Oficina) y Supervisor: no existen todavía en el backend.
+                               Se muestran solo si algún día vienen en los datos — hoy no aparecen. */}
+                            {asignacion.tipo && (
+                                <div>
+                                    <span className="pf-info-label">Tipo</span>
+                                    <span className="pf-info-valor">{asignacion.tipo}</span>
+                                </div>
+                            )}
+                            {asignacion.supervisor && (
+                                <div>
+                                    <span className="pf-info-label">Supervisor</span>
+                                    <span className="pf-info-valor">{asignacion.supervisor}</span>
+                                </div>
+                            )}
+                            <div>
+                                <span className="pf-info-label">Inicio</span>
+                                <span className="pf-info-valor">{formatFechaLarga(asignacion.inicio)}</span>
                             </div>
                             <div>
-                                <span className="modal-info-label">Inicio</span>
-                                <span className="modal-info-valor">{formatFechaLarga(asignacion.inicio)}</span>
-                            </div>
-                            <div>
-                                <span className="modal-info-label">Final</span>
-                                <span className="modal-info-valor">{formatFechaLarga(asignacion.final)}</span>
-                            </div>
-                            <div>
-                                <span className="modal-info-label">Estado</span>
-                                <span className="modal-info-valor">{LABEL_ESTADO_ASIGNACION[asignacion.estado]}</span>
+                                <span className="pf-info-label">Final</span>
+                                <span className="pf-info-valor">{formatFechaLarga(asignacion.final)}</span>
                             </div>
                         </div>
                     </div>
                 ) : (
-                    <p style={{ color: 'var(--color-text-muted)' }}>Este empleado no tiene viáticos registrados.</p>
+                    <div className="pf-mision-vacia">No tienes asignaciones activas.</div>
                 )}
 
-                {/* Sección 3: Filtros de tiempo */}
-                <h2 className="admin-section-title">Viáticos por periodo</h2>
+                {/* Sección 3: Filtros */}
+                <h2 className="pf-section-title">Viáticos</h2>
 
-                <div className="filtro-tabs">
-                    {FILTROS.map((f) => (
-                        <button
-                            key={f.id}
-                            className={`filtro-tab ${filtro === f.id ? 'filtro-tab--activo' : ''}`}
-                            onClick={() => setFiltro(f.id)}
-                        >
-                            {f.label}
-                        </button>
-                    ))}
+                <div className="pf-filtros-wrap">
+                    <div className="pf-filtro-grupo">
+                        <span className="pf-filtro-grupo-label">Periodo</span>
+                        <div className="pf-tabs">
+                            {FILTROS_PERIODO.map((f) => (
+                                <button
+                                    key={f.id}
+                                    className={`pf-tab ${filtro === f.id ? 'pf-tab--activo' : ''}`}
+                                    onClick={() => setFiltro(f.id)}
+                                >
+                                    {f.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {filtro === 'semana' && (
+                            <div className="pf-subtabs">
+                                {[1, 2, 3, 4].map((n) => (
+                                    <button
+                                        key={n}
+                                        className={`pf-subtab ${semanaNumero === n ? 'pf-subtab--activo' : ''}`}
+                                        onClick={() => setSemanaNumero(n)}
+                                    >
+                                        Semana {n}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {filtro === 'personalizado' && (
+                            <div className="pf-rango-personalizado">
+                                <label>
+                                    Desde
+                                    <input type="date" value={rangoInicio} onChange={(e) => setRangoInicio(e.target.value)} />
+                                </label>
+                                <label>
+                                    Hasta
+                                    <input type="date" value={rangoFin} onChange={(e) => setRangoFin(e.target.value)} />
+                                </label>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="pf-filtro-grupo">
+                        <span className="pf-filtro-grupo-label">
+                            Tipo de asignación
+                            <span className="pf-filtro-nota" title="El backend aún no distingue RTC/Oficina por viático">
+                                (próximamente)
+                            </span>
+                        </span>
+                        <div className="pf-tabs pf-tabs--deshabilitado">
+                            {FILTROS_TIPO_ASIGNACION.map((f) => (
+                                <button
+                                    key={f.id}
+                                    className={`pf-tab ${tipoAsignacion === f.id ? 'pf-tab--activo' : ''}`}
+                                    onClick={() => setTipoAsignacion(f.id)}
+                                    disabled
+                                >
+                                    {f.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
-                {filtro === 'personalizado' && (
-                    <div className="rango-personalizado">
-                        <label>
-                            Desde
-                            <input type="date" value={rangoInicio} onChange={(e) => setRangoInicio(e.target.value)} />
-                        </label>
-                        <label>
-                            Hasta
-                            <input type="date" value={rangoFin} onChange={(e) => setRangoFin(e.target.value)} />
-                        </label>
+                {/* Sección 4: Resumen compacto */}
+                <div className="pf-resumen-bar">
+                    <div className="pf-resumen-item pf-resumen-item--total">
+                        <span className="pf-resumen-valor">{formatCOP(resumenPeriodo.total)}</span>
+                        <span className="pf-resumen-label">Total gastado</span>
                     </div>
-                )}
+                    <div className="pf-resumen-divisor" />
+                    <div className="pf-resumen-item">
+                        <span className="pf-resumen-valor">{resumenPeriodo.cantidad}</span>
+                        <span className="pf-resumen-label">Solicitudes</span>
+                    </div>
+                    <div className="pf-resumen-item">
+                        <span className="pf-resumen-valor pf-resumen-valor--pendiente">{resumenPeriodo.pendientes}</span>
+                        <span className="pf-resumen-label">Pendientes</span>
+                    </div>
+                    <div className="pf-resumen-item">
+                        <span className="pf-resumen-valor pf-resumen-valor--aprobado">{resumenPeriodo.aprobados}</span>
+                        <span className="pf-resumen-label">Aprobadas</span>
+                    </div>
+                    <div className="pf-resumen-item">
+                        <span className="pf-resumen-valor pf-resumen-valor--rechazado">{resumenPeriodo.rechazados}</span>
+                        <span className="pf-resumen-label">Rechazadas</span>
+                    </div>
+                </div>
 
-                {filtro === 'hoy' && <VistaHoy viaticos={viaticosFiltrados} resumenPeriodo={resumenPeriodo} />}
-                {filtro === 'semana' && <VistaSemana viaticos={viaticosFiltrados} resumenPeriodo={resumenPeriodo} />}
-                {(filtro === 'mes' || filtro === 'personalizado') && (
-                    <VistaResumen
-                        viaticos={viaticosFiltrados}
-                        resumenPeriodo={resumenPeriodo}
-                        titulo={filtro === 'mes' ? 'Este mes' : 'Periodo seleccionado'}
-                        onVerDetalle={setSeleccionado}
-                    />
+                {/* Sección 5: Historial como tarjetas */}
+                <h2 className="pf-section-title">Historial</h2>
+
+                {viaticosOrdenados.length === 0 ? (
+                    <div className="pf-mision-vacia">Sin viáticos registrados en este periodo.</div>
+                ) : (
+                    <div className="pf-historial-grid">
+                        {viaticosOrdenados.map((v) => {
+                            const miniatura = v.evidencias?.[0]?.secure_url;
+                            return (
+                                <div key={v.id} className="pf-viatico-card">
+                                    <div className="pf-viatico-top">
+                                        <span className="pf-viatico-tipo">
+                                            <span className="pf-viatico-icono">{ICONO_TIPO_GASTO[v.tipo_gasto] || '📦'}</span>
+                                            {LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}
+                                        </span>
+                                        <span className={`pf-estado-badge pf-estado-badge--${v.estado}`}>
+                                            {LABEL_ESTADO_VIATICO[v.estado] || v.estado}
+                                        </span>
+                                    </div>
+
+                                    <p className="pf-viatico-lugar">{v.cliente} · {v.ciudad}</p>
+                                    <p className="pf-viatico-fecha">{formatFechaLarga(v.fecha)}</p>
+
+                                    {/* El backend no guarda un "motivo de rechazo" separado hoy;
+                                       si algún día se agrega, aparece automáticamente aquí. */}
+                                    {v.estado === 'rechazado' && v.motivo_rechazo && (
+                                        <p className="pf-viatico-motivo">Motivo: {v.motivo_rechazo}</p>
+                                    )}
+
+                                    <div className="pf-viatico-footer">
+                                        <span className="pf-viatico-valor">{formatCOP(v.valor)}</span>
+                                        {miniatura ? (
+                                            <img
+                                                src={miniatura}
+                                                alt="Evidencia"
+                                                className="pf-viatico-thumb"
+                                                onClick={() => setSeleccionado(v)}
+                                            />
+                                        ) : (
+                                            <span className="pf-viatico-sin-evidencia">Sin evidencia</span>
+                                        )}
+                                    </div>
+
+                                    <button className="pf-viatico-detalle-btn" onClick={() => setSeleccionado(v)}>
+                                        Ver detalle
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
                 )}
             </div>
 
@@ -253,132 +397,6 @@ export default function PerfilEmpleado() {
                     onAprobar={aprobar}
                     onRechazar={rechazar}
                 />
-            )}
-        </div>
-    );
-}
-
-function VistaHoy({ viaticos, resumenPeriodo }) {
-    if (viaticos.length === 0) {
-        return <p style={{ color: 'var(--color-text-muted)' }}>Sin viáticos registrados hoy.</p>;
-    }
-    return (
-        <div className="periodo-card">
-            <p className="periodo-fecha">{formatFechaLarga(viaticos[0].fecha)}</p>
-            <ul className="checklist">
-                {viaticos.map((v) => (
-                    <li key={v.id}>
-                        ✓ {LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto} — {formatCOP(v.valor)}
-                    </li>
-                ))}
-            </ul>
-            <div className="periodo-total">
-                <span>Total</span>
-                <strong>{formatCOP(resumenPeriodo.total)}</strong>
-            </div>
-        </div>
-    );
-}
-
-function VistaSemana({ viaticos, resumenPeriodo }) {
-    if (viaticos.length === 0) {
-        return <p style={{ color: 'var(--color-text-muted)' }}>Sin viáticos registrados esta semana.</p>;
-    }
-
-    const porDia = new Map();
-    for (const v of viaticos) {
-        const dia = nombreDia(v.fecha);
-        if (!porDia.has(dia)) porDia.set(dia, []);
-        porDia.get(dia).push(v);
-    }
-    const orden = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-
-    return (
-        <div className="periodo-card">
-            <p className="periodo-fecha">Semana {numeroDeSemana(new Date())}</p>
-            {orden.filter((d) => porDia.has(d)).map((dia) => (
-                <div key={dia} className="semana-dia">
-                    <span className="semana-dia-nombre">{dia}</span>
-                    <ul className="checklist">
-                        {porDia.get(dia).map((v) => (
-                            <li key={v.id}>{LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}</li>
-                        ))}
-                    </ul>
-                </div>
-            ))}
-            <div className="periodo-total">
-                <span>Total semana</span>
-                <strong>{formatCOP(resumenPeriodo.total)}</strong>
-            </div>
-        </div>
-    );
-}
-
-function VistaResumen({ viaticos, resumenPeriodo, titulo, onVerDetalle }) {
-    return (
-        <div>
-            <div className="admin-stats-grid" style={{ marginBottom: '1.5rem' }}>
-                <div className="admin-stat-card">
-                    <span className="stat-label">Total gastado</span>
-                    <span className="stat-value">{formatCOP(resumenPeriodo.total)}</span>
-                </div>
-                <div className="admin-stat-card">
-                    <span className="stat-label">Solicitudes</span>
-                    <span className="stat-value">{resumenPeriodo.cantidad}</span>
-                </div>
-                <div className="admin-stat-card admin-stat-card--aprobado">
-                    <span className="stat-label">Aprobadas</span>
-                    <span className="stat-value">{resumenPeriodo.aprobados}</span>
-                </div>
-                <div className="admin-stat-card admin-stat-card--pendiente">
-                    <span className="stat-label">Pendientes</span>
-                    <span className="stat-value">{resumenPeriodo.pendientes}</span>
-                </div>
-                <div className="admin-stat-card admin-stat-card--rechazado">
-                    <span className="stat-label">Rechazadas</span>
-                    <span className="stat-value">{resumenPeriodo.rechazados}</span>
-                </div>
-            </div>
-
-            {viaticos.length === 0 ? (
-                <p style={{ color: 'var(--color-text-muted)' }}>Sin viáticos en {titulo.toLowerCase()}.</p>
-            ) : (
-                <table className="admin-table">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Cliente</th>
-                            <th>Ciudad</th>
-                            <th>Tipo</th>
-                            <th>Valor</th>
-                            <th>Evidencias</th>
-                            <th>Estado</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {viaticos.map((v) => (
-                            <tr key={v.id}>
-                                <td>{formatFechaLarga(v.fecha)}</td>
-                                <td>{v.cliente}</td>
-                                <td>{v.ciudad}</td>
-                                <td>{LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}</td>
-                                <td>{formatCOP(v.valor)}</td>
-                                <td>{v.evidencias?.length > 0 ? `📎 ${v.evidencias.length}` : 'Sin fotos'}</td>
-                                <td>
-                                    <span className={`rol-badge rol-badge--${v.estado === 'pendiente' ? 'tecnico' : v.estado === 'aprobado' ? 'admin' : 'tecnico'}`}>
-                                        {v.estado.toUpperCase()}
-                                    </span>
-                                </td>
-                                <td>
-                                    <button className="admin-mini-btn" onClick={() => onVerDetalle(v)}>
-                                        Ver detalle
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
             )}
         </div>
     );

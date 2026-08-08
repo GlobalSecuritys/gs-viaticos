@@ -1,13 +1,78 @@
-.perfil-header {
+.pf-main {
+    max-width: 1000px;
+}
+
+.pf-section-title {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 2.4rem 0 1rem;
+}
+
+.pf-card {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+}
+
+/* --- Cabecera del perfil --- */
+
+.pf-header-card {
+    padding: 1.5rem 1.8rem;
+}
+
+.pf-header-top {
     display: flex;
     align-items: center;
-    gap: 1.4rem;
+    justify-content: space-between;
     margin-bottom: 1.6rem;
 }
 
-.perfil-avatar {
-    width: 84px;
-    height: 84px;
+.pf-estado-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.pf-estado-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+
+.pf-estado-pill--activo {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--color-aprobado, #10B981);
+}
+
+.pf-estado-pill--activo .pf-estado-dot {
+    background: var(--color-aprobado, #10B981);
+}
+
+.pf-estado-pill--inactivo {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--color-rechazado, #EF4444);
+}
+
+.pf-estado-pill--inactivo .pf-estado-dot {
+    background: var(--color-rechazado, #EF4444);
+}
+
+.pf-header-body {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.pf-avatar {
+    width: 76px;
+    height: 76px;
     border-radius: 50%;
     background: var(--color-gold, #D4AF37);
     color: #0B1929;
@@ -15,186 +80,476 @@
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     flex-shrink: 0;
 }
 
-.perfil-nombre {
-    color: var(--color-text, #E8ECF1);
-    margin: 0 0 0.2rem;
-    font-size: 1.5rem;
-}
-
-.perfil-cargo {
-    color: var(--color-text-muted, #7a9ec7);
-    margin: 0 0 0.5rem;
-}
-
-.perfil-info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 1rem;
-    background: var(--color-bg-secondary, #101E33);
-    border: 1px solid var(--color-border, #1a2e47);
-    border-radius: 12px;
-    padding: 1.2rem 1.4rem;
-    margin-bottom: 1.5rem;
-}
-
-.perfil-info-grid>div {
+.pf-header-datos {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.5rem;
+    min-width: 0;
 }
 
-.modal-info-label {
-    color: var(--color-text-muted, #7a9ec7);
-    font-size: 0.75rem;
+.pf-header-nombre-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.pf-nombre {
+    color: var(--color-text, #E8ECF1);
+    font-size: 1.4rem;
+    margin: 0;
+}
+
+.pf-rol-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
 }
 
-.modal-info-valor {
+.pf-rol-badge--admin {
+    background: rgba(212, 175, 55, 0.12);
+    color: var(--color-gold, #D4AF37);
+}
+
+.pf-rol-badge--tecnico {
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--color-accent-blue, #3B82F6);
+}
+
+.pf-header-meta {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.pf-header-meta-sep {
+    opacity: 0.5;
+}
+
+/* --- Asignación actual / Misión --- */
+
+.pf-mision-card {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-left: 3px solid var(--color-gold, #D4AF37);
+    border-radius: 14px;
+    padding: 1.4rem 1.6rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+}
+
+.pf-mision-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 1rem;
+    margin-bottom: 1.2rem;
+    border-bottom: 1px solid var(--color-border, #1a2e47);
+}
+
+.pf-mision-label {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.pf-mision-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+}
+
+.pf-mision-estado--en_curso {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--color-aprobado, #10B981);
+}
+
+.pf-mision-estado--finalizada {
+    background: rgba(122, 158, 199, 0.12);
+    color: var(--color-text-muted, #7a9ec7);
+}
+
+.pf-mision-estado--proxima {
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--color-accent-blue, #3B82F6);
+}
+
+.pf-mision-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1.2rem 1.5rem;
+}
+
+.pf-info-label {
+    display: block;
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.25rem;
+}
+
+.pf-info-valor {
+    display: block;
     color: var(--color-text, #E8ECF1);
     font-size: 0.95rem;
     font-weight: 600;
 }
 
-.estado-pill {
-    display: inline-block;
-    width: fit-content;
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 600;
+.pf-mision-vacia {
+    color: var(--color-text-muted, #7a9ec7);
+    font-style: italic;
+    font-size: 0.9rem;
+    padding: 1.2rem 0;
 }
 
-.estado-pill--activo {
-    background: rgba(16, 185, 129, 0.15);
-    color: var(--color-aprobado, #10B981);
-}
+/* --- Filtros --- */
 
-.estado-pill--inactivo {
-    background: rgba(239, 68, 68, 0.15);
-    color: var(--color-rechazado, #EF4444);
-}
-
-.asignacion-card {
-    background: var(--color-bg-secondary, #101E33);
-    border: 1px solid var(--color-gold, #D4AF37);
-    border-radius: 12px;
-    padding: 1.4rem;
-    margin-bottom: 1.5rem;
-}
-
-.asignacion-ot {
-    color: var(--color-gold, #D4AF37);
-    margin: 0 0 0.8rem;
-    font-size: 1.1rem;
-}
-
-.filtro-tabs {
+.pf-filtros-wrap {
     display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+    margin-bottom: 1.6rem;
+}
+
+.pf-filtro-grupo {
+    display: flex;
+    flex-direction: column;
     gap: 0.6rem;
-    margin-bottom: 1.2rem;
+}
+
+.pf-filtro-grupo-label {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pf-filtro-nota {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.68rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.75;
+}
+
+.pf-tabs {
+    display: flex;
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
 
-.filtro-tab {
+.pf-tab {
     background: var(--color-bg-secondary, #101E33);
     border: 1px solid var(--color-border, #1a2e47);
     color: var(--color-text-muted, #7a9ec7);
     border-radius: 999px;
-    padding: 0.5rem 1.2rem;
+    padding: 0.45rem 1.05rem;
     cursor: pointer;
     font-family: inherit;
     font-weight: 600;
-    font-size: 0.85rem;
-    transition: all 0.2s;
+    font-size: 0.82rem;
+    transition: all 0.18s ease;
 }
 
-.filtro-tab--activo {
+.pf-tab:hover:not(:disabled) {
+    border-color: var(--color-gold, #D4AF37);
+    color: var(--color-text, #E8ECF1);
+}
+
+.pf-tab--activo {
     background: var(--color-gold, #D4AF37);
     border-color: var(--color-gold, #D4AF37);
     color: #0B1929;
 }
 
-.rango-personalizado {
-    display: flex;
-    gap: 1.2rem;
-    margin-bottom: 1.2rem;
-    flex-wrap: wrap;
+.pf-tabs--deshabilitado .pf-tab {
+    cursor: not-allowed;
+    opacity: 0.45;
 }
 
-.rango-personalizado label {
+.pf-tabs--deshabilitado .pf-tab--activo {
+    background: var(--color-bg-secondary, #101E33);
+    border-color: var(--color-border, #1a2e47);
+    color: var(--color-text-muted, #7a9ec7);
+}
+
+.pf-subtabs {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    padding-left: 0.2rem;
+}
+
+.pf-subtab {
+    background: transparent;
+    border: 1px solid var(--color-border, #1a2e47);
+    color: var(--color-text-muted, #7a9ec7);
+    border-radius: 8px;
+    padding: 0.32rem 0.7rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.75rem;
+    transition: all 0.18s ease;
+}
+
+.pf-subtab:hover {
+    border-color: var(--color-accent-blue, #3B82F6);
+    color: var(--color-text, #E8ECF1);
+}
+
+.pf-subtab--activo {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: var(--color-accent-blue, #3B82F6);
+    color: var(--color-accent-blue, #3B82F6);
+}
+
+.pf-rango-personalizado {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    padding-left: 0.2rem;
+}
+
+.pf-rango-personalizado label {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
     color: var(--color-text-muted, #7a9ec7);
-    font-size: 0.8rem;
+    font-size: 0.78rem;
 }
 
-.rango-personalizado input {
+.pf-rango-personalizado input {
     background: var(--color-bg-secondary, #101E33);
     border: 1px solid var(--color-border, #1a2e47);
     border-radius: 8px;
-    padding: 0.5rem 0.7rem;
+    padding: 0.45rem 0.65rem;
     color: var(--color-text, #E8ECF1);
     font-family: inherit;
 }
 
-.periodo-card {
+/* --- Resumen compacto horizontal --- */
+
+.pf-resumen-bar {
+    display: flex;
+    align-items: center;
     background: var(--color-bg-secondary, #101E33);
     border: 1px solid var(--color-border, #1a2e47);
-    border-radius: 12px;
-    padding: 1.4rem;
-    margin-bottom: 1.5rem;
+    border-radius: 14px;
+    padding: 1.1rem 1.6rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+    flex-wrap: wrap;
+    gap: 1.2rem;
+    margin-bottom: 0.5rem;
 }
 
-.periodo-fecha {
+.pf-resumen-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 90px;
+}
+
+.pf-resumen-item--total {
+    padding-right: 1.4rem;
+}
+
+.pf-resumen-divisor {
+    width: 1px;
+    align-self: stretch;
+    background: var(--color-border, #1a2e47);
+}
+
+.pf-resumen-valor {
+    color: var(--color-text, #E8ECF1);
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.pf-resumen-item--total .pf-resumen-valor {
     color: var(--color-gold, #D4AF37);
-    font-weight: 600;
-    margin: 0 0 0.8rem;
+    font-size: 1.5rem;
 }
 
-.checklist {
-    list-style: none;
-    margin: 0 0 0.5rem;
-    padding: 0;
+.pf-resumen-valor--pendiente {
+    color: var(--color-pendiente, #F59E0B);
+}
+
+.pf-resumen-valor--aprobado {
+    color: var(--color-aprobado, #10B981);
+}
+
+.pf-resumen-valor--rechazado {
+    color: var(--color-rechazado, #EF4444);
+}
+
+.pf-resumen-label {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* --- Historial: tarjetas --- */
+
+.pf-historial-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 1rem;
+}
+
+.pf-viatico-card {
+    background: var(--color-bg-secondary, #101E33);
+    border: 1px solid var(--color-border, #1a2e47);
+    border-radius: 14px;
+    padding: 1.2rem 1.3rem;
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+    transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
-.checklist li {
+.pf-viatico-card:hover {
+    border-color: var(--color-gold, #D4AF37);
+    transform: translateY(-2px);
+}
+
+.pf-viatico-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.2rem;
+}
+
+.pf-viatico-tipo {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
     color: var(--color-text, #E8ECF1);
+    font-weight: 600;
     font-size: 0.9rem;
 }
 
-.semana-dia {
-    padding: 0.8rem 0;
-    border-bottom: 1px solid var(--color-border, #1a2e47);
+.pf-viatico-icono {
+    font-size: 1rem;
 }
 
-.semana-dia:last-of-type {
-    border-bottom: none;
-}
-
-.semana-dia-nombre {
-    display: block;
-    color: var(--color-text-muted, #7a9ec7);
-    font-size: 0.8rem;
+.pf-estado-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 0.4rem;
+    letter-spacing: 0.03em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
 }
 
-.periodo-total {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 0.8rem;
-    border-top: 1px solid var(--color-border, #1a2e47);
+.pf-estado-badge--aprobado {
+    background: rgba(16, 185, 129, 0.14);
+    color: var(--color-aprobado, #10B981);
+}
+
+.pf-estado-badge--pendiente {
+    background: rgba(245, 158, 11, 0.14);
+    color: var(--color-pendiente, #F59E0B);
+}
+
+.pf-estado-badge--rechazado {
+    background: rgba(239, 68, 68, 0.14);
+    color: var(--color-rechazado, #EF4444);
+}
+
+.pf-viatico-lugar {
     color: var(--color-text, #E8ECF1);
-    font-size: 1.1rem;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.pf-viatico-fecha {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.78rem;
+    margin: 0;
+}
+
+.pf-viatico-motivo {
+    color: var(--color-rechazado, #EF4444);
+    font-size: 0.78rem;
+    margin: 0.1rem 0 0;
+}
+
+.pf-viatico-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--color-border, #1a2e47);
+}
+
+.pf-viatico-valor {
+    color: var(--color-text, #E8ECF1);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.pf-viatico-thumb {
+    width: 34px;
+    height: 34px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--color-border, #1a2e47);
+    transition: border-color 0.2s ease;
+}
+
+.pf-viatico-thumb:hover {
+    border-color: var(--color-gold, #D4AF37);
+}
+
+.pf-viatico-sin-evidencia {
+    color: var(--color-text-muted, #7a9ec7);
+    font-size: 0.72rem;
+    font-style: italic;
+}
+
+.pf-viatico-detalle-btn {
+    margin-top: 0.6rem;
+    width: 100%;
+    background: none;
+    border: 1px solid var(--color-border, #1a2e47);
+    color: var(--color-text-muted, #7a9ec7);
+    border-radius: 8px;
+    padding: 0.5rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.78rem;
+    transition: all 0.2s ease;
+}
+
+.pf-viatico-detalle-btn:hover {
+    border-color: var(--color-gold, #D4AF37);
+    color: var(--color-gold, #D4AF37);
 }

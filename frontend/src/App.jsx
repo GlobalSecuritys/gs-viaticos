@@ -7,7 +7,6 @@ import Dashboard from './pages/Dashboard';
 import NuevoViatico from './pages/NuevoViatico';
 import MisViaticos from './pages/MisViaticos';
 import AdminDashboard from './pages/AdminDashboard';
-import Personal from './pages/Personal';
 import PerfilEmpleado from './pages/PerfilEmpleado';
 export default function App() {
   return (
@@ -47,15 +46,6 @@ export default function App() {
               </AdminRoute>
             }
           />
-          <Route
-            path="/admin/personal"
-            element={
-              <AdminRoute>
-                <Personal />
-              </AdminRoute>
-            }
-          />
-
           <Route
             path="/admin/personal/:id"
             element={

@@ -173,7 +173,10 @@ export const LABEL_ESTADO_ASIGNACION = {
 // --- Filtros de tiempo (Sección 3) ---
 
 export function filtrarPorRango(viaticos, inicioISO, finISO) {
-    return viaticos.filter((v) => v.fecha >= inicioISO && v.fecha <= finISO);
+    return viaticos.filter((v) => {
+        const fecha = (v.fecha || '').slice(0, 10);
+        return fecha >= inicioISO && fecha <= finISO;
+    });
 }
 
 export function resumen(viaticos) {
@@ -185,3 +188,38 @@ export function resumen(viaticos) {
         rechazados: viaticos.filter((v) => v.estado === 'rechazado').length,
     };
 }
+
+// --- Extensión: selección de semana específica dentro del mes (Sección 3, Filtro 1) ---
+// El backend no tiene concepto de "semana N"; se deriva partiendo el mes en
+// bloques de 7 días (Semana 1 = días 1-7, ..., Semana 4 = día 22 al fin de mes).
+
+export function rangoSemanaDelMes(numero, fechaBase = new Date()) {
+    const year = fechaBase.getFullYear();
+    const month = fechaBase.getMonth();
+    const ultimoDiaMes = new Date(year, month + 1, 0).getDate();
+
+    let inicioDia = (numero - 1) * 7 + 1;
+    let finDia = numero === 4 ? ultimoDiaMes : numero * 7;
+    if (inicioDia > ultimoDiaMes) inicioDia = ultimoDiaMes;
+    if (finDia > ultimoDiaMes) finDia = ultimoDiaMes;
+
+    const pad = (n) => String(n).padStart(2, '0');
+    return {
+        inicio: `${year}-${pad(month + 1)}-${pad(inicioDia)}`,
+        fin: `${year}-${pad(month + 1)}-${pad(finDia)}`,
+    };
+}
+
+export function semanaDelMesActual(fechaBase = new Date()) {
+    return Math.min(4, Math.ceil(fechaBase.getDate() / 7));
+}
+
+// Iconos por tipo de gasto — solo presentación, no altera la lógica existente.
+export const ICONO_TIPO_GASTO = {
+    alimentacion: '🍽️',
+    transporte: '🚗',
+    hotel: '🏨',
+    peajes: '🎫',
+    parqueadero: '🅿️',
+    otros: '📦',
+};
