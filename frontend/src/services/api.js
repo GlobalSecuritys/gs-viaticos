@@ -16,11 +16,38 @@ export default api;
 
 export async function subirEvidencias(viaticoId, archivos) {
   const formData = new FormData();
-  archivos.forEach((a) => formData.append('files', a.file));
+  archivos.forEach((a) => {
+    const fileToAppend = a.file || a;
+    if (fileToAppend) {
+      formData.append('files', fileToAppend);
+    }
+  });
 
-  // No fijamos Content-Type manualmente: si se fija 'multipart/form-data'
-  // a mano, se pierde el parámetro "boundary" que el navegador genera
-  // automáticamente, y el backend no puede parsear los archivos.
-  // Dejamos que axios/el navegador lo calculen solos.
   return api.post(`/viaticos/${viaticoId}/evidencias`, formData);
+}
+
+export function exportarViaticosIndependientes(usuarioId, fechaInicio, fechaFin) {
+  const params = new URLSearchParams({ usuario_id: usuarioId });
+  if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+  if (fechaFin) params.append('fecha_fin', fechaFin);
+  return api.get(`/admin/viaticos/exportar?${params.toString()}`, {
+    responseType: 'blob',
+  });
+}
+
+export function exportarViaticosAsignacion(asignacionId) {
+  return api.get(`/admin/asignaciones/${asignacionId}/exportar`, {
+    responseType: 'blob',
+  });
+}
+
+export function descargarBlob(blobData, filename) {
+  const url = window.URL.createObjectURL(new Blob([blobData]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 }

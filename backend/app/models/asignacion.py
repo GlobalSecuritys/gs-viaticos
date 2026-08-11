@@ -1,13 +1,15 @@
 from datetime import date, datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.usuario import Usuario
+    from app.models.viatico import Viatico
 
 
 class Asignacion(Base):
@@ -49,6 +51,9 @@ class Asignacion(Base):
     fecha_fin: Mapped[date] = mapped_column(Date, nullable=False, index=True)
 
     observaciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    monto_anticipo: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False, server_default="0.00"
+    )
 
     estado: Mapped[str] = mapped_column(
         String(20),
@@ -77,3 +82,9 @@ class Asignacion(Base):
         "Usuario",
         foreign_keys=[creado_por_id],
     )
+    viaticos: Mapped[list["Viatico"]] = relationship(
+        "Viatico",
+        back_populates="asignacion",
+        cascade="all, delete-orphan",
+    )
+

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from app.routers.admin import router as admin_router
 from app.routers.asignaciones import router as asignaciones_router
+from app.routers.asignaciones import router_tecnico as asignaciones_tecnico_router
 from app.routers.auth import router as auth_router
 from app.routers.viaticos import router as viaticos_router
 
@@ -33,6 +34,7 @@ app.include_router(auth_router)
 app.include_router(viaticos_router)
 app.include_router(admin_router)
 app.include_router(asignaciones_router)
+app.include_router(asignaciones_tecnico_router)
 
 
 @app.get("/", include_in_schema=False)

@@ -6,11 +6,17 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import NuevoViatico from './pages/NuevoViatico';
 import MisViaticos from './pages/MisViaticos';
+import MisAsignaciones from './pages/MisAsignaciones';
+import CuentaCobro from './pages/CuentaCobro';
 import AdminDashboard from './pages/AdminDashboard';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import PerfilEmpleado from './pages/PerfilEmpleado';
+import AdminUsuarios from './pages/AdminUsuarios';
 import Asignaciones from './pages/Asignaciones';
 import NuevaAsignacion from './pages/NuevaAsignacion';
 import DetalleAsignacion from './pages/DetalleAsignacion';
+import Auditoria from './pages/Auditoria';
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -42,6 +48,30 @@ export default function App() {
             }
           />
           <Route
+            path="/mis-asignaciones"
+            element={
+              <PrivateRoute>
+                <MisAsignaciones />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/cuenta-cobro"
+            element={
+              <PrivateRoute>
+                <CuentaCobro />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/superadmin"
+            element={
+              <AdminRoute>
+                <SuperAdminDashboard />
+              </AdminRoute>
+            }
+          />
+          <Route
             path="/admin"
             element={
               <AdminRoute>
@@ -54,6 +84,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <PerfilEmpleado />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/usuarios"
+            element={
+              <AdminRoute>
+                <AdminUsuarios />
               </AdminRoute>
             }
           />
@@ -78,6 +116,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <DetalleAsignacion />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/auditoria"
+            element={
+              <AdminRoute>
+                <Auditoria />
               </AdminRoute>
             }
           />

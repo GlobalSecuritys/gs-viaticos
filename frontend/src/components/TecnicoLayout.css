@@ -1,0 +1,207 @@
+/* ===== Tecnico Layout Sidebar ===== */
+
+.tec-root {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--color-bg-primary);
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--color-text);
+}
+
+.tec-sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: linear-gradient(180deg, #0A2540 0%, #0D2E4E 100%);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 200;
+    color: #FFFFFF;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.tec-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1.1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.tec-sidebar-logo {
+    height: 38px;
+    width: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.tec-sidebar-brand-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.tec-brand-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.2;
+}
+
+.tec-brand-sub {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.55);
+    letter-spacing: 0.03em;
+}
+
+.tec-sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1.1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tec-user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: #1D63C8;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.tec-user-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.tec-user-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tec-user-role {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tec-nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0.5rem;
+    gap: 0.35rem;
+    overflow-y: auto;
+}
+
+.tec-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+}
+
+.tec-nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+}
+
+.tec-nav-item--active {
+    background-color: #1D63C8;
+    color: #FFFFFF;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(29, 99, 200, 0.4);
+}
+
+.tec-nav-icon {
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+.tec-nav-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tec-sidebar-footer {
+    padding: 1rem 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tec-logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.tec-logout-btn:hover {
+    background-color: rgba(220, 38, 38, 0.2);
+    color: #F87171;
+}
+
+.tec-content {
+    flex: 1;
+    margin-left: 240px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 900px) {
+    .tec-sidebar {
+        width: 64px;
+        min-width: 64px;
+    }
+    .tec-sidebar-brand-text,
+    .tec-user-info,
+    .tec-nav-label,
+    .tec-logout-btn span:last-child {
+        display: none;
+    }
+    .tec-content {
+        margin-left: 64px;
+    }
+    .tec-nav-item, .tec-logout-btn {
+        justify-content: center;
+        padding: 0.8rem 0;
+    }
+}

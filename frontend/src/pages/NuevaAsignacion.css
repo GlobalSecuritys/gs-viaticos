@@ -1,0 +1,146 @@
+/* ===== Nueva Asignación Page Styles (Light Corporate Theme) ===== */
+
+.nueva-asig-root {
+    min-height: 100vh;
+    background-color: var(--color-bg-primary, #F8FAFC);
+    padding: 2rem 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.nueva-asig-container {
+    width: 100%;
+    max-width: 800px;
+    background-color: var(--color-bg-secondary, #FFFFFF);
+    border: 1px solid var(--color-border, #E2E8F0);
+    border-radius: var(--radius-lg, 12px);
+    padding: 2rem;
+    box-shadow: var(--color-shadow, 0 4px 6px rgba(0, 0, 0, 0.05));
+}
+
+.nueva-asig-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.nueva-asig-back {
+    align-self: flex-start;
+    background-color: transparent;
+    border: 1px solid var(--color-border, #E2E8F0);
+    color: var(--color-text-muted, #64748B);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md, 8px);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nueva-asig-back:hover {
+    background-color: var(--color-bg-tertiary, #F1F5F9);
+    color: var(--color-text, #0F172A);
+    border-color: var(--color-border-hover, #CBD5E1);
+}
+
+.nueva-asig-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.nueva-asig-icon {
+    font-size: 2.2rem;
+    background-color: var(--color-primary-blue-light, #EFF6FF);
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md, 8px);
+    border: 1px solid rgba(30, 64, 175, 0.12);
+}
+
+.nueva-asig-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--color-text, #0F172A);
+}
+
+.nueva-asig-sub {
+    font-size: 0.9rem;
+    color: var(--color-text-muted, #64748B);
+    margin: 0.25rem 0 0 0;
+}
+
+.nueva-asig-error {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background-color: var(--color-rechazado-bg, #FEF2F2);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: var(--color-rechazado, #DC2626);
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-md, 8px);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+}
+
+.nueva-asig-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    gap: 1rem;
+    color: var(--color-text-muted, #64748B);
+}
+
+.nueva-asig-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--color-border, #E2E8F0);
+    border-top-color: var(--color-primary-blue, #1E40AF);
+    border-radius: 50%;
+    animation: spin-asig 0.8s linear infinite;
+}
+
+@keyframes spin-asig {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.nueva-asig-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 3rem 1.5rem;
+    background-color: var(--color-bg-primary, #F8FAFC);
+    border: 1px dashed var(--color-border, #CBD5E1);
+    border-radius: var(--radius-lg, 12px);
+}
+
+.nueva-asig-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.nueva-asig-empty p {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-text, #0F172A);
+    margin: 0;
+}
+
+.nueva-asig-empty-sub {
+    font-size: 0.875rem !important;
+    font-weight: 400 !important;
+    color: var(--color-text-muted, #64748B) !important;
+    margin-top: 0.5rem !important;
+}

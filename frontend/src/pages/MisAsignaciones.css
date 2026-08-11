@@ -1,0 +1,195 @@
+/* ===== Technician Assignments Page ===== */
+
+.mis-asig-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.mis-asig-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.mis-asig-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.mis-asig-sub {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+.mis-asig-empty {
+    padding: 3rem 2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.mis-asig-empty .empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.mis-asig-empty h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.mis-asig-empty p {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+.mis-asig-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.5rem;
+}
+
+.mis-asig-card {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-primary-blue);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    box-shadow: var(--color-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mis-asig-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--color-shadow-md);
+    border-color: var(--color-border-hover);
+}
+
+.mac-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mac-tipo {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-accent-blue);
+}
+
+.mac-cliente {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.mac-empresa {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin: -0.5rem 0 0;
+}
+
+/* Resumen Financiero por Asignación */
+.mac-financial-box {
+    background-color: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.mac-fin-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+}
+
+.mac-fin-row--saldo {
+    border-top: 1px solid var(--color-border);
+    padding-top: 0.35rem;
+    font-size: 0.88rem;
+    color: var(--color-aprobado);
+}
+
+.mac-fin-meta {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 0.15rem;
+}
+
+.mac-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.6rem 0;
+}
+
+.mac-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.mac-detail-label {
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.mac-detail-val {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.mac-obs {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    background-color: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 0.85rem;
+    margin: 0;
+}
+
+.mac-btn-viatico {
+    margin-top: 0.25rem;
+    background-color: var(--color-primary-blue);
+    border: none;
+    color: #FFFFFF;
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    box-shadow: var(--color-shadow-sm);
+}
+
+.mac-btn-viatico:hover {
+    background-color: var(--color-accent-blue);
+    transform: translateY(-1px);
+}

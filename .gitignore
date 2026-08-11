@@ -1,7 +1,12 @@
 venv/
 __pycache__/
 *.pyc
+*.pyo
 .env
+.env.production
 node_modules/
 dist/
 .DS_Store
+*.zip
+*.egg-info/
+.pytest_cache/

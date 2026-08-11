@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { listarAuditoria } from '../services/auditoria';
 import logoGSB from '../assets/logo-gsb.png';
 import NotificationBell from '../components/NotificationBell';
+import ModalEvidencia from '../components/ModalEvidencia';
 import './AdminDashboard.css';
 
 function formatCOP(value) {
@@ -21,6 +23,27 @@ function iniciales(nombre = '') {
         .slice(0, 2)
         .map((p) => p[0].toUpperCase())
         .join('');
+}
+
+function formatFechaLargaISO(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function formatFechaHoraISO(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleString('es-CO', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+    });
+}
+
+function labelRol(rol) {
+    if (rol === 'superadmin') return 'Super Administrador';
+    if (rol === 'admin') return 'Administrador';
+    return 'Técnico';
 }
 
 function esHoy(fechaStr) {
@@ -61,30 +84,57 @@ export default function AdminDashboard() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
+    const [perfilData, setPerfilData] = useState(null);
     const [usuarios, setUsuarios] = useState([]);
     const [viaticos, setViaticos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [periodo, setPeriodo] = useState('mes');
     const [resumenAbierto, setResumenAbierto] = useState(true);
+    const [ultimaAccion, setUltimaAccion] = useState(null);
+    const [cargandoAccion, setCargandoAccion] = useState(true);
+
+    // Modal de consolidado y evidencia
+    const [registroConsolidado, setRegistroConsolidado] = useState(null);
+    const [evidenciaPreview, setEvidenciaPreview] = useState(null);
+    const [busquedaConsolidado, setBusquedaConsolidado] = useState('');
+
+    async function cargar() {
+        try {
+            const [resMe, resUsuarios, resViaticos] = await Promise.all([
+                api.get('/auth/me').catch(() => null),
+                api.get('/admin/usuarios'),
+                api.get('/admin/viaticos'),
+            ]);
+            setPerfilData(resMe?.data ?? null);
+            setUsuarios(resUsuarios.data);
+            setViaticos(resViaticos.data);
+        } catch {
+            setError('No se pudieron cargar los datos del panel.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function cargarUltimaAccion(actorId) {
+        setCargandoAccion(true);
+        try {
+            const { data } = await listarAuditoria({ actorId, limit: 1 });
+            setUltimaAccion(data?.[0] ?? null);
+        } catch {
+            setUltimaAccion(null);
+        } finally {
+            setCargandoAccion(false);
+        }
+    }
 
     useEffect(() => {
-        async function cargar() {
-            try {
-                const [resUsuarios, resViaticos] = await Promise.all([
-                    api.get('/admin/usuarios'),
-                    api.get('/admin/viaticos'),
-                ]);
-                setUsuarios(resUsuarios.data);
-                setViaticos(resViaticos.data);
-            } catch {
-                setError('No se pudieron cargar los datos del panel.');
-            } finally {
-                setLoading(false);
-            }
-        }
         cargar();
     }, []);
+
+    useEffect(() => {
+        if (user?.id) cargarUltimaAccion(user.id);
+    }, [user?.id]);
 
     const stats = useMemo(() => {
         const totalGastado = viaticos.reduce((acc, v) => acc + Number(v.valor), 0);
@@ -97,16 +147,71 @@ export default function AdminDashboard() {
     }, [viaticos]);
 
     const tecnicos = useMemo(() => {
-        return usuarios.map((u) => {
-            const viaticosUsuario = viaticos.filter((v) => v.usuario_id === u.id);
-            const totalGastado = viaticosUsuario.reduce((acc, v) => acc + Number(v.valor), 0);
-            return {
-                ...u,
-                cantidadViaticos: viaticosUsuario.length,
-                totalGastado,
+        return usuarios
+            .filter((u) => {
+                const esUsuarioActual =
+                    (user?.id && String(u.id) === String(user.id)) ||
+                    (user?.correo && u.correo?.toLowerCase() === user.correo.toLowerCase());
+                if (esUsuarioActual) return false;
+                if (user?.rol === 'superadmin' && u.rol === 'superadmin') return false;
+                return true;
+            })
+            .map((u) => {
+                const viaticosUsuario = viaticos.filter((v) => v.usuario_id === u.id);
+                const totalGastado = viaticosUsuario.reduce((acc, v) => acc + Number(v.valor), 0);
+                return {
+                    ...u,
+                    cantidadViaticos: viaticosUsuario.length,
+                    totalGastado,
+                };
+            });
+    }, [usuarios, viaticos, user]);
+
+    // Consolidado de registros por Técnico + Fecha
+    const viaticosConsolidados = useMemo(() => {
+        const grupos = new Map();
+        viaticos.forEach((v) => {
+            const key = `${v.usuario_id}_${v.fecha}`;
+            const u = usuarios.find((usr) => usr.id === v.usuario_id);
+            const actual = grupos.get(key) || {
+                key,
+                usuario_id: v.usuario_id,
+                tecnico_nombre: v.nombre || u?.nombre || `Usuario #${v.usuario_id}`,
+                fecha: v.fecha,
+                ciudad: v.ciudad || 'N/A',
+                items: [],
+                total: 0,
+                anticipo: 1500000,
+                estado: v.estado,
             };
+
+            let meta;
+            try {
+                meta = JSON.parse(v.descripcion);
+            } catch {
+                meta = { razon_social: v.cliente, nit: '—', origen: '—', destino: v.ciudad, tiene_soporte: Boolean(v.evidencias?.length) };
+            }
+
+            actual.items.push({
+                ...v,
+                meta,
+            });
+            actual.total += Number(v.valor);
+
+            if (v.estado === 'pendiente') actual.estado = 'pendiente';
+            grupos.set(key, actual);
         });
-    }, [usuarios, viaticos]);
+
+        const list = [...grupos.values()].sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+        if (!busquedaConsolidado.trim()) return list;
+        const query = busquedaConsolidado.toLowerCase();
+        return list.filter((r) =>
+            r.tecnico_nombre.toLowerCase().includes(query) ||
+            r.ciudad.toLowerCase().includes(query) ||
+            r.fecha.includes(query)
+        );
+    }, [viaticos, usuarios, busquedaConsolidado]);
 
     const filtroActivo = FILTROS_PERIODO.find((f) => f.id === periodo) ?? FILTROS_PERIODO[2];
 
@@ -128,8 +233,34 @@ export default function AdminDashboard() {
         return { filas, total };
     }, [viaticos, filtroActivo]);
 
+    const perfil = perfilData ?? {
+        nombre: user?.nombre ?? '',
+        correo: user?.correo ?? '',
+        rol: user?.rol ?? '',
+        codigo_empleado: null,
+        activo: true,
+    };
+    const nombreMostrado = perfil.nombre || perfil.correo || 'Administrador';
+
+    async function cambiarEstadoGrupo(grupoItems, nuevoEstado) {
+        try {
+            for (const item of grupoItems) {
+                if (nuevoEstado === 'aprobado') {
+                    await api.put(`/admin/viaticos/${item.id}/aprobar`);
+                } else if (nuevoEstado === 'rechazar') {
+                    await api.put(`/admin/viaticos/${item.id}/rechazar`);
+                }
+            }
+            setRegistroConsolidado(null);
+            await cargar();
+        } catch {
+            setError(`No se pudieron actualizar todos los ítems.`);
+        }
+    }
+
     return (
         <div className="admin-root">
+            {/* ── HEADER ── */}
             <header className="admin-header">
                 <div className="admin-header-brand">
                     <img src={logoGSB} alt="Global Security Bank" className="admin-logo-img" />
@@ -154,51 +285,227 @@ export default function AdminDashboard() {
                         className="btn-logout"
                         onClick={() => {
                             logout();
-                            navigate("/login");
+                            navigate('/login');
                         }}
-                    >Cerrar sesión</button>
+                    >
+                        Cerrar sesión
+                    </button>
                 </div>
             </header>
 
             <main className="admin-main dash-main">
-                <div className="admin-welcome">
-                    <h1>Bienvenido, Administrador</h1>
-                    <p>{user?.nombre || user?.correo}</p>
-                </div>
-
                 {error && <p className="dash-error">{error}</p>}
 
+                {/* ── SECCIÓN SUPERIOR: Perfil + KPIs ── */}
                 <h2 className="admin-section-title">Operación General</h2>
-                {loading ? (
-                    <p style={{ color: 'var(--color-text-muted)' }}>Cargando estadísticas...</p>
-                ) : (
-                    <div className="admin-stats-grid">
-                        <div className="admin-stat-card">
-                            <span className="stat-label">Total Gastado</span>
-                            <span className="stat-value dash-stat-value--money">{formatCOP(stats.totalGastado)}</span>
+
+                <div className="dash-top-row">
+                    {/* Tarjeta de Perfil */}
+                    <div className="dash-profile-card">
+                        <div className="dash-profile-top">
+                            <div className="dash-profile-avatar-wrap">
+                                <div className="dash-profile-avatar">
+                                    {iniciales(nombreMostrado) || perfil.correo?.[0]?.toUpperCase() || 'A'}
+                                </div>
+                            </div>
+                            <div className="dash-profile-info">
+                                <h3 className="dash-profile-nombre">{nombreMostrado}</h3>
+                                <div className="dash-profile-badges">
+                                    <span className="dash-profile-badge dash-profile-badge--rol">
+                                        {labelRol(perfil.rol || user?.rol)}
+                                    </span>
+                                    <span className={`dash-profile-badge ${perfil.activo ? 'dash-profile-badge--activo' : 'dash-profile-badge--inactivo'}`}>
+                                        {perfil.activo ? 'Activo' : 'Inactivo'}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <div className="admin-stat-card admin-stat-card--pendiente">
-                            <span className="stat-label">Pendientes</span>
-                            <span className="stat-value">{stats.pendientes}</span>
+
+                        <div className="dash-profile-meta">
+                            <div className="dash-profile-meta-row">
+                                <span className="dash-profile-meta-icon">✉</span>
+                                <span className="dash-profile-meta-val">{perfil.correo}</span>
+                            </div>
+                            {perfil.codigo_empleado && (
+                                <div className="dash-profile-meta-row">
+                                    <span className="dash-profile-meta-icon">🪪</span>
+                                    <span className="dash-profile-meta-val">{perfil.codigo_empleado}</span>
+                                </div>
+                            )}
+                            {perfil.created_at && (
+                                <div className="dash-profile-meta-row">
+                                    <span className="dash-profile-meta-icon">📅</span>
+                                    <span className="dash-profile-meta-val">
+                                        <span className="dash-profile-meta-label">Miembro desde</span>{' '}
+                                        {formatFechaLargaISO(perfil.created_at)}
+                                    </span>
+                                </div>
+                            )}
                         </div>
-                        <div className="admin-stat-card admin-stat-card--aprobado">
-                            <span className="stat-label">Aprobados</span>
-                            <span className="stat-value">{stats.aprobados}</span>
+
+                        <div className="dash-profile-ultima-accion">
+                            <span className="dash-profile-ultima-accion-titulo">Última acción registrada</span>
+                            {cargandoAccion ? (
+                                <span className="dash-profile-ultima-accion-val dash-profile-ultima-accion-val--muted">Cargando…</span>
+                            ) : ultimaAccion ? (
+                                <div className="dash-profile-ultima-accion-body">
+                                    <span className="dash-profile-ultima-accion-nombre">
+                                        {ultimaAccion.accion?.replace(/_/g, ' ')}
+                                    </span>
+                                    <span className="dash-profile-ultima-accion-fecha">
+                                        {formatFechaHoraISO(ultimaAccion.created_at)}
+                                    </span>
+                                </div>
+                            ) : (
+                                <span className="dash-profile-ultima-accion-val dash-profile-ultima-accion-val--muted">Sin actividad registrada aún</span>
+                            )}
                         </div>
-                        <div className="admin-stat-card admin-stat-card--rechazado">
-                            <span className="stat-label">Rechazados</span>
-                            <span className="stat-value">{stats.rechazados}</span>
+
+                        <div className="dash-profile-actions">
+                            <button
+                                className="dash-tech-btn"
+                                onClick={() => user?.id && navigate(`/admin/personal/${user.id}`)}
+                            >
+                                Ver mi perfil →
+                            </button>
+                            <button
+                                className="dash-tech-btn"
+                                onClick={() => navigate('/admin/usuarios')}
+                            >
+                                Gestionar usuarios →
+                            </button>
+                            <button
+                                className="dash-tech-btn"
+                                onClick={() => navigate('/admin/auditoria')}
+                            >
+                                Auditoría →
+                            </button>
                         </div>
                     </div>
-                )}
 
+                    {/* KPIs apilados */}
+                    {loading ? (
+                        <p style={{ color: 'var(--color-text-muted)', alignSelf: 'center' }}>Cargando estadísticas...</p>
+                    ) : (
+                        <div className="dash-kpis-col">
+                            <div className="dash-kpi-card">
+                                <span className="dash-kpi-label">Total Gastado</span>
+                                <span className="dash-kpi-value dash-kpi-value--money">{formatCOP(stats.totalGastado)}</span>
+                            </div>
+                            <div className="dash-kpi-card dash-kpi-card--pendiente">
+                                <span className="dash-kpi-label">Pendientes</span>
+                                <span className="dash-kpi-value">{stats.pendientes}</span>
+                            </div>
+                            <div className="dash-kpi-card dash-kpi-card--aprobado">
+                                <span className="dash-kpi-label">Aprobados</span>
+                                <span className="dash-kpi-value">{stats.aprobados}</span>
+                            </div>
+                            <div className="dash-kpi-card dash-kpi-card--rechazado">
+                                <span className="dash-kpi-label">Rechazados</span>
+                                <span className="dash-kpi-value">{stats.rechazados}</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* ── SECCIÓN CENTRAL: VISTA CONSOLIDADA DE VIÁTICOS (ADMIN) ── */}
+                <div className="admin-card-container dash-consolidado-card" style={{ marginBottom: '2rem' }}>
+                    <div className="admin-card-toolbar">
+                        <div>
+                            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 0.2rem' }}>
+                                Viáticos Registrados (Vista Consolidada)
+                            </h2>
+                            <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
+                                Consulta y gestiona las solicitudes de viáticos enviadas por los técnicos
+                            </span>
+                        </div>
+                        <div className="admin-search-wrap" style={{ maxWidth: '320px' }}>
+                            <span className="admin-search-icon">🔍</span>
+                            <input
+                                type="text"
+                                placeholder="Buscar por técnico, ciudad..."
+                                className="admin-search-input"
+                                value={busquedaConsolidado}
+                                onChange={(e) => setBusquedaConsolidado(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="admin-table-wrap">
+                        <table className="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha registro</th>
+                                    <th>Técnico</th>
+                                    <th>Ciudad</th>
+                                    <th>Ítems</th>
+                                    <th>Total gastos</th>
+                                    <th>Anticipo</th>
+                                    <th>Saldo GSB</th>
+                                    <th>Estado</th>
+                                    <th style={{ textAlign: 'center' }}>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {viaticosConsolidados.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={9} style={{ textAlign: 'center', padding: '2rem' }}>
+                                            No hay registros de viáticos para mostrar.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    viaticosConsolidados.map((r) => {
+                                        const saldoGSB = Math.max(0, r.anticipo - r.total);
+                                        return (
+                                            <tr key={r.key} className="sa-asig-row" onClick={() => setRegistroConsolidado(r)}>
+                                                <td>{r.fecha}</td>
+                                                <td>
+                                                    <strong>{r.tecnico_nombre}</strong>
+                                                </td>
+                                                <td>{r.ciudad}</td>
+                                                <td>
+                                                    <span className="badge-tipo">{r.items.length} ítems</span>
+                                                </td>
+                                                <td>
+                                                    <strong>{formatCOP(r.total)}</strong>
+                                                </td>
+                                                <td>{formatCOP(r.anticipo)}</td>
+                                                <td style={{ color: 'var(--color-aprobado)', fontWeight: 600 }}>
+                                                    {formatCOP(saldoGSB)}
+                                                </td>
+                                                <td>
+                                                    <span className={`estado-badge estado-badge--${r.estado === 'pendiente' ? 'inactivo' : r.estado}`}>
+                                                        {r.estado === 'pendiente' ? 'En revisión' : r.estado.toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <button
+                                                        className="admin-mini-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setRegistroConsolidado(r);
+                                                        }}
+                                                    >
+                                                        👁️ Ver detalle
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* ── SECCIÓN INFERIOR: Técnicos + Resumen ── */}
                 {!loading && (
                     <div className="dash-layout">
                         {/* Columna izquierda — Técnicos */}
                         <section className="dash-col-left">
                             <h2 className="admin-section-title">Técnicos</h2>
                             {tecnicos.length === 0 ? (
-                                <p style={{ color: 'var(--color-text-muted)' }}>No hay personal registrado.</p>
+                                <p style={{ color: 'var(--color-text-muted)' }}>No hay personal adicional registrado.</p>
                             ) : (
                                 <div className="dash-tech-grid">
                                     {tecnicos.map((t) => (
@@ -293,6 +600,129 @@ export default function AdminDashboard() {
                     </div>
                 )}
             </main>
+
+            {/* ── MODAL DETALLE CONSOLIDADO (ADMIN) ── */}
+            {registroConsolidado && (
+                <div className="sa-modal-overlay" onClick={() => setRegistroConsolidado(null)}>
+                    <div className="sa-modal" style={{ maxWidth: '780px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="sa-modal-header">
+                            <div>
+                                <h3 style={{ fontSize: '1.2rem' }}>Detalle del viático</h3>
+                                <span className={`estado-badge estado-badge--${registroConsolidado.estado === 'pendiente' ? 'inactivo' : registroConsolidado.estado}`}>
+                                    {registroConsolidado.estado === 'pendiente' ? 'EN REVISIÓN' : registroConsolidado.estado.toUpperCase()}
+                                </span>
+                            </div>
+                            <button className="sa-modal-close" onClick={() => setRegistroConsolidado(null)}>✕</button>
+                        </div>
+
+                        <div className="detalle-asig-grid" style={{ marginBottom: '1.25rem' }}>
+                            <div>
+                                <span className="detalle-label">Técnico</span>
+                                <span className="detalle-valor">{registroConsolidado.tecnico_nombre}</span>
+                            </div>
+                            <div>
+                                <span className="detalle-label">Fecha del registro</span>
+                                <span className="detalle-valor">{registroConsolidado.fecha}</span>
+                            </div>
+                            <div>
+                                <span className="detalle-label">Ciudad</span>
+                                <span className="detalle-valor">{registroConsolidado.ciudad}</span>
+                            </div>
+                            <div>
+                                <span className="detalle-label">Anticipo recibido</span>
+                                <span className="detalle-valor">{formatCOP(registroConsolidado.anticipo)}</span>
+                            </div>
+                            <div>
+                                <span className="detalle-label">Ítems registrados</span>
+                                <span className="detalle-valor">{registroConsolidado.items.length}</span>
+                            </div>
+                            <div>
+                                <span className="detalle-label">Total gastos</span>
+                                <span className="detalle-valor" style={{ color: 'var(--color-primary-blue)' }}>{formatCOP(registroConsolidado.total)}</span>
+                            </div>
+                            <div>
+                                <span className="detalle-label">Saldo a favor de GSB</span>
+                                <span className="detalle-valor" style={{ color: 'var(--color-aprobado)' }}>
+                                    {formatCOP(Math.max(0, registroConsolidado.anticipo - registroConsolidado.total))}
+                                </span>
+                            </div>
+                        </div>
+
+                        <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '1rem 0 0.5rem' }}>Gastos registrados</h4>
+                        <div className="admin-table-wrap" style={{ border: '1px solid var(--color-border)', borderRadius: '8px' }}>
+                            <table className="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Concepto</th>
+                                        <th>Razón social / NIT</th>
+                                        <th>Valor</th>
+                                        <th>Soporte</th>
+                                        <th style={{ textAlign: 'center' }}>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {registroConsolidado.items.map((item) => {
+                                        const evidencia = item.evidencias?.[0];
+                                        return (
+                                            <tr key={item.id}>
+                                                <td style={{ textTransform: 'capitalize', fontWeight: 600 }}>{item.tipo_gasto}</td>
+                                                <td>{item.meta?.razon_social || item.cliente} {item.meta?.nit && `(${item.meta.nit})`}</td>
+                                                <td><strong>{formatCOP(item.valor)}</strong></td>
+                                                <td>
+                                                    {evidencia ? (
+                                                        <img
+                                                            src={evidencia.secure_url}
+                                                            alt="Soporte"
+                                                            style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', border: '1px solid var(--color-border)' }}
+                                                            onClick={() => setEvidenciaPreview(item)}
+                                                        />
+                                                    ) : (
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Sin soporte</span>
+                                                    )}
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    {evidencia && (
+                                                        <button className="admin-mini-btn" onClick={() => setEvidenciaPreview(item)}>
+                                                            👁️ Ver soporte
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="sa-modal-actions" style={{ marginTop: '1.5rem', justifyContent: 'space-between' }}>
+                            <button
+                                className="detalle-asig-btn-eliminar"
+                                onClick={() => cambiarEstadoGrupo(registroConsolidado.items, 'rechazar')}
+                            >
+                                ❌ Rechazar viático
+                            </button>
+                            <button
+                                className="asig-btn-nueva"
+                                onClick={() => cambiarEstadoGrupo(registroConsolidado.items, 'aprobado')}
+                            >
+                                ✅ Aprobar viático
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de previsualización de foto/evidencia */}
+            {evidenciaPreview && (
+                <ModalEvidencia
+                    viatico={evidenciaPreview}
+                    onClose={() => setEvidenciaPreview(null)}
+                    onPresupuestoActualizado={(v) => {
+                        setViaticos((prev) => prev.map((x) => (x.id === v.id ? v : x)));
+                        setEvidenciaPreview(v);
+                    }}
+                />
+            )}
         </div>
     );
 }

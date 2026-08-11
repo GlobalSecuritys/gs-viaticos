@@ -8,6 +8,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.usuario import Usuario
     from app.models.evidencia_viatico import EvidenciaViatico
+    from app.models.asignacion import Asignacion
 
 
 class Viatico(Base):
@@ -20,12 +21,19 @@ class Viatico(Base):
         nullable=False,
         index=True
     )
+    asignacion_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("asignaciones.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
     fecha: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     cliente: Mapped[str] = mapped_column(String(150), nullable=False)
     ciudad: Mapped[str] = mapped_column(String(100), nullable=False)
     ot: Mapped[str] = mapped_column(String(50), nullable=False)
     tipo_gasto: Mapped[str] = mapped_column(String(30), nullable=False)
     valor: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    monto_presupuesto: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2), nullable=True)
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     estado: Mapped[str] = mapped_column(
         String(20),
@@ -46,6 +54,7 @@ class Viatico(Base):
     )
 
     usuario: Mapped["Usuario"] = relationship("Usuario", back_populates="viaticos")
+    asignacion: Mapped[Optional["Asignacion"]] = relationship("Asignacion", back_populates="viaticos")
     evidencias: Mapped[list["EvidenciaViatico"]] = relationship(
         "EvidenciaViatico",
         back_populates="viatico",

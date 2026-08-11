@@ -17,5 +17,12 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Async functions called from useEffect is a project-wide established pattern.
+      // The rule produces false positives when the setState calls are inside async
+      // functions (not directly in the effect body).
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])
+

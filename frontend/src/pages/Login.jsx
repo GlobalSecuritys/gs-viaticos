@@ -71,7 +71,6 @@ export default function Login() {
                 id="correo"
                 type="email"
                 value={correo}
-                value={correo}
                 onChange={(e) => setCorreo(e.target.value)}
                 placeholder="usuario@globalsecurity.com"
                 required

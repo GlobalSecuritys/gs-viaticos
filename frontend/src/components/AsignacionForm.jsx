@@ -10,6 +10,7 @@ const VACIO = {
     ciudad: '',
     fecha_inicio: '',
     fecha_fin: '',
+    monto_anticipo: '',
     observaciones: '',
 };
 
@@ -27,6 +28,7 @@ export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar
                 ciudad: inicial.ciudad ?? '',
                 fecha_inicio: inicial.fecha_inicio ?? '',
                 fecha_fin: inicial.fecha_fin ?? '',
+                monto_anticipo: inicial.monto_anticipo ?? '',
                 observaciones: inicial.observaciones ?? '',
             }
             : VACIO
@@ -48,7 +50,11 @@ export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar
             return;
         }
         setError('');
-        onSubmit({ ...form, tecnico_id: Number(form.tecnico_id) });
+        onSubmit({
+            ...form,
+            tecnico_id: Number(form.tecnico_id),
+            monto_anticipo: Number(form.monto_anticipo || 0),
+        });
     }
 
     return (
@@ -125,6 +131,18 @@ export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar
                         type="date"
                         value={form.fecha_fin}
                         onChange={(e) => actualizar('fecha_fin', e.target.value)}
+                    />
+                </label>
+
+                <label>
+                    Monto de anticipo entregado (COP)
+                    <input
+                        type="number"
+                        min="0"
+                        step="1000"
+                        value={form.monto_anticipo}
+                        onChange={(e) => actualizar('monto_anticipo', e.target.value)}
+                        placeholder="$0"
                     />
                 </label>
             </div>

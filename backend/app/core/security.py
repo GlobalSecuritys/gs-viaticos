@@ -87,3 +87,20 @@ def get_current_superadmin(
             detail="Se requiere rol de superadministrador para esta acción"
         )
     return current_user
+
+def verificar_autoridad_sobre_usuario(
+    current_admin: Usuario,
+    usuario_objetivo: Usuario,
+) -> None:
+    """Blindaje ADMIN -> SUPER ADMIN.
+
+    Se usa como chequeo adicional DENTRO de endpoints que ya requieren
+    get_current_admin (que acepta admin o superadmin), para bloquear que un
+    ADMIN NORMAL ejecute una acción administrativa sobre un usuario cuyo rol
+    sea 'superadmin'. Un Super Admin nunca es restringido por esta función.
+    """
+    if current_admin.rol == "admin" and usuario_objetivo.rol == "superadmin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Un administrador no puede realizar acciones administrativas sobre un Super Administrador"
+        )   

@@ -2,12 +2,14 @@ from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.cloudinary import upload_evidencia_viatico
 from app.core.security import get_current_user
 from app.database import get_db
+from app.models.asignacion import Asignacion
 from app.models.evidencia_viatico import EvidenciaViatico
+from app.models.notificacion import Notificacion
 from app.models.usuario import Usuario
 from app.models.viatico import Viatico
 from app.schemas.viatico import (
@@ -32,8 +34,22 @@ def crear_viatico(
     current_user: Annotated[Usuario, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)]
 ):
+    if viatico_in.asignacion_id:
+        asig = db.scalar(select(Asignacion).where(Asignacion.id == viatico_in.asignacion_id))
+        if not asig:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="La asignación especificada no existe."
+            )
+        if asig.tecnico_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La asignación especificada no pertenece al usuario actual."
+            )
+
     nuevo_viatico = Viatico(
         usuario_id=current_user.id,
+        asignacion_id=viatico_in.asignacion_id,
         fecha=viatico_in.fecha,
         cliente=viatico_in.cliente,
         ciudad=viatico_in.ciudad,
@@ -57,10 +73,11 @@ def listar_viaticos(
 ):
     stmt = (
         select(Viatico)
+        .options(joinedload(Viatico.evidencias))
         .where(Viatico.usuario_id == current_user.id)
         .order_by(Viatico.created_at.desc())
     )
-    viaticos = db.scalars(stmt).all()
+    viaticos = db.execute(stmt).unique().scalars().all()
     return viaticos
 
 
@@ -70,8 +87,12 @@ def obtener_viatico(
     current_user: Annotated[Usuario, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)]
 ):
-    stmt = select(Viatico).where(Viatico.id == id, Viatico.usuario_id == current_user.id)
-    viatico = db.scalar(stmt)
+    stmt = (
+        select(Viatico)
+        .options(joinedload(Viatico.evidencias))
+        .where(Viatico.id == id, Viatico.usuario_id == current_user.id)
+    )
+    viatico = db.execute(stmt).unique().scalar_one_or_none()
     if not viatico:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -108,6 +129,39 @@ def actualizar_viatico(
     db.commit()
     db.refresh(viatico)
     return viatico
+
+
+@router.delete("/{id}", status_code=status.HTTP_200_OK)
+def eliminar_viatico(
+    id: int,
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)]
+):
+    stmt = select(Viatico).where(Viatico.id == id, Viatico.usuario_id == current_user.id)
+    viatico = db.scalar(stmt)
+    if not viatico:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Viático no encontrado"
+        )
+
+    if viatico.estado != "pendiente":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se pueden eliminar viáticos en estado pendiente"
+        )
+
+    notif = Notificacion(
+        tecnico_nombre=current_user.nombre,
+        valor=viatico.valor,
+        ciudad=viatico.ciudad,
+    )
+    db.add(notif)
+
+    db.delete(viatico)
+    db.commit()
+
+    return {"detail": "Viático eliminado correctamente"}
 
 
 # --- Endpoint: subida de evidencias (Cloudinary) ----------------------------

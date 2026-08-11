@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -30,6 +31,7 @@ class AsignacionBase(BaseModel):
     fecha_inicio: date
     fecha_fin: date
     observaciones: str | None = None
+    monto_anticipo: Decimal = Decimal("0.00")
 
     @model_validator(mode="after")
     def validar_rango_fechas(self) -> "AsignacionBase":
@@ -59,6 +61,7 @@ class AsignacionUpdate(BaseModel):
     fecha_inicio: date | None = None
     fecha_fin: date | None = None
     observaciones: str | None = None
+    monto_anticipo: Decimal | None = None
 
     @model_validator(mode="after")
     def validar_rango_fechas(self) -> "AsignacionUpdate":
@@ -87,6 +90,11 @@ class AsignacionResponse(AsignacionBase):
     creado_por_id: int
     tecnico_nombre: str
     creado_por_nombre: str
+    monto_anticipo: Decimal = Decimal("0.00")
+    total_gastado: Decimal = Decimal("0.00")
+    saldo_restante: Decimal = Decimal("0.00")
+    cantidad_viaticos: int = 0
+    estado_legalizacion: str = "sin_gastos"
     created_at: datetime
     updated_at: datetime
 

@@ -1,0 +1,283 @@
+/* ===== Audit Trail (Corporate Enterprise Theme) ===== */
+
+/* ─── Sección analítica ─── */
+.aud-analytics-section {
+    margin-bottom: 2rem;
+}
+
+.aud-analytics-header {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.aud-analytics-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.aud-analytics-sub {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.aud-analytics-loading,
+.aud-analytics-empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+/* ─── Grid de gráficos ─── */
+.aud-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+}
+
+/* Card contenedora de cada gráfico */
+.aud-chart-card {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.25rem 0.75rem;
+    box-shadow: var(--color-shadow);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.aud-chart-card:hover {
+    box-shadow: var(--color-shadow-md, 0 4px 16px rgba(0,0,0,.12));
+    transform: translateY(-1px);
+}
+
+/* Span dos columnas */
+.aud-chart-card--wide {
+    grid-column: span 2;
+}
+
+/* Span todas las columnas */
+.aud-chart-card--full {
+    grid-column: 1 / -1;
+}
+
+.aud-chart-title {
+    margin: 0 0 0.1rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: -0.01em;
+}
+
+.aud-chart-sub {
+    margin: 0 0 1rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+/* Tooltip corporativo */
+.aud-chart-tooltip {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,.12);
+}
+
+.aud-chart-tooltip-label {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    margin: 0 0 0.2rem;
+    font-weight: 600;
+}
+
+.aud-chart-tooltip-value {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+}
+
+/* ─── Cabecera del bloque timeline ─── */
+.aud-timeline-section-header {
+    padding: 1.25rem 1.5rem 0;
+}
+
+/* ─── timeline container ─── */
+
+.auditoria-container-card {
+    padding: 0;
+}
+
+.auditoria-filtros-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.auditoria-timeline-wrap {
+    padding: 1.5rem;
+}
+
+.auditoria-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.auditoria-item {
+    display: flex;
+    gap: 1.1rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.25rem;
+    box-shadow: var(--color-shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auditoria-item:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--color-shadow);
+    border-color: var(--color-border-hover);
+}
+
+.auditoria-item-icono {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    margin-top: 0.1rem;
+    box-shadow: var(--color-shadow-sm);
+}
+
+.auditoria-item-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.auditoria-item-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+}
+
+.auditoria-item-accion {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--color-text);
+    letter-spacing: -0.01em;
+}
+
+.auditoria-item-resultado {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+}
+
+.auditoria-item-resultado--exitoso {
+    color: var(--color-aprobado);
+    background-color: var(--color-aprobado-bg);
+    border-color: rgba(5, 150, 105, 0.15);
+}
+
+.auditoria-item-resultado--fallido {
+    color: var(--color-rechazado);
+    background-color: var(--color-rechazado-bg);
+    border-color: rgba(220, 38, 38, 0.15);
+}
+
+.auditoria-item-fecha {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.auditoria-item-linea {
+    margin: 0 0 0.35rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-weight: 400;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    line-height: 1.5;
+}
+
+.auditoria-item-rol-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.auditoria-item-linea strong {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.auditoria-item-detalle {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    background-color: var(--color-bg);
+    border-left: 3px solid var(--color-border);
+    padding: 0.4rem 0.75rem;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.5;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 900px) {
+    .aud-charts-grid {
+        grid-template-columns: 1fr;
+    }
+    .aud-chart-card--wide,
+    .aud-chart-card--full {
+        grid-column: span 1;
+    }
+}
+
+@media (max-width: 640px) {
+    .auditoria-timeline-wrap {
+        padding: 1rem;
+    }
+    .auditoria-item {
+        padding: 1rem;
+    }
+    .auditoria-item-fecha {
+        margin-left: 0;
+        flex-basis: 100%;
+        margin-top: 0.1rem;
+    }
+}

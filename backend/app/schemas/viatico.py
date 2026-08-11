@@ -13,6 +13,17 @@ TipoGasto = Literal[
 ]
 
 
+class AsignacionResumenViatico(BaseModel):
+    id: int
+    cliente: str
+    ciudad: str
+    monto_anticipo: Decimal
+    total_gastado: Decimal
+    saldo_restante: Decimal
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ViaticoBase(BaseModel):
     fecha: date
     cliente: str
@@ -21,11 +32,14 @@ class ViaticoBase(BaseModel):
     tipo_gasto: str
     valor: Decimal
     descripcion: str | None = None
+    asignacion_id: int | None = None
+    monto_presupuesto: Decimal | None = None
 
 
 class ViaticoCreate(ViaticoBase):
     tipo_gasto: TipoGasto
     valor: Decimal = Field(gt=0)
+    asignacion_id: int | None = None
 
 
 class ViaticoUpdate(BaseModel):
@@ -36,6 +50,12 @@ class ViaticoUpdate(BaseModel):
     tipo_gasto: str | None = None
     valor: Decimal | None = None
     descripcion: str | None = None
+    asignacion_id: int | None = None
+    monto_presupuesto: Decimal | None = None
+
+
+class ViaticoPresupuestoUpdate(BaseModel):
+    monto_presupuesto: Decimal = Field(gt=0)
 
 
 class EvidenciaResponse(BaseModel):
@@ -50,10 +70,13 @@ class EvidenciaResponse(BaseModel):
 class ViaticoResponse(ViaticoBase):
     id: int
     usuario_id: int
+    asignacion_id: int | None = None
+    monto_presupuesto: Decimal | None = None
     estado: str
     created_at: datetime
     updated_at: datetime
     evidencias: list[EvidenciaResponse] = []
+    asignacion_resumen: AsignacionResumenViatico | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

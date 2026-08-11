@@ -1,0 +1,525 @@
+/* ===== Multi-Item Expense Registration Page ===== */
+
+.nv-root {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+}
+
+.nv-header-card {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--color-shadow);
+    border-top: 3px solid var(--color-primary-blue);
+}
+
+.nv-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.02em;
+}
+
+.nv-sub {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+.nv-status-tag {
+    background-color: var(--color-accent-blue-light);
+    color: var(--color-accent-blue);
+    border: 1px solid rgba(29, 99, 200, 0.2);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+}
+
+.nv-success-banner {
+    background-color: var(--color-aprobado-bg);
+    border: 1px solid rgba(5, 150, 105, 0.2);
+    color: var(--color-aprobado);
+    padding: 0.9rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* Grid Layout: Main Col + Summary Col */
+.nv-layout-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.75rem;
+    align-items: start;
+}
+
+.nv-main-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+}
+
+.nv-card {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    box-shadow: var(--color-shadow);
+}
+
+.nv-card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.01em;
+}
+
+.nv-card-sub {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin: 0 0 1.25rem;
+}
+
+/* 1. Fecha Options */
+.nv-fecha-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.nv-fecha-radio {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1rem 1.25rem;
+    background-color: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nv-fecha-radio:hover {
+    border-color: var(--color-border-hover);
+}
+
+.nv-fecha-radio--selected {
+    background-color: #FFFFFF;
+    border-color: var(--color-accent-blue);
+    box-shadow: 0 0 0 3px rgba(29, 99, 200, 0.1);
+}
+
+.nv-fecha-radio input {
+    margin-top: 0.25rem;
+}
+
+.nv-fecha-date {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--color-accent-blue);
+    font-weight: 600;
+    margin-top: 0.15rem;
+}
+
+.nv-fecha-picker-wrap {
+    margin-top: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.nv-fecha-picker-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.nv-fecha-picker-input {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background-color: #FFFFFF;
+    color: var(--color-primary-blue);
+    font-weight: 600;
+}
+
+/* 2. Gastos Items List */
+.nv-gastos-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.nv-gasto-item-card {
+    background-color: #FAFAFC;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    position: relative;
+}
+
+.nv-gasto-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.nv-gasto-item-number {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--color-primary-blue);
+}
+
+.nv-gasto-delete-btn {
+    background: transparent;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s;
+}
+
+.nv-gasto-delete-btn:hover {
+    background-color: var(--color-rechazado-bg);
+}
+
+.nv-gasto-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.nv-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.nv-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nv-use-cc-btn {
+    background: var(--color-accent-blue-light);
+    border: 1px solid rgba(29, 99, 200, 0.2);
+    color: var(--color-accent-blue);
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nv-use-cc-btn:hover {
+    background: var(--color-accent-blue);
+    color: #FFFFFF;
+}
+
+.nv-na-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    user-select: none;
+}
+
+.nv-na-checkbox-label input[type="checkbox"] {
+    width: auto;
+    cursor: pointer;
+    accent-color: var(--color-accent-blue);
+}
+
+.nv-field-group label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.nv-field-group input,
+.nv-field-group select {
+    background-color: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.6rem 0.85rem;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    font-family: inherit;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.nv-field-group input:focus,
+.nv-field-group select:focus {
+    outline: none;
+    border-color: var(--color-accent-blue);
+    box-shadow: 0 0 0 3px rgba(29, 99, 200, 0.1);
+}
+
+/* Soporte Toggle Buttons */
+.nv-soporte-toggle-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.nv-toggle-btn {
+    flex: 1;
+    padding: 0.55rem;
+    border: 1px solid var(--color-border);
+    background-color: #FFFFFF;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nv-toggle-btn--active {
+    background-color: var(--color-accent-blue-light);
+    border-color: var(--color-accent-blue);
+    color: var(--color-accent-blue);
+}
+
+/* Soporte Box inside item */
+.nv-gasto-soporte-box {
+    background-color: #FFFFFF;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.nv-soporte-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+}
+
+.nv-foto-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.1rem;
+    background-color: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-accent-blue);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: fit-content;
+}
+
+.nv-foto-btn:hover {
+    background-color: var(--color-accent-blue-light);
+    border-color: var(--color-accent-blue);
+}
+
+.nv-foto-btn--empty {
+    width: 100%;
+    border-style: dashed;
+    padding: 0.85rem;
+}
+
+.nv-soporte-preview-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.nv-soporte-thumb {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.nv-soporte-preview-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.nv-foto-remove-btn {
+    background: transparent;
+    border: 1px solid var(--color-rechazado);
+    color: var(--color-rechazado);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.nv-add-btn {
+    width: 100%;
+    padding: 0.85rem;
+    background-color: #FFFFFF;
+    border: 2px dashed var(--color-accent-blue);
+    color: var(--color-accent-blue);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nv-add-btn:hover {
+    background-color: var(--color-accent-blue-light);
+}
+
+/* 3. Summary Column */
+.nv-summary-card {
+    position: sticky;
+    top: 90px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.nv-summary-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.nv-summary-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.nv-summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.nv-summary-row--highlight {
+    font-size: 1.1rem;
+    color: var(--color-text);
+    padding: 0.4rem 0;
+}
+
+.nv-summary-row--saldo {
+    color: var(--color-aprobado);
+    font-weight: 700;
+}
+
+.nv-summary-divider {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: 0.5rem 0;
+}
+
+.nv-consejo-box {
+    background-color: #EFF6FF;
+    border: 1px solid rgba(29, 99, 200, 0.2);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--color-primary-blue);
+}
+
+.nv-consejo-box p {
+    margin: 0.2rem 0 0;
+}
+
+.nv-verificaciones-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.nv-verif-title {
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.nv-verificaciones-box ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.nv-submit-btn {
+    width: 100%;
+    padding: 0.9rem;
+    background-color: var(--color-primary-blue);
+    color: #FFFFFF;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--color-shadow);
+    transition: all 0.2s ease;
+}
+
+.nv-submit-btn:hover:not(:disabled) {
+    background-color: var(--color-accent-blue);
+    transform: translateY(-1px);
+    box-shadow: var(--color-shadow-md);
+}
+
+.nv-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+    .nv-layout-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .nv-summary-card {
+        position: static;
+    }
+
+    .nv-fecha-options {
+        grid-template-columns: 1fr;
+    }
+}

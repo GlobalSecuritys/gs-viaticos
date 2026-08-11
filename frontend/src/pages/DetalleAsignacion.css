@@ -1,38 +1,94 @@
+/* ===== Assignment Details Page (Corporate Enterprise Theme) ===== */
+
+.detalle-asig-card {
+    border-top: 3px solid var(--color-primary-blue);
+}
+
 .detalle-asig-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 1.4rem;
+    gap: 1.25rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 1.75rem;
 }
 
 .detalle-asig-tipo {
-    color: var(--color-gold, #D4AF37);
+    color: var(--color-primary-blue);
     font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.detalle-asig-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.75rem;
+}
+
+.detalle-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.detalle-label {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.detalle-valor {
+    display: block;
+    color: var(--color-text);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.detalle-obs-wrap {
+    background-color: #F8FAFC;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1.75rem;
+}
+
+.detalle-obs-text {
+    color: var(--color-text);
     font-size: 0.9rem;
-    letter-spacing: 0.02em;
+    margin: 0.4rem 0 0;
+    line-height: 1.5;
 }
 
 .detalle-asig-acciones {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
-    margin-top: 1rem;
+    align-items: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
 }
 
 .detalle-asig-btn-eliminar {
-    background: none;
-    border: 1px solid var(--color-rechazado, #EF4444);
-    color: var(--color-rechazado, #EF4444);
-    border-radius: 8px;
-    padding: 0.6rem 1.2rem;
+    background-color: #FFFFFF;
+    border: 1px solid var(--color-rechazado);
+    color: var(--color-rechazado);
+    border-radius: var(--radius-md);
+    padding: 0.65rem 1.4rem;
     cursor: pointer;
     font-family: inherit;
     font-weight: 600;
-    transition: background 0.2s;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
 }
 
 .detalle-asig-btn-eliminar:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background-color: var(--color-rechazado-bg);
 }

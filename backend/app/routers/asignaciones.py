@@ -1,26 +1,56 @@
 from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.security import get_current_admin
+from app.core.security import get_current_admin, get_current_user
 from app.database import get_db
 from app.models.asignacion import Asignacion
 from app.models.usuario import Usuario
+from app.models.viatico import Viatico
 from app.schemas.asignacion import (
     AsignacionCreate,
     AsignacionResponse,
     AsignacionUpdate,
 )
+from app.services.excel_export import generar_excel_viaticos_asignacion
 
 router = APIRouter(prefix="/admin/asignaciones", tags=["Asignaciones"])
 
+# Router separado (sin prefijo /admin) para que el propio técnico consulte
+# ÚNICAMENTE su asignación activa. No reemplaza ni modifica el router admin
+# de arriba; usa get_current_user (no get_current_admin) y solo permite
+# lectura de la asignación del usuario autenticado.
+router_tecnico = APIRouter(prefix="/asignaciones", tags=["Asignaciones"])
+
+
+from decimal import Decimal
 
 def _a_response(a: Asignacion) -> AsignacionResponse:
     """Arma el AsignacionResponse resolviendo tecnico_nombre/creado_por_nombre
-    a partir de las relaciones ya cargadas (mismo patrón que ViaticoAdminResponse
-    en admin.py resuelve nombre/correo)."""
+    a partir de las relaciones ya cargadas, además de calcular las métricas
+    financieras de la asignación (anticipo, gastado, saldo restante y estado)."""
+    viaticos_vinculados = a.viaticos if hasattr(a, "viaticos") and a.viaticos else []
+    total_gastado = (
+        sum(v.valor for v in viaticos_vinculados if v.estado != "rechazado")
+        if viaticos_vinculados
+        else Decimal("0.00")
+    )
+    anticipo = a.monto_anticipo if a.monto_anticipo is not None else Decimal("0.00")
+    saldo_restante = max(Decimal("0.00"), anticipo - total_gastado)
+    cant_items = len(viaticos_vinculados)
+
+    if cant_items == 0:
+        estado_legalizacion = "sin_gastos"
+    elif total_gastado > anticipo and anticipo > 0:
+        estado_legalizacion = "excedido"
+    elif total_gastado == anticipo and cant_items > 0:
+        estado_legalizacion = "legalizado"
+    else:
+        estado_legalizacion = "en_curso"
+
     return AsignacionResponse(
         id=a.id,
         tecnico_id=a.tecnico_id,
@@ -34,6 +64,11 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
         fecha_inicio=a.fecha_inicio,
         fecha_fin=a.fecha_fin,
         observaciones=a.observaciones,
+        monto_anticipo=anticipo,
+        total_gastado=total_gastado,
+        saldo_restante=saldo_restante,
+        cantidad_viaticos=cant_items,
+        estado_legalizacion=estado_legalizacion,
         estado=a.estado,
         created_at=a.created_at,
         updated_at=a.updated_at,
@@ -46,6 +81,7 @@ def _obtener_o_404(id: int, db: Session) -> Asignacion:
         .options(
             joinedload(Asignacion.tecnico),
             joinedload(Asignacion.creado_por),
+            joinedload(Asignacion.viaticos),
         )
         .where(Asignacion.id == id)
     )
@@ -68,6 +104,7 @@ def listar_asignaciones(
         .options(
             joinedload(Asignacion.tecnico),
             joinedload(Asignacion.creado_por),
+            joinedload(Asignacion.viaticos),
         )
         .order_by(Asignacion.fecha_inicio.desc())
     )
@@ -83,6 +120,41 @@ def obtener_asignacion(
 ):
     asignacion = _obtener_o_404(id, db)
     return _a_response(asignacion)
+
+
+@router.get("/{id}/exportar")
+def exportar_viaticos_asignacion(
+    id: int,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Exporta a Excel (.xlsx) todos los viáticos vinculados a una asignación específica,
+    incluyendo el encabezado contextual y el resumen de anticipo/gastado/saldo.
+    """
+    asignacion = _obtener_o_404(id, db)
+
+    stmt = (
+        select(Viatico)
+        .options(joinedload(Viatico.evidencias))
+        .where(Viatico.asignacion_id == id)
+        .order_by(Viatico.fecha.asc(), Viatico.id.asc())
+    )
+    viaticos = db.execute(stmt).unique().scalars().all()
+
+    excel_stream = generar_excel_viaticos_asignacion(
+        asignacion=asignacion,
+        viaticos=viaticos,
+    )
+
+    filename = f"asignacion_{id}_viaticos.xlsx"
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+
+    return StreamingResponse(
+        excel_stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers,
+    )
 
 
 @router.post("", response_model=AsignacionResponse, status_code=status.HTTP_201_CREATED)
@@ -113,6 +185,7 @@ def crear_asignacion(
         fecha_inicio=datos.fecha_inicio,
         fecha_fin=datos.fecha_fin,
         observaciones=datos.observaciones,
+        monto_anticipo=datos.monto_anticipo,
         estado="pendiente",
     )
     db.add(asignacion)
@@ -207,3 +280,32 @@ def eliminar_asignacion(
     db.delete(asignacion)
     db.commit()
     return None
+
+
+# --- Endpoint de solo lectura para el técnico -------------------------------
+
+@router_tecnico.get("/activas", response_model=List[AsignacionResponse])
+def listar_mis_asignaciones_activas(
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Devuelve TODAS las asignaciones activas del técnico autenticado (puede ser
+    una, varias o ninguna). 'Activa' = estado pendiente o en_curso, SIN
+    restricción de fechas.
+    """
+    stmt = (
+        select(Asignacion)
+        .options(
+            joinedload(Asignacion.tecnico),
+            joinedload(Asignacion.creado_por),
+            joinedload(Asignacion.viaticos),
+        )
+        .where(
+            Asignacion.tecnico_id == current_user.id,
+            Asignacion.estado.in_(("pendiente", "en_curso")),
+        )
+        .order_by(Asignacion.fecha_inicio.asc())
+    )
+    asignaciones = db.execute(stmt).unique().scalars().all()
+    return [_a_response(a) for a in asignaciones]

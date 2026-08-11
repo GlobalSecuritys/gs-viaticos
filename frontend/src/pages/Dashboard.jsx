@@ -1,103 +1,288 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
+import TecnicoLayout from '../components/TecnicoLayout';
 import './Dashboard.css';
-import logoGSB from '../assets/logo-gsb.png';
+
+function formatCOP(value) {
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0,
+    }).format(value);
+}
+
+function iniciales(nombre = '') {
+    return nombre
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((p) => p[0].toUpperCase())
+        .join('');
+}
+
+function formatFechaLarga() {
+    const hoy = new Date();
+    const opciones = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    const str = hoy.toLocaleDateString('es-CO', opciones);
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+const MESES_ABREV = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+    const { user } = useAuth();
+    const navigate = useNavigate();
 
-  const now = new Date();
-  const hora = now.getHours();
-  const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
+    const [viaticos, setViaticos] = useState([]);
+    const [asignaciones, setAsignaciones] = useState([]);
+    const [, setLoading] = useState(true);
 
-  return (
-    <div className="dash-root">
-      <header className="dash-header">
-        <div className="dash-header-brand">
-          <img src={logoGSB} alt="Global Security Bank" className="dash-logo-img" />          <div>
-            <span className="dash-brand-name">GLOBAL SECURITY</span>
-            <span className="dash-brand-sub">Sistema de Viáticos</span>
-          </div>
-        </div>
-        <div className="dash-header-right">
-          <div className="dash-user-pill">
-            <span className="dash-user-avatar">{user?.correo?.[0]?.toUpperCase()}</span>
-            <span className="dash-user-email">{user?.correo}</span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Cerrar sesión
-          </button>
-        </div>
-      </header>
+    useEffect(() => {
+        let activo = true;
+        async function cargar() {
+            try {
+                const [resViaticos, resAsig] = await Promise.all([
+                    api.get('/viaticos').catch(() => ({ data: [] })),
+                    obtenerMisAsignacionesActivas().catch(() => ({ data: [] })),
+                ]);
+                if (activo) {
+                    setViaticos(resViaticos.data || []);
+                    setAsignaciones(resAsig.data || []);
+                }
+            } finally {
+                if (activo) setLoading(false);
+            }
+        }
+        cargar();
+        return () => { activo = false; };
+    }, []);
 
-      <main className="dash-main">
-        <div className="dash-welcome">
-          <h1 className="dash-welcome-title">
-            {saludo} 👋
-          </h1>
-          <p className="dash-welcome-sub">
-            Bienvenido al sistema de gestión de viáticos y gastos operativos.
-          </p>
-        </div>
+    const stats = useMemo(() => {
+        const viaticosAprobados = viaticos.filter((v) => v.estado === 'aprobado');
+        const totalGastado = viaticosAprobados.reduce((acc, v) => acc + Number(v.valor), 0);
+        const pendientes = viaticos.filter((v) => v.estado === 'pendiente').length;
 
-        <div className="dash-cards">
-          <button
-            className="dash-action-card dash-action-card--primary"
-            onClick={() => navigate('/nuevo-viatico')}
-            id="btn-nuevo-viatico"
-          >
-            <div className="dac-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="16" />
-                <line x1="8" y1="12" x2="16" y2="12" />
-              </svg>
+        return {
+            asignacionesActivas: asignaciones.length,
+            legalizacionesEnCurso: pendientes,
+            totalGastado,
+        };
+    }, [viaticos, asignaciones]);
+
+    // 1. Distribución por concepto
+    const distribucionConcepto = useMemo(() => {
+        const totales = { hospedaje: 0, transporte: 0, alimentacion: 0, otros: 0 };
+        viaticos.forEach((v) => {
+            const cat = (v.tipo_gasto || '').toLowerCase();
+            const val = Number(v.valor) || 0;
+            if (cat.includes('hospedaj') || cat.includes('hotel')) totales.hospedaje += val;
+            else if (cat.includes('transport') || cat.includes('pasaj') || cat.includes('peaj')) totales.transporte += val;
+            else if (cat.includes('aliment') || cat.includes('comida') || cat.includes('restauran')) totales.alimentacion += val;
+            else totales.otros += val;
+        });
+
+        const sumaTotal = Object.values(totales).reduce((a, b) => a + b, 0) || 1;
+        return [
+            { id: 'hospedaje', label: 'Hospedaje', color: '#1D63C8', val: totales.hospedaje, pct: Math.round((totales.hospedaje / sumaTotal) * 100) },
+            { id: 'transporte', label: 'Transporte', color: '#F59E0B', val: totales.transporte, pct: Math.round((totales.transporte / sumaTotal) * 100) },
+            { id: 'alimentacion', label: 'Alimentación', color: '#10B981', val: totales.alimentacion, pct: Math.round((totales.alimentacion / sumaTotal) * 100) },
+            { id: 'otros', label: 'Otros', color: '#8B5CF6', val: totales.otros, pct: Math.round((totales.otros / sumaTotal) * 100) },
+        ];
+    }, [viaticos]);
+
+    // 2. Gastos por mes (este año)
+    const gastosPorMes = useMemo(() => {
+        const actualAno = new Date().getFullYear();
+        const meses = Array(12).fill(0);
+
+        viaticos.forEach((v) => {
+            if (!v.fecha) return;
+            const f = new Date(v.fecha + 'T00:00:00');
+            if (f.getFullYear() === actualAno) {
+                meses[f.getMonth()] += Number(v.valor) || 0;
+            }
+        });
+
+        const maxVal = Math.max(...meses, 100000);
+        return meses.map((val, idx) => ({
+            mes: MESES_ABREV[idx],
+            val,
+            pct: Math.round((val / maxVal) * 100),
+        }));
+    }, [viaticos]);
+
+    const primerNombre = (user?.nombre || user?.correo || 'Técnico').split(' ')[0];
+    const nombreCompleto = user?.nombre || user?.correo || 'Técnico Instalador';
+    const codigoEmpleado = user?.codigo_empleado ? `CC ${user.codigo_empleado}` : 'Código: 1.234.567.890';
+
+    return (
+        <TecnicoLayout>
+            <div className="dash-tec-container">
+                {/* ── TOP HEADER CARD ── */}
+                <div className="dash-tec-header-card">
+                    <div className="dash-tec-header-left">
+                        <div className="dash-tec-avatar">{iniciales(nombreCompleto)}</div>
+                        <div className="dash-tec-header-info">
+                            <h1 className="dash-tec-greeting">¡Hola, {primerNombre}! 👋</h1>
+                            <p className="dash-tec-user-meta">
+                                <strong>{nombreCompleto}</strong> · {codigoEmpleado}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="dash-tec-date-badge">
+                        <span>📅 Hoy, {formatFechaLarga()}</span>
+                    </div>
+                </div>
+
+                {/* ── KPI CARDS ROW ── */}
+                <div className="dash-tec-kpi-grid">
+                    <div className="dash-tec-kpi-card">
+                        <div className="dash-tec-kpi-body">
+                            <span className="dash-tec-kpi-label">Asignaciones activas</span>
+                            <span className="dash-tec-kpi-val">{stats.asignacionesActivas}</span>
+                            <button className="dash-tec-kpi-link" onClick={() => navigate('/mis-asignaciones')}>
+                                Ver asignaciones →
+                            </button>
+                        </div>
+                        <div className="dash-tec-kpi-icon dash-tec-kpi-icon--blue">💼</div>
+                    </div>
+
+                    <div className="dash-tec-kpi-card">
+                        <div className="dash-tec-kpi-body">
+                            <span className="dash-tec-kpi-label">Legalizaciones en curso</span>
+                            <span className="dash-tec-kpi-val">{stats.legalizacionesEnCurso}</span>
+                            <button className="dash-tec-kpi-link" onClick={() => navigate('/mis-viaticos')}>
+                                Ver viáticos →
+                            </button>
+                        </div>
+                        <div className="dash-tec-kpi-icon dash-tec-kpi-icon--orange">📦</div>
+                    </div>
+
+                    <div className="dash-tec-kpi-card">
+                        <div className="dash-tec-kpi-body">
+                            <span className="dash-tec-kpi-label">Total Viáticos Registrados</span>
+                            <span className="dash-tec-kpi-val">{viaticos.length}</span>
+                            <button className="dash-tec-kpi-link" onClick={() => navigate('/mis-viaticos')}>
+                                Historial completo →
+                            </button>
+                        </div>
+                        <div className="dash-tec-kpi-icon dash-tec-kpi-icon--green">📄</div>
+                    </div>
+                </div>
+
+                {/* ── VISUAL ANALYTICS (3 CHARTS ROW) ── */}
+                <div className="dash-tec-charts-grid">
+                    {/* Widget 1: Donut chart */}
+                    <div className="dash-chart-card">
+                        <h3 className="dash-chart-title">Distribución de gastos por concepto</h3>
+                        <div className="dash-donut-wrap">
+                            {/* SVG Donut */}
+                            <svg viewBox="0 0 100 100" className="dash-donut-svg">
+                                <circle cx="50" cy="50" r="38" fill="none" stroke="#E2E8F0" strokeWidth="16" />
+                                {distribucionConcepto.map((item, idx) => {
+                                    const strokeDasharray = `${(item.pct * 2.38).toFixed(1)} 238.7`;
+                                    let offset = 0;
+                                    for (let i = 0; i < idx; i++) {
+                                        offset += distribucionConcepto[i].pct * 2.38;
+                                    }
+                                    return (
+                                        <circle
+                                            key={item.id}
+                                            cx="50"
+                                            cy="50"
+                                            r="38"
+                                            fill="none"
+                                            stroke={item.color}
+                                            strokeWidth="16"
+                                            strokeDasharray={strokeDasharray}
+                                            strokeDashoffset={-offset}
+                                            transform="rotate(-90 50 50)"
+                                        />
+                                    );
+                                })}
+                            </svg>
+                            <div className="dash-donut-legend">
+                                {distribucionConcepto.map((item) => (
+                                    <div key={item.id} className="dash-legend-item">
+                                        <span className="dash-legend-dot" style={{ backgroundColor: item.color }} />
+                                        <span className="dash-legend-label">{item.label}</span>
+                                        <span className="dash-legend-pct">{item.pct}%</span>
+                                        <span className="dash-legend-val">{formatCOP(item.val)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Widget 2: Resumen de Asignaciones Activas */}
+                    <div className="dash-chart-card">
+                        <h3 className="dash-chart-title">Asignaciones en curso</h3>
+                        <div className="dash-asig-widget-wrap" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', height: '100%', justifyContent: 'space-between' }}>
+                            {asignaciones.length === 0 ? (
+                                <p style={{ color: '#64748B', fontSize: '0.9rem', margin: 'auto 0' }}>
+                                    No tienes asignaciones activas en este momento.
+                                </p>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '190px', overflowY: 'auto' }}>
+                                    {asignaciones.map((a) => (
+                                        <div key={a.id} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.65rem 0.85rem', fontSize: '0.85rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, color: '#1E293B', marginBottom: '0.2rem' }}>
+                                                <span>{a.cliente} ({a.ciudad})</span>
+                                                <span style={{ color: '#0EA5E9' }}>#{a.id}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontSize: '0.8rem' }}>
+                                                <span>Anticipo: {formatCOP(Number(a.monto_anticipo || 0))}</span>
+                                                <span>Gastado: {formatCOP(Number(a.total_gastado || 0))}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <button
+                                className="dash-tec-kpi-link"
+                                style={{ alignSelf: 'flex-start', marginTop: '0.5rem', fontWeight: 600 }}
+                                onClick={() => navigate('/mis-asignaciones')}
+                            >
+                                Gestionar misiones y viáticos →
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Widget 3: Gastos por mes */}
+                    <div className="dash-chart-card">
+                        <h3 className="dash-chart-title">Gastos por mes (este año)</h3>
+                        <div className="dash-monthly-wrap">
+                            <div className="dash-monthly-bars">
+                                {gastosPorMes.map((m) => (
+                                    <div key={m.mes} className="dash-monthly-col" title={`${m.mes}: ${formatCOP(m.val)}`}>
+                                        <div className="dash-monthly-bar-track">
+                                            <div
+                                                className="dash-monthly-bar-fill"
+                                                style={{ height: `${Math.max(5, m.pct)}%` }}
+                                            />
+                                        </div>
+                                        <span className="dash-monthly-label">{m.mes}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── BOTÓN RÁPIDO PARA REGISTRAR ── */}
+                <div className="dash-tec-action-banner">
+                    <div>
+                        <h2>¿Tienes un nuevo gasto de viaje?</h2>
+                        <p>Registra tus facturas, recibos y pasajes de forma ultra rápida.</p>
+                    </div>
+                    <button className="dash-tec-btn-action" onClick={() => navigate('/nuevo-viatico')}>
+                        📝 Registrar viáticos ahora →
+                    </button>
+                </div>
             </div>
-            <div className="dac-content">
-              <h2>Nuevo Viático</h2>
-              <p>Registra un nuevo gasto operativo o viático para aprobación.</p>
-            </div>
-            <span className="dac-arrow">→</span>
-          </button>
-
-          <button
-            className="dash-action-card dash-action-card--secondary"
-            onClick={() => navigate('/mis-viaticos')}
-            id="btn-mis-viaticos"
-          >
-            <div className="dac-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
-            </div>
-            <div className="dac-content">
-              <h2>Mis Viáticos</h2>
-              <p>Consulta el historial y estado de tus viáticos registrados.</p>
-            </div>
-            <span className="dac-arrow">→</span>
-          </button>
-        </div>
-
-        <div className="dash-info-bar">
-          <div className="info-badge">
-            <span className="info-dot info-dot--yellow"></span>
-            Pendiente: en espera de aprobación
-          </div>
-          <div className="info-badge">
-            <span className="info-dot info-dot--green"></span>
-            Aprobado: gasto autorizado
-          </div>
-          <div className="info-badge">
-            <span className="info-dot info-dot--red"></span>
-            Rechazado: requiere revisión
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+        </TecnicoLayout>
+    );
 }

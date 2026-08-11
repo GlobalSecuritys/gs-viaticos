@@ -3,5 +3,7 @@ from app.models.usuario import Usuario
 from app.models.viatico import Viatico
 from app.models.evidencia_viatico import EvidenciaViatico
 from app.models.asignacion import Asignacion
+from app.models.notificacion import Notificacion
+from app.models.log_auditoria import LogAuditoria
 
-__all__ = ["Base", "Usuario", "Viatico", "EvidenciaViatico", "Asignacion"]
+__all__ = ["Base", "Usuario", "Viatico", "EvidenciaViatico", "Asignacion", "Notificacion", "LogAuditoria"]

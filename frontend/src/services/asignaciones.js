@@ -43,3 +43,11 @@ export function finalizarAsignacion(id) {
 export function eliminarAsignacion(id) {
     return api.delete(`/admin/asignaciones/${id}`);
 }
+
+// --- Vista del técnico (no admin) -------------------------------------------
+// GET /asignaciones/activas -> TODAS las asignaciones activas del técnico
+// autenticado (puede ser ninguna, una o varias). Requiere solo estar
+// logueado (no rol admin).
+export function obtenerMisAsignacionesActivas() {
+    return api.get('/asignaciones/activas');
+}

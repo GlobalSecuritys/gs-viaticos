@@ -1,42 +1,72 @@
+/* ===== Assignment Form (Premium Light Redesign) ===== */
+
 .asig-form {
-    background: var(--color-bg-secondary, #101E33);
-    border: 1px solid var(--color-border, #1a2e47);
-    border-radius: 14px;
-    padding: 1.6rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
     max-width: 720px;
+    box-shadow: var(--color-shadow);
 }
 
 .asig-form-error {
-    color: var(--color-rechazado, #EF4444);
-    margin: 0 0 1rem;
-    font-size: 0.9rem;
+    background-color: var(--color-rechazado-bg);
+    border: 1px solid rgba(220, 38, 38, 0.15);
+    color: var(--color-rechazado);
+    margin: 0 0 1.25rem;
+    font-size: 0.875rem;
+    padding: 0.65rem 0.9rem;
+    border-radius: var(--radius-md);
+    font-weight: 500;
 }
 
 .asig-form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1rem;
+    gap: 1.25rem;
 }
 
 .asig-form label {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    color: var(--color-text-muted, #7a9ec7);
-    font-size: 0.8rem;
-    margin-bottom: 1rem;
+    gap: 0.45rem;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.25rem;
 }
 
 .asig-form input,
 .asig-form select,
 .asig-form textarea {
-    background: var(--color-bg-primary, #0B1929);
-    border: 1px solid var(--color-border, #1a2e47);
-    border-radius: 8px;
-    padding: 0.6rem 0.7rem;
-    color: var(--color-text, #E8ECF1);
+    background-color: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    color: var(--color-text);
     font-family: inherit;
     font-size: 0.9rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.asig-form input:focus,
+.asig-form select:focus,
+.asig-form textarea:focus {
+    border-color: var(--color-accent-blue);
+    background-color: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+.asig-form select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23475569'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
 }
 
 .asig-form-observaciones {
@@ -45,11 +75,20 @@
 
 .asig-form-observaciones textarea {
     resize: vertical;
+    min-height: 90px;
 }
 
 .asig-form-acciones {
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
-    margin-top: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 480px) {
+    .asig-form {
+        padding: 1.5rem;
+    }
 }

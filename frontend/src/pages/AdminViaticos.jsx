@@ -64,6 +64,7 @@ export default function AdminViaticos() {
                         <thead>
                             <tr>
                                 <th>Técnico</th>
+                                <th>Origen</th>
                                 <th>Cliente</th>
                                 <th>Fecha</th>
                                 <th>Evidencia</th>
@@ -75,6 +76,17 @@ export default function AdminViaticos() {
                             {viaticos.map((v) => (
                                 <tr key={v.id}>
                                     <td>{v.nombre}</td>
+                                    <td>
+                                        {v.asignacion_id ? (
+                                            <span style={{ fontSize: '0.75rem', background: '#EFF6FF', color: '#1D4ED8', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>
+                                                📍 Asignación #{v.asignacion_id}
+                                            </span>
+                                        ) : (
+                                            <span style={{ fontSize: '0.75rem', background: '#F8FAFC', color: '#64748B', border: '1px solid #E2E8F0', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 500 }}>
+                                                📄 Independiente
+                                            </span>
+                                        )}
+                                    </td>
                                     <td>{v.cliente}</td>
                                     <td>{v.fecha}</td>
                                     <td>
@@ -103,6 +115,10 @@ export default function AdminViaticos() {
                     onClose={() => setSeleccionado(null)}
                     onAprobar={aprobar}
                     onRechazar={rechazar}
+                    onPresupuestoActualizado={(v) => {
+                        setViaticos((prev) => prev.map((x) => (x.id === v.id ? v : x)));
+                        setSeleccionado(v);
+                    }}
                 />
             )}
         </div>

@@ -1,27 +1,47 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* 60% - Dominante */
-  --color-bg-primary: #0B1929;
-  --color-bg-secondary: #101E33;
+  /* 60% - Dominante: Gris azulado suave, cálido y acogedor */
+  --color-bg-primary: #EEF2F6;      
+  --color-bg-secondary: #FFFFFF;    /* Blanco puro para tarjetas y contenedores elevadas */
+  --color-bg-tertiary: #F8FAFC;     /* Tono intermedio para cabeceras de tabla, filtros y campos */
 
-  /* 30% - Secundario (dorado de marca) */
-  --color-gold: #D4AF37;
-  --color-gold-dark: #B8912C;
+  /* 30% - Secundario (Azul corporativo principal y acentos GSB) */
+  --color-primary-blue: #0A3A60;    /* Azul banca corporativa */
+  --color-primary-blue-hover: #072B47;
+  --color-accent-blue: #1D63C8;     /* Azul tecnológico acentuado */
+  --color-accent-blue-hover: #174E9E;
+  --color-accent-blue-light: #EBF3FC;
 
-  /* 10% - Acento */
-  --color-text: #E8ECF1;
-  --color-text-muted: #7a9ec7;
-  --color-accent-blue: #3B82F6;
-  --color-accent-blue-hover: #2563EB;
+  /* Dorado GSB - Solo acento corporativo */
+  --color-gold: #C5A029;
+  --color-gold-dark: #A1811F;
+  --color-gold-light: #FDF9EA;
+
+  /* 10% - Textos */
+  --color-text: #0F172A;            /* Slate 900 */
+  --color-text-muted: #475569;      /* Slate 600 */
+  --color-text-light: #94A3B8;      /* Slate 400 */
 
   /* Estados */
-  --color-pendiente: #F59E0B;
-  --color-aprobado: #10B981;
-  --color-rechazado: #EF4444;
+  --color-pendiente: #D97706;       /* Amber 600 */
+  --color-pendiente-bg: #FEF3C7;    /* Amber 100 */
+  --color-aprobado: #059669;        /* Emerald 600 */
+  --color-aprobado-bg: #D1FAE5;     /* Emerald 100 */
+  --color-rechazado: #DC2626;       /* Red 600 */
+  --color-rechazado-bg: #FEE2E2;    /* Red 100 */
 
-  /* Bordes */
-  --color-border: #1a2e47;
+  /* Bordes y Sombras */
+  --color-border: #E2E8F0;          /* Slate 200 */
+  --color-border-hover: #CBD5E1;    /* Slate 300 */
+  --color-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --color-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --color-shadow-md: 0 10px 15px -3px rgba(15, 23, 42, 0.07), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --color-shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.09), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
 }
 
 /* ===== Global Reset & Base Styles ===== */
@@ -42,58 +62,65 @@ html {
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: #0a0f1a;
-  color: #e2eaf5;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text);
   line-height: 1.6;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #root {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 button {
   cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
 }
 
+/* Botones compartidos */
 .admin-back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 1.3rem;
-  padding: 0.55rem 0.8rem;
-  background: rgba(16, 30, 51, 0.88);
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--color-text-muted);
-  font: inherit;
-  font-size: 0.86rem;
-  font-weight: 600;
-  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: var(--color-shadow-sm);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .admin-back-btn:hover {
-  background: rgba(26, 46, 71, 0.9);
-  border-color: var(--color-gold);
-  color: var(--color-gold);
+  background: var(--color-accent-blue-light);
+  border-color: var(--color-accent-blue);
+  color: var(--color-accent-blue);
+  transform: translateX(-2px);
 }
 
 .admin-mini-btn {
-  padding: 0.45rem 0.7rem;
-  background: transparent;
+  padding: 0.45rem 0.8rem;
+  background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-muted);
-  font: inherit;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .admin-mini-btn:hover {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--color-accent-blue-light);
   border-color: var(--color-accent-blue);
-  color: var(--color-text);
+  color: var(--color-accent-blue);
 }
 
 a {

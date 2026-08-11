@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '../services/api';
+import { formatCOP } from '../utils/personal';
 import './NotificationBell.css';
 
 const ICONO_TIPO = {
@@ -7,6 +8,16 @@ const ICONO_TIPO = {
         <svg viewBox="0 0 20 20" fill="none">
             <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.6" />
             <path d="M10 6.5V10l2.4 1.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    ),
+    editado: (
+        <svg viewBox="0 0 20 20" fill="none">
+            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    ),
+    borrado: (
+        <svg viewBox="0 0 20 20" fill="none">
+            <path d="M4 6h12M8 6V4a1 1 0 011-1h2a1 1 0 011 1v2m2 0v10a2 2 0 01-2 2H7a2 2 0 01-2-2V6h10z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     ),
     aprobado: (
@@ -22,6 +33,7 @@ const ICONO_TIPO = {
 };
 
 function tiempoRelativo(fechaISO) {
+    if (!fechaISO) return '';
     const diffMs = Date.now() - new Date(fechaISO).getTime();
     const minutos = Math.floor(diffMs / 60000);
 
@@ -36,24 +48,22 @@ function tiempoRelativo(fechaISO) {
     return `Hace ${dias} días`;
 }
 
-function textoNotificacion(v) {
-    const nombre = v.nombre || `Usuario #${v.usuario_id}`;
-    if (v.estado === 'aprobado') return `Se aprobó el viático de ${nombre}.`;
-    if (v.estado === 'rechazado') return `Se rechazó el viático de ${nombre}.`;
-    return `${nombre} solicitó un nuevo viático.`;
-}
-
 export default function NotificationBell() {
     const [abierto, setAbierto] = useState(false);
     const [viaticos, setViaticos] = useState([]);
+    const [notificacionesBorrado, setNotificacionesBorrado] = useState([]);
     const [leidas, setLeidas] = useState(new Set());
     const contenedorRef = useRef(null);
 
     useEffect(() => {
         async function cargar() {
             try {
-                const { data } = await api.get('/admin/viaticos');
-                setViaticos(data);
+                const [resViaticos, resNotif] = await Promise.all([
+                    api.get('/admin/viaticos').catch(() => ({ data: [] })),
+                    api.get('/admin/notificaciones').catch(() => ({ data: [] })),
+                ]);
+                setViaticos(resViaticos.data || []);
+                setNotificacionesBorrado(resNotif.data || []);
             } catch (err) {
                 console.error('Error cargando notificaciones', err);
             }
@@ -71,9 +81,62 @@ export default function NotificationBell() {
         return () => document.removeEventListener('mousedown', manejarClicFuera);
     }, []);
 
-    const notificaciones = [...viaticos].sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at)
-    );
+    const timeline = [];
+
+    viaticos.forEach((v) => {
+        const nombre = v.nombre || `Usuario #${v.usuario_id}`;
+        if (v.estado === 'pendiente') {
+            const tCreated = new Date(v.created_at).getTime();
+            const tUpdated = v.updated_at ? new Date(v.updated_at).getTime() : tCreated;
+            const esEditado = tUpdated - tCreated > 5000;
+
+            if (esEditado) {
+                timeline.push({
+                    id: `viatico-edit-${v.id}`,
+                    icono: 'editado',
+                    texto: `${nombre} editó su viático.`,
+                    subtexto: `Cliente: ${v.cliente} • ${v.ot}`,
+                    fecha: v.updated_at,
+                });
+            } else {
+                timeline.push({
+                    id: `viatico-${v.id}`,
+                    icono: 'pendiente',
+                    texto: `${nombre} solicitó un nuevo viático.`,
+                    subtexto: `Cliente: ${v.cliente} • ${v.ot}`,
+                    fecha: v.created_at,
+                });
+            }
+        } else if (v.estado === 'aprobado') {
+            timeline.push({
+                id: `viatico-${v.id}`,
+                icono: 'aprobado',
+                texto: `Se aprobó el viático de ${nombre}.`,
+                subtexto: `Cliente: ${v.cliente} • ${v.ot}`,
+                fecha: v.updated_at || v.created_at,
+            });
+        } else if (v.estado === 'rechazado') {
+            timeline.push({
+                id: `viatico-${v.id}`,
+                icono: 'rechazado',
+                texto: `Se rechazó el viático de ${nombre}.`,
+                subtexto: `Cliente: ${v.cliente} • ${v.ot}`,
+                fecha: v.updated_at || v.created_at,
+            });
+        }
+    });
+
+    notificacionesBorrado.forEach((n) => {
+        timeline.push({
+            id: `notif-del-${n.id}`,
+            icono: 'borrado',
+            texto: `${n.tecnico_nombre} eliminó un viático de ${formatCOP(Number(n.valor))} en ${n.ciudad}.`,
+            subtexto: 'Viático eliminado',
+            fecha: n.created_at,
+        });
+    });
+
+    timeline.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
     const pendientesCount = viaticos.filter((v) => v.estado === 'pendiente').length;
 
@@ -82,7 +145,7 @@ export default function NotificationBell() {
     }
 
     function marcarTodasLeidas() {
-        setLeidas(new Set(viaticos.map((v) => v.id)));
+        setLeidas(new Set(timeline.map((item) => item.id)));
     }
 
     return (
@@ -122,24 +185,24 @@ export default function NotificationBell() {
                     </div>
 
                     <div className="notif-list">
-                        {notificaciones.length === 0 ? (
+                        {timeline.length === 0 ? (
                             <div className="notif-empty">No hay notificaciones.</div>
                         ) : (
-                            notificaciones.map((v) => {
-                                const noLeida = !leidas.has(v.id);
+                            timeline.map((item) => {
+                                const noLeida = !leidas.has(item.id);
                                 return (
                                     <button
-                                        key={v.id}
+                                        key={item.id}
                                         className={`notif-item ${noLeida ? 'notif-item--nueva' : ''}`}
-                                        onClick={() => marcarLeida(v.id)}
+                                        onClick={() => marcarLeida(item.id)}
                                     >
-                                        <span className={`notif-item-icon notif-item-icon--${v.estado}`}>
-                                            {ICONO_TIPO[v.estado] || ICONO_TIPO.pendiente}
+                                        <span className={`notif-item-icon notif-item-icon--${item.icono}`}>
+                                            {ICONO_TIPO[item.icono] || ICONO_TIPO.pendiente}
                                         </span>
                                         <span className="notif-item-body">
-                                            <span className="notif-item-text">{textoNotificacion(v)}</span>
+                                            <span className="notif-item-text">{item.texto}</span>
                                             <span className="notif-item-time">
-                                                Cliente: {v.cliente} • {v.ot} — {tiempoRelativo(v.created_at)}
+                                                {item.subtexto} — {tiempoRelativo(item.fecha)}
                                             </span>
                                         </span>
                                         {noLeida && <span className="notif-item-dot" />}
@@ -149,7 +212,7 @@ export default function NotificationBell() {
                         )}
                     </div>
 
-                    {notificaciones.length > 0 && (
+                    {timeline.length > 0 && (
                         <div className="notif-dropdown-footer">
                             <button className="notif-mark-all" onClick={marcarTodasLeidas}>
                                 Marcar todas como leídas
