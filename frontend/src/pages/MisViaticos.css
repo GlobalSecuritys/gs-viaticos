@@ -289,7 +289,7 @@
 
 @media (max-width: 768px) {
   .mv-body {
-    padding: 1.5rem;
+    padding: 1.25rem 1rem;
   }
 
   .mv-table th:nth-child(3),
@@ -299,6 +299,97 @@
     display: none;
   }
 }
+
+/* ── MOBILE: tabla → tarjetas apiladas ── */
+@media (max-width: 600px) {
+  .mv-body {
+    padding: 0.85rem 0.75rem;
+  }
+
+  /* Toolbar de encabezado */
+  .mv-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .btn-back, .btn-nuevo, .btn-primary {
+    width: 100%;
+    text-align: center;
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  /* Convertir tabla en tarjetas */
+  .mv-table-wrap {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .mv-table thead {
+    display: none;
+  }
+
+  .mv-table,
+  .mv-table tbody,
+  .mv-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .mv-table tr {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.65rem;
+    box-shadow: var(--color-shadow-sm);
+  }
+
+  .mv-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.3rem 0;
+    border-bottom: none;
+    font-size: 0.85rem;
+  }
+
+  /* Etiqueta antes de cada celda */
+  .mv-table td::before {
+    content: attr(data-label);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    margin-right: 0.5rem;
+  }
+
+  /* Separador entre filas de datos */
+  .mv-table td:not(:last-child) {
+    border-bottom: 1px solid var(--color-bg-primary);
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.1rem;
+  }
+
+  /* Botones de acción más grandes y táctiles */
+  .mv-acciones-btns {
+    gap: 0.5rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .mv-btn-accion {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8rem;
+    min-height: 36px;
+  }
+}
+
 
 /* Acciones en tabla */
 .mv-acciones-btns {

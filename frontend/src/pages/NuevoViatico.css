@@ -575,6 +575,41 @@
     }
 }
 
+@media (max-width: 600px) {
+    .nv-container {
+        padding: 0.85rem 0.75rem;
+    }
+
+    .nv-card {
+        padding: 1rem;
+        border-radius: var(--radius-md);
+    }
+
+    .nv-form-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .nv-id-toggle-row {
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .nv-id-mode-btn {
+        width: 100%;
+        text-align: center;
+        padding: 0.55rem 0.85rem;
+        font-size: 0.82rem;
+    }
+
+    .nv-btn-submit {
+        padding: 0.85rem 1rem;
+        font-size: 0.95rem;
+        width: 100%;
+    }
+}
+
+
 /* ── Identificación: selector de 3 modos ── */
 .nv-field-group--full {
     grid-column: 1 / -1;

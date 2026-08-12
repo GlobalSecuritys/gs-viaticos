@@ -1,0 +1,144 @@
+/* ===== PWA Install Prompt Component ===== */
+
+.pwa-install-pill-wrap {
+    display: inline-flex;
+    align-items: center;
+}
+
+.pwa-install-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: linear-gradient(135deg, #0A3A60 0%, #1D63C8 100%);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(10, 58, 96, 0.25);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.pwa-install-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(29, 99, 200, 0.35);
+    background: linear-gradient(135deg, #072B47 0%, #174E9E 100%);
+}
+
+.pwa-install-btn:active {
+    transform: translateY(0);
+}
+
+.pwa-install-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+/* ── Modal iOS Safari ── */
+.pwa-ios-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(6px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    animation: pwa-fade-in 0.2s ease;
+}
+
+@keyframes pwa-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.pwa-ios-modal {
+    background: var(--color-bg-secondary, #FFFFFF);
+    border-radius: var(--radius-lg, 16px);
+    max-width: 400px;
+    width: 100%;
+    padding: 1.75rem;
+    box-shadow: var(--color-shadow-lg, 0 20px 25px -5px rgba(0,0,0,0.1));
+    position: relative;
+    border: 1px solid var(--color-border, #E2E8F0);
+}
+
+.pwa-ios-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    color: var(--color-text-muted, #64748B);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.pwa-ios-header {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+}
+
+.pwa-ios-app-icon {
+    font-size: 2.2rem;
+}
+
+.pwa-ios-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text, #0F172A);
+}
+
+.pwa-ios-header p {
+    margin: 0.2rem 0 0;
+    font-size: 0.82rem;
+    color: var(--color-text-muted, #64748B);
+}
+
+.pwa-ios-steps {
+    margin: 0 0 1.5rem;
+    padding-left: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    font-size: 0.88rem;
+    color: var(--color-text, #0F172A);
+    line-height: 1.4;
+}
+
+.pwa-share-icon, .pwa-add-icon {
+    font-size: 1.1rem;
+}
+
+.pwa-ios-btn-entendido {
+    width: 100%;
+    background: var(--color-primary-blue, #0A3A60);
+    color: #FFFFFF;
+    border: none;
+    border-radius: var(--radius-md, 10px);
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+@media (max-width: 600px) {
+    .pwa-install-text {
+        font-size: 0.78rem;
+    }
+    .pwa-install-btn {
+        padding: 0.4rem 0.75rem;
+    }
+}

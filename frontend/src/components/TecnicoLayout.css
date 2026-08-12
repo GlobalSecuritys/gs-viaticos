@@ -205,3 +205,87 @@
         padding: 0.8rem 0;
     }
 }
+
+/* ── MOBILE: Bottom Navigation Bar ── */
+@media (max-width: 600px) {
+    /* Ocultar sidebar lateral completamente */
+    .tec-sidebar {
+        width: 100%;
+        min-width: unset;
+        height: auto;
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        flex-direction: row;
+        align-items: stretch;
+        z-index: 300;
+        box-shadow: 0 -2px 16px rgba(0,0,0,0.18);
+        /* Soporte para iPhone con notch/home bar */
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* Ocultar secciones que no caben en el bottom bar */
+    .tec-sidebar-brand,
+    .tec-sidebar-user,
+    .tec-sidebar-footer {
+        display: none;
+    }
+
+    /* Nav ocupa todo el ancho */
+    .tec-nav {
+        flex-direction: row;
+        padding: 0;
+        gap: 0;
+        width: 100%;
+        overflow: visible;
+    }
+
+    /* Cada ítem ocupa proporción igual */
+    .tec-nav-item {
+        flex: 1;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0.55rem 0.25rem 0.45rem;
+        gap: 0.2rem;
+        border-radius: 0;
+        font-size: 0;             /* Oculta texto base */
+        min-height: 56px;
+    }
+
+    /* Mostrar el label de nuevo, más pequeño */
+    .tec-nav-label {
+        display: block !important;
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        color: inherit;
+    }
+
+    .tec-nav-icon {
+        font-size: 1.3rem;
+        line-height: 1;
+    }
+
+    .tec-nav-item--active {
+        background-color: rgba(29, 99, 200, 0.18);
+        box-shadow: none;
+        border-top: 2px solid #1D63C8;
+    }
+
+    .tec-nav-item--active .tec-nav-label {
+        color: #7EC8FF;
+    }
+
+    /* El contenido principal ocupa toda la pantalla y deja espacio al bottom nav */
+    .tec-content {
+        margin-left: 0;
+        padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    }
+}

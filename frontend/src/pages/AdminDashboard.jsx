@@ -5,6 +5,7 @@ import api from '../services/api';
 import { listarAuditoria } from '../services/auditoria';
 import logoGSB from '../assets/logo-gsb.png';
 import NotificationBell from '../components/NotificationBell';
+import InstallPwaPrompt from '../components/InstallPwaPrompt';
 import ModalEvidencia from '../components/ModalEvidencia';
 import './AdminDashboard.css';
 
@@ -282,6 +283,7 @@ export default function AdminDashboard() {
                     >
                         Asignaciones
                     </button>
+                    <InstallPwaPrompt />
                     <NotificationBell />
                     <div className="admin-user-pill">
                         <span className="admin-user-avatar">{user?.correo?.[0]?.toUpperCase()}</span>

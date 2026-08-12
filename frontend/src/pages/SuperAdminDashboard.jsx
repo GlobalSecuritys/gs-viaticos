@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import logoGSB from '../assets/logo-gsb.png';
 import NotificationBell from '../components/NotificationBell';
+import InstallPwaPrompt from '../components/InstallPwaPrompt';
 import { listarAsignaciones } from '../services/asignaciones';
 import {
     TIPOS_ASIGNACION,
@@ -184,6 +185,7 @@ export default function SuperAdminDashboard() {
                 <header className="sa-topbar">
                     <button className="sa-topbar-menu" aria-label="Menu">☰</button>
                     <div className="sa-topbar-right">
+                        <InstallPwaPrompt />
                         <NotificationBell />
                         <div className="sa-topbar-user">
                             <div className="sa-topbar-avatar">
