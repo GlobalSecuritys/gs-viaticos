@@ -99,7 +99,7 @@ export default function MisAsignaciones() {
                                 <div key={a.id} className="mis-asig-card">
                                     <div className="mac-top">
                                         <span className="mac-tipo">
-                                            {LABEL_TIPO_ASIGNACION[a.tipo] || a.tipo} · ID #{a.id}
+                                            {LABEL_TIPO_ASIGNACION[a.tipo] || a.tipo}
                                         </span>
                                         <span className={`estado-badge estado-badge--${a.estado === 'en_curso' ? 'activo' : a.estado}`}>
                                             {LABEL_ESTADO_ASIGNACION[a.estado] || a.estado}

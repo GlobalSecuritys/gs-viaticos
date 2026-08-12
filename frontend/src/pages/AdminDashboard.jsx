@@ -46,6 +46,12 @@ function labelRol(rol) {
     return 'Técnico';
 }
 
+function labelTipoId(tipo) {
+    if (tipo === 'nit_proveedor') return { texto: 'NIT Proveedor', color: '#7C3AED', bg: '#EDE9FE' };
+    if (tipo === 'nit_nuevo') return { texto: 'NIT Nuevo', color: '#B45309', bg: '#FEF3C7' };
+    return { texto: 'Cédula', color: '#1D63C8', bg: '#EFF6FF' };
+}
+
 function esHoy(fechaStr) {
     const hoy = new Date();
     const f = new Date(fechaStr + 'T00:00:00');
@@ -519,7 +525,7 @@ export default function AdminDashboard() {
 
                                             <h3 className="dash-tech-nombre">{t.nombre}</h3>
                                             <span className="dash-tech-codigo">
-                                                {t.codigo_empleado ? `Código: ${t.codigo_empleado}` : 'Sin código asignado'}
+                                                {t.codigo_empleado ? `Cédula: ${t.codigo_empleado}` : 'Sin cédula asignada'}
                                             </span>
 
                                             <div className="dash-tech-metrics">
@@ -655,6 +661,7 @@ export default function AdminDashboard() {
                                     <tr>
                                         <th>Concepto</th>
                                         <th>Razón social / NIT</th>
+                                        <th>Identificación</th>
                                         <th>Valor</th>
                                         <th>Soporte</th>
                                         <th style={{ textAlign: 'center' }}>Acción</th>
@@ -663,10 +670,25 @@ export default function AdminDashboard() {
                                 <tbody>
                                     {registroConsolidado.items.map((item) => {
                                         const evidencia = item.evidencias?.[0];
+                                        const tipoId = labelTipoId(item.tipo_identificacion);
                                         return (
                                             <tr key={item.id}>
                                                 <td style={{ textTransform: 'capitalize', fontWeight: 600 }}>{item.tipo_gasto}</td>
-                                                <td>{item.meta?.razon_social || item.cliente} {item.meta?.nit && `(${item.meta.nit})`}</td>
+                                                <td>{item.meta?.razon_social || item.cliente} {item.nit_identificacion && `(${item.nit_identificacion})`}</td>
+                                                <td>
+                                                    <span style={{
+                                                        display: 'inline-block',
+                                                        padding: '0.2rem 0.6rem',
+                                                        borderRadius: '999px',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 700,
+                                                        background: tipoId.bg,
+                                                        color: tipoId.color,
+                                                        whiteSpace: 'nowrap',
+                                                    }}>
+                                                        {tipoId.texto}
+                                                    </span>
+                                                </td>
                                                 <td><strong>{formatCOP(item.valor)}</strong></td>
                                                 <td>
                                                     {evidencia ? (

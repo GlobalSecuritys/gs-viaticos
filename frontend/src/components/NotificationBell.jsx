@@ -48,28 +48,38 @@ function tiempoRelativo(fechaISO) {
     return `Hace ${dias} días`;
 }
 
+import { useAuth } from '../context/AuthContext';
+
 export default function NotificationBell() {
+    const { user } = useAuth();
     const [abierto, setAbierto] = useState(false);
     const [viaticos, setViaticos] = useState([]);
     const [notificacionesBorrado, setNotificacionesBorrado] = useState([]);
     const [leidas, setLeidas] = useState(new Set());
     const contenedorRef = useRef(null);
 
+    const esAdmin = user?.rol === 'admin' || user?.rol === 'superadmin';
+
     useEffect(() => {
         async function cargar() {
             try {
-                const [resViaticos, resNotif] = await Promise.all([
-                    api.get('/admin/viaticos').catch(() => ({ data: [] })),
-                    api.get('/admin/notificaciones').catch(() => ({ data: [] })),
-                ]);
-                setViaticos(resViaticos.data || []);
-                setNotificacionesBorrado(resNotif.data || []);
+                if (esAdmin) {
+                    const [resViaticos, resNotif] = await Promise.all([
+                        api.get('/admin/viaticos').catch(() => ({ data: [] })),
+                        api.get('/admin/notificaciones').catch(() => ({ data: [] })),
+                    ]);
+                    setViaticos(resViaticos.data || []);
+                    setNotificacionesBorrado(resNotif.data || []);
+                } else {
+                    const resViaticos = await api.get('/viaticos').catch(() => ({ data: [] }));
+                    setViaticos(resViaticos.data || []);
+                }
             } catch (err) {
                 console.error('Error cargando notificaciones', err);
             }
         }
         cargar();
-    }, []);
+    }, [esAdmin]);
 
     useEffect(() => {
         function manejarClicFuera(e) {
@@ -83,62 +93,105 @@ export default function NotificationBell() {
 
     const timeline = [];
 
-    viaticos.forEach((v) => {
-        const nombre = v.nombre || `Usuario #${v.usuario_id}`;
-        if (v.estado === 'pendiente') {
-            const tCreated = new Date(v.created_at).getTime();
-            const tUpdated = v.updated_at ? new Date(v.updated_at).getTime() : tCreated;
-            const esEditado = tUpdated - tCreated > 5000;
+    if (esAdmin) {
+        viaticos.forEach((v) => {
+            const nombre = v.nombre || `Usuario #${v.usuario_id}`;
+            if (v.estado === 'pendiente') {
+                const tCreated = new Date(v.created_at).getTime();
+                const tUpdated = v.updated_at ? new Date(v.updated_at).getTime() : tCreated;
+                const esEditado = tUpdated - tCreated > 5000;
 
-            if (esEditado) {
-                timeline.push({
-                    id: `viatico-edit-${v.id}`,
-                    icono: 'editado',
-                    texto: `${nombre} editó su viático.`,
-                    subtexto: `Cliente: ${v.cliente} • ${v.ot}`,
-                    fecha: v.updated_at,
-                });
-            } else {
+                if (esEditado) {
+                    timeline.push({
+                        id: `viatico-edit-${v.id}`,
+                        icono: 'editado',
+                        texto: `${nombre} editó su viático.`,
+                        subtexto: `Cliente: ${v.cliente} • ${v.ot}`,
+                        fecha: v.updated_at,
+                    });
+                } else {
+                    timeline.push({
+                        id: `viatico-${v.id}`,
+                        icono: 'pendiente',
+                        texto: `${nombre} solicitó un nuevo viático.`,
+                        subtexto: `Cliente: ${v.cliente} • ${v.ot}`,
+                        fecha: v.created_at,
+                    });
+                }
+            } else if (v.estado === 'aprobado') {
                 timeline.push({
                     id: `viatico-${v.id}`,
-                    icono: 'pendiente',
-                    texto: `${nombre} solicitó un nuevo viático.`,
+                    icono: 'aprobado',
+                    texto: `Se aprobó el viático de ${nombre}.`,
                     subtexto: `Cliente: ${v.cliente} • ${v.ot}`,
+                    fecha: v.updated_at || v.created_at,
+                });
+            } else if (v.estado === 'rechazado') {
+                timeline.push({
+                    id: `viatico-${v.id}`,
+                    icono: 'rechazado',
+                    texto: `Se rechazó el viático de ${nombre}.`,
+                    subtexto: `Cliente: ${v.cliente} • ${v.ot}${v.comentario_admin ? ` • Motivo: ${v.comentario_admin}` : ''}`,
+                    fecha: v.updated_at || v.created_at,
+                });
+            }
+        });
+
+        notificacionesBorrado.forEach((n) => {
+            timeline.push({
+                id: `notif-del-${n.id}`,
+                icono: 'borrado',
+                texto: `${n.tecnico_nombre} eliminó un viático de ${formatCOP(Number(n.valor))} en ${n.ciudad}.`,
+                subtexto: 'Viático eliminado',
+                fecha: n.created_at,
+            });
+        });
+    } else {
+        // Notificaciones para el Técnico
+        viaticos.forEach((v) => {
+            if (v.estado === 'aprobado') {
+                timeline.push({
+                    id: `tec-aprobado-${v.id}`,
+                    icono: 'aprobado',
+                    texto: `¡Tu viático de ${v.cliente} por ${formatCOP(Number(v.valor))} fue APROBADO!`,
+                    subtexto: `OT: ${v.ot}${v.comentario_admin ? ` • Comentario: ${v.comentario_admin}` : ''}`,
+                    fecha: v.updated_at || v.created_at,
+                });
+            } else if (v.estado === 'rechazado') {
+                timeline.push({
+                    id: `tec-rechazado-${v.id}`,
+                    icono: 'rechazado',
+                    texto: `Tu viático de ${v.cliente} por ${formatCOP(Number(v.valor))} fue RECHAZADO.`,
+                    subtexto: `OT: ${v.ot}${v.comentario_admin ? ` • Motivo: ${v.comentario_admin}` : ''}`,
+                    comentario: v.comentario_admin,
+                    fecha: v.updated_at || v.created_at,
+                });
+            } else if (v.estado === 'pendiente') {
+                timeline.push({
+                    id: `tec-pendiente-${v.id}`,
+                    icono: 'pendiente',
+                    texto: `Tu viático de ${v.cliente} por ${formatCOP(Number(v.valor))} está en revisión.`,
+                    subtexto: `OT: ${v.ot}`,
                     fecha: v.created_at,
                 });
             }
-        } else if (v.estado === 'aprobado') {
-            timeline.push({
-                id: `viatico-${v.id}`,
-                icono: 'aprobado',
-                texto: `Se aprobó el viático de ${nombre}.`,
-                subtexto: `Cliente: ${v.cliente} • ${v.ot}`,
-                fecha: v.updated_at || v.created_at,
-            });
-        } else if (v.estado === 'rechazado') {
-            timeline.push({
-                id: `viatico-${v.id}`,
-                icono: 'rechazado',
-                texto: `Se rechazó el viático de ${nombre}.`,
-                subtexto: `Cliente: ${v.cliente} • ${v.ot}`,
-                fecha: v.updated_at || v.created_at,
-            });
-        }
-    });
-
-    notificacionesBorrado.forEach((n) => {
-        timeline.push({
-            id: `notif-del-${n.id}`,
-            icono: 'borrado',
-            texto: `${n.tecnico_nombre} eliminó un viático de ${formatCOP(Number(n.valor))} en ${n.ciudad}.`,
-            subtexto: 'Viático eliminado',
-            fecha: n.created_at,
         });
-    });
+    }
 
     timeline.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-    const pendientesCount = viaticos.filter((v) => v.estado === 'pendiente').length;
+    // Para el ADMIN: el badge muestra siempre los ítems que requieren atención
+    // (viáticos pendientes + notificaciones de borrado). El acto de "leer" una
+    // notificación NO reduce el contador — solo quita el resaltado visual.
+    // Para el TÉCNICO: el badge muestra aprobados + rechazados (respuestas sin ver).
+    const noLeidasCount = esAdmin
+        ? viaticos.filter((v) => v.estado === 'pendiente').length +
+          notificacionesBorrado.length
+        : timeline.filter(
+              (item) =>
+                  !leidas.has(item.id) &&
+                  (item.icono === 'aprobado' || item.icono === 'rechazado')
+          ).length;
 
     function marcarLeida(id) {
         setLeidas((prev) => new Set(prev).add(id));
@@ -170,8 +223,8 @@ export default function NotificationBell() {
                         strokeLinecap="round"
                     />
                 </svg>
-                {pendientesCount > 0 && (
-                    <span className="notif-badge">{pendientesCount > 9 ? '9+' : pendientesCount}</span>
+                {noLeidasCount > 0 && (
+                    <span className="notif-badge">{noLeidasCount > 9 ? '9+' : noLeidasCount}</span>
                 )}
             </button>
 
@@ -180,7 +233,7 @@ export default function NotificationBell() {
                     <div className="notif-dropdown-header">
                         <span className="notif-dropdown-title">Notificaciones</span>
                         <span className="notif-dropdown-count">
-                            {pendientesCount > 0 ? `${pendientesCount} pendientes` : 'Sin pendientes'}
+                            {noLeidasCount > 0 ? `${noLeidasCount} no leída(s)` : 'Al día'}
                         </span>
                     </div>
 

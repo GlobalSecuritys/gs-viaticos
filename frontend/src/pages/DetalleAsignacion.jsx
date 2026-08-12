@@ -183,7 +183,7 @@ export default function DetalleAsignacion() {
                                     <span className="detalle-valor">{asignacion.cliente}</span>
                                 </div>
                                 <div className="detalle-field">
-                                    <span className="detalle-label">Empresa</span>
+                                    <span className="detalle-label">Proyecto</span>
                                     <span className="detalle-valor">{asignacion.empresa || '—'}</span>
                                 </div>
                                 <div className="detalle-field">

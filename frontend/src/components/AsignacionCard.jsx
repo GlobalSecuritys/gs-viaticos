@@ -4,7 +4,7 @@ import './AsignacionCard.css';
 
 export default function AsignacionCard({ asignacion, onClick }) {
     const nombre = asignacion.tecnico_nombre || `Técnico #${asignacion.tecnico_id}`;
-    
+
     // Cálculo de días de duración
     const fechaInicio = asignacion.fecha_inicio ? new Date(asignacion.fecha_inicio + 'T00:00:00') : null;
     const fechaFin = asignacion.fecha_fin ? new Date(asignacion.fecha_fin + 'T00:00:00') : null;
@@ -37,7 +37,6 @@ export default function AsignacionCard({ asignacion, onClick }) {
                 <span className="asig-card-avatar">{iniciales(nombre)}</span>
                 <div className="asig-card-tecnico-info">
                     <h3 className="asig-card-tecnico">{nombre}</h3>
-                    <span className="asig-card-id">ID Misión #{asignacion.id}</span>
                 </div>
             </div>
 

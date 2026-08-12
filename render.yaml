@@ -1,11 +1,11 @@
-﻿services:
+services:
   # --- Backend (FastAPI) ---
   - type: web
     name: gs-viaticos-backend
     runtime: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt && alembic upgrade head
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 65
     envVars:
       - key: DATABASE_URL
         sync: false

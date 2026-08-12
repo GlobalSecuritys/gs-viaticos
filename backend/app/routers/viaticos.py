@@ -57,6 +57,8 @@ def crear_viatico(
         tipo_gasto=viatico_in.tipo_gasto,
         valor=viatico_in.valor,
         descripcion=viatico_in.descripcion,
+        tipo_identificacion=viatico_in.tipo_identificacion or "cedula",
+        nit_identificacion=viatico_in.nit_identificacion,
         estado="pendiente"
     )
     db.add(nuevo_viatico)

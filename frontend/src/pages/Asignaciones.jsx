@@ -138,7 +138,7 @@ export default function Asignaciones() {
                             <span className="admin-search-icon">🔍</span>
                             <input
                                 type="text"
-                                placeholder="Buscar por técnico, cliente, empresa o ciudad..."
+                                placeholder="Buscar por técnico, cliente, proyecto o ciudad..."
                                 className="admin-search-input"
                                 value={busqueda}
                                 onChange={(e) => setBusqueda(e.target.value)}

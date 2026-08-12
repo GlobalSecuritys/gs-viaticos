@@ -3,6 +3,8 @@ import api from '../services/api';
 import './ModalEvidencia.css';
 import './ModalCrearUsuario.css';
 
+import { formatApiError } from '../utils/formatError';
+
 export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
     const [nombre, setNombre] = useState(usuario.nombre);
     const [correo, setCorreo] = useState(usuario.correo);
@@ -22,7 +24,7 @@ export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
             });
             onGuardado(data);
         } catch (err) {
-            setError(err.response?.data?.detail || 'No se pudo guardar los cambios.');
+            setError(formatApiError(err, 'No se pudo guardar los cambios.'));
         } finally {
             setGuardando(false);
         }
@@ -34,8 +36,7 @@ export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
                 <button className="modal-close-btn" onClick={onClose}>×</button>
 
                 <h2 className="mcu-titulo">Editar información</h2>
-                <p className="mcu-subtitulo">Nombre, correo y código de empleado.</p>
-
+                <p className="mcu-subtitulo">Nombre, correo y cédula.</p>
                 <form onSubmit={handleSubmit} className="mcu-form">
                     <label className="mcu-campo">
                         Nombre completo
@@ -58,7 +59,7 @@ export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
                     </label>
 
                     <label className="mcu-campo">
-                        Código de empleado
+                        Cédula
                         <input
                             type="text"
                             value={codigoEmpleado}

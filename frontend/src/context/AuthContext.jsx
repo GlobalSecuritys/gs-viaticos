@@ -25,8 +25,7 @@ export function AuthProvider({ children }) {
 
     // Decodificar payload del JWT para obtener datos del usuario
     const payload = JSON.parse(atob(data.access_token.split('.')[1]));
-    const userData = { correo: payload.sub, rol: payload.rol, id: payload.id };
-
+    const userData = { correo: payload.sub, rol: payload.rol, id: payload.id, nombre: payload.nombre, codigo_empleado: payload.codigo_empleado };
     localStorage.setItem('gs_user', JSON.stringify(userData));
     setUser(userData);
     if (userData.rol === 'admin' || userData.rol === 'superadmin') {

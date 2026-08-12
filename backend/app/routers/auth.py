@@ -68,6 +68,6 @@ def login(
             detail="El usuario se encuentra inactivo"
         )
 
-    access_token = create_access_token(data={"sub": usuario.correo, "rol": usuario.rol, "id": usuario.id})
+    access_token = create_access_token(data={"sub": usuario.correo, "rol": usuario.rol, "id": usuario.id, "nombre": usuario.nombre, "codigo_empleado": usuario.codigo_empleado})
     return Token(access_token=access_token, token_type="bearer")
 

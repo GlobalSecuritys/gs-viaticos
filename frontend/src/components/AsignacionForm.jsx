@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { TIPOS_ASIGNACION, LABEL_TIPO_ASIGNACION } from '../utils/asignaciones';
+import ModalSeleccionarCliente from './ModalSeleccionarCliente';
 import './AsignacionForm.css';
 
 const VACIO = {
@@ -34,6 +35,7 @@ export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar
             : VACIO
     );
     const [error, setError] = useState('');
+    const [modalClienteAbierto, setModalClienteAbierto] = useState(false);
 
     function actualizar(campo, valor) {
         setForm((f) => ({ ...f, [campo]: valor }));
@@ -89,16 +91,21 @@ export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar
 
                 <label>
                     Cliente
-                    <input
-                        type="text"
-                        value={form.cliente}
-                        onChange={(e) => actualizar('cliente', e.target.value)}
-                        placeholder="Ej: Banco Santander"
-                    />
+                    <div
+                        className="asig-cliente-input-btn"
+                        onClick={() => setModalClienteAbierto(true)}
+                        tabIndex={0}
+                        role="button"
+                    >
+                        <span className={form.cliente ? 'asig-cliente-val' : 'asig-cliente-ph'}>
+                            {form.cliente || 'Selecciona un cliente oficial...'}
+                        </span>
+                        <span className="asig-cliente-icon">🔍</span>
+                    </div>
                 </label>
 
                 <label>
-                    Empresa
+                    Proyecto
                     <input
                         type="text"
                         value={form.empresa}
@@ -163,6 +170,14 @@ export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar
                     {enviando ? 'Guardando...' : inicial ? 'Guardar cambios' : 'Crear asignación'}
                 </button>
             </div>
+
+            {modalClienteAbierto && (
+                <ModalSeleccionarCliente
+                    clienteSeleccionado={form.cliente}
+                    onSeleccionar={(c) => actualizar('cliente', c)}
+                    onClose={() => setModalClienteAbierto(false)}
+                />
+            )}
         </form>
     );
 }

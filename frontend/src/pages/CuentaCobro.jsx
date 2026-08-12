@@ -81,7 +81,7 @@ export default function CuentaCobro() {
                             <span className="cs-val">{user?.nombre || user?.correo}</span>
                         </div>
                         <div className="cuenta-summary-item">
-                            <span className="cs-label">Código Empleado / CC</span>
+                            <span className="cs-label">Cédula</span>
                             <span className="cs-val">{user?.codigo_empleado ? `CC ${user.codigo_empleado}` : '1.234.567.890'}</span>
                         </div>
                         <div className="cuenta-summary-item">

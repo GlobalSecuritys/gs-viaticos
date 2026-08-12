@@ -56,8 +56,45 @@
 .asig-form select:focus,
 .asig-form textarea:focus {
     border-color: var(--color-accent-blue);
+    color: var(--color-accent-blue);
+}
+
+.asig-cliente-input-btn {
+    background-color: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.asig-cliente-input-btn:hover,
+.asig-cliente-input-btn:focus {
+    border-color: var(--color-accent-blue);
     background-color: #FFFFFF;
     box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+.asig-cliente-val {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.asig-cliente-ph {
+    color: var(--color-text-muted);
+    font-weight: 400;
+}
+
+.asig-cliente-icon {
+    font-size: 0.85rem;
+    opacity: 0.6;
 }
 
 .asig-form select {

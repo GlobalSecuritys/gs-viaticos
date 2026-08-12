@@ -12,6 +12,8 @@ TipoGasto = Literal[
     "otros",
 ]
 
+TipoIdentificacion = Literal["cedula", "nit_proveedor", "nit_nuevo"]
+
 
 class AsignacionResumenViatico(BaseModel):
     id: int
@@ -34,6 +36,8 @@ class ViaticoBase(BaseModel):
     descripcion: str | None = None
     asignacion_id: int | None = None
     monto_presupuesto: Decimal | None = None
+    tipo_identificacion: str | None = "cedula"
+    nit_identificacion: str | None = None
 
 
 class ViaticoCreate(ViaticoBase):
@@ -52,10 +56,16 @@ class ViaticoUpdate(BaseModel):
     descripcion: str | None = None
     asignacion_id: int | None = None
     monto_presupuesto: Decimal | None = None
+    tipo_identificacion: str | None = None
+    nit_identificacion: str | None = None
 
 
 class ViaticoPresupuestoUpdate(BaseModel):
     monto_presupuesto: Decimal = Field(gt=0)
+
+
+class ViaticoEstadoUpdate(BaseModel):
+    comentario_admin: str | None = None
 
 
 class EvidenciaResponse(BaseModel):
@@ -72,6 +82,9 @@ class ViaticoResponse(ViaticoBase):
     usuario_id: int
     asignacion_id: int | None = None
     monto_presupuesto: Decimal | None = None
+    comentario_admin: str | None = None
+    tipo_identificacion: str | None = "cedula"
+    nit_identificacion: str | None = None
     estado: str
     created_at: datetime
     updated_at: datetime

@@ -116,7 +116,7 @@ export default function Dashboard() {
 
     const primerNombre = (user?.nombre || user?.correo || 'Técnico').split(' ')[0];
     const nombreCompleto = user?.nombre || user?.correo || 'Técnico Instalador';
-    const codigoEmpleado = user?.codigo_empleado ? `CC ${user.codigo_empleado}` : 'Código: 1.234.567.890';
+    const codigoEmpleado = user?.codigo_empleado ? `CC ${user.codigo_empleado}` : 'CC 1.234.567.890';
 
     return (
         <TecnicoLayout>

@@ -3,6 +3,8 @@ import api from '../services/api';
 import './ModalEvidencia.css';
 import './ModalCrearUsuario.css';
 
+import { formatApiError } from '../utils/formatError';
+
 export default function ModalCrearUsuario({ onClose, onCreado }) {
     const [nombre, setNombre] = useState('');
     const [correo, setCorreo] = useState('');
@@ -26,7 +28,7 @@ export default function ModalCrearUsuario({ onClose, onCreado }) {
             });
             onCreado(data);
         } catch (err) {
-            setError(err.response?.data?.detail || 'No se pudo crear el usuario.');
+            setError(formatApiError(err, 'No se pudo crear el usuario.'));
         } finally {
             setGuardando(false);
         }
@@ -62,7 +64,7 @@ export default function ModalCrearUsuario({ onClose, onCreado }) {
                     </label>
 
                     <label className="mcu-campo">
-                        Código de empleado
+                        Cédula
                         <input
                             type="text"
                             value={codigoEmpleado}

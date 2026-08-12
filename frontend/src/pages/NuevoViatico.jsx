@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api, { subirEvidencias } from '../services/api';
 import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
@@ -28,9 +28,15 @@ const CONTEXTO_KEY = 'gs_fecha_anterior_viatico';
 function getItemInicial(id) {
     return {
         id,
+        tipo_id: 'cedula',          // 'cedula' | 'nit_proveedor' | 'nit_nuevo'
         nit: '',
+        nit_nuevo_texto: '',
+        proveedor_query: '',         // texto que el usuario escribe para buscar
+        proveedor_seleccionado: null, // { nit, nombre }
         razon_social: '',
         concepto: 'alimentacion',
+        lugar_tipo: 'oficina',       // 'oficina' | 'rtc'
+        lugar_subtipo: 'correctivo', // 'correctivo' | 'preventivo'
         lugar: '',
         origen: '',
         destino: '',
@@ -58,7 +64,7 @@ export default function NuevoViatico() {
                     );
                     if (found) setAsignacionDetalle(found);
                 })
-                .catch(() => {});
+                .catch(() => { });
         }
     }, [asignacionIdParam]);
 
@@ -83,6 +89,41 @@ export default function NuevoViatico() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [exitoMsg, setExitoMsg] = useState('');
+
+    // Autocomplete de proveedores: sugerencias por ítem
+    const [sugerencias, setSugerencias] = useState({}); // { [gastoId]: [] }
+    const [autocompleteAbierto, setAutocompleteAbierto] = useState({}); // { [gastoId]: bool }
+    const debounceRef = useRef({});
+
+    const buscarProveedores = useCallback(async (gastoId, texto) => {
+        clearTimeout(debounceRef.current[gastoId]);
+        if (texto.trim().length < 3) {
+            setSugerencias((prev) => ({ ...prev, [gastoId]: [] }));
+            setAutocompleteAbierto((prev) => ({ ...prev, [gastoId]: false }));
+            return;
+        }
+        debounceRef.current[gastoId] = setTimeout(async () => {
+            try {
+                const { data } = await api.get('/proveedores/buscar', { params: { q: texto } });
+                setSugerencias((prev) => ({ ...prev, [gastoId]: data }));
+                setAutocompleteAbierto((prev) => ({ ...prev, [gastoId]: data.length > 0 }));
+            } catch {
+                setSugerencias((prev) => ({ ...prev, [gastoId]: [] }));
+            }
+        }, 280);
+    }, []);
+
+    function seleccionarProveedor(gastoId, prov) {
+        setGastos((prev) =>
+            prev.map((g) =>
+                g.id === gastoId
+                    ? { ...g, proveedor_seleccionado: prov, proveedor_query: prov.nombre, razon_social: prov.nombre }
+                    : g
+            )
+        );
+        setSugerencias((prev) => ({ ...prev, [gastoId]: [] }));
+        setAutocompleteAbierto((prev) => ({ ...prev, [gastoId]: false }));
+    }
 
     function handleAddGasto() {
         setGastos((prev) => [...prev, getItemInicial(Date.now())]);
@@ -168,10 +209,37 @@ export default function NuevoViatico() {
                 const g = gastos[i];
                 const val = parseFloat(g.valor);
 
+                // Determinar el NIT final y tipo_identificacion según modo elegido
+                let nitFinal = '';
+                let tipoId = g.tipo_id || 'cedula';
+                if (tipoId === 'cedula') {
+                    nitFinal = cedulaUsuario;
+                } else if (tipoId === 'nit_proveedor') {
+                    nitFinal = g.proveedor_seleccionado?.nit || '';
+                    if (!nitFinal) {
+                        setError(`Gasto #${i + 1}: debes seleccionar un proveedor de la lista.`);
+                        setLoading(false);
+                        return;
+                    }
+                } else {
+                    nitFinal = g.nit_nuevo_texto.trim();
+                    if (!nitFinal) {
+                        setError(`Gasto #${i + 1}: ingresa el NIT manualmente.`);
+                        setLoading(false);
+                        return;
+                    }
+                }
+
+                const lugarFinal = g.lugar_tipo === 'rtc'
+                    ? 'RTC'
+                    : (g.lugar_subtipo === 'preventivo' ? 'Oficina (Preventivo)' : 'Oficina (Correctivo)');
+
                 const descripcionEstructurada = JSON.stringify({
-                    nit: g.nit || '—',
+                    nit: nitFinal,
                     razon_social: g.razon_social || (asignacionDetalle ? asignacionDetalle.cliente : '—'),
-                    lugar: g.lugar || (asignacionDetalle ? asignacionDetalle.ciudad : '—'),
+                    lugar: lugarFinal,
+                    lugar_tipo: g.lugar_tipo,
+                    lugar_subtipo: g.lugar_tipo === 'oficina' ? g.lugar_subtipo : null,
                     origen: g.origen || '—',
                     destino: g.destino || (asignacionDetalle ? asignacionDetalle.ciudad : '—'),
                     tiene_soporte: g.tiene_soporte === 'si',
@@ -180,13 +248,15 @@ export default function NuevoViatico() {
 
                 const payload = {
                     fecha: fechaSeleccionada,
-                    cliente: g.razon_social || (asignacionDetalle ? asignacionDetalle.cliente : (g.nit || 'Gasto Operativo')),
-                    ciudad: g.destino || g.lugar || (asignacionDetalle ? asignacionDetalle.ciudad : 'N/A'),
+                    cliente: g.razon_social || (asignacionDetalle ? asignacionDetalle.cliente : (nitFinal || 'Gasto Operativo')),
+                    ciudad: g.destino || (asignacionDetalle ? asignacionDetalle.ciudad : 'N/A'),
                     ot: asignacionIdParam ? `ASIG-#${asignacionIdParam}` : (g.origen ? `${g.origen} -> ${g.destino}` : 'OT-CAMPO'),
                     tipo_gasto: g.concepto,
                     valor: val,
                     descripcion: descripcionEstructurada,
                     asignacion_id: asignacionIdParam ? Number(asignacionIdParam) : null,
+                    tipo_identificacion: tipoId,
+                    nit_identificacion: nitFinal,
                 };
 
                 // 1. Crear el registro del viático
@@ -199,10 +269,17 @@ export default function NuevoViatico() {
                 if (g.archivo && g.tiene_soporte === 'si') {
                     try {
                         await subirEvidencias(viaticoCreado.id, [g.archivo]);
-                    } catch {
-                        console.warn(
-                            `No se pudo subir la foto del gasto #${i + 1}`
-                        );
+                    } catch (errUpload) {
+                        console.warn(`Reintentando subida de soporte para gasto #${i + 1}...`, errUpload);
+                        // Reintento automático por flickering de red en Render
+                        try {
+                            await subirEvidencias(viaticoCreado.id, [g.archivo]);
+                        } catch (errRetry) {
+                            console.error(`Error definitivo subiendo soporte de gasto #${i + 1}`, errRetry);
+                            setError(
+                                `Gasto #${i + 1} (${g.concepto}): se creó el viático pero no fue posible subir la fotografía. Verifica tu conexión e intenta nuevamente.`
+                            );
+                        }
                     }
                 }
             }
@@ -235,8 +312,7 @@ export default function NuevoViatico() {
                     <div className="nv-asig-badge-banner" style={{ background: '#EFF6FF', border: '1px solid #93C5FD', padding: '0.85rem 1.25rem', borderRadius: '10px', marginBottom: '1.25rem', color: '#1E40AF', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
                         <span>📍</span>
                         <div>
-                            <strong>Vinculado a Asignación #{asignacionIdParam}</strong>
-                            {asignacionDetalle && (
+                            <strong>Vinculado a Asignación</strong>                            {asignacionDetalle && (
                                 <span> — Cliente: <strong>{asignacionDetalle.cliente}</strong> ({asignacionDetalle.ciudad})</span>
                             )}
                         </div>
@@ -249,7 +325,7 @@ export default function NuevoViatico() {
                         <h1 className="nv-title">1. Registrar viático</h1>
                         <p className="nv-sub">
                             {asignacionIdParam
-                                ? `Registra los viáticos directamente asociados a la Asignación #${asignacionIdParam}`
+                                ? 'Registra los viáticos directamente asociados a la asignación'
                                 : 'Registra tus viáticos e ítems de gasto de forma independiente'}
                         </p>
                     </div>
@@ -353,28 +429,84 @@ export default function NuevoViatico() {
                                             </div>
 
                                             <div className="nv-gasto-fields-grid">
-                                                {/* NIT con opción [✓ Usar mi CC] */}
-                                                <div className="nv-field-group">
-                                                    <div className="nv-label-row">
-                                                        <label>NIT</label>
+                                                {/* ── IDENTIFICACIÓN (3 modos) ── */}
+                                            <div className="nv-field-group nv-field-group--full">
+                                                <label>Identificación</label>
+                                                <div className="nv-id-toggle-row">
+                                                    {[
+                                                        { key: 'cedula', label: '✓ Mi cédula' },
+                                                        { key: 'nit_proveedor', label: '🔍 NIT proveedor' },
+                                                        { key: 'nit_nuevo', label: '✏️ NIT nuevo' },
+                                                    ].map(({ key, label }) => (
                                                         <button
+                                                            key={key}
                                                             type="button"
-                                                            className="nv-use-cc-btn"
-                                                            onClick={() => handleGastoChange(gasto.id, 'nit', cedulaUsuario)}
-                                                            title="Usar mi cédula / código de empleado"
+                                                            className={`nv-id-mode-btn ${gasto.tipo_id === key ? 'nv-id-mode-btn--active' : ''}`}
+                                                            onClick={() => handleGastoChange(gasto.id, 'tipo_id', key)}
                                                         >
-                                                            ✓ Usar mi CC
+                                                            {label}
                                                         </button>
+                                                    ))}
+                                                </div>
+
+                                                {/* Modo: cédula propia */}
+                                                {gasto.tipo_id === 'cedula' && (
+                                                    <div className="nv-id-value-display">
+                                                        <span className="nv-id-value-badge">🪪 {cedulaUsuario}</span>
+                                                        <span className="nv-id-hint">Se usará tu cédula / código de empleado</span>
                                                     </div>
+                                                )}
+
+                                                {/* Modo: NIT de proveedor (autocomplete) */}
+                                                {gasto.tipo_id === 'nit_proveedor' && (
+                                                    <div className="nv-autocomplete-wrap" style={{ position: 'relative' }}>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Escribe nombre o NIT del proveedor…"
+                                                            value={gasto.proveedor_query}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                handleGastoChange(gasto.id, 'proveedor_query', val);
+                                                                handleGastoChange(gasto.id, 'proveedor_seleccionado', null);
+                                                                buscarProveedores(gasto.id, val);
+                                                            }}
+                                                            autoComplete="off"
+                                                        />
+                                                        {gasto.proveedor_seleccionado && (
+                                                            <div className="nv-autocomplete-selected">
+                                                                <span>✅ {gasto.proveedor_seleccionado.nombre}</span>
+                                                                <span className="nv-autocomplete-nit">NIT: {gasto.proveedor_seleccionado.nit}</span>
+                                                            </div>
+                                                        )}
+                                                        {autocompleteAbierto[gasto.id] && !gasto.proveedor_seleccionado && (
+                                                            <ul className="nv-autocomplete-dropdown">
+                                                                {(sugerencias[gasto.id] || []).map((p) => (
+                                                                    <li
+                                                                        key={p.nit}
+                                                                        className="nv-autocomplete-item"
+                                                                        onMouseDown={() => seleccionarProveedor(gasto.id, p)}
+                                                                    >
+                                                                        <span className="nv-ac-nombre">{p.nombre}</span>
+                                                                        <span className="nv-ac-nit">{p.nit}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Modo: NIT manual / nuevo */}
+                                                {gasto.tipo_id === 'nit_nuevo' && (
                                                     <input
                                                         type="text"
-                                                        placeholder="900.123.456-7"
-                                                        value={gasto.nit}
+                                                        placeholder="Ej: 900.123.456-7"
+                                                        value={gasto.nit_nuevo_texto}
                                                         onChange={(e) =>
-                                                            handleGastoChange(gasto.id, 'nit', e.target.value)
+                                                            handleGastoChange(gasto.id, 'nit_nuevo_texto', e.target.value)
                                                         }
                                                     />
-                                                </div>
+                                                )}
+                                            </div>
 
                                                 {/* Razón social */}
                                                 <div className="nv-field-group">
@@ -406,17 +538,44 @@ export default function NuevoViatico() {
                                                     </select>
                                                 </div>
 
-                                                {/* Oficina / lugar */}
+                                                {/* Oficina / lugar donde realizó */}
                                                 <div className="nv-field-group">
-                                                    <label>Oficina / lugar donde realizó</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Ej: Matansa"
-                                                        value={gasto.lugar}
-                                                        onChange={(e) =>
-                                                            handleGastoChange(gasto.id, 'lugar', e.target.value)
-                                                        }
-                                                    />
+                                                    <label>Lugar de realización</label>
+                                                    <div className="nv-lugar-toggle-group">
+                                                        <button
+                                                            type="button"
+                                                            className={`nv-toggle-btn ${gasto.lugar_tipo === 'oficina' ? 'nv-toggle-btn--active' : ''}`}
+                                                            onClick={() => handleGastoChange(gasto.id, 'lugar_tipo', 'oficina')}
+                                                        >
+                                                            🏢 Oficina
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className={`nv-toggle-btn ${gasto.lugar_tipo === 'rtc' ? 'nv-toggle-btn--active' : ''}`}
+                                                            onClick={() => handleGastoChange(gasto.id, 'lugar_tipo', 'rtc')}
+                                                        >
+                                                            📡 RTC
+                                                        </button>
+                                                    </div>
+
+                                                    {gasto.lugar_tipo === 'oficina' && (
+                                                        <div className="nv-lugar-subtipo-group">
+                                                            <button
+                                                                type="button"
+                                                                className={`nv-lugar-subtipo-btn ${gasto.lugar_subtipo === 'correctivo' ? 'nv-lugar-subtipo-btn--active' : ''}`}
+                                                                onClick={() => handleGastoChange(gasto.id, 'lugar_subtipo', 'correctivo')}
+                                                            >
+                                                                🔧 Correctivo
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className={`nv-lugar-subtipo-btn ${gasto.lugar_subtipo === 'preventivo' ? 'nv-lugar-subtipo-btn--active' : ''}`}
+                                                                onClick={() => handleGastoChange(gasto.id, 'lugar_subtipo', 'preventivo')}
+                                                            >
+                                                                🛡️ Preventivo
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {/* Origen */}

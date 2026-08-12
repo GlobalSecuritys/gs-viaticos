@@ -12,6 +12,8 @@ function iniciales(nombre = '') {
         .join('');
 }
 
+import NotificationBell from './NotificationBell';
+
 export default function TecnicoLayout({ children }) {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
@@ -81,6 +83,9 @@ export default function TecnicoLayout({ children }) {
 
             {/* Main Content Area */}
             <main className="tec-content">
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '0.85rem 1.5rem 0', gap: '1rem' }}>
+                    <NotificationBell />
+                </div>
                 {children}
             </main>
         </div>

@@ -188,7 +188,6 @@ export default function MisViaticos() {
                   <tr>
                     <th>Fecha</th>
                     <th>Cliente</th>
-                    <th>OT</th>
                     <th>Ciudad</th>
                     <th>Tipo</th>
                     <th className="text-right">Valor</th>
@@ -201,8 +200,18 @@ export default function MisViaticos() {
                   {viaticos.map((v) => (
                     <tr key={v.id}>
                       <td className="td-date">{formatFechaLarga(v.fecha)}</td>
-                      <td className="td-main">{v.cliente}</td>
-                      <td className="td-ot">{v.ot}</td>
+                      <td className="td-main">
+                        <div>{v.cliente}</div>
+                        {v.asignacion_id ? (
+                          <span style={{ fontSize: '0.73rem', color: '#1D4ED8', background: '#EFF6FF', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 600 }}>
+                            📍 Asignación #{v.asignacion_id}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.73rem', color: '#64748B', background: '#F1F5F9', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                            📄 Independiente {v.monto_presupuesto ? `(${formatCOP(v.monto_presupuesto)})` : '(Habilitación manual por admin)'}
+                          </span>
+                        )}
+                      </td>
                       <td>{v.ciudad}</td>
                       <td>
                         <span className="badge-tipo">
@@ -221,6 +230,11 @@ export default function MisViaticos() {
                         <span className={`badge-estado badge-estado--${v.estado}`}>
                           {LABEL_ESTADO[v.estado] || v.estado}
                         </span>
+                        {v.comentario_admin && (
+                          <div style={{ fontSize: '0.75rem', color: '#B45309', marginTop: '0.35rem', background: '#FFFBEB', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #FDE68A', maxWidth: '200px', wordBreak: 'break-word' }} title={v.comentario_admin}>
+                            💬 {v.comentario_admin}
+                          </div>
+                        )}
                       </td>
                       <td className="text-center">
                         {v.estado === 'pendiente' ? (

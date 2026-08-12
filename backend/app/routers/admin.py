@@ -12,6 +12,7 @@ from app.schemas.viatico import (
     ViaticoResponse,
     ViaticoAdminResponse,
     ViaticoPresupuestoUpdate,
+    ViaticoEstadoUpdate,
     AsignacionResumenViatico,
 )
 from app.services.excel_export import generar_excel_viaticos_independientes
@@ -297,7 +298,10 @@ def _hacer_viatico_admin_response(v: Viatico) -> ViaticoAdminResponse:
         tipo_gasto=v.tipo_gasto,
         valor=v.valor,
         monto_presupuesto=v.monto_presupuesto,
+        comentario_admin=v.comentario_admin,
         descripcion=v.descripcion,
+        tipo_identificacion=v.tipo_identificacion,
+        nit_identificacion=v.nit_identificacion,
         usuario_id=v.usuario_id,
         asignacion_id=v.asignacion_id,
         estado=v.estado,
@@ -428,7 +432,8 @@ def definir_presupuesto_viatico(
 def aprobar_viatico(
     id: int,
     current_admin: Annotated[Usuario, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)]
+    db: Annotated[Session, Depends(get_db)],
+    datos: ViaticoEstadoUpdate | None = None,
 ):
     stmt = (
         select(Viatico)
@@ -451,6 +456,8 @@ def aprobar_viatico(
         )
 
     viatico.estado = "aprobado"
+    if datos and datos.comentario_admin is not None:
+        viatico.comentario_admin = datos.comentario_admin
     db.commit()
     db.refresh(viatico)
     return viatico
@@ -460,7 +467,8 @@ def aprobar_viatico(
 def rechazar_viatico(
     id: int,
     current_admin: Annotated[Usuario, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)]
+    db: Annotated[Session, Depends(get_db)],
+    datos: ViaticoEstadoUpdate | None = None,
 ):
     stmt = (
         select(Viatico)
@@ -483,6 +491,8 @@ def rechazar_viatico(
         )
 
     viatico.estado = "rechazado"
+    if datos and datos.comentario_admin is not None:
+        viatico.comentario_admin = datos.comentario_admin
     db.commit()
     db.refresh(viatico)
     return viatico

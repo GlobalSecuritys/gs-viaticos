@@ -35,6 +35,34 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
     const [guardandoPresupuesto, setGuardandoPresupuesto] = useState(false);
     const [errorPresupuesto, setErrorPresupuesto] = useState('');
 
+    const [modoAccion, setModoAccion] = useState(null); // 'aprobar' | 'rechazar' | null
+    const [comentarioInput, setComentarioInput] = useState('');
+    const [procesandoAccion, setProcesandoAccion] = useState(false);
+    const [errorAccion, setErrorAccion] = useState('');
+
+    async function handleConfirmarAccion(e) {
+        e.preventDefault();
+        setProcesandoAccion(true);
+        setErrorAccion('');
+        const cText = comentarioInput.trim();
+        try {
+            if (modoAccion === 'aprobar') {
+                await api.put(`/admin/viaticos/${viatico.id}/aprobar`, {
+                    comentario_admin: cText || null,
+                });
+                if (onAprobar) onAprobar(viatico.id, cText);
+            } else if (modoAccion === 'rechazar') {
+                await api.put(`/admin/viaticos/${viatico.id}/rechazar`, {
+                    comentario_admin: cText || null,
+                });
+                if (onRechazar) onRechazar(viatico.id, cText);
+            }
+        } catch {
+            setErrorAccion('Error al procesar la solicitud.');
+            setProcesandoAccion(false);
+        }
+    }
+
     const evidencias = viatico.evidencias || [];
     const tieneEvidencias = evidencias.length > 0;
 
@@ -137,7 +165,7 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                             <span className="modal-info-valor">{viatico.correo || '—'}</span>
                         </div>
                         <div>
-                            <span className="modal-info-label">Código empleado</span>
+                            <span className="modal-info-label">Cédula</span>
                             <span className="modal-info-valor">{viatico.codigo_empleado || '—'}</span>
                         </div>
                         <div>
@@ -166,6 +194,10 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                                 </div>
                                 <div>
                                     <strong style={{ color: '#475569' }}>Razón Social:</strong> {parsed.razon_social || '—'}
+                                </div>
+                                <div>
+                                    <strong style={{ color: '#475569' }}>Lugar realización:</strong>{' '}
+                                    <span style={{ fontWeight: 600, color: '#1D63C8' }}>{parsed.lugar || '—'}</span>
                                 </div>
                                 <div>
                                     <strong style={{ color: '#475569' }}>Origen:</strong> {parsed.origen || '—'}
@@ -286,26 +318,75 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                         </div>
                     )}
 
+                    {viatico.comentario_admin && (
+                        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '0.85rem', margin: '0.85rem 0' }}>
+                            <span style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#B45309', fontWeight: 700, display: 'block', marginBottom: '0.3rem' }}>
+                                💬 Comentario del Administrador
+                            </span>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#78350F', whiteSpace: 'pre-wrap' }}>
+                                {viatico.comentario_admin}
+                            </p>
+                        </div>
+                    )}
+
                     <div className="modal-info-valor-grande" style={{ marginTop: '0.5rem' }}>
                         <span className="modal-info-label">Valor total del viático</span>
                         <span className="modal-valor-monto">{formatCOP(viatico.valor)}</span>
                     </div>
 
-                    {viatico.estado === 'pendiente' && onAprobar && onRechazar && (
-                        <div className="modal-acciones" style={{ marginTop: '1rem' }}>
-                            <button
-                                className="btn-rechazar"
-                                onClick={() => onRechazar(viatico.id)}
-                            >
-                                Rechazar
-                            </button>
-                            <button
-                                className="btn-aprobar"
-                                onClick={() => onAprobar(viatico.id)}
-                            >
-                                Aprobar
-                            </button>
-                        </div>
+                    {modoAccion ? (
+                        <form onSubmit={handleConfirmarAccion} style={{ background: modoAccion === 'rechazar' ? '#FEF2F2' : '#F0FDF4', border: `1px solid ${modoAccion === 'rechazar' ? '#FCA5A5' : '#86EFAC'}`, borderRadius: '10px', padding: '1rem', marginTop: '1rem' }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: modoAccion === 'rechazar' ? '#991B1B' : '#166534' }}>
+                                {modoAccion === 'rechazar' ? '❌ Confirmar Rechazo' : '✅ Confirmar Aprobación'}
+                            </h4>
+                            {errorAccion && <p style={{ color: '#DC2626', fontSize: '0.8rem', margin: '0 0 0.5rem' }}>{errorAccion}</p>}
+                            <label style={{ display: 'block', fontSize: '0.8rem', color: '#374151', marginBottom: '0.35rem', fontWeight: 600 }}>
+                                {modoAccion === 'rechazar' ? 'Comentario / Motivo del rechazo:' : 'Comentario del administrador (opcional):'}
+                            </label>
+                            <textarea
+                                rows={2}
+                                value={comentarioInput}
+                                onChange={(e) => setComentarioInput(e.target.value)}
+                                placeholder={modoAccion === 'rechazar' ? 'Ej: El comprobante no coincide con la fecha u OT...' : 'Ej: Aprobado conforme a la solicitud...'}
+                                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem', marginBottom: '0.75rem', boxSizing: 'border-box' }}
+                            />
+                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => { setModoAccion(null); setComentarioInput(''); }}
+                                    style={{ background: '#E2E8F0', color: '#334155', border: 'none', padding: '0.45rem 0.85rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}
+                                    disabled={procesandoAccion}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    style={{ background: modoAccion === 'rechazar' ? '#DC2626' : '#16A34A', color: '#FFF', border: 'none', padding: '0.45rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 }}
+                                    disabled={procesandoAccion}
+                                >
+                                    {procesandoAccion ? 'Procesando...' : (modoAccion === 'rechazar' ? 'Confirmar Rechazo' : 'Confirmar Aprobación')}
+                                </button>
+                            </div>
+                        </form>
+                    ) : (
+                        viatico.estado === 'pendiente' && onAprobar && onRechazar && (
+                            <div className="modal-acciones" style={{ marginTop: '1rem' }}>
+                                <button
+                                    type="button"
+                                    className="btn-rechazar"
+                                    onClick={() => setModoAccion('rechazar')}
+                                >
+                                    Rechazar
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn-aprobar"
+                                    onClick={() => setModoAccion('aprobar')}
+                                >
+                                    Aprobar
+                                </button>
+                            </div>
+                        )
                     )}
                 </div>
             </div>

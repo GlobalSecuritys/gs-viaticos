@@ -1,7 +1,9 @@
 import axios from 'axios';
+import { comprimirImagen } from '../utils/compressImage';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  timeout: 30000, // 30s timeout por defecto para peticiones normales
 });
 
 api.interceptors.request.use((config) => {
@@ -16,14 +18,25 @@ export default api;
 
 export async function subirEvidencias(viaticoId, archivos) {
   const formData = new FormData();
-  archivos.forEach((a) => {
-    const fileToAppend = a.file || a;
-    if (fileToAppend) {
-      formData.append('files', fileToAppend);
+  
+  for (const a of archivos) {
+    const originalFile = a.file || a;
+    if (originalFile) {
+      try {
+        const compressedFile = await comprimirImagen(originalFile);
+        formData.append('files', compressedFile);
+      } catch {
+        formData.append('files', originalFile);
+      }
     }
-  });
+  }
 
-  return api.post(`/viaticos/${viaticoId}/evidencias`, formData);
+  return api.post(`/viaticos/${viaticoId}/evidencias`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 60000, // 60s timeout para subida de archivos en Render
+  });
 }
 
 export function exportarViaticosIndependientes(usuarioId, fechaInicio, fechaFin) {

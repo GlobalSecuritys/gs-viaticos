@@ -34,7 +34,12 @@ class Viatico(Base):
     tipo_gasto: Mapped[str] = mapped_column(String(30), nullable=False)
     valor: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     monto_presupuesto: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2), nullable=True)
+    comentario_admin: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tipo_identificacion: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True, server_default="cedula"
+    )
+    nit_identificacion: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     estado: Mapped[str] = mapped_column(
         String(20),
         nullable=False,

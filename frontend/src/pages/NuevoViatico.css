@@ -309,6 +309,57 @@
     color: var(--color-accent-blue);
 }
 
+/* Oficina / RTC Toggle */
+.nv-lugar-toggle-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.nv-lugar-subtipo-group {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+    padding-left: 0.65rem;
+    border-left: 2px solid var(--color-accent-blue-light);
+    animation: nv-lugar-fade-in 0.18s ease;
+}
+
+.nv-lugar-subtipo-btn {
+    flex: 1;
+    padding: 0.42rem 0.5rem;
+    border: 1px solid var(--color-border);
+    background-color: #F8FAFC;
+    border-radius: var(--radius-sm, 6px);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nv-lugar-subtipo-btn:hover {
+    border-color: var(--color-accent-blue);
+    color: var(--color-accent-blue);
+}
+
+.nv-lugar-subtipo-btn--active {
+    background-color: var(--color-accent-blue);
+    border-color: var(--color-accent-blue);
+    color: #FFFFFF;
+}
+
+@keyframes nv-lugar-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Soporte Box inside item */
 .nv-gasto-soporte-box {
     background-color: #FFFFFF;
@@ -522,4 +573,138 @@
     .nv-fecha-options {
         grid-template-columns: 1fr;
     }
+}
+
+/* ── Identificación: selector de 3 modos ── */
+.nv-field-group--full {
+    grid-column: 1 / -1;
+}
+
+.nv-id-toggle-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.65rem;
+}
+
+.nv-id-mode-btn {
+    padding: 0.38rem 0.85rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    font-family: inherit;
+}
+
+.nv-id-mode-btn:hover {
+    border-color: var(--color-primary-blue);
+    color: var(--color-primary-blue);
+    background: var(--color-accent-blue-light);
+}
+
+.nv-id-mode-btn--active {
+    background: var(--color-primary-blue);
+    border-color: var(--color-primary-blue);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(29, 99, 200, 0.25);
+}
+
+.nv-id-value-display {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.85rem;
+    background: var(--color-accent-blue-light);
+    border: 1.5px solid rgba(29, 99, 200, 0.2);
+    border-radius: var(--radius-md);
+}
+
+.nv-id-value-badge {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--color-primary-blue);
+    letter-spacing: 0.01em;
+}
+
+.nv-id-hint {
+    font-size: 0.77rem;
+    color: var(--color-text-muted);
+}
+
+/* ── Autocomplete dropdown ── */
+.nv-autocomplete-wrap {
+    position: relative;
+}
+
+.nv-autocomplete-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: var(--color-bg-secondary);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    list-style: none;
+    margin: 0;
+    padding: 0.3rem 0;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.nv-autocomplete-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.9rem;
+    cursor: pointer;
+    gap: 0.75rem;
+    transition: background 0.13s ease;
+}
+
+.nv-autocomplete-item:hover {
+    background: var(--color-accent-blue-light);
+}
+
+.nv-ac-nombre {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nv-ac-nit {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-family: monospace;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.nv-autocomplete-selected {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--color-aprobado-bg);
+    border: 1.5px solid rgba(5, 150, 105, 0.2);
+    border-radius: var(--radius-md);
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-aprobado);
+}
+
+.nv-autocomplete-nit {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    font-family: monospace;
 }

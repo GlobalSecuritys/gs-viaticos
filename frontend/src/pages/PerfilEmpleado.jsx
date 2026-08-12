@@ -15,6 +15,7 @@ import {
 import ModalEvidencia from '../components/ModalEvidencia';
 import ModalCrearUsuario from '../components/ModalCrearUsuario';
 import ModalEditarUsuario from '../components/ModalEditarUsuario';
+import { formatApiError } from '../utils/formatError';
 import {
     ICONO_TIPO_GASTO,
     LABEL_CARGO,
@@ -122,17 +123,12 @@ export default function PerfilEmpleado() {
             });
             setUsuario(data);
         } catch (err) {
-            setErrorRol(err.response?.data?.detail || 'No se pudo cambiar el rol.');
+            setErrorRol(formatApiError(err, 'No se pudo cambiar el rol.'));
         } finally {
             setCambiandoRol(false);
         }
     }
 
-    // Mismo patrón que cambiarRol: el backend es la autoridad real
-    // (get_current_admin + verificar_autoridad_sobre_usuario, ver
-    // app/routers/admin.py PUT /admin/usuarios/{id}/estado). Bloquea además
-    // la autodesactivación, por eso este botón nunca se muestra en la
-    // propia tarjeta (ver esPropiaTarjeta más abajo).
     async function cambiarEstado(nuevoActivo) {
         setCambiandoEstado(true);
         setErrorEstado('');
@@ -142,7 +138,7 @@ export default function PerfilEmpleado() {
             });
             setUsuario(data);
         } catch (err) {
-            setErrorEstado(err.response?.data?.detail || 'No se pudo cambiar el estado.');
+            setErrorEstado(formatApiError(err, 'No se pudo cambiar el estado.'));
         } finally {
             setCambiandoEstado(false);
         }
@@ -342,7 +338,7 @@ export default function PerfilEmpleado() {
                                 </span>
                             </div>
                             <div className="pf-header-meta">
-                                <span>Código: {usuario.codigo_empleado || '—'}</span>
+                                <span>Cédula: {usuario.codigo_empleado || '—'}</span>
                                 <span className="pf-header-meta-sep">•</span>
                                 <span>{usuario.correo}</span>
                             </div>

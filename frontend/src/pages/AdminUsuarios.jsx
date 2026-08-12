@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import './AdminDashboard.css';
 import './AdminUsuarios.css';
 
+import { formatApiError } from '../utils/formatError';
+
 export default function AdminUsuarios() {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -37,10 +39,7 @@ export default function AdminUsuarios() {
 
             cargarUsuarios();
         } catch (err) {
-            setError(
-                err.response?.data?.detail ||
-                'No se pudo cambiar el rol'
-            );
+            setError(formatApiError(err, 'No se pudo cambiar el rol'));
         }
     }
 
@@ -52,10 +51,7 @@ export default function AdminUsuarios() {
 
             cargarUsuarios();
         } catch (err) {
-            setError(
-                err.response?.data?.detail ||
-                'No se pudo cambiar el estado'
-            );
+            setError(formatApiError(err, 'No se pudo cambiar el estado'));
         }
     }
 
@@ -96,7 +92,7 @@ export default function AdminUsuarios() {
                             <span className="admin-search-icon">🔍</span>
                             <input
                                 type="text"
-                                placeholder="Buscar por nombre, código o correo..."
+                                placeholder="Buscar por nombre, cédula o correo..."
                                 className="admin-search-input"
                                 value={busqueda}
                                 onChange={(e) => setBusqueda(e.target.value)}
@@ -122,7 +118,7 @@ export default function AdminUsuarios() {
                             <table className="admin-table">
                                 <thead>
                                     <tr>
-                                        <th>Código</th>
+                                        <th>Cédula</th>
                                         <th>Nombre</th>
                                         <th>Correo</th>
                                         <th>Rol</th>

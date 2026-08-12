@@ -39,9 +39,20 @@ ALLOWED_CONTENT_TYPES = {
     "image/jpg",
     "image/png",
     "image/webp",
+    "image/heic",
+    "image/heif",
+    "image/pjpeg",
+    "image/x-png",
+    "image/bmp",
+    "image/tiff",
+    "application/octet-stream",
 }
 
-MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+ALLOWED_EXTENSIONS = {
+    ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".bmp", ".tiff"
+}
+
+MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024  # 15 MB
 
 
 @dataclass
@@ -53,14 +64,21 @@ class CloudinaryUploadResult:
 
 
 def _validate_file(file: UploadFile, content: bytes) -> None:
-    """Valida tipo y tamaño del archivo."""
+    """Valida tipo y tamaño del archivo (tolerante con navegadores móviles iOS/Android)."""
 
-    if file.content_type not in ALLOWED_CONTENT_TYPES:
+    content_type = (file.content_type or "").lower().strip()
+    filename = (file.filename or "").lower().strip()
+    ext = "." + filename.split(".")[-1] if "." in filename else ""
+
+    es_content_type_valido = content_type in ALLOWED_CONTENT_TYPES or content_type.startswith("image/")
+    es_extension_valida = ext in ALLOWED_EXTENSIONS
+
+    if not (es_content_type_valido or es_extension_valida):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Tipo de archivo no permitido: {file.content_type}. "
-                "Formatos aceptados: JPEG, PNG y WEBP."
+                f"Tipo de archivo no permitido ({file.content_type}). "
+                "Por favor adjunta una imagen (JPG, PNG, WEBP, HEIC)."
             ),
         )
 
@@ -84,8 +102,7 @@ def _upload_a_cloudinary_sync(content: bytes) -> dict:
     """
     Llamada bloqueante real al SDK de Cloudinary (I/O de red síncrono).
     Se ejecuta siempre en un hilo aparte vía asyncio.to_thread, nunca
-    directamente en el event loop, para no bloquear el resto de peticiones
-    del servidor mientras dura la subida.
+    directamente en el event loop.
     """
     return cloudinary.uploader.upload(
         content,
@@ -95,6 +112,7 @@ def _upload_a_cloudinary_sync(content: bytes) -> dict:
         fetch_format="auto",
         use_filename=True,
         unique_filename=True,
+        timeout=45,
     )
 
 

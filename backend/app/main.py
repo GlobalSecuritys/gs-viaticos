@@ -6,12 +6,25 @@ from app.routers.asignaciones import router as asignaciones_router
 from app.routers.asignaciones import router_tecnico as asignaciones_tecnico_router
 from app.routers.auth import router as auth_router
 from app.routers.viaticos import router as viaticos_router
+from app.routers.proveedores import router as proveedores_router
+
+from sqlalchemy import text
+from app.database import engine
 
 app = FastAPI(
     title="GS Viáticos API",
     description="Sistema de gestión de viáticos y gastos operativos para Global Security",
     version="1.0.0",
 )
+
+@app.on_event("startup")
+def startup_db_check():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE viaticos ADD COLUMN IF NOT EXISTS comentario_admin TEXT;"))
+            conn.commit()
+    except Exception as e:
+        print(f"Startup DB check warning: {e}")
 
 # Configuración de CORS para el frontend (React + Vite)
 origins = [
@@ -35,6 +48,7 @@ app.include_router(viaticos_router)
 app.include_router(admin_router)
 app.include_router(asignaciones_router)
 app.include_router(asignaciones_tecnico_router)
+app.include_router(proveedores_router)
 
 
 @app.get("/", include_in_schema=False)

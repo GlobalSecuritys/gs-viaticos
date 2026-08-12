@@ -13,7 +13,9 @@ class UsuarioCreate(UsuarioBase):
 
     @field_validator("codigo_empleado")
     @classmethod
-    def validar_codigo_empleado(cls, v: str) -> str:
+    def validar_codigo_empleado(cls, v: str | None) -> str | None:
+        if v is None or v.strip() == "":
+            return None
         v = v.strip()
         if not v.isdigit():
             raise ValueError("El código de empleado debe contener solo números")

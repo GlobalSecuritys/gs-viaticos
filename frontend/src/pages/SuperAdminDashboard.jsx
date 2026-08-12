@@ -29,13 +29,13 @@ function formatFecha(iso) {
 }
 
 const NAV_ITEMS = [
-    { id: 'inicio',         label: 'Inicio',        icon: '⊞', path: '/superadmin' },
-    { id: 'viaticos',       label: 'Viáticos',       icon: '📋', path: '/admin/viaticos' },
-    { id: 'asignaciones',   label: 'Asignaciones',   icon: '📁', path: '/admin/asignaciones' },
-    { id: 'usuarios',       label: 'Usuarios',       icon: '👥', path: '/admin/usuarios' },
-    { id: 'evidencias',     label: 'Evidencias',     icon: '📎', path: null },
+    { id: 'inicio', label: 'Inicio', icon: '⊞', path: '/superadmin' },
+    { id: 'viaticos', label: 'Viáticos', icon: '📋', path: '/admin/viaticos' },
+    { id: 'asignaciones', label: 'Asignaciones', icon: '📁', path: '/admin/asignaciones' },
+    { id: 'usuarios', label: 'Usuarios', icon: '👥', path: '/admin/usuarios' },
+    { id: 'evidencias', label: 'Evidencias', icon: '📎', path: null },
     { id: 'notificaciones', label: 'Notificaciones', icon: '🔔', path: null },
-    { id: 'auditoria',      label: 'Auditoría',      icon: 'ℹ', path: '/admin/auditoria' },
+    { id: 'auditoria', label: 'Auditoría', icon: 'ℹ', path: '/admin/auditoria' },
 ];
 
 export default function SuperAdminDashboard() {
@@ -43,25 +43,25 @@ export default function SuperAdminDashboard() {
     const navigate = useNavigate();
 
     const [perfilData, setPerfilData] = useState(null);
-    const [viaticos, setViaticos]     = useState([]);
+    const [viaticos, setViaticos] = useState([]);
     const [asignaciones, setAsignaciones] = useState([]);
-    const [loading, setLoading]       = useState(true);
+    const [loading, setLoading] = useState(true);
     const [loadingAsig, setLoadingAsig] = useState(true);
-    const [error, setError]           = useState('');
-    const [activeNav, setActiveNav]   = useState('inicio');
+    const [error, setError] = useState('');
+    const [activeNav, setActiveNav] = useState('inicio');
 
     // Asignaciones filters
-    const [busqueda, setBusqueda]     = useState('');
+    const [busqueda, setBusqueda] = useState('');
     const [tipoFiltro, setTipoFiltro] = useState('');
     const [estadoFiltro, setEstadoFiltro] = useState('');
 
     // Modal estado de edición de perfil
     const [mostrarCambioPass, setMostrarCambioPass] = useState(false);
-    const [passActual, setPassActual]   = useState('');
-    const [passNuevo, setPassNuevo]     = useState('');
-    const [passError, setPassError]     = useState('');
-    const [passSaving, setPassSaving]   = useState(false);
-    const [passOk, setPassOk]           = useState(false);
+    const [passActual, setPassActual] = useState('');
+    const [passNuevo, setPassNuevo] = useState('');
+    const [passError, setPassError] = useState('');
+    const [passSaving, setPassSaving] = useState(false);
+    const [passOk, setPassOk] = useState(false);
 
     useEffect(() => {
         async function cargar() {
@@ -97,7 +97,7 @@ export default function SuperAdminDashboard() {
         return {
             totalGastado,
             pendientes: viaticos.filter((v) => v.estado === 'pendiente').length,
-            aprobados:  viaticos.filter((v) => v.estado === 'aprobado').length,
+            aprobados: viaticos.filter((v) => v.estado === 'aprobado').length,
             rechazados: viaticos.filter((v) => v.estado === 'rechazado').length,
         };
     }, [viaticos]);
@@ -265,7 +265,7 @@ export default function SuperAdminDashboard() {
                                 </div>
                                 <div className="sa-detail-row">
                                     <div>
-                                        <span className="sa-detail-label">Código de empleado</span>
+                                        <span className="sa-detail-label">Cédula</span>
                                         <span className="sa-detail-value">{perfil.codigo_empleado || 'EMP-0001'}</span>
                                     </div>
                                     <div>
@@ -319,7 +319,7 @@ export default function SuperAdminDashboard() {
                             </div>
                             <div className="sa-kpi-sparkline sa-kpi-sparkline--blue">
                                 <svg viewBox="0 0 60 30" preserveAspectRatio="none">
-                                    <polyline points="0,25 15,18 30,22 45,10 60,15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <polyline points="0,25 15,18 30,22 45,10 60,15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </div>
                         </div>
@@ -333,7 +333,7 @@ export default function SuperAdminDashboard() {
                             </div>
                             <div className="sa-kpi-sparkline sa-kpi-sparkline--orange">
                                 <svg viewBox="0 0 60 30" preserveAspectRatio="none">
-                                    <polyline points="0,20 15,25 30,15 45,20 60,10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <polyline points="0,20 15,25 30,15 45,20 60,10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </div>
                         </div>
@@ -347,7 +347,7 @@ export default function SuperAdminDashboard() {
                             </div>
                             <div className="sa-kpi-sparkline sa-kpi-sparkline--green">
                                 <svg viewBox="0 0 60 30" preserveAspectRatio="none">
-                                    <polyline points="0,28 15,20 30,22 45,12 60,8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <polyline points="0,28 15,20 30,22 45,12 60,8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </div>
                         </div>
@@ -361,7 +361,7 @@ export default function SuperAdminDashboard() {
                             </div>
                             <div className="sa-kpi-sparkline sa-kpi-sparkline--red">
                                 <svg viewBox="0 0 60 30" preserveAspectRatio="none">
-                                    <polyline points="0,10 15,18 30,12 45,22 60,20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <polyline points="0,10 15,18 30,12 45,22 60,20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </div>
                         </div>
@@ -435,7 +435,7 @@ export default function SuperAdminDashboard() {
                                     <thead>
                                         <tr>
                                             <th>Técnico</th>
-                                            <th>Cliente / Empresa</th>
+                                            <th>Cliente / Proyecto</th>
                                             <th>Tipo</th>
                                             <th>Estado</th>
                                             <th>Fecha inicio</th>
