@@ -201,11 +201,22 @@ export default function NotificationBell() {
         setLeidas(new Set(timeline.map((item) => item.id)));
     }
 
+    function toggleAbierto() {
+        setAbierto((prev) => {
+            const nuevoEstado = !prev;
+            // Al abrir el panel, marcar todas las notificaciones del técnico como leídas
+            if (nuevoEstado && !esAdmin) {
+                setLeidas(new Set(timeline.map((item) => item.id)));
+            }
+            return nuevoEstado;
+        });
+    }
+
     return (
         <div className="notif-wrap" ref={contenedorRef}>
             <button
                 className="notif-bell-btn"
-                onClick={() => setAbierto((v) => !v)}
+                onClick={toggleAbierto}
                 aria-label="Notificaciones"
                 aria-expanded={abierto}
             >
