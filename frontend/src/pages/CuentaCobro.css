@@ -1,103 +1,383 @@
-/* ===== Cuenta de Cobro Page ===== */
+/* ═══════════════════════════════════════════════════════════════════
+   Estilos — Módulo Cuenta de Cobro (GS-Viáticos)
+   ═══════════════════════════════════════════════════════════════════ */
 
-.cuenta-container {
-    max-width: 1100px;
+.cc-container {
+    max-width: 1000px;
     margin: 0 auto;
-    padding: 2rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+    padding: 1.5rem 1rem;
 }
 
-.cuenta-header {
+.cc-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
     flex-wrap: wrap;
-    gap: 1.25rem;
+    gap: 1rem;
 }
 
-.cuenta-title {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--color-text);
+.cc-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--color-primary-blue, #0A3A60);
     margin: 0;
-    letter-spacing: -0.02em;
 }
 
-.cuenta-sub {
-    font-size: 0.9rem;
-    color: var(--color-text-muted);
-    margin: 0.25rem 0 0;
+.cc-sub {
+    font-size: 0.85rem;
+    color: var(--color-text-muted, #64748B);
+    margin-top: 0.25rem;
 }
 
-.cuenta-print-btn {
-    background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    color: var(--color-primary-blue);
-    border-radius: var(--radius-md);
-    padding: 0.65rem 1.2rem;
-    font-size: 0.875rem;
+.cc-tab-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cc-tab-btn {
+    padding: 0.55rem 1.1rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border, #CBD5E1);
+    background: #FFFFFF;
     font-weight: 600;
+    font-size: 0.85rem;
     cursor: pointer;
-    box-shadow: var(--color-shadow-sm);
     transition: all 0.2s ease;
 }
 
-.cuenta-print-btn:hover {
-    background-color: var(--color-accent-blue-light);
-    border-color: var(--color-accent-blue);
+.cc-tab-btn--active {
+    background: var(--color-primary-blue, #0A3A60);
+    color: #FFFFFF;
+    border-color: var(--color-primary-blue, #0A3A60);
 }
 
-.cuenta-summary-card {
+/* Card y Formulario */
+.cc-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid var(--color-border, #E2E8F0);
     padding: 1.75rem;
-    border-top: 3px solid var(--color-primary-blue);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    margin-bottom: 1.5rem;
 }
 
-.cuenta-summary-grid {
+.cc-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-primary-blue, #0A3A60);
+    margin-bottom: 1rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid #F1F5F9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.cc-form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.5rem;
+    gap: 1.2rem;
 }
 
-.cuenta-summary-item {
+.cc-form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.4rem;
 }
 
-.cs-label {
-    font-size: 0.72rem;
+.cc-form-group label {
+    font-size: 0.8rem;
     font-weight: 700;
+    color: #334155;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--color-text-muted);
+    letter-spacing: 0.5px;
 }
 
-.cs-val {
-    font-size: 1.15rem;
+.cc-form-group input,
+.cc-form-group select,
+.cc-form-group textarea {
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    border: 1.5px solid #CBD5E1;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+    background: #F8FAFC;
+}
+
+.cc-form-group input:focus,
+.cc-form-group select:focus,
+.cc-form-group textarea:focus {
+    border-color: var(--color-primary-blue, #0A3A60);
+    background: #FFFFFF;
+}
+
+/* Tabla de Ítems en el Formulario */
+.cc-items-table-wrap {
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+.cc-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.cc-items-table th {
+    background: #F1F5F9;
+    padding: 0.75rem 0.5rem;
+    text-align: left;
     font-weight: 700;
-    color: var(--color-text);
+    color: #475569;
+    border-bottom: 2px solid #CBD5E1;
 }
 
-.cs-val--green {
-    color: var(--color-aprobado);
-    font-size: 1.35rem;
+.cc-items-table td {
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px solid #E2E8F0;
+    vertical-align: middle;
 }
 
-.cs-val--orange {
-    color: var(--color-pendiente);
-    font-size: 1.35rem;
+.cc-items-table input {
+    width: 100%;
+    padding: 0.45rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #CBD5E1;
+    font-size: 0.85rem;
 }
+
+.cc-btn-add-item {
+    padding: 0.45rem 0.9rem;
+    background: #EFF6FF;
+    color: #1D63C8;
+    border: 1px dashed #1D63C8;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.cc-btn-remove-item {
+    background: #FEF2F2;
+    color: #EF4444;
+    border: 1px solid #FCA5A5;
+    border-radius: 6px;
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.cc-total-bar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    padding: 0.85rem 1.25rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.cc-total-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #92400E;
+}
+
+.cc-total-val {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #B45309;
+}
+
+/* Checkbox Autorización */
+.cc-auth-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: #F0FDF4;
+    border: 1.5px solid #86EFAC;
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 1.25rem 0;
+}
+
+.cc-auth-box input[type="checkbox"] {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-top: 0.15rem;
+    cursor: pointer;
+}
+
+.cc-auth-box label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #166534;
+    cursor: pointer;
+}
+
+/* Botón Guardar */
+.cc-btn-submit {
+    width: 100%;
+    padding: 0.85rem;
+    background: var(--color-primary-blue, #0A3A60);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.cc-btn-submit:disabled {
+    background: #94A3B8;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FORMATO IMPRESO DE CUENTA DE COBRO (Imitación exacta de la foto)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.cc-document-view {
+    background: #FFFFFF;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2.5rem 3rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #CBD5E1;
+    font-family: 'Times New Roman', Times, serif, Arial, sans-serif;
+    color: #000000;
+    line-height: 1.4;
+    box-sizing: border-box;
+}
+
+.cc-doc-header-num {
+    text-align: center;
+    font-size: 1.15rem;
+    font-weight: bold;
+    text-decoration: underline;
+    margin-bottom: 2rem;
+}
+
+.cc-doc-date {
+    text-align: left;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+}
+
+.cc-doc-company {
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 1.75rem;
+}
+
+.cc-doc-debe-a {
+    text-align: center;
+    font-size: 1rem5;
+    margin-bottom: 1.75rem;
+}
+
+.cc-doc-debe-a-nombre {
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.cc-doc-suma-text {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    text-align: justify;
+}
+
+.cc-doc-highlight {
+    background-color: #FF66CC; /* Resaltado rosado similar a la foto de referencia */
+    padding: 0 2px;
+}
+
+.cc-doc-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.85rem;
+}
+
+.cc-doc-table th,
+.cc-doc-table td {
+    border: 1px solid #000000;
+    padding: 0.4rem 0.5rem;
+    text-align: center;
+}
+
+.cc-doc-table th {
+    font-weight: bold;
+    text-transform: uppercase;
+    background-color: #F2F2F2;
+}
+
+.cc-doc-table .total-row td {
+    font-weight: bold;
+}
+
+.cc-doc-bank-info {
+    font-size: 0.95rem;
+    margin: 1.75rem 0 1.25rem;
+}
+
+.cc-doc-sign-date {
+    font-size: 0.95rem;
+    margin-bottom: 2.5rem;
+}
+
+.cc-doc-signature-block {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 3rem;
+    font-size: 0.95rem;
+}
+
+.cc-doc-signature-line {
+    border-bottom: 1px solid #000000;
+    width: 250px;
+    display: inline-block;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   REGLAS DE IMPRESIÓN (@media print)
+   ═══════════════════════════════════════════════════════════════════ */
 
 @media print {
-    .tec-sidebar {
-        display: none !important;
+    /* Ocultar elementos de navegación y de la web */
+    body * {
+        visibility: hidden;
     }
-    .tec-content {
-        margin-left: 0 !important;
+
+    /* Mostrar solo el documento oficial de Cuenta de Cobro */
+    .cc-document-view,
+    .cc-document-view * {
+        visibility: visible;
     }
-    .cuenta-print-btn {
+
+    .cc-document-view {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 1.5cm 2cm !important;
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+    }
+
+    .no-print {
         display: none !important;
     }
 }

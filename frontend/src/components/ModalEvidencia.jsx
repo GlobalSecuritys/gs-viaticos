@@ -51,11 +51,13 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                     comentario_admin: cText || null,
                 });
                 if (onAprobar) onAprobar(viatico.id, cText);
+                onClose();
             } else if (modoAccion === 'rechazar') {
                 await api.put(`/admin/viaticos/${viatico.id}/rechazar`, {
                     comentario_admin: cText || null,
                 });
                 if (onRechazar) onRechazar(viatico.id, cText);
+                onClose();
             }
         } catch {
             setErrorAccion('Error al procesar la solicitud.');

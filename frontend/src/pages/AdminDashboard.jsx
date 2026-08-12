@@ -188,7 +188,6 @@ export default function AdminDashboard() {
                 ciudad: v.ciudad || 'N/A',
                 items: [],
                 total: 0,
-                anticipo: 1500000,
                 estado: v.estado,
             };
 
@@ -202,6 +201,9 @@ export default function AdminDashboard() {
             actual.items.push({
                 ...v,
                 meta,
+                _asignacion_label: v.asignacion_id
+                    ? (v.asignacion_resumen?.cliente || `Asig. #${v.asignacion_id}`)
+                    : 'Independiente',
             });
             actual.total += Number(v.valor);
 
@@ -249,6 +251,8 @@ export default function AdminDashboard() {
     };
     const nombreMostrado = perfil.nombre || perfil.correo || 'Administrador';
 
+    const [mensajeFeedback, setMensajeFeedback] = useState('');
+
     async function cambiarEstadoGrupo(grupoItems, nuevoEstado) {
         try {
             for (const item of grupoItems) {
@@ -259,6 +263,8 @@ export default function AdminDashboard() {
                 }
             }
             setRegistroConsolidado(null);
+            const estadoTexto = nuevoEstado === 'aprobado' ? 'aprobado(s)' : 'rechazado(s)';
+            setMensajeFeedback(`✅ Viático(s) ${estadoTexto} correctamente.`);
             await cargar();
         } catch {
             setError(`No se pudieron actualizar todos los ítems.`);
@@ -302,6 +308,31 @@ export default function AdminDashboard() {
             </header>
 
             <main className="admin-main dash-main">
+                {mensajeFeedback && (
+                    <div style={{
+                        backgroundColor: '#F0FDF4',
+                        border: '1.5px solid #86EFAC',
+                        color: '#166534',
+                        padding: '0.9rem 1.25rem',
+                        borderRadius: '12px',
+                        fontWeight: 600,
+                        fontSize: '0.9rem',
+                        marginBottom: '1.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        boxShadow: '0 2px 8px rgba(22, 101, 52, 0.1)',
+                    }}>
+                        <span>{mensajeFeedback}</span>
+                        <button
+                            onClick={() => setMensajeFeedback('')}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', color: '#166534' }}
+                        >
+                            ×
+                        </button>
+                    </div>
+                )}
+
                 {error && <p className="dash-error">{error}</p>}
 
                 {/* ── SECCIÓN SUPERIOR: Perfil + KPIs ── */}
@@ -448,8 +479,6 @@ export default function AdminDashboard() {
                                     <th>Ciudad</th>
                                     <th>Ítems</th>
                                     <th>Total gastos</th>
-                                    <th>Anticipo</th>
-                                    <th>Saldo GSB</th>
                                     <th>Estado</th>
                                     <th style={{ textAlign: 'center' }}>Acciones</th>
                                 </tr>
@@ -457,13 +486,12 @@ export default function AdminDashboard() {
                             <tbody>
                                 {viaticosConsolidados.length === 0 ? (
                                     <tr>
-                                        <td colSpan={9} style={{ textAlign: 'center', padding: '2rem' }}>
+                                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>
                                             No hay registros de viáticos para mostrar.
                                         </td>
                                     </tr>
                                 ) : (
                                     viaticosConsolidados.map((r) => {
-                                        const saldoGSB = Math.max(0, r.anticipo - r.total);
                                         return (
                                             <tr key={r.key} className="sa-asig-row" onClick={() => setRegistroConsolidado(r)}>
                                                 <td>{r.fecha}</td>
@@ -476,10 +504,6 @@ export default function AdminDashboard() {
                                                 </td>
                                                 <td>
                                                     <strong>{formatCOP(r.total)}</strong>
-                                                </td>
-                                                <td>{formatCOP(r.anticipo)}</td>
-                                                <td style={{ color: 'var(--color-aprobado)', fontWeight: 600 }}>
-                                                    {formatCOP(saldoGSB)}
                                                 </td>
                                                 <td>
                                                     <span className={`estado-badge estado-badge--${r.estado === 'pendiente' ? 'inactivo' : r.estado}`}>
@@ -612,7 +636,11 @@ export default function AdminDashboard() {
             {/* ── MODAL DETALLE CONSOLIDADO (ADMIN) ── */}
             {registroConsolidado && (
                 <div className="sa-modal-overlay" onClick={() => setRegistroConsolidado(null)}>
-                    <div className="sa-modal" style={{ maxWidth: '780px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
+                    <div
+                        className="sa-modal"
+                        style={{ maxWidth: '780px', width: '90%', maxHeight: '88vh', overflowY: 'auto', padding: '1.75rem', boxSizing: 'border-box' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="sa-modal-header">
                             <div>
                                 <h3 style={{ fontSize: '1.2rem' }}>Detalle del viático</h3>
@@ -637,22 +665,12 @@ export default function AdminDashboard() {
                                 <span className="detalle-valor">{registroConsolidado.ciudad}</span>
                             </div>
                             <div>
-                                <span className="detalle-label">Anticipo recibido</span>
-                                <span className="detalle-valor">{formatCOP(registroConsolidado.anticipo)}</span>
-                            </div>
-                            <div>
                                 <span className="detalle-label">Ítems registrados</span>
                                 <span className="detalle-valor">{registroConsolidado.items.length}</span>
                             </div>
                             <div>
                                 <span className="detalle-label">Total gastos</span>
                                 <span className="detalle-valor" style={{ color: 'var(--color-primary-blue)' }}>{formatCOP(registroConsolidado.total)}</span>
-                            </div>
-                            <div>
-                                <span className="detalle-label">Saldo a favor de GSB</span>
-                                <span className="detalle-valor" style={{ color: 'var(--color-aprobado)' }}>
-                                    {formatCOP(Math.max(0, registroConsolidado.anticipo - registroConsolidado.total))}
-                                </span>
                             </div>
                         </div>
 
@@ -664,6 +682,7 @@ export default function AdminDashboard() {
                                         <th>Concepto</th>
                                         <th>Razón social / NIT</th>
                                         <th>Identificación</th>
+                                        <th>Asignación</th>
                                         <th>Valor</th>
                                         <th>Soporte</th>
                                         <th style={{ textAlign: 'center' }}>Acción</th>
@@ -689,6 +708,20 @@ export default function AdminDashboard() {
                                                         whiteSpace: 'nowrap',
                                                     }}>
                                                         {tipoId.texto}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span style={{
+                                                        display: 'inline-block',
+                                                        padding: '0.2rem 0.65rem',
+                                                        borderRadius: '999px',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 600,
+                                                        background: item.asignacion_id ? '#EFF6FF' : '#F1F5F9',
+                                                        color: item.asignacion_id ? '#1D63C8' : '#64748B',
+                                                        whiteSpace: 'nowrap',
+                                                    }}>
+                                                        {item._asignacion_label}
                                                     </span>
                                                 </td>
                                                 <td><strong>{formatCOP(item.valor)}</strong></td>
@@ -718,20 +751,7 @@ export default function AdminDashboard() {
                             </table>
                         </div>
 
-                        <div className="sa-modal-actions" style={{ marginTop: '1.5rem', justifyContent: 'space-between' }}>
-                            <button
-                                className="detalle-asig-btn-eliminar"
-                                onClick={() => cambiarEstadoGrupo(registroConsolidado.items, 'rechazar')}
-                            >
-                                ❌ Rechazar viático
-                            </button>
-                            <button
-                                className="asig-btn-nueva"
-                                onClick={() => cambiarEstadoGrupo(registroConsolidado.items, 'aprobado')}
-                            >
-                                ✅ Aprobar viático
-                            </button>
-                        </div>
+
                     </div>
                 </div>
             )}
@@ -741,6 +761,16 @@ export default function AdminDashboard() {
                 <ModalEvidencia
                     viatico={evidenciaPreview}
                     onClose={() => setEvidenciaPreview(null)}
+                    onAprobar={(id, cText) => {
+                        setEvidenciaPreview(null);
+                        setMensajeFeedback(`✅ Viático aprobado correctamente${cText ? ` — Comentario: "${cText}"` : ''}`);
+                        cargar();
+                    }}
+                    onRechazar={(id, cText) => {
+                        setEvidenciaPreview(null);
+                        setMensajeFeedback(`❌ Viático rechazado correctamente${cText ? ` — Motivo enviado: "${cText}"` : ''}`);
+                        cargar();
+                    }}
                     onPresupuestoActualizado={(v) => {
                         setViaticos((prev) => prev.map((x) => (x.id === v.id ? v : x)));
                         setEvidenciaPreview(v);

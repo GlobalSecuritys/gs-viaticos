@@ -7,9 +7,11 @@ from app.routers.asignaciones import router_tecnico as asignaciones_tecnico_rout
 from app.routers.auth import router as auth_router
 from app.routers.viaticos import router as viaticos_router
 from app.routers.proveedores import router as proveedores_router
+from app.routers.cuentas_cobro import router as cuentas_cobro_router
 
 from sqlalchemy import text
 from app.database import engine
+from app.models.cuenta_cobro import CuentaCobro
 
 app = FastAPI(
     title="GS Viáticos API",
@@ -23,6 +25,7 @@ def startup_db_check():
         with engine.connect() as conn:
             conn.execute(text("ALTER TABLE viaticos ADD COLUMN IF NOT EXISTS comentario_admin TEXT;"))
             conn.commit()
+        CuentaCobro.__table__.create(bind=engine, checkfirst=True)
     except Exception as e:
         print(f"Startup DB check warning: {e}")
 
@@ -49,6 +52,7 @@ app.include_router(admin_router)
 app.include_router(asignaciones_router)
 app.include_router(asignaciones_tecnico_router)
 app.include_router(proveedores_router)
+app.include_router(cuentas_cobro_router)
 
 
 @app.get("/", include_in_schema=False)

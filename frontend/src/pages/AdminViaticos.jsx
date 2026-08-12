@@ -29,24 +29,20 @@ export default function AdminViaticos() {
         cargarViaticos();
     }, []);
 
-    async function aprobar(id) {
-        try {
-            await api.put(`/admin/viaticos/${id}/aprobar`);
-            setSeleccionado(null);
-            cargarViaticos();
-        } catch {
-            setError('No se pudo aprobar el viático.');
-        }
+    const [mensajeFeedback, setMensajeFeedback] = useState('');
+
+    async function aprobar(id, comentario) {
+        setError('');
+        setMensajeFeedback(`✅ Viático aprobado correctamente${comentario ? ` — Comentario enviado: "${comentario}"` : ''}`);
+        setSeleccionado(null);
+        cargarViaticos();
     }
 
-    async function rechazar(id) {
-        try {
-            await api.put(`/admin/viaticos/${id}/rechazar`);
-            setSeleccionado(null);
-            cargarViaticos();
-        } catch {
-            setError('No se pudo rechazar el viático.');
-        }
+    async function rechazar(id, comentario) {
+        setError('');
+        setMensajeFeedback(`❌ Viático rechazado correctamente${comentario ? ` — Motivo enviado: "${comentario}"` : ''}`);
+        setSeleccionado(null);
+        cargarViaticos();
     }
 
     return (
@@ -54,6 +50,31 @@ export default function AdminViaticos() {
             <div className="admin-main">
                 <button className="admin-back-btn" onClick={() => navigate('/admin')}>← Volver</button>
                 <h1 className="admin-page-title">Gestionar Viáticos</h1>
+
+                {mensajeFeedback && (
+                    <div style={{
+                        backgroundColor: '#F0FDF4',
+                        border: '1.5px solid #86EFAC',
+                        color: '#166534',
+                        padding: '0.9rem 1.25rem',
+                        borderRadius: '12px',
+                        fontWeight: 600,
+                        fontSize: '0.9rem',
+                        marginBottom: '1.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justify-content: 'space-between',
+                        boxShadow: '0 2px 8px rgba(22, 101, 52, 0.1)',
+                    }}>
+                        <span>{mensajeFeedback}</span>
+                        <button
+                            onClick={() => setMensajeFeedback('')}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', color: '#166534' }}
+                        >
+                            ×
+                        </button>
+                    </div>
+                )}
 
                 {error && <p style={{ color: 'var(--color-rechazado, #EF4444)' }}>{error}</p>}
 

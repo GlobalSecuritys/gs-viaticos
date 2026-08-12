@@ -6,5 +6,6 @@ from app.models.asignacion import Asignacion
 from app.models.notificacion import Notificacion
 from app.models.log_auditoria import LogAuditoria
 from app.models.proveedor import Proveedor
+from app.models.cuenta_cobro import CuentaCobro
 
-__all__ = ["Base", "Usuario", "Viatico", "EvidenciaViatico", "Asignacion", "Notificacion", "LogAuditoria", "Proveedor"]
+__all__ = ["Base", "Usuario", "Viatico", "EvidenciaViatico", "Asignacion", "Notificacion", "LogAuditoria", "Proveedor", "CuentaCobro"]

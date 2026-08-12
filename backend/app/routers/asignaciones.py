@@ -132,6 +132,9 @@ def exportar_viaticos_asignacion(
     Exporta a Excel (.xlsx) todos los viáticos vinculados a una asignación específica,
     incluyendo el encabezado contextual y el resumen de anticipo/gastado/saldo.
     """
+    from fastapi import HTTPException
+    import traceback
+
     asignacion = _obtener_o_404(id, db)
 
     stmt = (
@@ -142,10 +145,13 @@ def exportar_viaticos_asignacion(
     )
     viaticos = db.execute(stmt).unique().scalars().all()
 
-    excel_stream = generar_excel_viaticos_asignacion(
-        asignacion=asignacion,
-        viaticos=viaticos,
-    )
+    try:
+        excel_stream = generar_excel_viaticos_asignacion(
+            asignacion=asignacion,
+            viaticos=viaticos,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Error generando Excel: {exc}\n{traceback.format_exc()}")
 
     filename = f"asignacion_{id}_viaticos.xlsx"
     headers = {"Content-Disposition": f'attachment; filename="{filename}"'}

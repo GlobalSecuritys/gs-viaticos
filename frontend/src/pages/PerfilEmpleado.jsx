@@ -91,24 +91,18 @@ export default function PerfilEmpleado() {
         setViaticos(resViaticos.data.filter((v) => String(v.usuario_id) === id));
     }
 
-    async function aprobar(viaticoId) {
-        try {
-            await api.put(`/admin/viaticos/${viaticoId}/aprobar`);
-            setSeleccionado(null);
-            recargarViaticos();
-        } catch {
-            setError('No se pudo aprobar el viático.');
-        }
+    const [mensajeFeedback, setMensajeFeedback] = useState('');
+
+    async function aprobar(viaticoId, comentario) {
+        setSeleccionado(null);
+        setMensajeFeedback(`✅ Aprobación registrada correctamente${comentario ? ` — Comentario: "${comentario}"` : ''}`);
+        recargarViaticos();
     }
 
-    async function rechazar(viaticoId) {
-        try {
-            await api.put(`/admin/viaticos/${viaticoId}/rechazar`);
-            setSeleccionado(null);
-            recargarViaticos();
-        } catch {
-            setError('No se pudo rechazar el viático.');
-        }
+    async function rechazar(viaticoId, comentario) {
+        setSeleccionado(null);
+        setMensajeFeedback(`❌ Rechazo registrado correctamente${comentario ? ` — Motivo enviado: "${comentario}"` : ''}`);
+        recargarViaticos();
     }
 
     // Mismo patrón que ya funciona en AdminUsuarios.jsx (cambiarRol): el
@@ -314,6 +308,31 @@ export default function PerfilEmpleado() {
     return (
         <div className="admin-root">
             <div className="admin-main pf-main">
+
+                {mensajeFeedback && (
+                    <div style={{
+                        backgroundColor: '#F0FDF4',
+                        border: '1.5px solid #86EFAC',
+                        color: '#166534',
+                        padding: '0.9rem 1.25rem',
+                        borderRadius: '12px',
+                        fontWeight: 600,
+                        fontSize: '0.9rem',
+                        marginBottom: '1.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        boxShadow: '0 2px 8px rgba(22, 101, 52, 0.1)',
+                    }}>
+                        <span>{mensajeFeedback}</span>
+                        <button
+                            onClick={() => setMensajeFeedback('')}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', color: '#166534' }}
+                        >
+                            ×
+                        </button>
+                    </div>
+                )}
 
                 {/* Sección 1: Cabecera del perfil */}
                 <div className="pf-card pf-header-card">
