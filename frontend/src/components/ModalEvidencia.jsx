@@ -271,8 +271,8 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                                         <input
                                             type="number"
-                                            min="1"
-                                            step="1000"
+                                            min="0"
+                                            step="any"
                                             placeholder="Ej: 200000"
                                             value={presupuestoInput}
                                             onChange={(e) => setPresupuestoInput(e.target.value)}

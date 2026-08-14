@@ -146,7 +146,7 @@ export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar
                     <input
                         type="number"
                         min="0"
-                        step="1000"
+                        step="any"
                         value={form.monto_anticipo}
                         onChange={(e) => actualizar('monto_anticipo', e.target.value)}
                         placeholder="$0"
