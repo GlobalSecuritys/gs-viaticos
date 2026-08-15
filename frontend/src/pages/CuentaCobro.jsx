@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import html2canvas from 'html2canvas';
 import TecnicoLayout from '../components/TecnicoLayout';
-import SelectorEvidencias from '../components/SelectorEvidencias';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { obtenerMisAsignacionesActivas, subirCuentaCobroAsignacion } from '../services/asignaciones';
 import { numeroALetras } from '../utils/numeroALetras';
 import './CuentaCobro.css';
 
@@ -50,9 +51,18 @@ export default function CuentaCobro() {
 
     const [tab, setTab] = useState('crear'); // 'crear' | 'historial' | 'imprimir'
     const [cuentas, setCuentas] = useState([]);
+    const [asignaciones, setAsignaciones] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [exito, setExito] = useState('');
+
+    // Estado para subida de cuenta de cobro digital a asignación
+    const [mostrarModalSubir, setMostrarModalSubir] = useState(false);
+    const [asigSeleccionadaId, setAsigSeleccionadaId] = useState('');
+    const [archivoSubir, setArchivoSubir] = useState(null);
+    const [subiendoCuenta, setSubiendoCuenta] = useState(false);
+    const [errorSubida, setErrorSubida] = useState('');
+    const [exitoSubida, setExitoSubida] = useState('');
 
     // Cuenta seleccionada para imprimir / ver
     const [cuentaImprimir, setCuentaImprimir] = useState(null);
@@ -75,10 +85,6 @@ export default function CuentaCobro() {
     // Checkbox de autorización obligatorio
     const [autorizacionDatos, setAutorizacionDatos] = useState(false);
 
-    // Evidencias / soportes opcionales
-    const [archivos, setArchivos] = useState([]);
-    const [errorArchivos, setErrorArchivos] = useState('');
-
     // Ítems dinámicos
     const [items, setItems] = useState([
         {
@@ -98,6 +104,7 @@ export default function CuentaCobro() {
             if (!titularNombre) setTitularNombre(user.nombre || user.correo || '');
             if (!titularCedula) setTitularCedula(user.codigo_empleado || '');
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
     async function cargarCuentas() {
@@ -112,9 +119,90 @@ export default function CuentaCobro() {
         }
     }
 
+    async function cargarAsignaciones() {
+        try {
+            const { data } = await obtenerMisAsignacionesActivas();
+            setAsignaciones(data || []);
+            if (data && data.length > 0 && !asigSeleccionadaId) {
+                setAsigSeleccionadaId(String(data[0].id));
+            }
+        } catch {
+            // no-op
+        }
+    }
+
     useEffect(() => {
         cargarCuentas();
+        cargarAsignaciones();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    async function handleSubirCuentaAsignacion(e) {
+        if (e) e.preventDefault();
+        if (!asigSeleccionadaId) {
+            setErrorSubida('Debes seleccionar una asignación.');
+            return;
+        }
+        if (!archivoSubir) {
+            setErrorSubida('Debes seleccionar un archivo PDF o imagen.');
+            return;
+        }
+
+        try {
+            setSubiendoCuenta(true);
+            setErrorSubida('');
+            setExitoSubida('');
+            await subirCuentaCobroAsignacion(asigSeleccionadaId, archivoSubir);
+            setExitoSubida('✅ Cuenta de cobro digital subida y asociada exitosamente a la misión.');
+            setArchivoSubir(null);
+            await cargarAsignaciones();
+        } catch (err) {
+            setErrorSubida(err.response?.data?.detail || 'Error al subir la cuenta de cobro digital.');
+        } finally {
+            setSubiendoCuenta(false);
+        }
+    }
+
+    // Subir el documento generado en pantalla directamente a la asignación
+    async function handleSubirCuentaGenerada(asigId) {
+        const targetId = asigId || asigSeleccionadaId;
+        if (!targetId) {
+            setError('Debes seleccionar una asignación.');
+            return;
+        }
+
+        const docElement = document.getElementById('cc-documento-impresion');
+        if (!docElement) return;
+
+        try {
+            setSubiendoCuenta(true);
+            setError('');
+            setExito('');
+
+            const canvas = await html2canvas(docElement, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+            });
+
+            const blob = await new Promise((resolve) => {
+                canvas.toBlob(resolve, 'image/png', 0.95);
+            });
+
+            if (!blob) throw new Error('No se pudo generar la imagen del documento.');
+
+            const consecutivo = cuentaImprimir?.consecutivo || `2026-${cuentaImprimir?.id || Date.now()}`;
+            const file = new File([blob], `cuenta_cobro_${consecutivo}.png`, { type: 'image/png' });
+
+            await subirCuentaCobroAsignacion(targetId, file);
+            setExito(`✅ ¡Cuenta de cobro No. ${consecutivo} generada y vinculada exitosamente a la Asignación #${targetId}!`);
+            await cargarAsignaciones();
+        } catch (err) {
+            setError(err.response?.data?.detail || 'Error al subir la cuenta de cobro generada.');
+        } finally {
+            setSubiendoCuenta(false);
+        }
+    }
 
     // Manejo de ítems
     function handleItemChange(index, field, value) {
@@ -222,14 +310,25 @@ export default function CuentaCobro() {
                 <div className="cc-header no-print">
                     <div>
                         <h1 className="cc-title">💵 Cuenta de Cobro</h1>
-                        <p className="cc-sub">Módulo para reembolsos por transferencias bancarias de gastos asumidos</p>
+                        <p className="cc-sub">Módulo de cuentas de cobro digitales vinculadas a asignaciones</p>
                     </div>
                     <div className="cc-tab-buttons">
+                        <button
+                            className="cc-tab-btn"
+                            style={{ background: '#0284C7', color: '#FFFFFF', borderColor: '#0284C7' }}
+                            onClick={() => {
+                                setErrorSubida('');
+                                setExitoSubida('');
+                                setMostrarModalSubir(true);
+                            }}
+                        >
+                            📤 Subir cuenta de cobro
+                        </button>
                         <button
                             className={`cc-tab-btn ${tab === 'crear' ? 'cc-tab-btn--active' : ''}`}
                             onClick={() => setTab('crear')}
                         >
-                            ➕ Crear Nueva
+                            ➕ Formato General
                         </button>
                         <button
                             className={`cc-tab-btn ${tab === 'historial' ? 'cc-tab-btn--active' : ''}`}
@@ -248,8 +347,85 @@ export default function CuentaCobro() {
                     </div>
                 </div>
 
+                {/* Banner de alertas */}
                 {error && <div className="admin-error-banner no-print">{error}</div>}
                 {exito && <div className="admin-success-banner no-print">{exito}</div>}
+
+                {/* MODAL / MINI MENÚ: SUBIR CUENTA DE COBRO ASOCIADA A ASIGNACIÓN */}
+                {mostrarModalSubir && (
+                    <div className="cc-modal-overlay" onClick={() => setMostrarModalSubir(false)}>
+                        <div className="cc-modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="cc-modal-header">
+                                <h3>📤 Subir Cuenta de Cobro a Asignación</h3>
+                                <button className="cc-modal-close" onClick={() => setMostrarModalSubir(false)}>✕</button>
+                            </div>
+
+                            <form onSubmit={handleSubirCuentaAsignacion} className="cc-modal-body">
+                                <p style={{ fontSize: '0.88rem', color: '#475569', margin: '0 0 1rem 0' }}>
+                                    Selecciona la misión a la que corresponde tu cuenta de cobro y adjunta el archivo digital (PDF o foto clara).
+                                </p>
+
+                                {errorSubida && <div className="admin-error-banner" style={{ marginBottom: '1rem' }}>{errorSubida}</div>}
+                                {exitoSubida && <div className="admin-success-banner" style={{ marginBottom: '1rem' }}>{exitoSubida}</div>}
+
+                                <div className="cc-form-group" style={{ marginBottom: '1rem' }}>
+                                    <label>1. Selecciona la Asignación / Misión *</label>
+                                    {asignaciones.length === 0 ? (
+                                        <div style={{ padding: '0.75rem', background: '#F8FAFC', border: '1px dashed #CBD5E1', borderRadius: '8px', fontSize: '0.85rem', color: '#64748B' }}>
+                                            No tienes asignaciones activas disponibles en este momento.
+                                        </div>
+                                    ) : (
+                                        <select
+                                            value={asigSeleccionadaId}
+                                            onChange={(e) => setAsigSeleccionadaId(e.target.value)}
+                                            required
+                                        >
+                                            {asignaciones.map((a) => (
+                                                <option key={a.id} value={a.id}>
+                                                    #{a.id} - {a.cliente} ({a.ciudad}) · {a.tipo?.toUpperCase()} {a.cuenta_cobro ? '· [Ya tiene cuenta cargada]' : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
+
+                                <div className="cc-form-group" style={{ marginBottom: '1.25rem' }}>
+                                    <label>2. Archivo Digital (PDF, JPG, PNG) *</label>
+                                    <input
+                                        type="file"
+                                        accept=".pdf,image/jpeg,image/png,image/webp,image/heic"
+                                        onChange={(e) => setArchivoSubir(e.target.files?.[0] || null)}
+                                        required
+                                    />
+                                    {archivoSubir && (
+                                        <span style={{ fontSize: '0.8rem', color: '#0284C7', marginTop: '0.35rem' }}>
+                                            📎 Seleccionado: {archivoSubir.name} ({(archivoSubir.size / (1024 * 1024)).toFixed(2)} MB)
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                                    <button
+                                        type="button"
+                                        className="admin-back-btn"
+                                        style={{ margin: 0 }}
+                                        onClick={() => setMostrarModalSubir(false)}
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="cc-btn-submit"
+                                        style={{ width: 'auto', padding: '0.65rem 1.5rem' }}
+                                        disabled={subiendoCuenta || asignaciones.length === 0 || !archivoSubir}
+                                    >
+                                        {subiendoCuenta ? 'Subiendo archivo...' : '🚀 Subir y Vincular'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
 
                 {/* TAB 1: FORMULARIO CREAR */}
                 {tab === 'crear' && (
@@ -479,17 +655,6 @@ export default function CuentaCobro() {
                             </div>
                         </div>
 
-                        {/* SOPORTES OPCIONALES */}
-                        <div className="cc-card">
-                            <h2 className="cc-section-title">4. Soportes Opcionales</h2>
-                            <SelectorEvidencias
-                                archivos={archivos}
-                                setArchivos={setArchivos}
-                                error={errorArchivos}
-                                setError={setErrorArchivos}
-                            />
-                        </div>
-
                         <button
                             type="submit"
                             className="cc-btn-submit"
@@ -553,15 +718,51 @@ export default function CuentaCobro() {
                 {/* TAB 3: DOCUMENTO IMPRIMIBLE / EXPORTABLE EN PDF */}
                 {tab === 'imprimir' && cuentaImprimir && (
                     <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }} className="no-print">
-                            <button className="admin-back-btn" onClick={() => setTab('crear')}>← Volver al Formulario</button>
-                            <button className="cuenta-print-btn" onClick={imprimirDocumento}>
-                                🖨️ Imprimir / Exportar a PDF
-                            </button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }} className="no-print">
+                            <button className="admin-back-btn" style={{ margin: 0 }} onClick={() => setTab('crear')}>← Volver al Formulario</button>
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                {asignaciones.length > 0 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Misión:</span>
+                                        <select
+                                            value={asigSeleccionadaId}
+                                            onChange={(e) => setAsigSeleccionadaId(e.target.value)}
+                                            style={{
+                                                padding: '0.45rem 0.75rem',
+                                                borderRadius: '8px',
+                                                border: '1.5px solid #CBD5E1',
+                                                fontSize: '0.85rem',
+                                                maxWidth: '260px',
+                                                background: '#FFFFFF',
+                                            }}
+                                        >
+                                            {asignaciones.map((a) => (
+                                                <option key={a.id} value={a.id}>
+                                                    #{a.id} - {a.cliente} ({a.ciudad})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                <button
+                                    className="cc-tab-btn"
+                                    style={{ background: '#0284C7', color: '#FFFFFF', borderColor: '#0284C7', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                                    onClick={() => handleSubirCuentaGenerada(asigSeleccionadaId)}
+                                    disabled={subiendoCuenta || asignaciones.length === 0}
+                                >
+                                    {subiendoCuenta ? '⏳ Subiendo...' : '🚀 Subir a Asignación'}
+                                </button>
+
+                                <button className="cuenta-print-btn" onClick={imprimirDocumento}>
+                                    🖨️ Imprimir / Exportar a PDF
+                                </button>
+                            </div>
                         </div>
 
                         {/* Vista exacta del Documento según Imagen de Referencia */}
-                        <div className="cc-document-view">
+                        <div className="cc-document-view" id="cc-documento-impresion">
                             <div className="cc-doc-header-num">
                                 CUENTA DE COBRO No: {cuentaImprimir.consecutivo || `2026-${cuentaImprimir.id}`}
                             </div>
@@ -630,9 +831,6 @@ export default function CuentaCobro() {
                                     <strong>Nombre:</strong> {cuentaImprimir.titular_nombre || titularNombre}<br />
                                     <strong>Cedula:</strong> {cuentaImprimir.titular_cedula || titularCedula}<br />
                                     <strong>Celular:</strong> {cuentaImprimir.titular_celular || titularCelular}
-                                </div>
-                                <div>
-                                    <strong>FIRMA</strong> <span className="cc-doc-signature-line"></span>
                                 </div>
                             </div>
                         </div>

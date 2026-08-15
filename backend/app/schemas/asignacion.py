@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from app.schemas.cuenta_cobro_asignacion import CuentaCobroAsignacionResponse
+
 TipoAsignacion = Literal[
     "rtc",
     "oficina",
@@ -95,6 +97,7 @@ class AsignacionResponse(AsignacionBase):
     saldo_restante: Decimal = Decimal("0.00")
     cantidad_viaticos: int = 0
     estado_legalizacion: str = "sin_gastos"
+    cuenta_cobro: CuentaCobroAsignacionResponse | None = None
     created_at: datetime
     updated_at: datetime
 

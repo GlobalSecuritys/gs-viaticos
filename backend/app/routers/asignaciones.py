@@ -1,6 +1,6 @@
 from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
@@ -15,6 +15,8 @@ from app.schemas.asignacion import (
     AsignacionResponse,
     AsignacionUpdate,
 )
+from app.schemas.cuenta_cobro_asignacion import CuentaCobroAsignacionResponse
+from app.services.cuenta_cobro_asignacion import guardar_cuenta_cobro_asignacion
 from app.services.excel_export import generar_excel_viaticos_asignacion
 
 router = APIRouter(prefix="/admin/asignaciones", tags=["Asignaciones"])
@@ -51,6 +53,10 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
     else:
         estado_legalizacion = "en_curso"
 
+    cuenta_cobro_resp = None
+    if hasattr(a, "cuenta_cobro") and a.cuenta_cobro:
+        cuenta_cobro_resp = CuentaCobroAsignacionResponse.model_validate(a.cuenta_cobro)
+
     return AsignacionResponse(
         id=a.id,
         tecnico_id=a.tecnico_id,
@@ -70,6 +76,7 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
         cantidad_viaticos=cant_items,
         estado_legalizacion=estado_legalizacion,
         estado=a.estado,
+        cuenta_cobro=cuenta_cobro_resp,
         created_at=a.created_at,
         updated_at=a.updated_at,
     )
@@ -82,6 +89,7 @@ def _obtener_o_404(id: int, db: Session) -> Asignacion:
             joinedload(Asignacion.tecnico),
             joinedload(Asignacion.creado_por),
             joinedload(Asignacion.viaticos),
+            joinedload(Asignacion.cuenta_cobro),
         )
         .where(Asignacion.id == id)
     )
@@ -105,6 +113,7 @@ def listar_asignaciones(
             joinedload(Asignacion.tecnico),
             joinedload(Asignacion.creado_por),
             joinedload(Asignacion.viaticos),
+            joinedload(Asignacion.cuenta_cobro),
         )
         .order_by(Asignacion.fecha_inicio.desc())
     )
@@ -306,6 +315,7 @@ def listar_mis_asignaciones_activas(
             joinedload(Asignacion.tecnico),
             joinedload(Asignacion.creado_por),
             joinedload(Asignacion.viaticos),
+            joinedload(Asignacion.cuenta_cobro),
         )
         .where(
             Asignacion.tecnico_id == current_user.id,
@@ -315,3 +325,26 @@ def listar_mis_asignaciones_activas(
     )
     asignaciones = db.execute(stmt).unique().scalars().all()
     return [_a_response(a) for a in asignaciones]
+
+
+@router_tecnico.post(
+    "/{id}/cuenta-cobro",
+    response_model=CuentaCobroAsignacionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def subir_cuenta_cobro_tecnico(
+    id: int,
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+    file: Annotated[UploadFile, File(description="Archivo de cuenta de cobro (PDF o Imagen)")],
+):
+    """
+    Permite al técnico subir el documento/archivo digital de cuenta de cobro
+    vinculado a una asignación específica.
+    """
+    return await guardar_cuenta_cobro_asignacion(
+        db=db,
+        asignacion_id=id,
+        current_user=current_user,
+        file=file,
+    )

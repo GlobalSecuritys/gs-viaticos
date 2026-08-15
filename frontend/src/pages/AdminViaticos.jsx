@@ -63,7 +63,7 @@ export default function AdminViaticos() {
                         marginBottom: '1.25rem',
                         display: 'flex',
                         alignItems: 'center',
-                        justify-content: 'space-between',
+                        justifyContent: 'space-between',
                         boxShadow: '0 2px 8px rgba(22, 101, 52, 0.1)',
                     }}>
                         <span>{mensajeFeedback}</span>

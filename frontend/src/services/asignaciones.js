@@ -51,3 +51,14 @@ export function eliminarAsignacion(id) {
 export function obtenerMisAsignacionesActivas() {
     return api.get('/asignaciones/activas');
 }
+
+export function subirCuentaCobroAsignacion(asignacionId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/asignaciones/${asignacionId}/cuenta-cobro`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+        timeout: 60000,
+    });
+}

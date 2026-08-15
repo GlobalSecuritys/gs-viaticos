@@ -381,3 +381,80 @@
         display: none !important;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODAL DE SUBIDA DE CUENTA DE COBRO DIGITAL
+   ═══════════════════════════════════════════════════════════════════ */
+
+.cc-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.cc-modal-content {
+    background: #FFFFFF;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    animation: ccModalFadeIn 0.2s ease-out;
+}
+
+@keyframes ccModalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.cc-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.cc-modal-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+.cc-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    color: #64748B;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+
+.cc-modal-close:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+}
+
+.cc-modal-body {
+    padding: 1.5rem;
+}

@@ -41,6 +41,23 @@ export function formatCOP(value) {
     }).format(value || 0);
 }
 
+/**
+ * Convierte una URL de Cloudinary en un enlace de descarga forzada.
+ * Inserta `fl_attachment` en la URL de transformación para que el browser
+ * descargue el archivo en vez de mostrarlo en el visor.
+ * Ejemplo:
+ *   /upload/v123/...  →  /upload/fl_attachment/v123/...
+ */
+export function cloudinaryDownloadUrl(secureUrl, nombreArchivo) {
+    if (!secureUrl) return secureUrl;
+    const urlConDescarga = secureUrl.replace('/upload/', '/upload/fl_attachment/');
+    if (nombreArchivo) {
+        // Cloudinary respeta `fl_attachment:nombre` para fijar el nombre del archivo
+        return secureUrl.replace('/upload/', `/upload/fl_attachment:${encodeURIComponent(nombreArchivo)}/`);
+    }
+    return urlConDescarga;
+}
+
 // Recibe 'YYYY-MM-DD' (como lo entrega la API) y evita problemas de huso
 // horario que da `new Date('YYYY-MM-DD')`.
 function parsearFechaISO(fechaStr) {

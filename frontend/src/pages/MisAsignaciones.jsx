@@ -142,6 +142,23 @@ export default function MisAsignaciones() {
                                                 📅 {formatFechaLarga(a.fecha_inicio)} — {formatFechaLarga(a.fecha_fin)}
                                             </span>
                                         </div>
+                                        <div className="mac-detail-item">
+                                            <span className="mac-detail-label">Cuenta de cobro</span>
+                                            <span className="mac-detail-val">
+                                                {a.cuenta_cobro?.secure_url ? (
+                                                    <a
+                                                        href={a.cuenta_cobro.secure_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        style={{ color: '#0284C7', textDecoration: 'underline', fontWeight: 600 }}
+                                                    >
+                                                        📄 Ver cargada
+                                                    </a>
+                                                ) : (
+                                                    <span style={{ color: '#94A3B8' }}>Pendiente</span>
+                                                )}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     {a.observaciones && (

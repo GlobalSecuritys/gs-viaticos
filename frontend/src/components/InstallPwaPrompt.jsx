@@ -6,7 +6,6 @@ export default function InstallPwaPrompt() {
     const [esIOS, setEsIOS] = useState(false);
     const [mostrarModalIOS, setMostrarModalIOS] = useState(false);
     const [yaInstalado, setYaInstalado] = useState(false);
-    const [oculto, setOculto] = useState(false);
 
     useEffect(() => {
         // Verificar si la app ya está corriendo instalada (standalone mode)
@@ -59,8 +58,8 @@ export default function InstallPwaPrompt() {
         }
     }
 
-    if (yaInstalado || oculto) {
-        return null; // Si ya está instalada o la cerró, no molestar
+    if (yaInstalado) {
+        return null; // Si ya está instalada, no mostrar
     }
 
     return (

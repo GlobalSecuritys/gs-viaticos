@@ -105,6 +105,7 @@ export default function AdminDashboard() {
     const [registroConsolidado, setRegistroConsolidado] = useState(null);
     const [evidenciaPreview, setEvidenciaPreview] = useState(null);
     const [busquedaConsolidado, setBusquedaConsolidado] = useState('');
+    const [filtroEstadoConsolidado, setFiltroEstadoConsolidado] = useState('todos');
 
     async function cargar() {
         try {
@@ -211,7 +212,11 @@ export default function AdminDashboard() {
             grupos.set(key, actual);
         });
 
-        const list = [...grupos.values()].sort((a, b) => b.fecha.localeCompare(a.fecha));
+        let list = [...grupos.values()].sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+        if (filtroEstadoConsolidado !== 'todos') {
+            list = list.filter((r) => r.estado === filtroEstadoConsolidado);
+        }
 
         if (!busquedaConsolidado.trim()) return list;
         const query = busquedaConsolidado.toLowerCase();
@@ -220,7 +225,7 @@ export default function AdminDashboard() {
             r.ciudad.toLowerCase().includes(query) ||
             r.fecha.includes(query)
         );
-    }, [viaticos, usuarios, busquedaConsolidado]);
+    }, [viaticos, usuarios, busquedaConsolidado, filtroEstadoConsolidado]);
 
     const filtroActivo = FILTROS_PERIODO.find((f) => f.id === periodo) ?? FILTROS_PERIODO[2];
 
@@ -253,24 +258,6 @@ export default function AdminDashboard() {
 
     const [mensajeFeedback, setMensajeFeedback] = useState('');
 
-    async function cambiarEstadoGrupo(grupoItems, nuevoEstado) {
-        try {
-            for (const item of grupoItems) {
-                if (nuevoEstado === 'aprobado') {
-                    await api.put(`/admin/viaticos/${item.id}/aprobar`);
-                } else if (nuevoEstado === 'rechazar') {
-                    await api.put(`/admin/viaticos/${item.id}/rechazar`);
-                }
-            }
-            setRegistroConsolidado(null);
-            const estadoTexto = nuevoEstado === 'aprobado' ? 'aprobado(s)' : 'rechazado(s)';
-            setMensajeFeedback(`✅ Viático(s) ${estadoTexto} correctamente.`);
-            await cargar();
-        } catch {
-            setError(`No se pudieron actualizar todos los ítems.`);
-        }
-    }
-
     return (
         <div className="admin-root">
             {/* ── HEADER ── */}
@@ -283,6 +270,13 @@ export default function AdminDashboard() {
                     </div>
                 </div>
                 <div className="admin-header-right">
+                    <button
+                        className="btn-nav-asignaciones"
+                        style={{ background: '#0284C7' }}
+                        onClick={() => navigate('/admin/cuentas-cobro')}
+                    >
+                        💵 Cuentas de Cobro
+                    </button>
                     <button
                         className="btn-nav-asignaciones"
                         onClick={() => navigate('/admin/asignaciones')}
@@ -427,20 +421,40 @@ export default function AdminDashboard() {
                         <p style={{ color: 'var(--color-text-muted)', alignSelf: 'center' }}>Cargando estadísticas...</p>
                     ) : (
                         <div className="dash-kpis-col">
-                            <div className="dash-kpi-card">
-                                <span className="dash-kpi-label">Total Gastado</span>
+                            <div
+                                className="dash-kpi-card"
+                                style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
+                                onClick={() => setFiltroEstadoConsolidado('todos')}
+                                title="Ver todos los viáticos"
+                            >
+                                <span className="dash-kpi-label">Total Gastado {filtroEstadoConsolidado === 'todos' ? '✓' : ''}</span>
                                 <span className="dash-kpi-value dash-kpi-value--money">{formatCOP(stats.totalGastado)}</span>
                             </div>
-                            <div className="dash-kpi-card dash-kpi-card--pendiente">
-                                <span className="dash-kpi-label">Pendientes</span>
+                            <div
+                                className="dash-kpi-card dash-kpi-card--pendiente"
+                                style={{ cursor: 'pointer', outline: filtroEstadoConsolidado === 'pendiente' ? '2px solid var(--color-pendiente)' : 'none', transition: 'all 0.2s ease' }}
+                                onClick={() => setFiltroEstadoConsolidado((prev) => prev === 'pendiente' ? 'todos' : 'pendiente')}
+                                title="Filtrar viáticos pendientes"
+                            >
+                                <span className="dash-kpi-label">Pendientes {filtroEstadoConsolidado === 'pendiente' ? '✓' : ''}</span>
                                 <span className="dash-kpi-value">{stats.pendientes}</span>
                             </div>
-                            <div className="dash-kpi-card dash-kpi-card--aprobado">
-                                <span className="dash-kpi-label">Aprobados</span>
+                            <div
+                                className="dash-kpi-card dash-kpi-card--aprobado"
+                                style={{ cursor: 'pointer', outline: filtroEstadoConsolidado === 'aprobado' ? '2px solid var(--color-aprobado)' : 'none', transition: 'all 0.2s ease' }}
+                                onClick={() => setFiltroEstadoConsolidado((prev) => prev === 'aprobado' ? 'todos' : 'aprobado')}
+                                title="Filtrar viáticos aprobados"
+                            >
+                                <span className="dash-kpi-label">Aprobados {filtroEstadoConsolidado === 'aprobado' ? '✓' : ''}</span>
                                 <span className="dash-kpi-value">{stats.aprobados}</span>
                             </div>
-                            <div className="dash-kpi-card dash-kpi-card--rechazado">
-                                <span className="dash-kpi-label">Rechazados</span>
+                            <div
+                                className="dash-kpi-card dash-kpi-card--rechazado"
+                                style={{ cursor: 'pointer', outline: filtroEstadoConsolidado === 'rechazado' ? '2px solid var(--color-rechazado)' : 'none', transition: 'all 0.2s ease' }}
+                                onClick={() => setFiltroEstadoConsolidado((prev) => prev === 'rechazado' ? 'todos' : 'rechazado')}
+                                title="Filtrar viáticos rechazados"
+                            >
+                                <span className="dash-kpi-label">Rechazados {filtroEstadoConsolidado === 'rechazado' ? '✓' : ''}</span>
                                 <span className="dash-kpi-value">{stats.rechazados}</span>
                             </div>
                         </div>
@@ -458,15 +472,34 @@ export default function AdminDashboard() {
                                 Consulta y gestiona las solicitudes de viáticos enviadas por los técnicos
                             </span>
                         </div>
-                        <div className="admin-search-wrap" style={{ maxWidth: '320px' }}>
-                            <span className="admin-search-icon">🔍</span>
-                            <input
-                                type="text"
-                                placeholder="Buscar por técnico, ciudad..."
-                                className="admin-search-input"
-                                value={busquedaConsolidado}
-                                onChange={(e) => setBusquedaConsolidado(e.target.value)}
-                            />
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <select
+                                value={filtroEstadoConsolidado}
+                                onChange={(e) => setFiltroEstadoConsolidado(e.target.value)}
+                                style={{
+                                    padding: '0.45rem 0.8rem',
+                                    borderRadius: '8px',
+                                    border: '1.5px solid var(--color-border)',
+                                    fontSize: '0.82rem',
+                                    fontWeight: 600,
+                                    background: '#FFFFFF',
+                                }}
+                            >
+                                <option value="todos">Todos los estados</option>
+                                <option value="pendiente">Pendientes</option>
+                                <option value="aprobado">Aprobados</option>
+                                <option value="rechazado">Rechazados</option>
+                            </select>
+                            <div className="admin-search-wrap" style={{ maxWidth: '280px' }}>
+                                <span className="admin-search-icon">🔍</span>
+                                <input
+                                    type="text"
+                                    placeholder="Buscar por técnico, ciudad..."
+                                    className="admin-search-input"
+                                    value={busquedaConsolidado}
+                                    onChange={(e) => setBusquedaConsolidado(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -541,7 +574,12 @@ export default function AdminDashboard() {
                             ) : (
                                 <div className="dash-tech-grid">
                                     {tecnicos.map((t) => (
-                                        <div key={t.id} className="dash-tech-card">
+                                        <div
+                                            key={t.id}
+                                            className="dash-tech-card"
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={() => navigate(`/admin/personal/${t.id}`)}
+                                        >
                                             <div className="dash-tech-card-top">
                                                 <div className="dash-tech-avatar">{iniciales(t.nombre)}</div>
                                                 {(t.rol === 'admin' || t.rol === 'superadmin') && (
@@ -569,7 +607,10 @@ export default function AdminDashboard() {
 
                                             <button
                                                 className="dash-tech-btn"
-                                                onClick={() => navigate(`/admin/personal/${t.id}`)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate(`/admin/personal/${t.id}`);
+                                                }}
                                             >
                                                 Ver información →
                                             </button>

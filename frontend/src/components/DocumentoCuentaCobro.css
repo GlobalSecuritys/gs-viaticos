@@ -1,0 +1,124 @@
+/* Estilos del Documento de Cuenta de Cobro Formal e Impreso */
+.cc-document-view {
+    background: #FFFFFF;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2.5rem 3rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #CBD5E1;
+    font-family: 'Times New Roman', Times, serif, Arial, sans-serif;
+    color: #000000;
+    line-height: 1.4;
+    box-sizing: border-box;
+}
+
+.cc-doc-header-num {
+    text-align: center;
+    font-size: 1.15rem;
+    font-weight: bold;
+    text-decoration: underline;
+    margin-bottom: 2rem;
+}
+
+.cc-doc-date {
+    text-align: left;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+}
+
+.cc-doc-company {
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 1.75rem;
+}
+
+.cc-doc-debe-a {
+    text-align: center;
+    font-size: 1.05rem;
+    margin-bottom: 1.75rem;
+}
+
+.cc-doc-debe-a-nombre {
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.cc-doc-suma-text {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    text-align: justify;
+}
+
+.cc-doc-highlight {
+    background-color: #FF66CC;
+    padding: 0 2px;
+}
+
+.cc-doc-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.85rem;
+}
+
+.cc-doc-table th,
+.cc-doc-table td {
+    border: 1px solid #000000;
+    padding: 0.4rem 0.5rem;
+    text-align: center;
+}
+
+.cc-doc-table th {
+    font-weight: bold;
+    text-transform: uppercase;
+    background-color: #F2F2F2;
+}
+
+.cc-doc-table .total-row td {
+    font-weight: bold;
+}
+
+.cc-doc-bank-info {
+    font-size: 0.95rem;
+    margin: 1.75rem 0 1.25rem;
+}
+
+.cc-doc-sign-date {
+    font-size: 0.95rem;
+    margin-bottom: 2.5rem;
+}
+
+.cc-doc-signature-block {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 3rem;
+    font-size: 0.95rem;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .cc-document-view,
+    .cc-document-view * {
+        visibility: visible;
+    }
+    .cc-document-view {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 1.5cm 2cm !important;
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+    }
+    .no-print {
+        display: none !important;
+    }
+}

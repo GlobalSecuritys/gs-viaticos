@@ -30,6 +30,11 @@ const ICONO_TIPO = {
             <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         </svg>
     ),
+    cuenta_cobro: (
+        <svg viewBox="0 0 20 20" fill="none">
+            <path d="M4 4h12v12H4V4zm3 3h6M7 10h6M7 13h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    ),
 };
 
 function tiempoRelativo(fechaISO) {
@@ -55,6 +60,7 @@ export default function NotificationBell() {
     const [abierto, setAbierto] = useState(false);
     const [viaticos, setViaticos] = useState([]);
     const [notificacionesBorrado, setNotificacionesBorrado] = useState([]);
+    const [asignacionesConCuenta, setAsignacionesConCuenta] = useState([]);
     const [leidas, setLeidas] = useState(new Set());
     const contenedorRef = useRef(null);
 
@@ -64,12 +70,17 @@ export default function NotificationBell() {
         async function cargar() {
             try {
                 if (esAdmin) {
-                    const [resViaticos, resNotif] = await Promise.all([
+                    const [resViaticos, resNotif, resAsig] = await Promise.all([
                         api.get('/admin/viaticos').catch(() => ({ data: [] })),
                         api.get('/admin/notificaciones').catch(() => ({ data: [] })),
+                        api.get('/admin/asignaciones').catch(() => ({ data: [] })),
                     ]);
                     setViaticos(resViaticos.data || []);
                     setNotificacionesBorrado(resNotif.data || []);
+                    // Solo las asignaciones que tienen cuenta de cobro subida
+                    setAsignacionesConCuenta(
+                        (resAsig.data || []).filter((a) => a.cuenta_cobro?.secure_url)
+                    );
                 } else {
                     const resViaticos = await api.get('/viaticos').catch(() => ({ data: [] }));
                     setViaticos(resViaticos.data || []);
@@ -146,6 +157,18 @@ export default function NotificationBell() {
                 fecha: n.created_at,
             });
         });
+
+        asignacionesConCuenta.forEach((a) => {
+            const tecnicoNombre = a.tecnico_nombre || `Técnico #${a.tecnico_id}`;
+            timeline.push({
+                id: `cuenta-cobro-${a.id}`,
+                icono: 'cuenta_cobro',
+                texto: `${tecnicoNombre} subió su cuenta de cobro.`,
+                subtexto: `Misión #${a.id} — ${a.cliente} · ${a.ciudad}`,
+                fecha: a.cuenta_cobro.fecha_subida || a.cuenta_cobro.created_at,
+                url: a.cuenta_cobro.secure_url,
+            });
+        });
     } else {
         // Notificaciones para el Técnico
         viaticos.forEach((v) => {
@@ -186,7 +209,8 @@ export default function NotificationBell() {
     // Para el TÉCNICO: el badge muestra aprobados + rechazados (respuestas sin ver).
     const noLeidasCount = esAdmin
         ? viaticos.filter((v) => v.estado === 'pendiente').length +
-          notificacionesBorrado.length
+          notificacionesBorrado.length +
+          asignacionesConCuenta.filter((a) => !leidas.has(`cuenta-cobro-${a.id}`)).length
         : timeline.filter(
               (item) =>
                   !leidas.has(item.id) &&
@@ -254,7 +278,28 @@ export default function NotificationBell() {
                         ) : (
                             timeline.map((item) => {
                                 const noLeida = !leidas.has(item.id);
-                                return (
+                                return item.url ? (
+                                    <a
+                                        key={item.id}
+                                        href={item.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`notif-item ${noLeida ? 'notif-item--nueva' : ''}`}
+                                        style={{ textDecoration: 'none' }}
+                                        onClick={() => marcarLeida(item.id)}
+                                    >
+                                        <span className={`notif-item-icon notif-item-icon--${item.icono}`}>
+                                            {ICONO_TIPO[item.icono] || ICONO_TIPO.pendiente}
+                                        </span>
+                                        <span className="notif-item-body">
+                                            <span className="notif-item-text">{item.texto}</span>
+                                            <span className="notif-item-time">
+                                                {item.subtexto} — {tiempoRelativo(item.fecha)}
+                                            </span>
+                                        </span>
+                                        {noLeida && <span className="notif-item-dot" />}
+                                    </a>
+                                ) : (
                                     <button
                                         key={item.id}
                                         className={`notif-item ${noLeida ? 'notif-item--nueva' : ''}`}

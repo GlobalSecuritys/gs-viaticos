@@ -756,3 +756,63 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ── MODAL DETALLE CONSOLIDADO (ADMIN) ── */
+.sa-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1100;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.sa-modal {
+    background: #FFFFFF;
+    border-radius: 14px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    animation: saModalIn 0.2s ease-out;
+}
+
+@keyframes saModalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.97) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.sa-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.sa-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.3rem;
+    color: #64748B;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+
+.sa-modal-close:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+}

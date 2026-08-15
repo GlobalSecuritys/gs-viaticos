@@ -16,6 +16,7 @@ import Asignaciones from './pages/Asignaciones';
 import NuevaAsignacion from './pages/NuevaAsignacion';
 import DetalleAsignacion from './pages/DetalleAsignacion';
 import Auditoria from './pages/Auditoria';
+import AdminCuentasCobro from './pages/AdminCuentasCobro';
 
 export default function App() {
   return (
@@ -116,6 +117,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <DetalleAsignacion />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/cuentas-cobro"
+            element={
+              <AdminRoute>
+                <AdminCuentasCobro />
               </AdminRoute>
             }
           />

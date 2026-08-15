@@ -63,11 +63,14 @@ def listar_cuentas_cobro(
     current_user: Annotated[Usuario, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)]
 ):
-    stmt = (
-        select(CuentaCobro)
-        .where(CuentaCobro.usuario_id == current_user.id)
-        .order_by(CuentaCobro.created_at.desc())
-    )
+    if current_user.rol in ["admin", "superadmin"]:
+        stmt = select(CuentaCobro).order_by(CuentaCobro.created_at.desc())
+    else:
+        stmt = (
+            select(CuentaCobro)
+            .where(CuentaCobro.usuario_id == current_user.id)
+            .order_by(CuentaCobro.created_at.desc())
+        )
     res = db.execute(stmt).scalars().all()
     return res
 
@@ -78,7 +81,11 @@ def obtener_cuenta_cobro(
     current_user: Annotated[Usuario, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)]
 ):
-    stmt = select(CuentaCobro).where(CuentaCobro.id == id, CuentaCobro.usuario_id == current_user.id)
+    if current_user.rol in ["admin", "superadmin"]:
+        stmt = select(CuentaCobro).where(CuentaCobro.id == id)
+    else:
+        stmt = select(CuentaCobro).where(CuentaCobro.id == id, CuentaCobro.usuario_id == current_user.id)
+    
     cuenta = db.scalar(stmt)
     if not cuenta:
         raise HTTPException(

@@ -12,6 +12,7 @@ from app.routers.cuentas_cobro import router as cuentas_cobro_router
 from sqlalchemy import text
 from app.database import engine
 from app.models.cuenta_cobro import CuentaCobro
+from app.models.cuenta_cobro_asignacion import CuentaCobroAsignacion
 
 app = FastAPI(
     title="GS Viáticos API",
@@ -26,6 +27,7 @@ def startup_db_check():
             conn.execute(text("ALTER TABLE viaticos ADD COLUMN IF NOT EXISTS comentario_admin TEXT;"))
             conn.commit()
         CuentaCobro.__table__.create(bind=engine, checkfirst=True)
+        CuentaCobroAsignacion.__table__.create(bind=engine, checkfirst=True)
     except Exception as e:
         print(f"Startup DB check warning: {e}")
 

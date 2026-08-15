@@ -71,3 +71,13 @@ def login(
     access_token = create_access_token(data={"sub": usuario.correo, "rol": usuario.rol, "id": usuario.id, "nombre": usuario.nombre, "codigo_empleado": usuario.codigo_empleado})
     return Token(access_token=access_token, token_type="bearer")
 
+
+from app.core.security import get_current_user
+from typing import Annotated as Ann
+
+@router.get("/me", response_model=UsuarioResponse)
+def obtener_usuario_actual(
+    current_user: Ann[Usuario, Depends(get_current_user)]
+):
+    """Devuelve los datos del usuario autenticado actualmente (a partir del JWT)."""
+    return current_user

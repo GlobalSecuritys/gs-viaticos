@@ -8,6 +8,7 @@ import { formatFechaLarga, formatFechaCorta, formatCOP } from '../utils/personal
 import { parseDescripcion } from '../utils/descripcion';
 import AsignacionForm from '../components/AsignacionForm';
 import ModalEvidencia from '../components/ModalEvidencia';
+import ModalCuentaCobro from '../components/ModalCuentaCobro';
 import './DetalleAsignacion.css';
 
 export default function DetalleAsignacion() {
@@ -20,6 +21,7 @@ export default function DetalleAsignacion() {
     const [tecnicos, setTecnicos] = useState([]);
     const [viaticosVinculados, setViaticosVinculados] = useState([]);
     const [evidenciaPreview, setEvidenciaPreview] = useState(null);
+    const [mostrarModalCc, setMostrarModalCc] = useState(false);
 
     const [editando, setEditando] = useState(false);
     const [enviando, setEnviando] = useState(false);
@@ -202,6 +204,33 @@ export default function DetalleAsignacion() {
                                     <span className="detalle-label">Creado por</span>
                                     <span className="detalle-valor">{asignacion.creado_por_nombre || asignacion.creado_por || '—'}</span>
                                 </div>
+                                <div className="detalle-field">
+                                    <span className="detalle-label">Cuenta de Cobro</span>
+                                    {asignacion.cuenta_cobro?.secure_url ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setMostrarModalCc(true)}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '0.35rem',
+                                                color: '#0284C7',
+                                                background: '#EFF6FF',
+                                                border: '1px solid #BAE6FD',
+                                                borderRadius: '6px',
+                                                padding: '0.3rem 0.75rem',
+                                                fontWeight: 700,
+                                                fontSize: '0.85rem',
+                                                cursor: 'pointer',
+                                                width: 'fit-content',
+                                            }}
+                                        >
+                                            📄 Ver Cuenta de Cobro Formal
+                                        </button>
+                                    ) : (
+                                        <span className="detalle-valor" style={{ color: '#94A3B8' }}>No adjuntada</span>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Resumen Financiero Claro */}
@@ -346,6 +375,33 @@ export default function DetalleAsignacion() {
                         setViaticosVinculados((prev) => prev.map((x) => (x.id === vActualizado.id ? vActualizado : x)));
                         setEvidenciaPreview(vActualizado);
                     }}
+                />
+            )}
+
+            {/* Modal de Cuenta de Cobro Formal */}
+            {mostrarModalCc && asignacion && (
+                <ModalCuentaCobro
+                    archivoUrl={asignacion.cuenta_cobro?.secure_url}
+                    cuenta={{
+                        consecutivo: `ASIG-${asignacion.id}`,
+                        fecha: asignacion.fecha_inicio,
+                        ciudad: asignacion.ciudad,
+                        titular_nombre: asignacion.tecnico_nombre || `Técnico #${asignacion.tecnico_id}`,
+                        identificacion: asignacion.tecnico_cedula || '—',
+                        concepto_servicio: `Servicio de viáticos y ejecución técnica en ${asignacion.ciudad} - ${asignacion.cliente} (${asignacion.tipo})`,
+                        total: asignacion.total_gastado || asignacion.monto_anticipo || 0,
+                        items: [
+                            {
+                                oficina: asignacion.ciudad || 'SEDE',
+                                fecha_inicio: asignacion.fecha_inicio,
+                                fecha_fin: asignacion.fecha_fin,
+                                num_tecnicos: 1,
+                                valor_diario: asignacion.total_gastado || asignacion.monto_anticipo || 0,
+                                valor_total: asignacion.total_gastado || asignacion.monto_anticipo || 0,
+                            }
+                        ]
+                    }}
+                    onClose={() => setMostrarModalCc(false)}
                 />
             )}
         </div>

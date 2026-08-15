@@ -183,6 +183,11 @@
     color: var(--color-rechazado);
 }
 
+.notif-item-icon--cuenta_cobro {
+    background-color: #EFF6FF;
+    color: #0284C7;
+}
+
 .notif-item-body {
     display: flex;
     flex-direction: column;

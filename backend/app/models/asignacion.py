@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 if TYPE_CHECKING:
+    from app.models.cuenta_cobro_asignacion import CuentaCobroAsignacion
     from app.models.usuario import Usuario
     from app.models.viatico import Viatico
 
@@ -85,6 +86,12 @@ class Asignacion(Base):
     viaticos: Mapped[list["Viatico"]] = relationship(
         "Viatico",
         back_populates="asignacion",
+        cascade="all, delete-orphan",
+    )
+    cuenta_cobro: Mapped[Optional["CuentaCobroAsignacion"]] = relationship(
+        "CuentaCobroAsignacion",
+        back_populates="asignacion",
+        uselist=False,
         cascade="all, delete-orphan",
     )
 

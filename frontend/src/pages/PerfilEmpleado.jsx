@@ -15,6 +15,7 @@ import {
 import ModalEvidencia from '../components/ModalEvidencia';
 import ModalCrearUsuario from '../components/ModalCrearUsuario';
 import ModalEditarUsuario from '../components/ModalEditarUsuario';
+import ModalCuentaCobro from '../components/ModalCuentaCobro';
 import { formatApiError } from '../utils/formatError';
 import {
     ICONO_TIPO_GASTO,
@@ -77,7 +78,12 @@ export default function PerfilEmpleado() {
     const [todosViaticos, setTodosViaticos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [filtro, setFiltro] = useState('mes');
+    const [filtroPeriodo, setFiltroPeriodo] = useState('mes');
+    const [filtroTipoAsignacion, setFiltroTipoAsignacion] = useState('todas');
+    const [fechaDesde, setFechaDesde] = useState('');
+    const [fechaHasta, setFechaHasta] = useState('');
+    const [mensajeFeedback, setMensajeFeedback] = useState('');
+    const [cuentaCobroVer, setCuentaCobroVer] = useState(null);
     const [seleccionado, setSeleccionado] = useState(null);
     const [errorRol, setErrorRol] = useState('');
     const [cambiandoRol, setCambiandoRol] = useState(false);
@@ -90,8 +96,6 @@ export default function PerfilEmpleado() {
         const resViaticos = await api.get('/admin/viaticos');
         setViaticos(resViaticos.data.filter((v) => String(v.usuario_id) === id));
     }
-
-    const [mensajeFeedback, setMensajeFeedback] = useState('');
 
     async function aprobar(viaticoId, comentario) {
         setSeleccionado(null);
@@ -201,10 +205,10 @@ export default function PerfilEmpleado() {
 
     const viaticosFiltrados = useMemo(() => {
         let base;
-        if (filtro === 'hoy') {
+        if (filtroPeriodo === 'hoy') {
             const h = hoyISO();
             base = filtrarPorRango(viaticos, h, h);
-        } else if (filtro === 'mes') {
+        } else if (filtroPeriodo === 'mes') {
             const { inicio, fin } = rangoMesCalendario(hoy);
             base = filtrarPorRango(viaticos, inicio, fin);
         } else {
@@ -229,22 +233,22 @@ export default function PerfilEmpleado() {
         }
 
         return base;
-    }, [filtro, viaticos, rangoInicio, rangoFin, hoy, tipoAsignacion, filtroClienteAsignacion, asignacionesFullMap]);
+    }, [filtroPeriodo, viaticos, rangoInicio, rangoFin, hoy, tipoAsignacion, filtroClienteAsignacion, asignacionesFullMap]);
 
     async function handleExportarIndependientes() {
         setExportandoIndependiente(true);
         try {
             let fInicio = null;
             let fFin = null;
-            if (filtro === 'hoy') {
+            if (filtroPeriodo === 'hoy') {
                 const h = hoyISO();
                 fInicio = h;
                 fFin = h;
-            } else if (filtro === 'mes') {
+            } else if (filtroPeriodo === 'mes') {
                 const { inicio, fin } = rangoMesCalendario(hoy);
                 fInicio = inicio;
                 fFin = fin;
-            } else if (filtro === 'personalizado') {
+            } else if (filtroPeriodo === 'personalizado') {
                 fInicio = rangoInicio;
                 fFin = rangoFin;
             }
@@ -591,6 +595,56 @@ export default function PerfilEmpleado() {
                                                         {exportandoAsigId === asignacion.id ? '⌛ Exportando...' : '📊 Exportar Excel de esta asignación'}
                                                     </button>
                                                 </div>
+
+                                                {/* Cuenta de Cobro */}
+                                                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: 500 }}>Cuenta de cobro digital:</span>
+                                                    {asignacion.cuenta_cobro?.secure_url ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setCuentaCobroVer({
+                                                                archivoUrl: asignacion.cuenta_cobro.secure_url,
+                                                                cuenta: {
+                                                                    consecutivo: `ASIG-${asignacion.id}`,
+                                                                    fecha: asignacion.fecha_inicio,
+                                                                    ciudad: asignacion.ciudad,
+                                                                    titular_nombre: usuario?.nombre || `Técnico #${usuario?.id}`,
+                                                                    identificacion: usuario?.codigo_empleado || '—',
+                                                                    concepto_servicio: `Servicios de viáticos y comisión - ${asignacion.cliente} (${asignacion.tipo})`,
+                                                                    total: asignacion.total_gastado || asignacion.monto_anticipo || 0,
+                                                                    items: [
+                                                                        {
+                                                                            oficina: asignacion.ciudad || 'SEDE',
+                                                                            fecha_inicio: asignacion.fecha_inicio,
+                                                                            fecha_fin: asignacion.fecha_fin,
+                                                                            num_tecnicos: 1,
+                                                                            valor_diario: asignacion.total_gastado || asignacion.monto_anticipo || 0,
+                                                                            valor_total: asignacion.total_gastado || asignacion.monto_anticipo || 0,
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            })}
+                                                            style={{
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.3rem',
+                                                                background: '#EFF6FF',
+                                                                color: '#0284C7',
+                                                                fontWeight: 700,
+                                                                padding: '0.25rem 0.65rem',
+                                                                borderRadius: '7px',
+                                                                border: '1px solid #BAE6FD',
+                                                                cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            📄 Ver documento
+                                                        </button>
+                                                    ) : (
+                                                        <span style={{ background: '#FEF9EC', color: '#92400E', fontWeight: 600, padding: '0.25rem 0.65rem', borderRadius: '7px', border: '1px solid #FDE68A' }}>
+                                                            ⏳ No adjuntada aún
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -619,15 +673,15 @@ export default function PerfilEmpleado() {
                                             {FILTROS_PERIODO.map((f) => (
                                                 <button
                                                     key={f.id}
-                                                    className={`pf-tab ${filtro === f.id ? 'pf-tab--activo' : ''}`}
-                                                    onClick={() => setFiltro(f.id)}
+                                                    className={`pf-tab ${filtroPeriodo === f.id ? 'pf-tab--activo' : ''}`}
+                                                    onClick={() => setFiltroPeriodo(f.id)}
                                                 >
                                                     {f.label}
                                                 </button>
                                             ))}
                                         </div>
 
-                                        {filtro === 'personalizado' && (
+                                        {filtroPeriodo === 'personalizado' && (
                                             <div className="pf-rango-personalizado">
                                                 <label>
                                                     Desde
@@ -827,6 +881,15 @@ export default function PerfilEmpleado() {
                         setViaticos((prev) => prev.map((x) => (x.id === v.id ? v : x)));
                         setSeleccionado(v);
                     }}
+                />
+            )}
+
+            {/* Modal Cuenta de Cobro Formal */}
+            {cuentaCobroVer && (
+                <ModalCuentaCobro
+                    archivoUrl={cuentaCobroVer.archivoUrl}
+                    cuenta={cuentaCobroVer.cuenta}
+                    onClose={() => setCuentaCobroVer(null)}
                 />
             )}
         </div>

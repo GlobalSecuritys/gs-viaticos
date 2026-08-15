@@ -1,3 +1,4 @@
+
 """alterar_usuario_id_fk_a_restrict
 
 Revision ID: 0002_alter_fk_restrict
