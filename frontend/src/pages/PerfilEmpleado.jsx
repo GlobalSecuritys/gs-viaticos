@@ -284,6 +284,40 @@ export default function PerfilEmpleado() {
         }
     }
 
+    const { gruposAsignaciones, viaticosIndependientes } = useMemo(() => {
+        const porAsignacion = {};
+        const libres = [];
+        viaticosFiltrados.forEach((v) => {
+            if (v.asignacion_id) {
+                if (!porAsignacion[v.asignacion_id]) {
+                    const asig = asignacionesFullMap.get(v.asignacion_id);
+                    porAsignacion[v.asignacion_id] = {
+                        asignacion_id: v.asignacion_id,
+                        asignacion: asig || null,
+                        cliente: asig?.cliente || v.cliente || `Asignación #${v.asignacion_id}`,
+                        empresa: asig?.empresa || '',
+                        ciudad: asig?.ciudad || v.ciudad || '',
+                        tipo: asig?.tipo || '',
+                        monto_anticipo: asig?.monto_anticipo || 0,
+                        total_gastado: asig?.total_gastado || 0,
+                        saldo_restante: asig?.saldo_restante || 0,
+                        viaticos: [],
+                    };
+                }
+                porAsignacion[v.asignacion_id].viaticos.push(v);
+            } else {
+                libres.push(v);
+            }
+        });
+        const grupos = Object.values(porAsignacion).sort((a, b) => b.viaticos.length - a.viaticos.length);
+        return { gruposAsignaciones: grupos, viaticosIndependientes: libres };
+    }, [viaticosFiltrados, asignacionesFullMap]);
+
+    const [asigColapsadas, setAsigColapsadas] = useState({});
+    const toggleColapsarAsig = (key) => {
+        setAsigColapsadas((prev) => ({ ...prev, [key]: !prev[key] }));
+    };
+
     const resumenPeriodo = useMemo(() => resumen(viaticosFiltrados), [viaticosFiltrados]);
 
     const viaticosOrdenados = useMemo(
@@ -651,133 +685,205 @@ export default function PerfilEmpleado() {
                                 <h2 className="pf-section-title">Asignación actual</h2>
                                 {asignacionesActivas.length > 0 ? (
                                     <div className="pf-mision-lista">
-                                        {asignacionesActivas.map((asignacion) => (
-                                            <div className="pf-mision-card" key={asignacion.id}>
-                                                <div className="pf-mision-top">
-                                                    <span className="pf-mision-label">📍 Asignación activa</span>
-                                                </div>
+                                        {asignacionesActivas.map((asignacion) => {
+                                            const viaticosDeAsig = viaticos.filter((v) => v.asignacion_id === asignacion.id);
+                                            const estaColapsada = asigColapsadas[`asig_activa_${asignacion.id}`];
 
-                                                <div className="pf-mision-grid">
-                                                    <div>
-                                                        <span className="pf-info-label">Proyecto</span>
-                                                        <span className="pf-info-valor">{asignacion.cliente}</span>
+                                            return (
+                                                <div className="pf-mision-card" key={asignacion.id}>
+                                                    <div className="pf-mision-top">
+                                                        <span className="pf-mision-label">📍 Asignación activa</span>
                                                     </div>
-                                                    <div>
-                                                        <span className="pf-info-label">Oficina</span>
-                                                        <span className="pf-info-valor" style={{ color: '#0284C7' }}>
-                                                            {asignacion.empresa || '—'}
-                                                        </span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="pf-info-label">Ciudad</span>
-                                                        <span className="pf-info-valor">{asignacion.ciudad}</span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="pf-info-label">Tipo</span>
-                                                        <span className="pf-info-valor">
-                                                            {LABEL_TIPO_ASIGNACION[asignacion.tipo] || asignacion.tipo}
-                                                        </span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="pf-info-label">Inicio</span>
-                                                        <span className="pf-info-valor">{formatFechaLarga(asignacion.fecha_inicio)}</span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="pf-info-label">Final</span>
-                                                        <span className="pf-info-valor">{formatFechaLarga(asignacion.fecha_fin)}</span>
-                                                    </div>
-                                                </div>
 
-                                                {/* Resumen financiero */}
-                                                <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid #E2E8F0', display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.82rem', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem' }}>
+                                                    <div className="pf-mision-grid">
                                                         <div>
-                                                            <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Anticipo</span>
-                                                            <strong style={{ color: '#1E293B', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.monto_anticipo || 0))}</strong>
+                                                            <span className="pf-info-label">Proyecto</span>
+                                                            <span className="pf-info-valor">{asignacion.cliente}</span>
                                                         </div>
                                                         <div>
-                                                            <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Gastado</span>
-                                                            <strong style={{ color: '#0284C7', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.total_gastado || 0))}</strong>
+                                                            <span className="pf-info-label">Oficina</span>
+                                                            <span className="pf-info-valor" style={{ color: '#0284C7' }}>
+                                                                {asignacion.empresa || '—'}
+                                                            </span>
                                                         </div>
                                                         <div>
-                                                            <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Saldo restante</span>
-                                                            <strong style={{ color: '#16A34A', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.saldo_restante || 0))}</strong>
+                                                            <span className="pf-info-label">Ciudad</span>
+                                                            <span className="pf-info-valor">{asignacion.ciudad}</span>
                                                         </div>
                                                         <div>
-                                                            <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Ítems</span>
-                                                            <strong style={{ fontSize: '0.92rem' }}>{asignacion.cantidad_viaticos || 0}</strong>
+                                                            <span className="pf-info-label">Tipo</span>
+                                                            <span className="pf-info-valor">
+                                                                {LABEL_TIPO_ASIGNACION[asignacion.tipo] || asignacion.tipo}
+                                                            </span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="pf-info-label">Inicio</span>
+                                                            <span className="pf-info-valor">{formatFechaLarga(asignacion.fecha_inicio)}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="pf-info-label">Final</span>
+                                                            <span className="pf-info-valor">{formatFechaLarga(asignacion.fecha_fin)}</span>
                                                         </div>
                                                     </div>
 
-                                                    <button
-                                                        type="button"
-                                                        className="pf-back-pill-btn"
-                                                        style={{ margin: 0, padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}
-                                                        onClick={() => handleExportarAsignacion(asignacion.id)}
-                                                        disabled={exportandoAsigId === asignacion.id}
-                                                    >
-                                                        {exportandoAsigId === asignacion.id ? '⌛ Exportando...' : '📊 Exportar Excel'}
-                                                    </button>
-                                                </div>
+                                                    {/* Resumen financiero */}
+                                                    <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid #E2E8F0', display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.82rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem' }}>
+                                                            <div>
+                                                                <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Anticipo</span>
+                                                                <strong style={{ color: '#1E293B', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.monto_anticipo || 0))}</strong>
+                                                            </div>
+                                                            <div>
+                                                                <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Gastado</span>
+                                                                <strong style={{ color: '#0284C7', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.total_gastado || 0))}</strong>
+                                                            </div>
+                                                            <div>
+                                                                <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Saldo restante</span>
+                                                                <strong style={{ color: '#16A34A', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.saldo_restante || 0))}</strong>
+                                                            </div>
+                                                            <div>
+                                                                <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Ítems</span>
+                                                                <strong style={{ fontSize: '0.92rem' }}>{asignacion.cantidad_viaticos || viaticosDeAsig.length}</strong>
+                                                            </div>
+                                                        </div>
 
-                                                {/* Cuenta de Cobro */}
-                                                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                                                    <span style={{ color: '#64748B', fontWeight: 600 }}>Cuenta de cobro digital:</span>
-                                                    {asignacion.cuenta_cobro?.secure_url ? (
                                                         <button
                                                             type="button"
-                                                            onClick={() => setCuentaCobroVer({
-                                                                archivoUrl: asignacion.cuenta_cobro.secure_url,
-                                                                cuenta: {
-                                                                    consecutivo: `ASIG-${asignacion.id}`,
-                                                                    fecha: asignacion.fecha_inicio,
-                                                                    ciudad: asignacion.ciudad,
-                                                                    titular_nombre: usuario?.nombre || `Técnico #${usuario?.id}`,
-                                                                    identificacion: usuario?.codigo_empleado || '—',
-                                                                    concepto_servicio: `Servicios de viáticos y comisión - ${asignacion.cliente} (${asignacion.tipo})`,
-                                                                    total: asignacion.total_gastado || asignacion.monto_anticipo || 0,
-                                                                    items: [
-                                                                        {
-                                                                            oficina: asignacion.ciudad || 'SEDE',
-                                                                            fecha_inicio: asignacion.fecha_inicio,
-                                                                            fecha_fin: asignacion.fecha_fin,
-                                                                            num_tecnicos: 1,
-                                                                            valor_diario: asignacion.total_gastado || asignacion.monto_anticipo || 0,
-                                                                            valor_total: asignacion.total_gastado || asignacion.monto_anticipo || 0,
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            })}
-                                                            style={{
-                                                                display: 'inline-flex',
-                                                                alignItems: 'center',
-                                                                gap: '0.3rem',
-                                                                background: '#EFF6FF',
-                                                                color: '#0284C7',
-                                                                fontWeight: 700,
-                                                                padding: '0.3rem 0.75rem',
-                                                                borderRadius: '8px',
-                                                                border: '1px solid #BAE6FD',
-                                                                cursor: 'pointer',
-                                                            }}
+                                                            className="pf-back-pill-btn"
+                                                            style={{ margin: 0, padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}
+                                                            onClick={() => handleExportarAsignacion(asignacion.id)}
+                                                            disabled={exportandoAsigId === asignacion.id}
                                                         >
-                                                            📄 Ver documento
+                                                            {exportandoAsigId === asignacion.id ? '⌛ Exportando...' : '📊 Exportar Excel'}
                                                         </button>
-                                                    ) : (
-                                                        <span style={{ background: '#FEF9EC', color: '#92400E', fontWeight: 600, padding: '0.25rem 0.65rem', borderRadius: '8px', border: '1px solid #FDE68A' }}>
-                                                            ⏳ No adjuntada aún
-                                                        </span>
-                                                    )}
+                                                    </div>
+
+                                                    {/* Cuenta de Cobro */}
+                                                    <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                                                        <span style={{ color: '#64748B', fontWeight: 600 }}>Cuenta de cobro digital:</span>
+                                                        {asignacion.cuenta_cobro?.secure_url ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setCuentaCobroVer({
+                                                                    archivoUrl: asignacion.cuenta_cobro.secure_url,
+                                                                    cuenta: {
+                                                                        consecutivo: `ASIG-${asignacion.id}`,
+                                                                        fecha: asignacion.fecha_inicio,
+                                                                        ciudad: asignacion.ciudad,
+                                                                        titular_nombre: usuario?.nombre || `Técnico #${usuario?.id}`,
+                                                                        identificacion: usuario?.codigo_empleado || '—',
+                                                                        concepto_servicio: `Servicios de viáticos y comisión - ${asignacion.cliente} (${asignacion.tipo})`,
+                                                                        total: asignacion.total_gastado || asignacion.monto_anticipo || 0,
+                                                                        items: [
+                                                                            {
+                                                                                oficina: asignacion.ciudad || 'SEDE',
+                                                                                fecha_inicio: asignacion.fecha_inicio,
+                                                                                fecha_fin: asignacion.fecha_fin,
+                                                                                num_tecnicos: 1,
+                                                                                valor_diario: asignacion.total_gastado || asignacion.monto_anticipo || 0,
+                                                                                valor_total: asignacion.total_gastado || asignacion.monto_anticipo || 0,
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                })}
+                                                                style={{
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.3rem',
+                                                                    background: '#EFF6FF',
+                                                                    color: '#0284C7',
+                                                                    fontWeight: 700,
+                                                                    padding: '0.3rem 0.75rem',
+                                                                    borderRadius: '8px',
+                                                                    border: '1px solid #BAE6FD',
+                                                                    cursor: 'pointer',
+                                                                }}
+                                                            >
+                                                                📄 Ver documento
+                                                            </button>
+                                                        ) : (
+                                                            <span style={{ background: '#FEF9EC', color: '#92400E', fontWeight: 600, padding: '0.25rem 0.65rem', borderRadius: '8px', border: '1px solid #FDE68A' }}>
+                                                                ⏳ No adjuntada aún
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Viáticos subidos directamente en esta tarjeta de asignación */}
+                                                    <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid #E2E8F0' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: estaColapsada ? 0 : '0.85rem' }}>
+                                                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                                📋 Viáticos de esta asignación ({viaticosDeAsig.length})
+                                                            </span>
+                                                            {viaticosDeAsig.length > 0 && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => toggleColapsarAsig(`asig_activa_${asignacion.id}`)}
+                                                                    style={{ background: 'none', border: 'none', color: '#1D4ED8', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                                                                >
+                                                                    {estaColapsada ? 'Mostrar viáticos ▼' : 'Ocultar viáticos ▲'}
+                                                                </button>
+                                                            )}
+                                                        </div>
+
+                                                        {!estaColapsada && (
+                                                            viaticosDeAsig.length > 0 ? (
+                                                                <div className="pf-historial-grid" style={{ marginBottom: '0.25rem' }}>
+                                                                    {viaticosDeAsig.map((v) => {
+                                                                        const miniatura = v.evidencias?.[0]?.secure_url;
+                                                                        return (
+                                                                            <div className="pf-viatico-card" key={v.id}>
+                                                                                <div className="pf-viatico-top">
+                                                                                    <span className="pf-viatico-tipo">
+                                                                                        <span className="pf-viatico-icono">{ICONO_TIPO_GASTO[v.tipo_gasto] || '📎'}</span>
+                                                                                        {LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}
+                                                                                    </span>
+                                                                                    <span className={`pf-estado-badge pf-estado-badge--${v.estado}`}>
+                                                                                        {LABEL_ESTADO_VIATICO[v.estado] || v.estado}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <p className="pf-viatico-lugar">{v.cliente} · {v.ciudad}</p>
+                                                                                <p className="pf-viatico-fecha">{formatFechaLarga(v.fecha)}</p>
+                                                                                {v.estado === 'rechazado' && v.motivo_rechazo && (
+                                                                                    <p className="pf-viatico-motivo">Motivo: {v.motivo_rechazo}</p>
+                                                                                )}
+                                                                                <div className="pf-viatico-footer">
+                                                                                    <span className="pf-viatico-valor">{formatCOP(v.valor)}</span>
+                                                                                    {miniatura ? (
+                                                                                        <img
+                                                                                            src={miniatura}
+                                                                                            alt="Evidencia"
+                                                                                            className="pf-viatico-thumb"
+                                                                                            onClick={() => setSeleccionado(v)}
+                                                                                            title="Ver evidencia"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <span className="pf-viatico-sin-evidencia">Sin evidencia</span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <button className="pf-viatico-detalle-btn" onClick={() => setSeleccionado(v)}>
+                                                                                    Ver detalle
+                                                                                </button>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            ) : (
+                                                                <div style={{ fontSize: '0.82rem', color: '#94A3B8', fontStyle: 'italic', padding: '0.4rem 0' }}>
+                                                                    No hay viáticos registrados para esta asignación aún.
+                                                                </div>
+                                                            )
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 ) : (
                                     <div className="pf-mision-vacia">No hay asignaciones activas registradas.</div>
                                 )}
 
-                                {/* Viáticos del técnico */}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginTop: '2rem', marginBottom: '0.75rem' }}>
+                                {/* Viáticos del técnico agrupados por asignación */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginTop: '2.5rem', marginBottom: '0.75rem' }}>
                                     <h2 className="pf-section-title" style={{ margin: 0 }}>Viáticos</h2>
                                     <button
                                         type="button"
@@ -898,61 +1004,236 @@ export default function PerfilEmpleado() {
                                     </div>
                                 </div>
 
-                                {/* Viáticos: sólo resumen + botón → MisViaticos */}
-                                <div style={{
-                                    background: 'linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%)',
-                                    border: '1.5px solid #BFDBFE',
-                                    borderRadius: '14px',
-                                    padding: '1.5rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    gap: '1.5rem',
-                                    flexWrap: 'wrap',
-                                }}>
-                                    <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1E293B' }}>{resumenPeriodo.cantidad}</div>
-                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Solicitudes</div>
+                                {/* Paletas de Viáticos por Asignación e Independientes */}
+                                <div className="pf-paletas-container">
+                                    {gruposAsignaciones.length > 0 && gruposAsignaciones.map((grupo) => {
+                                        const estaColapsada = asigColapsadas[`paleta_${grupo.asignacion_id}`];
+                                        const totalGrupo = grupo.viaticos.reduce((sum, v) => sum + Number(v.valor || 0), 0);
+                                        const pendientes = grupo.viaticos.filter((v) => v.estado === 'pendiente').length;
+                                        const aprobados = grupo.viaticos.filter((v) => v.estado === 'aprobado').length;
+                                        const rechazados = grupo.viaticos.filter((v) => v.estado === 'rechazado').length;
+
+                                        return (
+                                            <div className="pf-paleta" key={grupo.asignacion_id}>
+                                                <div
+                                                    className="pf-paleta-header"
+                                                    onClick={() => toggleColapsarAsig(`paleta_${grupo.asignacion_id}`)}
+                                                >
+                                                    <div className="pf-paleta-header-izq">
+                                                        <div className="pf-paleta-icono">📋</div>
+                                                        <div className="pf-paleta-info">
+                                                            <div className="pf-paleta-titulo">
+                                                                <span>{grupo.cliente}</span>
+                                                                {grupo.empresa && (
+                                                                    <span style={{ fontSize: '0.8rem', color: '#0284C7', background: '#F0F9FF', border: '1px solid #BAE6FD', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
+                                                                        🏢 {grupo.empresa}
+                                                                    </span>
+                                                                )}
+                                                                {grupo.tipo && (
+                                                                    <span style={{ fontSize: '0.78rem', color: '#475569', background: '#F1F5F9', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                                                        {LABEL_TIPO_ASIGNACION[grupo.tipo] || grupo.tipo}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="pf-paleta-subtitulo">
+                                                                {grupo.ciudad && <span>📍 {grupo.ciudad}</span>}
+                                                                <span>·</span>
+                                                                <span>Asignación #{grupo.asignacion_id}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="pf-paleta-header-der">
+                                                        <div className="pf-paleta-badges">
+                                                            {pendientes > 0 && <span className="pf-paleta-badge pf-paleta-badge--pendiente">{pendientes} pend.</span>}
+                                                            {aprobados > 0 && <span className="pf-paleta-badge pf-paleta-badge--aprobado">{aprobados} aprob.</span>}
+                                                            {rechazados > 0 && <span className="pf-paleta-badge pf-paleta-badge--rechazado">{rechazados} rech.</span>}
+                                                            <span className="pf-paleta-badge pf-paleta-badge--total">{formatCOP(totalGrupo)}</span>
+                                                        </div>
+                                                        <span className="pf-paleta-toggle-icon">{estaColapsada ? '▼' : '▲'}</span>
+                                                    </div>
+                                                </div>
+
+                                                {!estaColapsada && (
+                                                    <>
+                                                        <div className="pf-paleta-resumen-finance">
+                                                            <div className="pf-paleta-resumen-metricas">
+                                                                <div className="pf-paleta-resumen-metric">
+                                                                    <span className="pf-paleta-resumen-lbl">Anticipo</span>
+                                                                    <span className="pf-paleta-resumen-val">{formatCOP(Number(grupo.monto_anticipo || 0))}</span>
+                                                                </div>
+                                                                <div className="pf-paleta-resumen-metric">
+                                                                    <span className="pf-paleta-resumen-lbl">Gastado</span>
+                                                                    <span className="pf-paleta-resumen-val" style={{ color: '#0284C7' }}>{formatCOP(Number(grupo.total_gastado || totalGrupo))}</span>
+                                                                </div>
+                                                                <div className="pf-paleta-resumen-metric">
+                                                                    <span className="pf-paleta-resumen-lbl">Saldo restante</span>
+                                                                    <span className="pf-paleta-resumen-val" style={{ color: Number(grupo.saldo_restante || 0) < 0 ? '#DC2626' : '#16A34A' }}>
+                                                                        {formatCOP(Number(grupo.saldo_restante || 0))}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="pf-paleta-resumen-metric">
+                                                                    <span className="pf-paleta-resumen-lbl">Ítems</span>
+                                                                    <span className="pf-paleta-resumen-val">{grupo.viaticos.length}</span>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                className="pf-back-pill-btn"
+                                                                style={{ margin: 0, padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleExportarAsignacion(grupo.asignacion_id);
+                                                                }}
+                                                                disabled={exportandoAsigId === grupo.asignacion_id}
+                                                            >
+                                                                {exportandoAsigId === grupo.asignacion_id ? '⌛ Exportando...' : '📊 Exportar Excel'}
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="pf-paleta-body">
+                                                            <div className="pf-historial-grid" style={{ margin: 0 }}>
+                                                                {grupo.viaticos.map((v) => {
+                                                                    const miniatura = v.evidencias?.[0]?.secure_url;
+                                                                    return (
+                                                                        <div className="pf-viatico-card" key={v.id}>
+                                                                            <div className="pf-viatico-top">
+                                                                                <span className="pf-viatico-tipo">
+                                                                                    <span className="pf-viatico-icono">{ICONO_TIPO_GASTO[v.tipo_gasto] || '📎'}</span>
+                                                                                    {LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}
+                                                                                </span>
+                                                                                <span className={`pf-estado-badge pf-estado-badge--${v.estado}`}>
+                                                                                    {LABEL_ESTADO_VIATICO[v.estado] || v.estado}
+                                                                                </span>
+                                                                            </div>
+
+                                                                            <p className="pf-viatico-lugar">{v.cliente} · {v.ciudad}</p>
+                                                                            <p className="pf-viatico-fecha">{formatFechaLarga(v.fecha)}</p>
+
+                                                                            {v.estado === 'rechazado' && v.motivo_rechazo && (
+                                                                                <p className="pf-viatico-motivo">Motivo: {v.motivo_rechazo}</p>
+                                                                            )}
+
+                                                                            <div className="pf-viatico-footer">
+                                                                                <span className="pf-viatico-valor">{formatCOP(v.valor)}</span>
+                                                                                {miniatura ? (
+                                                                                    <img
+                                                                                        src={miniatura}
+                                                                                        alt="Evidencia"
+                                                                                        className="pf-viatico-thumb"
+                                                                                        onClick={() => setSeleccionado(v)}
+                                                                                        title="Ver evidencia"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <span className="pf-viatico-sin-evidencia">Sin evidencia</span>
+                                                                                )}
+                                                                            </div>
+
+                                                                            <button className="pf-viatico-detalle-btn" onClick={() => setSeleccionado(v)}>
+                                                                                Ver detalle
+                                                                            </button>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+
+                                    {viaticosIndependientes.length > 0 && (
+                                        <div className="pf-paleta">
+                                            <div
+                                                className="pf-paleta-header"
+                                                onClick={() => toggleColapsarAsig('paleta_independientes')}
+                                            >
+                                                <div className="pf-paleta-header-izq">
+                                                    <div className="pf-paleta-icono" style={{ background: '#F8FAFC', color: '#64748B', borderColor: '#E2E8F0' }}>📄</div>
+                                                    <div className="pf-paleta-info">
+                                                        <div className="pf-paleta-titulo">Viáticos Independientes</div>
+                                                        <div className="pf-paleta-subtitulo">Gastos sin asignación vinculada ({viaticosIndependientes.length} registros)</div>
+                                                    </div>
+                                                </div>
+                                                <div className="pf-paleta-header-der">
+                                                    <div className="pf-paleta-badges">
+                                                        <span className="pf-paleta-badge pf-paleta-badge--total">
+                                                            {formatCOP(viaticosIndependientes.reduce((sum, v) => sum + Number(v.valor || 0), 0))}
+                                                        </span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        className="pf-back-pill-btn"
+                                                        style={{ margin: 0, padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleExportarIndependientes();
+                                                        }}
+                                                        disabled={exportandoIndependiente}
+                                                    >
+                                                        {exportandoIndependiente ? '⌛ Exportando...' : '📊 Exportar'}
+                                                    </button>
+                                                    <span className="pf-paleta-toggle-icon">{asigColapsadas['paleta_independientes'] ? '▼' : '▲'}</span>
+                                                </div>
+                                            </div>
+
+                                            {!asigColapsadas['paleta_independientes'] && (
+                                                <div className="pf-paleta-body">
+                                                    <div className="pf-historial-grid" style={{ margin: 0 }}>
+                                                        {viaticosIndependientes.map((v) => {
+                                                            const miniatura = v.evidencias?.[0]?.secure_url;
+                                                            return (
+                                                                <div className="pf-viatico-card" key={v.id}>
+                                                                    <div className="pf-viatico-top">
+                                                                        <span className="pf-viatico-tipo">
+                                                                            <span className="pf-viatico-icono">{ICONO_TIPO_GASTO[v.tipo_gasto] || '📎'}</span>
+                                                                            {LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}
+                                                                        </span>
+                                                                        <span className={`pf-estado-badge pf-estado-badge--${v.estado}`}>
+                                                                            {LABEL_ESTADO_VIATICO[v.estado] || v.estado}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <p className="pf-viatico-lugar">{v.cliente} · {v.ciudad}</p>
+                                                                    <p className="pf-viatico-fecha">{formatFechaLarga(v.fecha)}</p>
+
+                                                                    {v.estado === 'rechazado' && v.motivo_rechazo && (
+                                                                        <p className="pf-viatico-motivo">Motivo: {v.motivo_rechazo}</p>
+                                                                    )}
+
+                                                                    <div className="pf-viatico-footer">
+                                                                        <span className="pf-viatico-valor">{formatCOP(v.valor)}</span>
+                                                                        {miniatura ? (
+                                                                            <img
+                                                                                src={miniatura}
+                                                                                alt="Evidencia"
+                                                                                className="pf-viatico-thumb"
+                                                                                onClick={() => setSeleccionado(v)}
+                                                                                title="Ver evidencia"
+                                                                            />
+                                                                        ) : (
+                                                                            <span className="pf-viatico-sin-evidencia">Sin evidencia</span>
+                                                                        )}
+                                                                    </div>
+
+                                                                    <button className="pf-viatico-detalle-btn" onClick={() => setSeleccionado(v)}>
+                                                                        Ver detalle
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#D97706' }}>{resumenPeriodo.pendientes}</div>
-                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pendientes</div>
+                                    )}
+
+                                    {viaticosFiltrados.length === 0 && (
+                                        <div className="pf-mision-vacia" style={{ padding: '2.5rem' }}>
+                                            No hay viáticos registrados para los filtros seleccionados.
                                         </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#059669' }}>{resumenPeriodo.aprobados}</div>
-                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Aprobados</div>
-                                        </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#DC2626' }}>{resumenPeriodo.rechazados}</div>
-                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Rechazados</div>
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/mis-viaticos')}
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '0.5rem',
-                                            background: '#1D4ED8',
-                                            color: '#FFFFFF',
-                                            fontWeight: 700,
-                                            fontSize: '0.9rem',
-                                            padding: '0.65rem 1.4rem',
-                                            borderRadius: '10px',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            boxShadow: '0 4px 12px rgba(29, 78, 216, 0.3)',
-                                            transition: 'all 0.15s ease',
-                                            fontFamily: 'inherit',
-                                            whiteSpace: 'nowrap',
-                                        }}
-                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#1E40AF'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.background = '#1D4ED8'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                                    >
-                                        📋 Ver Viáticos →
-                                    </button>
+                                    )}
                                 </div>
                             </>
                         )}

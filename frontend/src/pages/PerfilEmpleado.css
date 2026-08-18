@@ -979,6 +979,202 @@
 .pf-estado-pill--activo .pf-estado-dot { background: #059669; }
 .pf-estado-pill--inactivo .pf-estado-dot { background: #DC2626; }
 
+/* ── PALETAS DE ASIGNACIÓN EN PERFIL EMPLEADO ── */
+.pf-paletas-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.pf-paleta {
+    background: #FFFFFF;
+    border: 1.5px solid #E2E8F0;
+    border-radius: var(--radius-xl);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transition: all 0.15s ease;
+}
+
+.pf-paleta:hover {
+    border-color: #CBD5E1;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.pf-paleta-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 1.4rem;
+    background: #FFFFFF;
+    border: none;
+    border-bottom: 1px solid #E2E8F0;
+    cursor: pointer;
+    text-align: left;
+    gap: 1rem;
+    transition: background 0.15s ease;
+}
+
+.pf-paleta-header:hover {
+    background: #F8FAFC;
+}
+
+.pf-paleta-header-izq {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.pf-paleta-icono {
+    font-size: 1.3rem;
+    background: #EFF6FF;
+    color: #1D4ED8;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    border: 1px solid #DBEAFE;
+    flex-shrink: 0;
+}
+
+.pf-paleta-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.pf-paleta-titulo {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #0F172A;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.pf-paleta-subtitulo {
+    font-size: 0.8rem;
+    color: #64748B;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.pf-paleta-header-der {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-shrink: 0;
+}
+
+.pf-paleta-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.pf-paleta-badge {
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+}
+
+.pf-paleta-badge--pendiente {
+    background: #FFFBEB;
+    color: #D97706;
+    border: 1px solid #FDE68A;
+}
+
+.pf-paleta-badge--aprobado {
+    background: #ECFDF5;
+    color: #059669;
+    border: 1px solid #A7F3D0;
+}
+
+.pf-paleta-badge--rechazado {
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+}
+
+.pf-paleta-badge--total {
+    background: #F1F5F9;
+    color: #1E293B;
+    border: 1px solid #E2E8F0;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.82rem;
+}
+
+.pf-paleta-toggle-icon {
+    font-size: 0.85rem;
+    color: #94A3B8;
+    font-weight: 800;
+}
+
+.pf-paleta-resumen-finance {
+    display: flex;
+    align-items: center;
+    background: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+    padding: 0.85rem 1.4rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.pf-paleta-resumen-metricas {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.pf-paleta-resumen-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.pf-paleta-resumen-lbl {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748B;
+    letter-spacing: 0.05em;
+}
+
+.pf-paleta-resumen-val {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #0F172A;
+    font-family: 'Outfit', sans-serif;
+}
+
+.pf-paleta-body {
+    padding: 1.25rem 1.4rem;
+    background: #F8FAFC;
+}
+
+.pf-paleta-empty {
+    padding: 1.5rem;
+    text-align: center;
+    color: #94A3B8;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
     .pf-hero-card {
@@ -1024,5 +1220,15 @@
 
     .pf-hero-metric-item {
         padding: 0;
+    }
+
+    .pf-paleta-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .pf-paleta-header-der {
+        width: 100%;
+        justify-content: space-between;
     }
 }
