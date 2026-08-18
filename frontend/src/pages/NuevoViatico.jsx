@@ -4,7 +4,7 @@ import api, { subirEvidencias } from '../services/api';
 import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import TecnicoLayout from '../components/TecnicoLayout';
 import { useAuth } from '../context/AuthContext';
-import { formatFechaLarga, formatCOP } from '../utils/personal';
+import { formatFechaLarga, formatCOP, formatMiles, limpiarNumero } from '../utils/personal';
 import './NuevoViatico.css';
 
 const CONCEPTOS = [
@@ -663,11 +663,12 @@ export default function NuevoViatico() {
                                                 <div className="nv-field-group">
                                                     <label>Valor del gasto (COP) *</label>
                                                     <input
-                                                        type="number"
-                                                        placeholder="$0"
-                                                        value={gasto.valor}
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        placeholder="$ 0"
+                                                        value={formatMiles(gasto.valor)}
                                                         onChange={(e) =>
-                                                            handleGastoChange(gasto.id, 'valor', e.target.value)
+                                                            handleGastoChange(gasto.id, 'valor', limpiarNumero(e.target.value))
                                                         }
                                                         required
                                                     />

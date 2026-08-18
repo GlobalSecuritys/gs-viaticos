@@ -4,7 +4,7 @@ import api from '../services/api';
 import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import TecnicoLayout from '../components/TecnicoLayout';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
-import { LABEL_TIPO_GASTO, formatCOP, formatFechaLarga } from '../utils/personal';
+import { LABEL_TIPO_GASTO, formatCOP, formatFechaLarga, formatMiles, limpiarNumero } from '../utils/personal';
 import { LABEL_TIPO_ASIGNACION } from '../utils/asignaciones';
 import './Forms.css';
 import './MisViaticos.css';
@@ -412,7 +412,7 @@ export default function MisViaticos() {
                   </div>
                   <div className="mv-form-field">
                     <label>Valor (COP)</label>
-                    <input type="number" required min="1" value={editForm.valor} onChange={(e) => setEditForm({ ...editForm, valor: e.target.value })} />
+                    <input type="text" inputMode="numeric" required placeholder="$ 0" value={formatMiles(editForm.valor)} onChange={(e) => setEditForm({ ...editForm, valor: limpiarNumero(e.target.value) })} />
                   </div>
                 </div>
                 <div className="mv-form-field" style={{ marginTop: '0.85rem' }}>

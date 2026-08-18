@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { parseDescripcion } from '../utils/descripcion';
+import { formatMiles, limpiarNumero } from '../utils/personal';
 import api from '../services/api';
 import './ModalEvidencia.css';
 
@@ -270,12 +271,11 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                                     {errorPresupuesto && <p style={{ color: '#EF4444', fontSize: '0.78rem', margin: '0 0 0.3rem 0' }}>{errorPresupuesto}</p>}
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                                         <input
-                                            type="number"
-                                            min="0"
-                                            step="any"
-                                            placeholder="Ej: 200000"
-                                            value={presupuestoInput}
-                                            onChange={(e) => setPresupuestoInput(e.target.value)}
+                                            type="text"
+                                            inputMode="numeric"
+                                            placeholder="Ej: 200.000"
+                                            value={formatMiles(presupuestoInput)}
+                                            onChange={(e) => setPresupuestoInput(limpiarNumero(e.target.value))}
                                             style={{ flex: 1, padding: '0.4rem 0.6rem', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '0.85rem' }}
                                             autoFocus
                                         />

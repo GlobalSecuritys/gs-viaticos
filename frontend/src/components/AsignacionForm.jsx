@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ModalSeleccionarCliente from './ModalSeleccionarCliente';
+import { formatMiles, limpiarNumero } from '../utils/personal';
 import './AsignacionForm.css';
 
 const VACIO = {
@@ -163,12 +164,11 @@ export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar
                 <label>
                     Monto de anticipo entregado (COP)
                     <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        value={form.monto_anticipo}
-                        onChange={(e) => actualizar('monto_anticipo', e.target.value)}
-                        placeholder="$0"
+                        type="text"
+                        inputMode="numeric"
+                        value={formatMiles(form.monto_anticipo)}
+                        onChange={(e) => actualizar('monto_anticipo', limpiarNumero(e.target.value))}
+                        placeholder="$ 0"
                     />
                 </label>
             </div>

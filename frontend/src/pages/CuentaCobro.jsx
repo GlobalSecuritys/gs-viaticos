@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { obtenerMisAsignacionesActivas, subirCuentaCobroAsignacion } from '../services/asignaciones';
 import { numeroALetras } from '../utils/numeroALetras';
+import { formatMiles, limpiarNumero } from '../utils/personal';
 import './CuentaCobro.css';
 
 function formatCOP(val) {
@@ -550,10 +551,11 @@ export default function CuentaCobro() {
                                                 </td>
                                                 <td>
                                                     <input
-                                                        type="number"
-                                                        min="0"
-                                                        value={it.valor_diario}
-                                                        onChange={(e) => handleItemChange(idx, 'valor_diario', e.target.value)}
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        value={formatMiles(it.valor_diario)}
+                                                        onChange={(e) => handleItemChange(idx, 'valor_diario', limpiarNumero(e.target.value))}
+                                                        placeholder="$ 0"
                                                         required
                                                     />
                                                 </td>

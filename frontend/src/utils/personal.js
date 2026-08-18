@@ -42,6 +42,24 @@ export function formatCOP(value) {
 }
 
 /**
+ * Formatea un número o string con separador de miles con puntos (ej: "50000" -> "50.000").
+ */
+export function formatMiles(valor) {
+    if (valor === null || valor === undefined || valor === '') return '';
+    const soloNumeros = String(valor).replace(/\D/g, '');
+    if (!soloNumeros) return '';
+    return Number(soloNumeros).toLocaleString('es-CO');
+}
+
+/**
+ * Limpia cualquier caracter no numérico dejando solo dígitos (ej: "50.000" -> "50000").
+ */
+export function limpiarNumero(valor) {
+    if (valor === null || valor === undefined) return '';
+    return String(valor).replace(/\D/g, '');
+}
+
+/**
  * Convierte una URL de Cloudinary en un enlace de descarga forzada.
  * Inserta `fl_attachment` en la URL de transformación para que el browser
  * descargue el archivo en vez de mostrarlo en el visor.
