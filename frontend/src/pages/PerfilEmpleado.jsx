@@ -898,72 +898,62 @@ export default function PerfilEmpleado() {
                                     </div>
                                 </div>
 
-                                <h2 className="pf-section-title">Historial</h2>
-                                {viaticosOrdenados.length === 0 ? (
-                                    <div className="pf-mision-vacia">Sin viáticos registrados en este periodo.</div>
-                                ) : (
-                                    <div className="pf-historial-grid">
-                                        {viaticosOrdenados.map((v) => {
-                                            const miniatura = v.evidencias?.[0]?.secure_url;
-                                            return (
-                                                <div key={v.id} className="pf-viatico-card">
-                                                    <div className="pf-viatico-top">
-                                                        <span className="pf-viatico-tipo">
-                                                            <span className="pf-viatico-icono">{ICONO_TIPO_GASTO[v.tipo_gasto] || '📦'}</span>
-                                                            {LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}
-                                                        </span>
-                                                        <span className={`pf-estado-badge pf-estado-badge--${v.estado}`}>
-                                                            {LABEL_ESTADO_VIATICO[v.estado] || v.estado}
-                                                        </span>
-                                                    </div>
-
-                                                    <div style={{ margin: '0.4rem 0' }}>
-                                                        {v.asignacion_id ? (() => {
-                                                            const _a = asignacionesFullMap.get(v.asignacion_id);
-                                                            const _label = _a
-                                                                ? [_a.cliente, LABEL_TIPO_ASIGNACION[_a.tipo] || _a.tipo].filter(Boolean).join(' - ')
-                                                                : `Asig. #${v.asignacion_id}`;
-                                                            return (
-                                                                <span style={{ fontSize: '0.75rem', background: '#EFF6FF', color: '#1D4ED8', padding: '0.2rem 0.55rem', borderRadius: '6px', fontWeight: 600 }} title={`ID interno: #${v.asignacion_id}`}>
-                                                                    📍 {_label}
-                                                                </span>
-                                                            );
-                                                        })() : (
-                                                            <span style={{ fontSize: '0.75rem', background: '#F8FAFC', color: '#64748B', border: '1px solid #E2E8F0', padding: '0.2rem 0.55rem', borderRadius: '6px', fontWeight: 500 }}>
-                                                                📄 Viático Independiente
-                                                            </span>
-                                                        )}
-                                                    </div>
-
-                                                    <p className="pf-viatico-lugar">{v.cliente} · {v.ciudad}</p>
-                                                    <p className="pf-viatico-fecha">{formatFechaLarga(v.fecha)}</p>
-
-                                                    {v.estado === 'rechazado' && v.motivo_rechazo && (
-                                                        <p className="pf-viatico-motivo">Motivo: {v.motivo_rechazo}</p>
-                                                    )}
-
-                                                    <div className="pf-viatico-footer">
-                                                        <span className="pf-viatico-valor">{formatCOP(v.valor)}</span>
-                                                        {miniatura ? (
-                                                            <img
-                                                                src={miniatura}
-                                                                alt="Evidencia"
-                                                                className="pf-viatico-thumb"
-                                                                onClick={() => setSeleccionado(v)}
-                                                            />
-                                                        ) : (
-                                                            <span className="pf-viatico-sin-evidencia">Sin evidencia</span>
-                                                        )}
-                                                    </div>
-
-                                                    <button className="pf-viatico-detalle-btn" onClick={() => setSeleccionado(v)}>
-                                                        Ver detalle
-                                                    </button>
-                                                </div>
-                                            );
-                                        })}
+                                {/* Viáticos: sólo resumen + botón → MisViaticos */}
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%)',
+                                    border: '1.5px solid #BFDBFE',
+                                    borderRadius: '14px',
+                                    padding: '1.5rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: '1.5rem',
+                                    flexWrap: 'wrap',
+                                }}>
+                                    <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1E293B' }}>{resumenPeriodo.cantidad}</div>
+                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Solicitudes</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#D97706' }}>{resumenPeriodo.pendientes}</div>
+                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pendientes</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#059669' }}>{resumenPeriodo.aprobados}</div>
+                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Aprobados</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#DC2626' }}>{resumenPeriodo.rechazados}</div>
+                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Rechazados</div>
+                                        </div>
                                     </div>
-                                )}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/mis-viaticos')}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            background: '#1D4ED8',
+                                            color: '#FFFFFF',
+                                            fontWeight: 700,
+                                            fontSize: '0.9rem',
+                                            padding: '0.65rem 1.4rem',
+                                            borderRadius: '10px',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 4px 12px rgba(29, 78, 216, 0.3)',
+                                            transition: 'all 0.15s ease',
+                                            fontFamily: 'inherit',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#1E40AF'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = '#1D4ED8'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                                    >
+                                        📋 Ver Viáticos →
+                                    </button>
+                                </div>
                             </>
                         )}
                     </>

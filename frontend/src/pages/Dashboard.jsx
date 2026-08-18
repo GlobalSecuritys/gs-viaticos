@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import TecnicoLayout from '../components/TecnicoLayout';
+import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
 import './Dashboard.css';
 
 function formatCOP(value) {
@@ -38,6 +39,7 @@ export default function Dashboard() {
 
     const [viaticos, setViaticos] = useState([]);
     const [asignaciones, setAsignaciones] = useState([]);
+    const [mostrarModalTipoViatico, setMostrarModalTipoViatico] = useState(false);
     const [, setLoading] = useState(true);
 
     useEffect(() => {
@@ -278,10 +280,14 @@ export default function Dashboard() {
                         <h2>¿Tienes un nuevo gasto de viaje?</h2>
                         <p>Registra tus facturas, recibos y pasajes de forma ultra rápida.</p>
                     </div>
-                    <button className="dash-tec-btn-action" onClick={() => navigate('/nuevo-viatico')}>
+                    <button className="dash-tec-btn-action" onClick={() => setMostrarModalTipoViatico(true)}>
                         📝 Registrar viáticos ahora →
                     </button>
                 </div>
+
+                {mostrarModalTipoViatico && (
+                    <ModalSeleccionarTipoViatico onClose={() => setMostrarModalTipoViatico(false)} />
+                )}
             </div>
         </TecnicoLayout>
     );

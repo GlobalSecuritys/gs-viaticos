@@ -608,3 +608,434 @@
   border-radius: var(--radius-md);
   font-size: 0.88rem;
 }
+
+/* ================================================================
+   VISTA AGRUPADA POR ASIGNACIÓN
+   ================================================================ */
+
+.mv-grupos-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Sección (Por Asignación / Independientes) */
+.mv-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.mv-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.25rem;
+}
+
+.mv-section-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.mv-section-count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+}
+
+/* Lista de paletas */
+.mv-paletas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* ── Paleta individual ── */
+.mv-paleta {
+  background: var(--color-bg-secondary);
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.mv-paleta:hover {
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.09);
+  border-color: #C7D2FE;
+}
+
+.mv-paleta--independiente {
+  border-style: dashed;
+  border-color: var(--color-border);
+}
+
+/* Header clickeable de la paleta */
+.mv-paleta-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  gap: 1rem;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.mv-paleta-header:hover {
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.mv-paleta-header-izq {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.mv-paleta-icono {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.mv-paleta-titulo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.mv-paleta-cliente {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mv-paleta-ciudad {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.mv-paleta-header-der {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.mv-paleta-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.mv-paleta-badge {
+  font-size: 0.73rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.mv-paleta-badge--pendiente {
+  background: var(--color-pendiente-bg);
+  color: var(--color-pendiente);
+  border: 1px solid rgba(217, 119, 6, 0.2);
+}
+
+.mv-paleta-badge--aprobado {
+  background: var(--color-aprobado-bg);
+  color: var(--color-aprobado);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.mv-paleta-badge--rechazado {
+  background: var(--color-rechazado-bg);
+  color: var(--color-rechazado);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.mv-paleta-badge--total {
+  background: var(--color-bg-primary);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.mv-paleta-toggle {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+/* Body de la paleta (expandida) */
+.mv-paleta-body {
+  border-top: 1px solid var(--color-border);
+  padding: 0;
+}
+
+/* Resumen financiero */
+.mv-paleta-resumen {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mv-paleta-resumen-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  gap: 0.2rem;
+  border-right: 1px solid var(--color-border);
+}
+
+.mv-paleta-resumen-item:last-child {
+  border-right: none;
+}
+
+.mv-pr-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+}
+
+.mv-pr-val {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.mv-pr-val--gastado {
+  color: #D97706;
+}
+
+.mv-pr-val--saldo {
+  color: #059669;
+}
+
+.mv-pr-val--negativo {
+  color: #DC2626;
+}
+
+/* Lista de ítems de viáticos dentro de la paleta */
+.mv-paleta-viaticos {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Item individual de viático */
+.mv-viatico-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.12s ease;
+}
+
+.mv-viatico-item:last-child {
+  border-bottom: none;
+}
+
+.mv-viatico-item:hover {
+  background: rgba(241, 245, 249, 0.6);
+}
+
+.mv-vi-izq {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.mv-vi-icono {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.mv-vi-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.mv-vi-tipo {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.mv-vi-fecha {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.mv-vi-ciudad {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+}
+
+.mv-vi-ev {
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--color-accent-blue);
+  background: var(--color-accent-blue-light);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.mv-vi-ev--vacio {
+  color: var(--color-text-muted);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  font-weight: 500;
+}
+
+.mv-vi-der {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.mv-vi-valor {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.mv-vi-estado {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mv-vi-estado--pendiente {
+  background: var(--color-pendiente-bg);
+  color: var(--color-pendiente);
+}
+
+.mv-vi-estado--aprobado {
+  background: var(--color-aprobado-bg);
+  color: var(--color-aprobado);
+}
+
+.mv-vi-estado--rechazado {
+  background: var(--color-rechazado-bg);
+  color: var(--color-rechazado);
+}
+
+.mv-vi-comentario {
+  font-size: 0.72rem;
+  color: #B45309;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  max-width: 160px;
+  word-break: break-word;
+  text-align: right;
+}
+
+.mv-vi-acciones {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.1rem;
+}
+
+/* Footer de la paleta */
+.mv-paleta-footer {
+  padding: 0.75rem 1.25rem;
+  background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mv-paleta-btn-agregar {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-accent-blue);
+  background: var(--color-accent-blue-light);
+  border: 1px solid rgba(30, 64, 175, 0.15);
+  border-radius: 8px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.mv-paleta-btn-agregar:hover {
+  background: var(--color-accent-blue);
+  color: #FFFFFF;
+}
+
+@media (max-width: 640px) {
+  .mv-paleta-resumen {
+    flex-wrap: wrap;
+  }
+
+  .mv-paleta-resumen-item {
+    min-width: 50%;
+    flex: 1 1 50%;
+  }
+
+  .mv-paleta-badges {
+    display: none;
+  }
+
+  .mv-paleta-header {
+    padding: 0.85rem 1rem;
+  }
+
+  .mv-viatico-item {
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .mv-vi-der {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+}

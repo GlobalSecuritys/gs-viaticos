@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import TecnicoLayout from '../components/TecnicoLayout';
+import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
 import { LABEL_TIPO_GASTO, formatCOP, formatFechaLarga } from '../utils/personal';
+import { LABEL_TIPO_ASIGNACION } from '../utils/asignaciones';
 import './Forms.css';
 import './MisViaticos.css';
 
@@ -10,6 +12,15 @@ const LABEL_ESTADO = {
   pendiente: 'Pendiente',
   aprobado: 'Aprobado',
   rechazado: 'Rechazado',
+};
+
+const ICONO_GASTO = {
+  alimentacion: '🍽',
+  transporte: '🚗',
+  hotel: '🏨',
+  peajes: '🛣',
+  parqueadero: '🅿',
+  otros: '📎',
 };
 
 const CONCEPTOS = [
@@ -26,8 +37,9 @@ export default function MisViaticos() {
   const [viaticos, setViaticos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [mostrarModalTipoViatico, setMostrarModalTipoViatico] = useState(false);
+  const [colapsadas, setColapsadas] = useState({});
 
-  // Estados para Modal de Edición
   const [viaticoEditando, setViaticoEditando] = useState(null);
   const [editForm, setEditForm] = useState({
     cliente: '',
@@ -42,7 +54,6 @@ export default function MisViaticos() {
   const [guardandoEdit, setGuardandoEdit] = useState(false);
   const [errorEdit, setErrorEdit] = useState('');
 
-  // Estados para Modal de Eliminación
   const [viaticoEliminando, setViaticoEliminando] = useState(null);
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState('');
@@ -55,72 +66,62 @@ export default function MisViaticos() {
         if (activo) setViaticos(data || []);
       })
       .catch(() => {
-        if (activo) setError('No se pudieron cargar tus viáticos.');
+        if (activo) setError('No se pudieron cargar tus viaticos.');
       })
       .finally(() => {
         if (activo) setLoading(false);
       });
-    return () => {
-      activo = false;
-    };
+    return () => { activo = false; };
   }, []);
+
+  const { grupos, independientes } = useMemo(() => {
+    const porAsignacion = {};
+    const libres = [];
+    viaticos.forEach((v) => {
+      if (v.asignacion_id) {
+        if (!porAsignacion[v.asignacion_id]) {
+          porAsignacion[v.asignacion_id] = {
+            asignacion_id: v.asignacion_id,
+            resumen: v.asignacion_resumen || null,
+            viaticos: [],
+          };
+        }
+        porAsignacion[v.asignacion_id].viaticos.push(v);
+      } else {
+        libres.push(v);
+      }
+    });
+    const gruposOrdenados = Object.values(porAsignacion).sort(
+      (a, b) => b.viaticos.length - a.viaticos.length
+    );
+    return { grupos: gruposOrdenados, independientes: libres };
+  }, [viaticos]);
+
+  function toggleColapsada(key) {
+    setColapsadas((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   function esDescripcionEstructurada(str) {
     if (!str || typeof str !== 'string') return false;
     try {
       const parsed = JSON.parse(str);
       return typeof parsed === 'object' && parsed !== null;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }
 
   function abrirEditar(v) {
     setViaticoEditando(v);
+    setErrorEdit('');
+    setMostrarFechaEdit(false);
     setEditForm({
       cliente: v.cliente || '',
       ciudad: v.ciudad || '',
+      ot: v.ot || '',
       tipo_gasto: v.tipo_gasto || 'alimentacion',
       valor: v.valor || '',
       descripcion: esDescripcionEstructurada(v.descripcion) ? '' : (v.descripcion || ''),
-      fecha: v.fecha ? v.fecha.slice(0, 10) : '',
+      fecha: v.fecha || '',
     });
-    setMostrarFechaEdit(false);
-    setErrorEdit('');
-  }
-
-  async function handleGuardarEdicion(e) {
-    e.preventDefault();
-    if (!viaticoEditando) return;
-
-    setGuardandoEdit(true);
-    setErrorEdit('');
-
-    try {
-      const payload = {
-        cliente: editForm.cliente,
-        ciudad: editForm.ciudad,
-        ot: viaticoEditando.ot,
-        tipo_gasto: editForm.tipo_gasto,
-        valor: Number(editForm.valor),
-        descripcion: editForm.descripcion || null,
-      };
-
-      if (mostrarFechaEdit && editForm.fecha) {
-        payload.fecha = editForm.fecha;
-      }
-
-      const { data: viaticoActualizado } = await api.put(`/viaticos/${viaticoEditando.id}`, payload);
-
-      setViaticos((prev) =>
-        prev.map((item) => (item.id === viaticoActualizado.id ? viaticoActualizado : item))
-      );
-      setViaticoEditando(null);
-    } catch (err) {
-      setErrorEdit(err.response?.data?.detail || 'No se pudo editar el viático.');
-    } finally {
-      setGuardandoEdit(false);
-    }
   }
 
   function abrirEliminar(v) {
@@ -128,318 +129,307 @@ export default function MisViaticos() {
     setErrorEliminar('');
   }
 
+  async function handleGuardarEdicion(e) {
+    e.preventDefault();
+    setGuardandoEdit(true);
+    setErrorEdit('');
+    try {
+      const payload = {
+        cliente: editForm.cliente,
+        ciudad: editForm.ciudad,
+        ot: editForm.ot,
+        tipo_gasto: editForm.tipo_gasto,
+        valor: parseFloat(editForm.valor),
+        descripcion: editForm.descripcion || null,
+      };
+      if (mostrarFechaEdit && editForm.fecha) payload.fecha = editForm.fecha;
+      const { data } = await api.put(`/viaticos/${viaticoEditando.id}`, payload);
+      setViaticos((prev) => prev.map((item) => item.id === viaticoEditando.id ? { ...item, ...data } : item));
+      setViaticoEditando(null);
+    } catch (err) {
+      setErrorEdit(err.response?.data?.detail || 'No se pudo guardar el viatico.');
+    } finally {
+      setGuardandoEdit(false);
+    }
+  }
+
   async function handleConfirmarEliminar() {
-    if (!viaticoEliminando) return;
-
     setEliminando(true);
-    setErrorEliminar('');
-
     try {
       await api.delete(`/viaticos/${viaticoEliminando.id}`);
       setViaticos((prev) => prev.filter((item) => item.id !== viaticoEliminando.id));
       setViaticoEliminando(null);
     } catch (err) {
-      setErrorEliminar(err.response?.data?.detail || 'No se pudo eliminar el viático.');
+      setErrorEliminar(err.response?.data?.detail || 'No se pudo eliminar el viatico.');
     } finally {
       setEliminando(false);
     }
+  }
+
+  function FilaViatico({ v }) {
+    return (
+      <div className="mv-viatico-item">
+        <div className="mv-vi-izq">
+          <span className="mv-vi-icono">{ICONO_GASTO[v.tipo_gasto] || '📎'}</span>
+          <div className="mv-vi-info">
+            <span className="mv-vi-tipo">{LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}</span>
+            <span className="mv-vi-fecha">{formatFechaLarga(v.fecha)}</span>
+            {v.ciudad && <span className="mv-vi-ciudad">📍 {v.ciudad}</span>}
+            {v.evidencias?.length > 0 ? (
+              <span className="mv-vi-ev">📎 {v.evidencias.length} foto{v.evidencias.length > 1 ? 's' : ''}</span>
+            ) : (
+              <span className="mv-vi-ev mv-vi-ev--vacio">Sin evidencia</span>
+            )}
+          </div>
+        </div>
+        <div className="mv-vi-der">
+          <span className="mv-vi-valor">{formatCOP(v.valor)}</span>
+          <span className={`mv-vi-estado mv-vi-estado--${v.estado}`}>
+            {LABEL_ESTADO[v.estado] || v.estado}
+          </span>
+          {v.comentario_admin && (
+            <span className="mv-vi-comentario" title={v.comentario_admin}>
+              💬 {v.comentario_admin}
+            </span>
+          )}
+          {v.estado === 'pendiente' && (
+            <div className="mv-vi-acciones">
+              <button type="button" className="mv-btn-accion mv-btn-accion--edit" onClick={() => abrirEditar(v)}>
+                ✏ Editar
+              </button>
+              <button type="button" className="mv-btn-accion mv-btn-accion--del" onClick={() => abrirEliminar(v)}>
+                🗑 Borrar
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function PaletaAsignacion({ grupo }) {
+    const { asignacion_id, resumen, viaticos: items } = grupo;
+    const isColapsada = !!colapsadas[asignacion_id];
+    const totalGrupo = items.reduce((acc, v) => acc + parseFloat(v.valor || 0), 0);
+    const pendientes = items.filter((v) => v.estado === 'pendiente').length;
+    const aprobados = items.filter((v) => v.estado === 'aprobado').length;
+    const rechazados = items.filter((v) => v.estado === 'rechazado').length;
+    const cliente = resumen?.cliente || `Asignacion #${asignacion_id}`;
+    const ciudad = resumen?.ciudad || '';
+    const anticipoAsig = resumen?.monto_anticipo || 0;
+    const saldoAsig = resumen?.saldo_restante || 0;
+
+    return (
+      <div className="mv-paleta">
+        <button
+          type="button"
+          className="mv-paleta-header"
+          onClick={() => toggleColapsada(asignacion_id)}
+          aria-expanded={!isColapsada}
+        >
+          <div className="mv-paleta-header-izq">
+            <span className="mv-paleta-icono">📋</span>
+            <div className="mv-paleta-titulo">
+              <span className="mv-paleta-cliente">{cliente}</span>
+              {ciudad && <span className="mv-paleta-ciudad">📍 {ciudad}</span>}
+            </div>
+          </div>
+          <div className="mv-paleta-header-der">
+            <div className="mv-paleta-badges">
+              {pendientes > 0 && <span className="mv-paleta-badge mv-paleta-badge--pendiente">{pendientes} pendiente{pendientes > 1 ? 's' : ''}</span>}
+              {aprobados > 0 && <span className="mv-paleta-badge mv-paleta-badge--aprobado">{aprobados} aprobado{aprobados > 1 ? 's' : ''}</span>}
+              {rechazados > 0 && <span className="mv-paleta-badge mv-paleta-badge--rechazado">{rechazados} rechazado{rechazados > 1 ? 's' : ''}</span>}
+              <span className="mv-paleta-badge mv-paleta-badge--total">{formatCOP(totalGrupo)}</span>
+            </div>
+            <span className="mv-paleta-toggle">{isColapsada ? '▼' : '▲'}</span>
+          </div>
+        </button>
+
+        {!isColapsada && (
+          <div className="mv-paleta-body">
+            {resumen && (
+              <div className="mv-paleta-resumen">
+                <div className="mv-paleta-resumen-item">
+                  <span className="mv-pr-label">Anticipo</span>
+                  <span className="mv-pr-val">{formatCOP(anticipoAsig)}</span>
+                </div>
+                <div className="mv-paleta-resumen-item">
+                  <span className="mv-pr-label">Gastado</span>
+                  <span className="mv-pr-val mv-pr-val--gastado">{formatCOP(resumen.total_gastado || 0)}</span>
+                </div>
+                <div className="mv-paleta-resumen-item">
+                  <span className="mv-pr-label">Saldo</span>
+                  <span className={`mv-pr-val ${parseFloat(saldoAsig) < 0 ? 'mv-pr-val--negativo' : 'mv-pr-val--saldo'}`}>
+                    {formatCOP(saldoAsig)}
+                  </span>
+                </div>
+                <div className="mv-paleta-resumen-item">
+                  <span className="mv-pr-label">Items</span>
+                  <span className="mv-pr-val">{items.length}</span>
+                </div>
+              </div>
+            )}
+            <div className="mv-paleta-viaticos">
+              {items.map((v) => <FilaViatico key={v.id} v={v} />)}
+            </div>
+            <div className="mv-paleta-footer">
+              <button
+                type="button"
+                className="mv-paleta-btn-agregar"
+                onClick={() => navigate(`/nuevo-viatico?asignacion_id=${asignacion_id}`)}
+              >
+                + Agregar gasto a esta asignacion
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
     <TecnicoLayout>
       <div className="mv-root" style={{ padding: '2rem 1.5rem', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
         <header className="form-header">
-          <button className="btn-back" onClick={() => navigate('/dashboard')}>
-            ← Volver
-          </button>
+          <button className="btn-back" onClick={() => navigate('/dashboard')}>← Volver</button>
           <div className="form-header-title">
-            <h1>Mis Viáticos</h1>
-            <p>Historial y estado de tus viáticos registrados</p>
+            <h1>Mis Viaticos</h1>
+            <p>Historial y estado de tus viaticos registrados</p>
           </div>
-          <button className="btn-nuevo" onClick={() => navigate('/nuevo-viatico')}>
-            + Nuevo Viático
+          <button className="btn-nuevo" onClick={() => setMostrarModalTipoViatico(true)}>
+            + Nuevo Viatico
           </button>
         </header>
 
         <div className="mv-body">
-          {error && (
-            <div className="form-error" role="alert">
-              <span>⚠</span> {error}
-            </div>
-          )}
+          {error && <div className="form-error" role="alert"><span>⚠</span> {error}</div>}
 
           {loading ? (
-            <div className="mv-loading">
-              <div className="mv-spinner" />
-              <span>Cargando tus viáticos…</span>
-            </div>
+            <div className="mv-loading"><div className="mv-spinner" /><span>Cargando tus viaticos…</span></div>
           ) : viaticos.length === 0 ? (
             <div className="mv-empty">
               <span className="mv-empty-icon">📋</span>
-              <p>Todavía no has registrado ningún viático.</p>
-              <button className="btn-primary" onClick={() => navigate('/nuevo-viatico')}>
-                Registrar el primero
-              </button>
+              <p>Todavia no has registrado ningun viatico.</p>
+              <button className="btn-primary" onClick={() => setMostrarModalTipoViatico(true)}>Registrar el primero</button>
             </div>
           ) : (
-            <div className="mv-table-wrap">
-              <table className="mv-table">
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Cliente</th>
-                    <th>Ciudad</th>
-                    <th>Tipo</th>
-                    <th className="text-right">Valor</th>
-                    <th className="text-center">Evidencia</th>
-                    <th>Estado</th>
-                    <th className="text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {viaticos.map((v) => (
-                    <tr key={v.id}>
-                      <td className="td-date">{formatFechaLarga(v.fecha)}</td>
-                      <td className="td-main">
-                        <div>{v.cliente}</div>
-                        {v.asignacion_id ? (
-                          <span style={{ fontSize: '0.73rem', color: '#1D4ED8', background: '#EFF6FF', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 600 }} title={`ID interno: #${v.asignacion_id}`}>
-                            📍 {v.cliente || `Asig. #${v.asignacion_id}`}
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '0.73rem', color: '#64748B', background: '#F1F5F9', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
-                            📄 Independiente {v.monto_presupuesto ? `(${formatCOP(v.monto_presupuesto)})` : '(Habilitación manual por admin)'}
-                          </span>
-                        )}
-                      </td>
-                      <td>{v.ciudad}</td>
-                      <td>
-                        <span className="badge-tipo">
-                          {LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}
-                        </span>
-                      </td>
-                      <td className="td-valor text-right">{formatCOP(v.valor)}</td>
-                      <td className="text-center">
-                        {v.evidencias?.length > 0 ? (
-                          <span className="badge-evidencia">📎 {v.evidencias.length}</span>
-                        ) : (
-                          <span className="badge-evidencia badge-evidencia--vacio">Sin fotos</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={`badge-estado badge-estado--${v.estado}`}>
-                          {LABEL_ESTADO[v.estado] || v.estado}
-                        </span>
-                        {v.comentario_admin && (
-                          <div style={{ fontSize: '0.75rem', color: '#B45309', marginTop: '0.35rem', background: '#FFFBEB', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #FDE68A', maxWidth: '200px', wordBreak: 'break-word' }} title={v.comentario_admin}>
-                            💬 {v.comentario_admin}
-                          </div>
-                        )}
-                      </td>
-                      <td className="text-center">
-                        {v.estado === 'pendiente' ? (
-                          <div className="mv-acciones-btns">
-                            <button
-                              type="button"
-                              className="mv-btn-accion mv-btn-accion--edit"
-                              onClick={() => abrirEditar(v)}
-                              title="Editar viático"
-                            >
-                              ✏ Editar
-                            </button>
-                            <button
-                              type="button"
-                              className="mv-btn-accion mv-btn-accion--del"
-                              onClick={() => abrirEliminar(v)}
-                              title="Eliminar viático"
-                            >
-                              🗑 Borrar
-                            </button>
-                          </div>
-                        ) : (
-                          <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mv-grupos-wrap">
+              {grupos.length > 0 && (
+                <section className="mv-section">
+                  <div className="mv-section-header">
+                    <h2 className="mv-section-title"><span>📍</span> Por Asignacion</h2>
+                    <span className="mv-section-count">{grupos.length} asignacion{grupos.length > 1 ? 'es' : ''}</span>
+                  </div>
+                  <div className="mv-paletas-lista">
+                    {grupos.map((g) => <PaletaAsignacion key={g.asignacion_id} grupo={g} />)}
+                  </div>
+                </section>
+              )}
+
+              {independientes.length > 0 && (
+                <section className="mv-section">
+                  <div className="mv-section-header">
+                    <h2 className="mv-section-title"><span>📄</span> Viaticos Independientes</h2>
+                    <span className="mv-section-count">{independientes.length} registro{independientes.length > 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="mv-paleta mv-paleta--independiente">
+                    <div className="mv-paleta-viaticos">
+                      {independientes.map((v) => <FilaViatico key={v.id} v={v} />)}
+                    </div>
+                    <div className="mv-paleta-footer">
+                      <button type="button" className="mv-paleta-btn-agregar" onClick={() => navigate('/nuevo-viatico')}>
+                        + Agregar viatico independiente
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              )}
             </div>
           )}
         </div>
 
-        {/* MODAL DE EDICIÓN */}
         {viaticoEditando && (
           <div className="mv-modal-overlay">
             <div className="mv-modal">
               <div className="mv-modal-header">
-                <h2>Editar Viático #{viaticoEditando.id}</h2>
-                <button
-                  type="button"
-                  className="mv-modal-close"
-                  onClick={() => setViaticoEditando(null)}
-                >
-                  ✕
-                </button>
+                <h2>Editar Viatico #{viaticoEditando.id}</h2>
+                <button type="button" className="mv-modal-close" onClick={() => setViaticoEditando(null)}>✕</button>
               </div>
-
-              {errorEdit && (
-                <div className="form-error" style={{ margin: '1rem 1.25rem 0' }}>
-                  <span>⚠</span> {errorEdit}
-                </div>
-              )}
-
+              {errorEdit && <div className="form-error" style={{ margin: '1rem 1.25rem 0' }}><span>⚠</span> {errorEdit}</div>}
               <form onSubmit={handleGuardarEdicion} className="mv-modal-body">
                 <div className="mv-form-grid">
                   <div className="mv-form-field">
                     <label>Cliente</label>
-                    <input
-                      type="text"
-                      required
-                      value={editForm.cliente}
-                      onChange={(e) => setEditForm({ ...editForm, cliente: e.target.value })}
-                    />
+                    <input type="text" required value={editForm.cliente} onChange={(e) => setEditForm({ ...editForm, cliente: e.target.value })} />
                   </div>
-
                   <div className="mv-form-field">
-                    <label>Ciudad / Ubicación</label>
-                    <input
-                      type="text"
-                      required
-                      value={editForm.ciudad}
-                      onChange={(e) => setEditForm({ ...editForm, ciudad: e.target.value })}
-                    />
+                    <label>Ciudad / Ubicacion</label>
+                    <input type="text" required value={editForm.ciudad} onChange={(e) => setEditForm({ ...editForm, ciudad: e.target.value })} />
                   </div>
-
                   <div className="mv-form-field">
                     <label>Tipo de Gasto</label>
-                    <select
-                      value={editForm.tipo_gasto}
-                      onChange={(e) => setEditForm({ ...editForm, tipo_gasto: e.target.value })}
-                    >
-                      {CONCEPTOS.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.label}
-                        </option>
-                      ))}
+                    <select value={editForm.tipo_gasto} onChange={(e) => setEditForm({ ...editForm, tipo_gasto: e.target.value })}>
+                      {CONCEPTOS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                     </select>
                   </div>
-
                   <div className="mv-form-field">
                     <label>Valor (COP)</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={editForm.valor}
-                      onChange={(e) => setEditForm({ ...editForm, valor: e.target.value })}
-                    />
+                    <input type="number" required min="1" value={editForm.valor} onChange={(e) => setEditForm({ ...editForm, valor: e.target.value })} />
                   </div>
                 </div>
-
                 <div className="mv-form-field" style={{ marginTop: '0.85rem' }}>
-                  <label>Descripción / Observación (opcional)</label>
-                  <textarea
-                    rows={2}
-                    value={editForm.descripcion}
-                    onChange={(e) => setEditForm({ ...editForm, descripcion: e.target.value })}
-                  />
+                  <label>Descripcion / Observacion (opcional)</label>
+                  <textarea rows={2} value={editForm.descripcion} onChange={(e) => setEditForm({ ...editForm, descripcion: e.target.value })} />
                 </div>
-
-                {/* Sección colapsable para editar fecha */}
                 <div className="mv-fecha-colapsable">
-                  <button
-                    type="button"
-                    className="mv-btn-colapsable"
-                    onClick={() => setMostrarFechaEdit((v) => !v)}
-                  >
+                  <button type="button" className="mv-btn-colapsable" onClick={() => setMostrarFechaEdit((v) => !v)}>
                     <span>Editar fecha (opcional)</span>
                     <span>{mostrarFechaEdit ? '▴' : '▾'}</span>
                   </button>
-
                   {mostrarFechaEdit && (
                     <div className="mv-fecha-input-wrap">
                       <label>Nueva fecha</label>
-                      <input
-                        type="date"
-                        value={editForm.fecha}
-                        onChange={(e) => setEditForm({ ...editForm, fecha: e.target.value })}
-                      />
+                      <input type="date" value={editForm.fecha} onChange={(e) => setEditForm({ ...editForm, fecha: e.target.value })} />
                     </div>
                   )}
                 </div>
-
                 <div className="mv-modal-footer">
-                  <button
-                    type="button"
-                    className="btn-back"
-                    onClick={() => setViaticoEditando(null)}
-                    disabled={guardandoEdit}
-                  >
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn-primary" disabled={guardandoEdit}>
-                    {guardandoEdit ? 'Guardando…' : 'Guardar Cambios'}
-                  </button>
+                  <button type="button" className="btn-back" onClick={() => setViaticoEditando(null)} disabled={guardandoEdit}>Cancelar</button>
+                  <button type="submit" className="btn-primary" disabled={guardandoEdit}>{guardandoEdit ? 'Guardando…' : 'Guardar Cambios'}</button>
                 </div>
               </form>
             </div>
           </div>
         )}
 
-        {/* MODAL DE CONFIRMACIÓN DE ELIMINACIÓN */}
         {viaticoEliminando && (
           <div className="mv-modal-overlay">
             <div className="mv-modal mv-modal--small">
               <div className="mv-modal-header">
-                <h2>Eliminar Viático #{viaticoEliminando.id}</h2>
-                <button
-                  type="button"
-                  className="mv-modal-close"
-                  onClick={() => setViaticoEliminando(null)}
-                >
-                  ✕
-                </button>
+                <h2>Eliminar Viatico #{viaticoEliminando.id}</h2>
+                <button type="button" className="mv-modal-close" onClick={() => setViaticoEliminando(null)}>✕</button>
               </div>
-
-              {errorEliminar && (
-                <div className="form-error" style={{ margin: '1rem 1.25rem 0' }}>
-                  <span>⚠</span> {errorEliminar}
-                </div>
-              )}
-
+              {errorEliminar && <div className="form-error" style={{ margin: '1rem 1.25rem 0' }}><span>⚠</span> {errorEliminar}</div>}
               <div className="mv-modal-body">
                 <p style={{ margin: '0 0 1rem', fontSize: '0.92rem', color: 'var(--color-text)' }}>
-                  ¿Estás seguro de que deseas eliminar el viático de{' '}
-                  <strong>{viaticoEliminando.cliente}</strong> por{' '}
-                  <strong>{formatCOP(viaticoEliminando.valor)}</strong>?
+                  Estas seguro de que deseas eliminar el viatico de <strong>{viaticoEliminando.cliente}</strong> por <strong>{formatCOP(viaticoEliminando.valor)}</strong>?
                 </p>
                 <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-                  Esta acción no se puede deshacer y notificará al administrador.
+                  Esta accion no se puede deshacer y notificara al administrador.
                 </p>
               </div>
-
               <div className="mv-modal-footer">
-                <button
-                  type="button"
-                  className="btn-back"
-                  onClick={() => setViaticoEliminando(null)}
-                  disabled={eliminando}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  style={{ backgroundColor: '#DC2626' }}
-                  onClick={handleConfirmarEliminar}
-                  disabled={eliminando}
-                >
-                  {eliminando ? 'Eliminando…' : 'Sí, Eliminar'}
+                <button type="button" className="btn-back" onClick={() => setViaticoEliminando(null)} disabled={eliminando}>Cancelar</button>
+                <button type="button" className="btn-primary" style={{ backgroundColor: '#DC2626' }} onClick={handleConfirmarEliminar} disabled={eliminando}>
+                  {eliminando ? 'Eliminando…' : 'Si, Eliminar'}
                 </button>
               </div>
             </div>
           </div>
+        )}
+
+        {mostrarModalTipoViatico && (
+          <ModalSeleccionarTipoViatico onClose={() => setMostrarModalTipoViatico(false)} />
         )}
       </div>
     </TecnicoLayout>

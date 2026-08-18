@@ -1,0 +1,397 @@
+/* ModalSeleccionarTipoViatico.css */
+.mstv-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 1.25rem;
+    animation: mstvFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes mstvFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.mstv-modal {
+    background: #FFFFFF;
+    border-radius: 18px;
+    width: 100%;
+    max-width: 580px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+    animation: mstvSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes mstvSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.mstv-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1.5rem 1.75rem 1.15rem;
+    border-bottom: 1px solid #F1F5F9;
+    background: #FAFAFC;
+}
+
+.mstv-title {
+    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 0.25rem;
+}
+
+.mstv-subtitle {
+    font-size: 0.86rem;
+    color: #64748B;
+    margin: 0;
+}
+
+.mstv-btn-close {
+    background: #F1F5F9;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    color: #64748B;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.mstv-btn-close:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+}
+
+.mstv-body {
+    padding: 1.5rem 1.75rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+}
+
+/* Opción Viático Independiente */
+.mstv-option-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.15rem 1.25rem;
+    border-radius: 14px;
+    border: 1.5px solid #E2E8F0;
+    background: #FFFFFF;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.mstv-option-card:hover {
+    border-color: #3B82F6;
+    background: #F8FAFC;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.12);
+}
+
+.mstv-option-icon {
+    font-size: 1.6rem;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: #EFF6FF;
+    border: 1px solid #DBEAFE;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.mstv-option-info {
+    flex: 1;
+}
+
+.mstv-option-header-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.2rem;
+}
+
+.mstv-option-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0;
+}
+
+.mstv-option-pill {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    background: #F1F5F9;
+    color: #475569;
+}
+
+.mstv-option-desc {
+    font-size: 0.8rem;
+    color: #64748B;
+    margin: 0;
+    line-height: 1.35;
+}
+
+.mstv-option-arrow {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #94A3B8;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.mstv-option-card:hover .mstv-option-arrow {
+    color: #2563EB;
+    transform: translateX(3px);
+}
+
+/* Sección Asignaciones */
+.mstv-section-asig {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.mstv-section-asig-header {
+    margin-bottom: 0.2rem;
+}
+
+.mstv-asig-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.mstv-asig-icon {
+    font-size: 1.25rem;
+    margin-top: 0.1rem;
+}
+
+.mstv-asig-section-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0 0 0.15rem;
+}
+
+/* Lista de Asignaciones */
+.mstv-asig-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+.mstv-asig-item {
+    background: #FAFAFC;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 0.95rem 1.15rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.mstv-asig-item:hover {
+    background: #F0FDF4;
+    border-color: #22C55E;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(34, 197, 94, 0.12);
+}
+
+.mstv-asig-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mstv-asig-tipo-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    color: #1E293B;
+}
+
+.mstv-asig-badge-activa {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #16A34A;
+    background: #DCFCE7;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+}
+
+.mstv-asig-item-cliente {
+    font-size: 0.94rem;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0;
+}
+
+.mstv-asig-item-detalles {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    color: #64748B;
+}
+
+.mstv-asig-tag-oficina {
+    color: #0284C7;
+    font-weight: 700;
+    background: #F0F9FF;
+    padding: 0.12rem 0.45rem;
+    border-radius: 5px;
+    border: 1px solid #BAE6FD;
+}
+
+.mstv-asig-tag {
+    background: #F1F5F9;
+    padding: 0.12rem 0.45rem;
+    border-radius: 5px;
+}
+
+.mstv-asig-item-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed #E2E8F0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #16A34A;
+}
+
+.mstv-item-arrow {
+    font-size: 0.95rem;
+    transition: transform 0.15s ease;
+}
+
+.mstv-asig-item:hover .mstv-item-arrow {
+    transform: translateX(4px);
+}
+
+/* Loading & Empty states */
+.mstv-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    padding: 1.5rem;
+    color: #64748B;
+    font-size: 0.85rem;
+    background: #F8FAFC;
+    border-radius: 12px;
+    border: 1px dashed #CBD5E1;
+}
+
+.mstv-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #CBD5E1;
+    border-top-color: #3B82F6;
+    border-radius: 50%;
+    animation: mstvSpin 0.7s linear infinite;
+}
+
+@keyframes mstvSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.mstv-empty-asig {
+    background: #F8FAFC;
+    border: 1px dashed #CBD5E1;
+    border-radius: 12px;
+    padding: 1.25rem 1rem;
+    text-align: center;
+}
+
+.mstv-empty-icon {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.mstv-empty-title {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #475569;
+    margin: 0 0 0.25rem;
+}
+
+.mstv-empty-hint {
+    font-size: 0.78rem;
+    color: #64748B;
+    display: block;
+}
+
+/* Footer */
+.mstv-footer {
+    padding: 1rem 1.75rem;
+    border-top: 1px solid #F1F5F9;
+    background: #FAFAFC;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.mstv-btn-cancel {
+    padding: 0.55rem 1.25rem;
+    border-radius: 9px;
+    border: 1px solid #CBD5E1;
+    background: #FFFFFF;
+    color: #475569;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.mstv-btn-cancel:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+}
