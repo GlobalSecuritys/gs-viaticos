@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import ModalSeleccionarCliente from './ModalSeleccionarCliente';
 import './AsignacionForm.css';
 
@@ -14,20 +14,25 @@ const VACIO = {
     observaciones: '',
 };
 
-const OPCIONES_TIPO_PRINCIPALES = [
+const OPCIONES_TIPO = [
     { id: 'mantenimiento', label: 'Mantenimiento' },
-    { id: 'oficina', label: 'Oficina' },
-    { id: 'oficina_general', label: 'Oficina General' },
+    { id: 'correctivo', label: 'Correctivo' },
+    { id: 'preventivo', label: 'Preventivo' },
     { id: 'preventivo_rtc', label: 'Preventivo RTC' },
     { id: 'rtc', label: 'RTC' },
+    { id: 'garantia', label: 'Garantia' },
 ];
 
 export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar, enviando, tecnicoPreseleccionado = null }) {
     const [form, setForm] = useState(() => {
         if (inicial) {
+            let tipoInicial = inicial.tipo ?? '';
+            if (tipoInicial === 'oficina_correctivo' || tipoInicial === 'oficina') tipoInicial = 'correctivo';
+            if (tipoInicial === 'oficina_preventivo') tipoInicial = 'preventivo';
+
             return {
                 tecnico_id: String(inicial.tecnico_id ?? ''),
-                tipo: inicial.tipo ?? '',
+                tipo: tipoInicial,
                 cliente: inicial.cliente ?? '',
                 empresa: inicial.empresa ?? '',
                 ciudad: inicial.ciudad ?? '',
@@ -43,38 +48,11 @@ export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar
         };
     });
 
-    const [subtipoOficina, setSubtipoOficina] = useState(() => {
-        if (inicial?.tipo === 'oficina_preventivo') return 'preventivo';
-        if (inicial?.tipo === 'oficina_correctivo' || inicial?.tipo === 'oficina') return 'correctivo';
-        return 'correctivo';
-    });
-
     const [error, setError] = useState('');
     const [modalClienteAbierto, setModalClienteAbierto] = useState(false);
 
-    // Determinar qué opción principal está seleccionada
-    const tipoPrincipalSeleccionado = useMemo(() => {
-        if (form.tipo === 'oficina' || form.tipo === 'oficina_correctivo' || form.tipo === 'oficina_preventivo') {
-            return 'oficina';
-        }
-        return form.tipo;
-    }, [form.tipo]);
-
     function actualizar(campo, valor) {
         setForm((f) => ({ ...f, [campo]: valor }));
-    }
-
-    function handleCambioTipoPrincipal(nuevoTipo) {
-        if (nuevoTipo === 'oficina') {
-            actualizar('tipo', subtipoOficina === 'preventivo' ? 'oficina_preventivo' : 'oficina_correctivo');
-        } else {
-            actualizar('tipo', nuevoTipo);
-        }
-    }
-
-    function handleCambioSubtipoOficina(nuevoSubtipo) {
-        setSubtipoOficina(nuevoSubtipo);
-        actualizar('tipo', nuevoSubtipo === 'preventivo' ? 'oficina_preventivo' : 'oficina_correctivo');
     }
 
     function handleSubmit(e) {
@@ -116,59 +94,18 @@ export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar
                     </select>
                 </label>
 
-                <div>
-                    <label>
-                        Tipo de asignación
-                        <select
-                            value={tipoPrincipalSeleccionado}
-                            onChange={(e) => handleCambioTipoPrincipal(e.target.value)}
-                        >
-                            <option value="">Selecciona...</option>
-                            {OPCIONES_TIPO_PRINCIPALES.map((opt) => (
-                                <option key={opt.id} value={opt.id}>{opt.label}</option>
-                            ))}
-                        </select>
-                    </label>
-
-                    {tipoPrincipalSeleccionado === 'oficina' && (
-                        <div style={{
-                            marginTop: '0.6rem',
-                            padding: '0.65rem 0.85rem',
-                            background: '#F0FDF4',
-                            border: '1px solid #BBF7D0',
-                            borderRadius: '8px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.35rem',
-                        }}>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534' }}>
-                                Modalidad de Oficina:
-                            </span>
-                            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
-                                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', margin: 0, fontSize: '0.84rem', fontWeight: 600, color: '#1E293B', cursor: 'pointer' }}>
-                                    <input
-                                        type="radio"
-                                        name="subtipo_oficina"
-                                        value="correctivo"
-                                        checked={subtipoOficina === 'correctivo' || form.tipo === 'oficina_correctivo' || form.tipo === 'oficina'}
-                                        onChange={() => handleCambioSubtipoOficina('correctivo')}
-                                    />
-                                    Correctivo
-                                </label>
-                                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', margin: 0, fontSize: '0.84rem', fontWeight: 600, color: '#1E293B', cursor: 'pointer' }}>
-                                    <input
-                                        type="radio"
-                                        name="subtipo_oficina"
-                                        value="preventivo"
-                                        checked={subtipoOficina === 'preventivo' || form.tipo === 'oficina_preventivo'}
-                                        onChange={() => handleCambioSubtipoOficina('preventivo')}
-                                    />
-                                    Preventivo
-                                </label>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                <label>
+                    Tipo de asignación
+                    <select
+                        value={form.tipo}
+                        onChange={(e) => actualizar('tipo', e.target.value)}
+                    >
+                        <option value="">Selecciona...</option>
+                        {OPCIONES_TIPO.map((opt) => (
+                            <option key={opt.id} value={opt.id}>{opt.label}</option>
+                        ))}
+                    </select>
+                </label>
 
                 <label>
                     Proyecto

@@ -111,6 +111,7 @@ export default function AdminDashboard() {
     const [evidenciaPreview, setEvidenciaPreview] = useState(null);
     const [busquedaConsolidado, setBusquedaConsolidado] = useState('');
     const [filtroEstadoConsolidado, setFiltroEstadoConsolidado] = useState('todos');
+    const [busquedaTecnico, setBusquedaTecnico] = useState('');
 
     // Referencias para scroll suave desde el sidebar
     const seccionViaticosRef = useRef(null);
@@ -185,6 +186,16 @@ export default function AdminDashboard() {
                 };
             });
     }, [usuarios, viaticos, user]);
+
+    const tecnicosFiltrados = useMemo(() => {
+        if (!busquedaTecnico.trim()) return tecnicos;
+        const q = busquedaTecnico.trim().toLowerCase();
+        return tecnicos.filter((t) =>
+            t.nombre?.toLowerCase().includes(q) ||
+            t.codigo_empleado?.toLowerCase().includes(q) ||
+            t.correo?.toLowerCase().includes(q)
+        );
+    }, [tecnicos, busquedaTecnico]);
 
     // Consolidado de registros por Técnico + Fecha
     const viaticosConsolidados = useMemo(() => {
@@ -714,13 +725,36 @@ export default function AdminDashboard() {
                     <div className="gsb-bottom-grid">
                         {/* Columna izquierda: Técnicos (65%) */}
                         <section className="gsb-techs-section" ref={seccionTecnicosRef}>
-                            <div className="gsb-section-header">
-                                <h2 className="gsb-section-title">Técnicos</h2>
-                                <p className="gsb-section-subtitle">Gestión y actividad de técnicos</p>
+                            <div className="gsb-section-header gsb-techs-header">
+                                <div>
+                                    <h2 className="gsb-section-title">Técnicos</h2>
+                                    <p className="gsb-section-subtitle">Gestión y actividad de técnicos</p>
+                                </div>
+
+                                <div className="gsb-search-box gsb-techs-search">
+                                    <span className="gsb-search-icon">🔍</span>
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar técnico..."
+                                        className="gsb-search-input"
+                                        value={busquedaTecnico}
+                                        onChange={(e) => setBusquedaTecnico(e.target.value)}
+                                    />
+                                    {busquedaTecnico && (
+                                        <button
+                                            type="button"
+                                            className="gsb-search-clear-btn"
+                                            onClick={() => setBusquedaTecnico('')}
+                                            title="Limpiar búsqueda"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="gsb-techs-grid">
-                                {tecnicos.map((t) => {
+                                {tecnicosFiltrados.map((t) => {
                                     const asigActiva = obtenerAsignacionActivaDeTecnico(asignaciones, t.id);
                                     return (
                                         <div key={t.id} className="gsb-tech-card">

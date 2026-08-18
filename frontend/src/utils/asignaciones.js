@@ -5,22 +5,25 @@
 
 export const TIPOS_ASIGNACION = [
     'mantenimiento',
-    'oficina_correctivo',
-    'oficina_preventivo',
-    'oficina_general',
+    'correctivo',
+    'preventivo',
     'preventivo_rtc',
     'rtc',
+    'garantia',
 ];
 
 export const LABEL_TIPO_ASIGNACION = {
     mantenimiento: 'Mantenimiento',
+    correctivo: 'Correctivo',
+    preventivo: 'Preventivo',
+    preventivo_rtc: 'Preventivo RTC',
+    rtc: 'RTC',
+    garantia: 'Garantía',
+    // Compatibilidad histórica
     oficina: 'Oficina',
     oficina_correctivo: 'Oficina - Correctivo',
     oficina_preventivo: 'Oficina - Preventivo',
     oficina_general: 'Oficina General',
-    preventivo_rtc: 'Preventivo RTC',
-    rtc: 'RTC',
-    // Compatibilidad histórica
     instalacion: 'Instalación',
     auditoria: 'Auditoría',
     capacitacion: 'Capacitación',

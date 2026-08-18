@@ -8,13 +8,16 @@ from app.schemas.cuenta_cobro_asignacion import CuentaCobroAsignacionResponse
 
 TipoAsignacion = Literal[
     "mantenimiento",
+    "correctivo",
+    "preventivo",
+    "preventivo_rtc",
+    "rtc",
+    "garantia",
+    # Compatibilidad histórica
     "oficina",
     "oficina_correctivo",
     "oficina_preventivo",
     "oficina_general",
-    "preventivo_rtc",
-    "rtc",
-    # Compatibilidad histórica
     "instalacion",
     "auditoria",
     "capacitacion",
