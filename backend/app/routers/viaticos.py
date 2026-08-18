@@ -67,6 +67,9 @@ def crear_viatico(
     return nuevo_viatico
 
 
+from decimal import Decimal
+from app.schemas.viatico import AsignacionResumenViatico
+
 @router.get("", response_model=List[ViaticoResponse])
 @router.get("/", response_model=List[ViaticoResponse], include_in_schema=False)
 def listar_viaticos(
@@ -75,11 +78,30 @@ def listar_viaticos(
 ):
     stmt = (
         select(Viatico)
-        .options(joinedload(Viatico.evidencias))
+        .options(
+            joinedload(Viatico.evidencias),
+            joinedload(Viatico.asignacion).joinedload(Asignacion.viaticos),
+        )
         .where(Viatico.usuario_id == current_user.id)
         .order_by(Viatico.created_at.desc())
     )
     viaticos = db.execute(stmt).unique().scalars().all()
+    for v in viaticos:
+        if v.asignacion:
+            v_asig = v.asignacion.viaticos or []
+            tot_gastado = sum(item.valor for item in v_asig if item.estado != "rechazado")
+            anticipo = v.asignacion.monto_anticipo or Decimal("0.00")
+            saldo = max(Decimal("0.00"), anticipo - tot_gastado)
+            v.asignacion_resumen = AsignacionResumenViatico(
+                id=v.asignacion.id,
+                cliente=v.asignacion.cliente,
+                empresa=v.asignacion.empresa,
+                tipo=v.asignacion.tipo,
+                ciudad=v.asignacion.ciudad,
+                monto_anticipo=anticipo,
+                total_gastado=tot_gastado,
+                saldo_restante=saldo,
+            )
     return viaticos
 
 

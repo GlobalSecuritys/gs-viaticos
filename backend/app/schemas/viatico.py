@@ -18,6 +18,8 @@ TipoIdentificacion = Literal["cedula", "nit_proveedor", "nit_nuevo"]
 class AsignacionResumenViatico(BaseModel):
     id: int
     cliente: str
+    empresa: str | None = None
+    tipo: str | None = None
     ciudad: str
     monto_anticipo: Decimal
     total_gastado: Decimal

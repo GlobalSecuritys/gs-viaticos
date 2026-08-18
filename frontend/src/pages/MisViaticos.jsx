@@ -1,6 +1,7 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import TecnicoLayout from '../components/TecnicoLayout';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
 import { LABEL_TIPO_GASTO, formatCOP, formatFechaLarga } from '../utils/personal';
@@ -35,6 +36,7 @@ const CONCEPTOS = [
 export default function MisViaticos() {
   const navigate = useNavigate();
   const [viaticos, setViaticos] = useState([]);
+  const [asignaciones, setAsignaciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mostrarModalTipoViatico, setMostrarModalTipoViatico] = useState(false);
@@ -60,13 +62,18 @@ export default function MisViaticos() {
 
   useEffect(() => {
     let activo = true;
-    api
-      .get('/viaticos')
-      .then(({ data }) => {
-        if (activo) setViaticos(data || []);
+    Promise.all([
+      api.get('/viaticos').catch(() => ({ data: [] })),
+      obtenerMisAsignacionesActivas().catch(() => ({ data: [] })),
+    ])
+      .then(([resViaticos, resAsig]) => {
+        if (activo) {
+          setViaticos(resViaticos.data || []);
+          setAsignaciones(resAsig.data || []);
+        }
       })
       .catch(() => {
-        if (activo) setError('No se pudieron cargar tus viaticos.');
+        if (activo) setError('No se pudieron cargar tus viáticos.');
       })
       .finally(() => {
         if (activo) setLoading(false);
@@ -74,15 +81,34 @@ export default function MisViaticos() {
     return () => { activo = false; };
   }, []);
 
+  const asignacionesMap = useMemo(() => {
+    const map = new Map();
+    asignaciones.forEach((a) => map.set(a.id, a));
+    return map;
+  }, [asignaciones]);
+
   const { grupos, independientes } = useMemo(() => {
     const porAsignacion = {};
     const libres = [];
     viaticos.forEach((v) => {
       if (v.asignacion_id) {
         if (!porAsignacion[v.asignacion_id]) {
+          const asig = asignacionesMap.get(v.asignacion_id);
+          const resumen = v.asignacion_resumen || (asig ? {
+            id: asig.id,
+            cliente: asig.cliente,
+            empresa: asig.empresa,
+            tipo: asig.tipo,
+            ciudad: asig.ciudad,
+            monto_anticipo: asig.monto_anticipo,
+            total_gastado: asig.total_gastado,
+            saldo_restante: asig.saldo_restante,
+          } : null);
+
           porAsignacion[v.asignacion_id] = {
             asignacion_id: v.asignacion_id,
-            resumen: v.asignacion_resumen || null,
+            resumen,
+            asigObj: asig || null,
             viaticos: [],
           };
         }
@@ -95,7 +121,7 @@ export default function MisViaticos() {
       (a, b) => b.viaticos.length - a.viaticos.length
     );
     return { grupos: gruposOrdenados, independientes: libres };
-  }, [viaticos]);
+  }, [viaticos, asignacionesMap]);
 
   function toggleColapsada(key) {
     setColapsadas((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -208,16 +234,26 @@ export default function MisViaticos() {
   }
 
   function PaletaAsignacion({ grupo }) {
-    const { asignacion_id, resumen, viaticos: items } = grupo;
+    const { asignacion_id, resumen, asigObj, viaticos: items } = grupo;
     const isColapsada = !!colapsadas[asignacion_id];
     const totalGrupo = items.reduce((acc, v) => acc + parseFloat(v.valor || 0), 0);
     const pendientes = items.filter((v) => v.estado === 'pendiente').length;
     const aprobados = items.filter((v) => v.estado === 'aprobado').length;
     const rechazados = items.filter((v) => v.estado === 'rechazado').length;
-    const cliente = resumen?.cliente || `Asignacion #${asignacion_id}`;
-    const ciudad = resumen?.ciudad || '';
-    const anticipoAsig = resumen?.monto_anticipo || 0;
-    const saldoAsig = resumen?.saldo_restante || 0;
+
+    const primerViatico = items[0] || {};
+    const nombreCliente = resumen?.cliente || asigObj?.cliente || primerViatico.cliente || `Asignación #${asignacion_id}`;
+    const nombreOficina = resumen?.empresa || asigObj?.empresa || '';
+    const nombreLugar = resumen?.ciudad || asigObj?.ciudad || primerViatico.ciudad || '';
+    const tipoAsig = resumen?.tipo || asigObj?.tipo || '';
+
+    // Formato: asignacion / oficina / lugar
+    const partesTitulo = [nombreCliente, nombreOficina, nombreLugar].filter(Boolean);
+    const tituloPaleta = partesTitulo.length > 0 ? partesTitulo.join(' / ') : `Asignación #${asignacion_id}`;
+
+    const anticipoAsig = resumen?.monto_anticipo || asigObj?.monto_anticipo || 0;
+    const gastadoAsig = resumen?.total_gastado || asigObj?.total_gastado || totalGrupo;
+    const saldoAsig = resumen?.saldo_restante !== undefined ? resumen.saldo_restante : (asigObj?.saldo_restante !== undefined ? asigObj.saldo_restante : Math.max(0, anticipoAsig - gastadoAsig));
 
     return (
       <div className="mv-paleta">
@@ -230,8 +266,12 @@ export default function MisViaticos() {
           <div className="mv-paleta-header-izq">
             <span className="mv-paleta-icono">📋</span>
             <div className="mv-paleta-titulo">
-              <span className="mv-paleta-cliente">{cliente}</span>
-              {ciudad && <span className="mv-paleta-ciudad">📍 {ciudad}</span>}
+              <span className="mv-paleta-cliente">{tituloPaleta}</span>
+              {tipoAsig && (
+                <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', background: '#F1F5F9', padding: '0.12rem 0.45rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                  {LABEL_TIPO_ASIGNACION[tipoAsig] || tipoAsig}
+                </span>
+              )}
             </div>
           </div>
           <div className="mv-paleta-header-der">
@@ -247,28 +287,26 @@ export default function MisViaticos() {
 
         {!isColapsada && (
           <div className="mv-paleta-body">
-            {resumen && (
-              <div className="mv-paleta-resumen">
-                <div className="mv-paleta-resumen-item">
-                  <span className="mv-pr-label">Anticipo</span>
-                  <span className="mv-pr-val">{formatCOP(anticipoAsig)}</span>
-                </div>
-                <div className="mv-paleta-resumen-item">
-                  <span className="mv-pr-label">Gastado</span>
-                  <span className="mv-pr-val mv-pr-val--gastado">{formatCOP(resumen.total_gastado || 0)}</span>
-                </div>
-                <div className="mv-paleta-resumen-item">
-                  <span className="mv-pr-label">Saldo</span>
-                  <span className={`mv-pr-val ${parseFloat(saldoAsig) < 0 ? 'mv-pr-val--negativo' : 'mv-pr-val--saldo'}`}>
-                    {formatCOP(saldoAsig)}
-                  </span>
-                </div>
-                <div className="mv-paleta-resumen-item">
-                  <span className="mv-pr-label">Items</span>
-                  <span className="mv-pr-val">{items.length}</span>
-                </div>
+            <div className="mv-paleta-resumen">
+              <div className="mv-paleta-resumen-item">
+                <span className="mv-pr-label">Anticipo</span>
+                <span className="mv-pr-val">{formatCOP(anticipoAsig)}</span>
               </div>
-            )}
+              <div className="mv-paleta-resumen-item">
+                <span className="mv-pr-label">Gastado</span>
+                <span className="mv-pr-val mv-pr-val--gastado">{formatCOP(gastadoAsig)}</span>
+              </div>
+              <div className="mv-paleta-resumen-item">
+                <span className="mv-pr-label">Saldo</span>
+                <span className={`mv-pr-val ${parseFloat(saldoAsig) < 0 ? 'mv-pr-val--negativo' : 'mv-pr-val--saldo'}`}>
+                  {formatCOP(saldoAsig)}
+                </span>
+              </div>
+              <div className="mv-paleta-resumen-item">
+                <span className="mv-pr-label">Items</span>
+                <span className="mv-pr-val">{items.length}</span>
+              </div>
+            </div>
             <div className="mv-paleta-viaticos">
               {items.map((v) => <FilaViatico key={v.id} v={v} />)}
             </div>
