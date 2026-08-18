@@ -441,7 +441,7 @@ def generar_excel_viaticos_asignacion(
     _label_cell(ws, 8, 1, "Período :")
     ws.merge_cells("B8:C8")
     _value_cell(ws, 8, 2, f"{str_ini}  →  {str_fin}")
-    _label_cell(ws, 8, 4, "Empresa / Cliente :")
+    _label_cell(ws, 8, 4, "Proyecto / Oficina :")
     ws.merge_cells("E8:K8")
     _value_cell(ws, 8, 5, f"{asignacion.cliente or '—'} — {emp_str}")
 

@@ -18,6 +18,7 @@ class Usuario(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     rol: Mapped[str] = mapped_column(String(20), nullable=False, server_default="tecnico")
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true", default=True)
+    acceso_viaticos: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false", default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         nullable=False,

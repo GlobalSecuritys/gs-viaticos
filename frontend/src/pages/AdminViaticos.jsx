@@ -99,8 +99,8 @@ export default function AdminViaticos() {
                                     <td>{v.nombre}</td>
                                     <td>
                                         {v.asignacion_id ? (
-                                            <span style={{ fontSize: '0.75rem', background: '#EFF6FF', color: '#1D4ED8', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>
-                                                📍 Asignación #{v.asignacion_id}
+                                            <span style={{ fontSize: '0.75rem', background: '#EFF6FF', color: '#1D4ED8', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600 }} title={`ID interno: #${v.asignacion_id}`}>
+                                                📍 {v.cliente || `Asig. #${v.asignacion_id}`}
                                             </span>
                                         ) : (
                                             <span style={{ fontSize: '0.75rem', background: '#F8FAFC', color: '#64748B', border: '1px solid #E2E8F0', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 500 }}>

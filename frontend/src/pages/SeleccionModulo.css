@@ -1,0 +1,339 @@
+/* ══════════════════════════════════════════
+   SeleccionModulo — Paleta: Negro / Dorado
+   ══════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ─── Tokens de color ─── */
+:root {
+    --sm-bg:          #0C0C0C;        /* Fondo negro profundo, pero no pitch-black */
+    --sm-surface:     #161616;        /* Superficie tarjetas / header */
+    --sm-surface-2:   #1E1E1E;        /* Tarjetas de módulo */
+    --sm-border:      rgba(255,255,255,0.07);
+    --sm-border-gold: rgba(212,175,55,0.45);
+
+    --sm-gold-bright: #F5C842;        /* Dorado brillante principal */
+    --sm-gold-mid:    #D4AF37;        /* Dorado estándar */
+    --sm-gold-dim:    rgba(212,175,55,0.18);
+
+    --sm-text-primary:   #F0EDE6;     /* Blanco cálido — no frío */
+    --sm-text-secondary: rgba(240,237,230,0.55);
+    --sm-text-muted:     rgba(240,237,230,0.35);
+}
+
+/* ─── Raíz ─── */
+.sm-root {
+    min-height: 100vh;
+    background-color: var(--sm-bg);
+    display: flex;
+    flex-direction: column;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ════════════════ HEADER ════════════════ */
+.sm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 2.75rem;
+    background: var(--sm-surface);
+    border-bottom: 1px solid var(--sm-border);
+}
+
+.sm-header-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.sm-header-logo {
+    height: 38px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 4px rgba(212,175,55,0.25));
+}
+
+.sm-header-brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.sm-brand-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--sm-gold-bright);
+    letter-spacing: 0.01em;
+}
+
+.sm-brand-sub {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--sm-text-secondary);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+/* Botón cerrar sesión */
+.sm-logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 7px;
+    padding: 0.48rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--sm-text-secondary);
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.sm-logout-btn:hover {
+    color: #EF4444;
+    border-color: rgba(239,68,68,0.5);
+    background: rgba(239,68,68,0.07);
+}
+
+/* ════════════════ MAIN ════════════════ */
+.sm-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3.5rem 1.5rem 4rem;
+}
+
+/* ─── Ficha ejecutiva del usuario ─── */
+.sm-user-card {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    background: var(--sm-surface);
+    border: 1px solid var(--sm-border);
+    border-radius: 14px;
+    padding: 1.25rem 2rem;
+    margin-bottom: 3.25rem;
+    width: 100%;
+    max-width: 620px;
+    position: relative;
+    /* Línea dorada sutil en la parte superior */
+    box-shadow:
+        0 0 0 0 transparent,
+        inset 0 1px 0 rgba(212,175,55,0.2);
+}
+
+.sm-user-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.sm-user-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    border: 2px solid var(--sm-gold-mid);
+    color: var(--sm-gold-bright);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    box-shadow: 0 0 10px rgba(212,175,55,0.2);
+}
+
+.sm-user-status-dot {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 11px;
+    height: 11px;
+    background: #22C55E;
+    border-radius: 50%;
+    border: 2px solid var(--sm-surface);
+}
+
+.sm-user-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.sm-user-name {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--sm-text-primary);
+    line-height: 1.2;
+}
+
+.sm-user-email {
+    font-size: 0.82rem;
+    color: var(--sm-text-secondary);
+    line-height: 1.3;
+}
+
+.sm-user-role-badge {
+    display: inline-block;
+    margin-top: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sm-gold-mid);
+    background: var(--sm-gold-dim);
+    border: 1px solid var(--sm-border-gold);
+    border-radius: 4px;
+    padding: 0.18rem 0.6rem;
+    width: fit-content;
+}
+
+/* ─── Título ─── */
+.sm-title-block {
+    text-align: center;
+    margin-bottom: 2.25rem;
+}
+
+.sm-title {
+    margin: 0 0 0.4rem;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--sm-text-primary);
+    letter-spacing: -0.02em;
+}
+
+.sm-subtitle {
+    margin: 0;
+    font-size: 0.92rem;
+    color: var(--sm-text-secondary);
+}
+
+/* ─── Grid de tarjetas ─── */
+.sm-cards-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
+    gap: 1.5rem;
+    justify-content: center;
+    width: 100%;
+    max-width: 680px;
+}
+
+/* ─── Tarjeta ─── */
+.sm-card {
+    background: var(--sm-surface-2);
+    border: 1px solid var(--sm-border);
+    border-radius: 14px;
+    padding: 2rem 1.75rem 1.5rem;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.sm-card:hover {
+    transform: translateY(-4px) scale(1.012);
+    border-color: var(--sm-border-gold);
+    box-shadow:
+        0 12px 32px rgba(0,0,0,0.45),
+        0 0 0 1px rgba(212,175,55,0.12);
+}
+
+/* Ícono SVG */
+.sm-card-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: rgba(212,175,55,0.08);
+    border: 1px solid rgba(212,175,55,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.sm-card:hover .sm-card-icon-wrap {
+    background: rgba(212,175,55,0.15);
+    border-color: rgba(212,175,55,0.4);
+}
+
+.sm-card-icon {
+    width: 26px;
+    height: 26px;
+    color: var(--sm-gold-mid);
+    transition: color 0.2s ease;
+}
+
+.sm-card:hover .sm-card-icon {
+    color: var(--sm-gold-bright);
+}
+
+/* Cuerpo */
+.sm-card-body {
+    flex: 1;
+    margin-bottom: 1.5rem;
+}
+
+.sm-card-title {
+    margin: 0 0 0.45rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--sm-text-primary);
+    line-height: 1.2;
+}
+
+.sm-card-desc {
+    margin: 0;
+    font-size: 0.84rem;
+    color: var(--sm-text-secondary);
+    line-height: 1.55;
+}
+
+/* Footer / CTA */
+.sm-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--sm-border);
+    transition: border-color 0.2s ease;
+}
+
+.sm-card:hover .sm-card-footer {
+    border-color: rgba(212,175,55,0.2);
+}
+
+.sm-card-cta {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--sm-text-muted);
+    transition: color 0.2s ease;
+}
+
+.sm-card:hover .sm-card-cta {
+    color: var(--sm-gold-mid);
+}
+
+.sm-card-arrow {
+    width: 16px;
+    height: 16px;
+    color: var(--sm-text-muted);
+    transition: color 0.2s ease, transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.sm-card:hover .sm-card-arrow {
+    color: var(--sm-gold-mid);
+    transform: translateX(3px);
+}

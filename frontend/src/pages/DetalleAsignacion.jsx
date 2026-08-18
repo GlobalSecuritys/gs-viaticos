@@ -181,11 +181,11 @@ export default function DetalleAsignacion() {
 
                             <div className="detalle-asig-grid">
                                 <div className="detalle-field">
-                                    <span className="detalle-label">Cliente</span>
+                                    <span className="detalle-label">Proyecto</span>
                                     <span className="detalle-valor">{asignacion.cliente}</span>
                                 </div>
                                 <div className="detalle-field">
-                                    <span className="detalle-label">Proyecto</span>
+                                    <span className="detalle-label">Oficina</span>
                                     <span className="detalle-valor">{asignacion.empresa || '—'}</span>
                                 </div>
                                 <div className="detalle-field">

@@ -38,11 +38,13 @@ origins = [
     "http://localhost:5174",
     "http://127.0.0.1:5174",
     "https://gs-viaticos-frontend.onrender.com",
+    "https://gs-viaticos-1.onrender.com",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"https://.*\.onrender\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -32,7 +32,6 @@ function formatFecha(iso) {
 const NAV_ITEMS = [
     { id: 'inicio', label: 'Inicio', icon: '⊞', path: '/superadmin' },
     { id: 'viaticos', label: 'Viáticos', icon: '📋', path: '/admin/viaticos' },
-    { id: 'asignaciones', label: 'Asignaciones', icon: '📁', path: '/admin/asignaciones' },
     { id: 'usuarios', label: 'Usuarios', icon: '👥', path: '/admin/usuarios' },
     { id: 'evidencias', label: 'Evidencias', icon: '📎', path: null },
     { id: 'notificaciones', label: 'Notificaciones', icon: '🔔', path: null },
@@ -192,8 +191,12 @@ export default function SuperAdminDashboard() {
                                 {(perfil.nombre || perfil.correo || 'S')[0].toUpperCase()}
                             </div>
                             <div className="sa-topbar-userinfo">
-                                <span className="sa-topbar-username">{perfil.nombre || 'Super Administrador'}</span>
-                                <span className="sa-topbar-useremail">{perfil.correo}</span>
+                                <span className="sa-topbar-username">
+                                    {perfil.nombre || 'Super Administrador'}
+                                </span>
+                                <span className="sa-topbar-useremail">
+                                    {perfil.correo}
+                                </span>
                             </div>
                             <button
                                 className="sa-topbar-logout"
@@ -226,7 +229,9 @@ export default function SuperAdminDashboard() {
                         </div>
 
                         <div className="sa-profile-info">
-                            <h2 className="sa-profile-name">{perfil.nombre || 'Super Administrador'}</h2>
+                            <h2 className="sa-profile-name">
+                                {perfil.nombre || 'Super Administrador'}
+                            </h2>
                             <div className="sa-profile-badges">
                                 <span className="sa-badge sa-badge--role">SUPERADMIN</span>
                                 <span className={`sa-badge ${perfil.activo ? 'sa-badge--active' : 'sa-badge--inactive'}`}>

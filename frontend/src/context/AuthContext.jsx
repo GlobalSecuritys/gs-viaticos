@@ -25,10 +25,24 @@ export function AuthProvider({ children }) {
 
     // Decodificar payload del JWT para obtener datos del usuario
     const payload = JSON.parse(atob(data.access_token.split('.')[1]));
-    const userData = { correo: payload.sub, rol: payload.rol, id: payload.id, nombre: payload.nombre, codigo_empleado: payload.codigo_empleado };
+    const userData = {
+      correo: payload.sub,
+      rol: payload.rol,
+      id: payload.id,
+      nombre: payload.nombre,
+      codigo_empleado: payload.codigo_empleado,
+      acceso_viaticos: Boolean(payload.acceso_viaticos),
+    };
     localStorage.setItem('gs_user', JSON.stringify(userData));
     setUser(userData);
-    if (userData.rol === 'admin' || userData.rol === 'superadmin') {
+
+    if (userData.rol === 'superadmin') {
+      if (userData.acceso_viaticos) {
+        navigate('/seleccion-modulo');
+      } else {
+        navigate('/talento-humano');
+      }
+    } else if (userData.rol === 'admin') {
       navigate('/admin');
     } else {
       navigate('/dashboard');

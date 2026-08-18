@@ -51,6 +51,7 @@ class UsuarioResponse(UsuarioBase):
     id: int
     rol: str
     activo: bool
+    acceso_viaticos: bool = False
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -87,6 +88,12 @@ class UsuarioEstadoUpdate(BaseModel):
     un solo campo, validado, para PUT /admin/usuarios/{id}/estado."""
 
     activo: bool
+
+
+class UsuarioAccesoViaticosUpdate(BaseModel):
+    """Otorgar/quitar acceso a viáticos. Exclusivo para admin@gsbank.com."""
+
+    acceso_viaticos: bool
 
 
 class UsuarioInfoUpdate(BaseModel):

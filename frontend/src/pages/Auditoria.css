@@ -1,283 +1,572 @@
-/* ===== Audit Trail (Corporate Enterprise Theme) ===== */
+/* ================================================================
+   AUDITORÍA & ANALYTICS DASHBOARD (GSB CORPORATE ENTERPRISE THEME)
+   Inspirado en seguridad electrónica, banca corporativa y control analítico.
+   ================================================================ */
 
-/* ─── Sección analítica ─── */
-.aud-analytics-section {
-    margin-bottom: 2rem;
-}
-
-.aud-analytics-header {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
-}
-
-.aud-analytics-title {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--color-text);
-    margin: 0;
-    letter-spacing: -0.01em;
-}
-
-.aud-analytics-sub {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-    font-weight: 500;
-}
-
-.aud-analytics-loading,
-.aud-analytics-empty {
-    text-align: center;
-    padding: 2.5rem 1rem;
-    color: var(--color-text-muted);
-    font-size: 0.9rem;
-    background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-}
-
-/* ─── Grid de gráficos ─── */
-.aud-charts-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
-}
-
-/* Card contenedora de cada gráfico */
-.aud-chart-card {
-    background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: 1.25rem 1.25rem 0.75rem;
-    box-shadow: var(--color-shadow);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.aud-chart-card:hover {
-    box-shadow: var(--color-shadow-md, 0 4px 16px rgba(0,0,0,.12));
-    transform: translateY(-1px);
-}
-
-/* Span dos columnas */
-.aud-chart-card--wide {
-    grid-column: span 2;
-}
-
-/* Span todas las columnas */
-.aud-chart-card--full {
-    grid-column: 1 / -1;
-}
-
-.aud-chart-title {
-    margin: 0 0 0.1rem;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--color-text);
-    letter-spacing: -0.01em;
-}
-
-.aud-chart-sub {
-    margin: 0 0 1rem;
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-    font-weight: 500;
-}
-
-/* Tooltip corporativo */
-.aud-chart-tooltip {
-    background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 0.6rem 0.9rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,.12);
-}
-
-.aud-chart-tooltip-label {
-    font-size: 0.78rem;
-    color: var(--color-text-muted);
-    margin: 0 0 0.2rem;
-    font-weight: 600;
-}
-
-.aud-chart-tooltip-value {
-    font-size: 0.92rem;
-    font-weight: 700;
-    color: var(--color-text);
-    margin: 0;
-}
-
-/* ─── Cabecera del bloque timeline ─── */
-.aud-timeline-section-header {
-    padding: 1.25rem 1.5rem 0;
-}
-
-/* ─── timeline container ─── */
-
-.auditoria-container-card {
-    padding: 0;
-}
-
-.auditoria-filtros-wrap {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.auditoria-timeline-wrap {
-    padding: 1.5rem;
-}
-
-.auditoria-timeline {
+.aud-page-content {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.5rem;
+    padding: 1.5rem 2rem 2.5rem;
 }
 
-.auditoria-item {
-    display: flex;
-    gap: 1.1rem;
-    background-color: var(--color-bg-secondary);
+/* ── Topbar Date Range Badge ── */
+.aud-date-badge {
+    background: var(--color-bg-tertiary);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: 1.1rem 1.25rem;
+    border-radius: var(--radius-pill);
+    padding: 0.4rem 0.95rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--color-text-secondary);
+    display: inline-flex;
+    align-items: center;
     box-shadow: var(--color-shadow-sm);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.auditoria-item:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--color-shadow);
-    border-color: var(--color-border-hover);
+.aud-header-title-wrap {
+    display: flex;
+    flex-direction: column;
 }
 
-.auditoria-item-icono {
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: var(--color-bg);
+/* ── 4 KPIS ROW ── */
+.aud-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.15rem;
+}
+
+.aud-kpi-card {
+    background: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 1.25rem 1.15rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: var(--color-shadow);
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.aud-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--color-shadow-md);
+}
+
+/* Dark Navy variant for Total Gastado */
+.aud-kpi-card--dark {
+    background: linear-gradient(145deg, #070D1E 0%, #0D1E3A 100%);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+    box-shadow: 0 8px 24px rgba(7, 13, 30, 0.3);
+}
+
+.aud-kpi-card--dark .aud-kpi-label {
+    color: #94A3B8;
+}
+
+.aud-kpi-card--dark .aud-kpi-value {
+    color: #FFFFFF;
+}
+
+.aud-kpi-card--dark .aud-kpi-sub {
+    color: #94A3B8;
+}
+
+.aud-kpi-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.65rem;
+}
+
+.aud-kpi-icon-wrap {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
-    margin-top: 0.1rem;
-    box-shadow: var(--color-shadow-sm);
+    font-size: 1.1rem;
 }
 
-.auditoria-item-body {
-    flex: 1;
-    min-width: 0;
+.aud-kpi-icon--gold {
+    background: rgba(212, 175, 55, 0.18);
+    color: var(--color-gold-bright);
+    border: 1px solid rgba(212, 175, 55, 0.35);
 }
 
-.auditoria-item-top {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.4rem;
+.aud-kpi-icon--amber {
+    background: #FEF3C7;
+    color: #D97706;
 }
 
-.auditoria-item-accion {
-    font-weight: 700;
-    font-size: 0.92rem;
-    color: var(--color-text);
-    letter-spacing: -0.01em;
+.aud-kpi-icon--emerald {
+    background: #D1FAE5;
+    color: #059669;
 }
 
-.auditoria-item-resultado {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    border: 1px solid transparent;
+.aud-kpi-icon--crimson {
+    background: #FEE2E2;
+    color: #DC2626;
 }
 
-.auditoria-item-resultado--exitoso {
-    color: var(--color-aprobado);
-    background-color: var(--color-aprobado-bg);
-    border-color: rgba(5, 150, 105, 0.15);
-}
-
-.auditoria-item-resultado--fallido {
-    color: var(--color-rechazado);
-    background-color: var(--color-rechazado-bg);
-    border-color: rgba(220, 38, 38, 0.15);
-}
-
-.auditoria-item-fecha {
-    margin-left: auto;
-    font-size: 0.8rem;
+.aud-kpi-label {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
     color: var(--color-text-muted);
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+}
+
+.aud-kpi-value {
+    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: var(--color-text);
+    margin: 0;
+    line-height: 1.15;
+}
+
+.aud-kpi-sub {
+    font-size: 0.72rem;
+    color: var(--color-text-light);
+    margin-top: 0.2rem;
     font-weight: 500;
 }
 
-.auditoria-item-linea {
-    margin: 0 0 0.35rem;
-    font-size: 0.85rem;
-    color: var(--color-text-muted);
-    font-weight: 400;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem;
-    line-height: 1.5;
+.aud-kpi-wave-wrap {
+    margin-top: 0.5rem;
+    width: calc(100% + 2.3rem);
+    margin-left: -1.15rem;
+    margin-bottom: -0.75rem;
+    height: 30px;
 }
 
-.auditoria-item-rol-badge {
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.15rem 0.5rem;
-    border-radius: 999px;
-    background-color: var(--color-bg);
+.aud-kpi-wave {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* ── CHARTS STACK ── */
+.aud-charts-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+}
+
+/* Panel Card para cada gráfico */
+.aud-panel-card {
+    background: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 1.35rem 1.5rem 1rem;
+    box-shadow: var(--color-shadow);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s ease;
+}
+
+.aud-panel-card:hover {
+    border-color: #CBD5E1;
+    box-shadow: var(--color-shadow-md);
+}
+
+.aud-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.aud-panel-title {
+    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--color-text);
+    margin: 0 0 0.15rem;
+}
+
+.aud-panel-sub {
+    font-size: 0.78rem;
     color: var(--color-text-muted);
+    margin: 0;
+}
+
+.aud-panel-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.aud-mini-select {
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
+}
+
+.aud-dots-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    font-weight: 700;
+    transition: all 0.15s ease;
+}
+
+.aud-dots-btn:hover {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text);
+}
+
+.aud-chart-container {
+    width: 100%;
+}
+
+/* ── 2 DONUTS GRID ── */
+.aud-donuts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.35rem;
+}
+
+.aud-donut-with-legend {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 1.25rem;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+
+.aud-donut-wrap {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.aud-custom-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    font-size: 0.82rem;
+}
+
+.aud-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.aud-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.aud-legend-dot--emerald { background: #059669; }
+.aud-legend-dot--amber { background: #D97706; }
+.aud-legend-dot--crimson { background: #DC2626; }
+
+.aud-legend-box {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.aud-legend-name {
+    color: var(--color-text-secondary);
+    flex: 1;
+    font-weight: 500;
+}
+
+.aud-legend-val {
+    font-family: 'Outfit', sans-serif;
+    color: var(--color-text);
+    font-weight: 800;
+}
+
+/* Mini Badges Resumen Estados */
+.aud-estado-counters {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.65rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--color-border-subtle);
+}
+
+.aud-counter-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.55rem 0.4rem;
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+.aud-counter-badge--green {
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
+    color: #065F46;
+}
+
+.aud-counter-badge--amber {
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    color: #92400E;
+}
+
+.aud-counter-badge--red {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: #991B1B;
+}
+
+.aud-counter-num {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.aud-counter-lbl {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-top: 0.15rem;
+}
+
+/* Mini Boxes Resumen Tipos */
+.aud-tipo-counters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--color-border-subtle);
+}
+
+.aud-counter-box {
+    background: #F8FAFC;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.65rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.aud-counter-box-val {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--color-text);
+    line-height: 1.15;
+}
+
+.aud-counter-box-lbl {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    margin-top: 0.15rem;
+}
+
+/* ── BANNER INFERIOR ACTIVIDAD ADMINISTRATIVA ── */
+.aud-activity-banner {
+    background: linear-gradient(145deg, #070D1E 0%, #0D1E3A 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    padding: 1.25rem 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #FFFFFF;
+    box-shadow: 0 10px 24px rgba(7, 13, 30, 0.3);
+    flex-wrap: wrap;
+    gap: 1.25rem;
+}
+
+.aud-activity-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+}
+
+.aud-activity-shield {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(212, 175, 55, 0.15);
+    border: 1.5px solid var(--color-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25);
+}
+
+.aud-activity-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.aud-activity-title {
+    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: #FFFFFF;
+    margin: 0;
+}
+
+.aud-activity-sub {
+    font-size: 0.78rem;
+    color: #94A3B8;
+    margin: 0;
+}
+
+.aud-activity-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1.4rem;
+    background: var(--color-gold);
+    color: #070D1E;
+    border-radius: var(--radius-md);
+    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
 }
 
-.auditoria-item-linea strong {
-    color: var(--color-text);
+.aud-activity-btn:hover {
+    background: var(--color-gold-bright);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 197, 24, 0.45);
+}
+
+.aud-activity-btn-icon {
+    font-size: 1.05rem;
+}
+
+.aud-activity-btn-chevron {
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+/* ── MODAL ACTIVIDAD ADMINISTRATIVA ── */
+.aud-activity-modal {
+    max-width: 900px !important;
+    width: 92% !important;
+    max-height: 88vh !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.aud-activity-modal-header {
+    padding: 1.5rem 1.75rem 1.25rem !important;
+    background: linear-gradient(135deg, #070D1E 0%, #0D1E3A 100%) !important;
+    color: #FFFFFF !important;
+}
+
+.aud-activity-modal-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #FFFFFF;
+    margin: 0 0 0.25rem;
+}
+
+.aud-activity-modal-sub {
+    font-size: 0.8rem;
+    color: #94A3B8;
+}
+
+.aud-modal-toolbar {
+    padding: 0.85rem 1.75rem !important;
+    border-bottom: 1px solid var(--color-border);
+    background: #F8FAFC;
+}
+
+.aud-activity-modal-body {
+    padding: 1.25rem 1.75rem 1.75rem;
+    overflow-y: auto;
+    max-height: 58vh;
+}
+
+.aud-loading-card {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: var(--color-text-muted);
     font-weight: 600;
 }
 
-.auditoria-item-detalle {
-    margin: 0;
-    font-size: 0.82rem;
-    color: var(--color-text-muted);
-    background-color: var(--color-bg);
-    border-left: 3px solid var(--color-border);
-    padding: 0.4rem 0.75rem;
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-    white-space: pre-wrap;
-    word-break: break-word;
-    line-height: 1.5;
+/* ── RESPONSIVE MEDIA QUERIES ── */
+@media (max-width: 1200px) {
+    .aud-kpi-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
-/* ─── Responsive ─── */
 @media (max-width: 900px) {
-    .aud-charts-grid {
+    .aud-donuts-grid {
         grid-template-columns: 1fr;
     }
-    .aud-chart-card--wide,
-    .aud-chart-card--full {
-        grid-column: span 1;
+
+    .aud-donut-with-legend {
+        grid-template-columns: 1fr;
+    }
+
+    .aud-page-content {
+        padding: 1.25rem 1rem 2rem;
+    }
+
+    .aud-activity-banner {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .aud-activity-btn {
+        justify-content: center;
     }
 }
 
-@media (max-width: 640px) {
-    .auditoria-timeline-wrap {
-        padding: 1rem;
+@media (max-width: 600px) {
+    .aud-kpi-row {
+        grid-template-columns: 1fr;
     }
-    .auditoria-item {
-        padding: 1rem;
-    }
-    .auditoria-item-fecha {
-        margin-left: 0;
-        flex-basis: 100%;
-        margin-top: 0.1rem;
+
+    .aud-date-badge {
+        display: none;
     }
 }

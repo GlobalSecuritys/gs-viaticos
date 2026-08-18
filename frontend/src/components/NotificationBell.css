@@ -6,45 +6,47 @@
 
 .notif-bell-btn {
     position: relative;
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    color: var(--color-text-muted);
+    border-radius: 50%;
+    color: var(--color-text-secondary);
     box-shadow: var(--color-shadow-sm);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .notif-bell-btn:hover {
-    background-color: var(--color-accent-blue-light);
-    border-color: var(--color-accent-blue);
-    color: var(--color-accent-blue);
+    background-color: var(--color-bg-tertiary);
+    border-color: var(--color-border-hover);
+    color: var(--color-primary-blue);
+    transform: translateY(-1px);
 }
 
 .notif-bell-icon {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
 }
 
 .notif-badge {
     position: absolute;
-    top: -4px;
-    right: -4px;
-    min-width: 18px;
-    height: 18px;
+    top: -2px;
+    right: -2px;
+    min-width: 17px;
+    height: 17px;
     padding: 0 4px;
     border-radius: 999px;
-    background-color: var(--color-rechazado);
+    background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%);
     color: #FFFFFF;
     font-size: 0.65rem;
-    font-weight: 700;
-    line-height: 18px;
+    font-weight: 800;
+    line-height: 17px;
     text-align: center;
     border: 2px solid var(--color-bg-secondary);
+    box-shadow: 0 2px 5px rgba(217, 119, 6, 0.4);
 }
 
 .notif-dropdown {

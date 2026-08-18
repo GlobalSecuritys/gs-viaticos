@@ -5,7 +5,7 @@
    de Chrome/Safari (fetch handler requerido).
    ===================================================== */
 
-const CACHE_NAME = 'gs-viaticos-v2';
+const CACHE_NAME = 'gs-viaticos-v3';
 
 // Recursos del shell de la app que se cachean al instalar
 const SHELL_ASSETS = [

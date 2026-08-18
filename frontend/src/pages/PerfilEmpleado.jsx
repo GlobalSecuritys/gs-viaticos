@@ -16,6 +16,8 @@ import ModalEvidencia from '../components/ModalEvidencia';
 import ModalCrearUsuario from '../components/ModalCrearUsuario';
 import ModalEditarUsuario from '../components/ModalEditarUsuario';
 import ModalCuentaCobro from '../components/ModalCuentaCobro';
+import ModalAsignacionesTecnico from '../components/ModalAsignacionesTecnico';
+import ModalCuentasCobroTecnico from '../components/ModalCuentasCobroTecnico';
 import { formatApiError } from '../utils/formatError';
 import {
     ICONO_TIPO_GASTO,
@@ -69,7 +71,7 @@ const LABEL_ESTADO_VIATICO = {
 export default function PerfilEmpleado() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user } = useAuth()
+    const { user } = useAuth();
 
     const [usuario, setUsuario] = useState(null);
     const [viaticos, setViaticos] = useState([]);
@@ -79,7 +81,6 @@ export default function PerfilEmpleado() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [filtroPeriodo, setFiltroPeriodo] = useState('mes');
-    const [filtroTipoAsignacion, setFiltroTipoAsignacion] = useState('todas');
     const [fechaDesde, setFechaDesde] = useState('');
     const [fechaHasta, setFechaHasta] = useState('');
     const [mensajeFeedback, setMensajeFeedback] = useState('');
@@ -91,6 +92,8 @@ export default function PerfilEmpleado() {
     const [errorEstado, setErrorEstado] = useState('');
     const [cambiandoEstado, setCambiandoEstado] = useState(false);
     const [mostrarEditarUsuario, setMostrarEditarUsuario] = useState(false);
+    const [tecnicoParaAsignaciones, setTecnicoParaAsignaciones] = useState(null);
+    const [tecnicoParaCuentasCobro, setTecnicoParaCuentasCobro] = useState(null);
 
     async function recargarViaticos() {
         const resViaticos = await api.get('/admin/viaticos');
@@ -109,9 +112,6 @@ export default function PerfilEmpleado() {
         recargarViaticos();
     }
 
-    // Mismo patrón que ya funciona en AdminUsuarios.jsx (cambiarRol): el
-    // backend es la autoridad real (get_current_superadmin puro, ver
-    // app/routers/admin.py), esto solo llama al mismo endpoint ya probado.
     async function cambiarRol(nuevoRol) {
         setCambiandoRol(true);
         setErrorRol('');
@@ -120,6 +120,7 @@ export default function PerfilEmpleado() {
                 rol: nuevoRol,
             });
             setUsuario(data);
+            setMensajeFeedback(`✅ Rol actualizado a "${LABEL_CARGO[nuevoRol] || nuevoRol}"`);
         } catch (err) {
             setErrorRol(formatApiError(err, 'No se pudo cambiar el rol.'));
         } finally {
@@ -135,6 +136,7 @@ export default function PerfilEmpleado() {
                 activo: nuevoActivo,
             });
             setUsuario(data);
+            setMensajeFeedback(`✅ Usuario ${nuevoActivo ? 'activado' : 'desactivado'} correctamente.`);
         } catch (err) {
             setErrorEstado(formatApiError(err, 'No se pudo cambiar el estado.'));
         } finally {
@@ -174,11 +176,9 @@ export default function PerfilEmpleado() {
                 setLoading(false);
             }
 
-            // Aparte y tolerante a fallos: si /admin/asignaciones falla (tabla
-            // sin migrar, red, etc.) no debe tumbar la carga del resto del perfil.
             try {
                 const resAsignaciones = await listarAsignaciones();
-                setAsignaciones(resAsignaciones.data);
+                setAsignaciones(resAsignaciones.data || []);
             } catch {
                 setAsignaciones([]);
             }
@@ -190,6 +190,17 @@ export default function PerfilEmpleado() {
         () => obtenerAsignacionesActivasDeTecnico(asignaciones, id),
         [asignaciones, id]
     );
+
+    const totalGastadoViaticos = useMemo(() => {
+        return viaticos.reduce((sum, v) => sum + Number(v.valor || 0), 0);
+    }, [viaticos]);
+
+    const cuentasCobroGeneradas = useMemo(() => {
+        return asignaciones.filter((a) => {
+            const pertenece = (a.tecnicos || []).some((t) => String(t.id || t.usuario_id) === id) || String(a.tecnico_id) === id;
+            return pertenece && a.cuenta_cobro?.secure_url;
+        }).length;
+    }, [asignaciones, id]);
 
     const statsControlSistema = useMemo(() => ({
         tecnicosActivos: todosUsuarios.filter((u) => u.rol === 'tecnico' && u.activo).length,
@@ -212,7 +223,6 @@ export default function PerfilEmpleado() {
             const { inicio, fin } = rangoMesCalendario(hoy);
             base = filtrarPorRango(viaticos, inicio, fin);
         } else {
-            // personalizado
             base = filtrarPorRango(viaticos, rangoInicio, rangoFin);
         }
 
@@ -284,8 +294,10 @@ export default function PerfilEmpleado() {
     if (loading) {
         return (
             <div className="admin-root">
-                <div className="admin-main">
-                    <p style={{ color: 'var(--color-text-muted)' }}>Cargando perfil...</p>
+                <div className="admin-main pf-main">
+                    <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem' }}>
+                        Cargando perfil corporativo...
+                    </p>
                 </div>
             </div>
         );
@@ -294,9 +306,13 @@ export default function PerfilEmpleado() {
     if (error || !usuario) {
         return (
             <div className="admin-root">
-                <div className="admin-main">
-                    <button className="admin-back-btn" onClick={() => navigate('/admin')}>← Volver</button>
-                    <p style={{ color: 'var(--color-rechazado, #EF4444)' }}>{error || 'Empleado no encontrado.'}</p>
+                <div className="admin-main pf-main">
+                    <button className="pf-back-pill-btn" onClick={() => navigate('/admin')}>
+                        ← Volver
+                    </button>
+                    <p style={{ color: '#DC2626', marginTop: '1rem', fontWeight: 600 }}>
+                        {error || 'Empleado no encontrado.'}
+                    </p>
                 </div>
             </div>
         );
@@ -304,76 +320,112 @@ export default function PerfilEmpleado() {
 
     const esAdmin = usuario.rol === 'admin' || usuario.rol === 'superadmin';
     const puedeGestionar = puedeGestionarUsuario(user?.rol, usuario.rol);
-    // Cuando un SuperAdmin ve su propia tarjeta, esto no es un perfil de
-    // técnico con viáticos que aprobar — es su panel de control. El resto
-    // del perfil (asignaciones/viáticos/historial) no aplica aquí.
     const esPropiaTarjeta = user && String(user.id) === id;
     const esSuperAdminPropio = esPropiaTarjeta && usuario.rol === 'superadmin';
+
     return (
         <div className="admin-root">
             <div className="admin-main pf-main">
 
+                {/* ── TOP NAVIGATION & BRAND BAR ── */}
+                <div className="pf-top-nav-bar">
+                    <button className="pf-back-pill-btn" onClick={() => navigate('/admin')}>
+                        ← Volver
+                    </button>
+
+                    <div className="pf-brand-center">
+                        <img src={logoGSB} alt="Global Security Bank" className="pf-brand-logo" />
+                    </div>
+
+                    <div className="pf-status-right">
+                        <span className={`pf-status-badge ${usuario.activo ? 'pf-status-badge--activo' : 'pf-status-badge--inactivo'}`}>
+                            <span className="pf-status-dot" />
+                            {usuario.activo ? 'ACTIVO' : 'INACTIVO'}
+                        </span>
+                    </div>
+                </div>
+
                 {mensajeFeedback && (
-                    <div style={{
-                        backgroundColor: '#F0FDF4',
-                        border: '1.5px solid #86EFAC',
-                        color: '#166534',
-                        padding: '0.9rem 1.25rem',
-                        borderRadius: '12px',
-                        fontWeight: 600,
-                        fontSize: '0.9rem',
-                        marginBottom: '1.25rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        boxShadow: '0 2px 8px rgba(22, 101, 52, 0.1)',
-                    }}>
+                    <div className="pf-feedback-banner">
                         <span>{mensajeFeedback}</span>
                         <button
                             onClick={() => setMensajeFeedback('')}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', color: '#166534' }}
+                            className="pf-feedback-close"
                         >
                             ×
                         </button>
                     </div>
                 )}
 
-                {/* Sección 1: Cabecera del perfil */}
-                <div className="pf-card pf-header-card">
-                    <div className="pf-header-top">
-                        <div className="pf-header-brand-wrap">
-                            <button className="admin-back-btn" onClick={() => navigate('/admin')}>← Volver</button>
-                            <img src={logoGSB} alt="Global Security Bank" className="pf-brand-logo" />
+                {/* ── HERO PROFILE CARD (MATCHING REFERENCE IMAGE) ── */}
+                <div className="pf-hero-card">
+                    <div className="pf-hero-left">
+                        <div className="pf-hero-avatar-wrap">
+                            <div className="pf-hero-avatar">
+                                {iniciales(usuario.nombre)}
+                            </div>
                         </div>
-                        <span className={`pf-estado-pill ${usuario.activo ? 'pf-estado-pill--activo' : 'pf-estado-pill--inactivo'}`}>
-                            <span className="pf-estado-dot" />
-                            {usuario.activo ? 'Activo' : 'Inactivo'}
-                        </span>
-                    </div>
 
-                    <div className="pf-header-body">
-                        <div className="pf-avatar">{iniciales(usuario.nombre)}</div>
-                        <div className="pf-header-datos">
-                            <div className="pf-header-nombre-row">
-                                <h1 className="pf-nombre">{usuario.nombre}</h1>
-                                <span className={`pf-rol-badge ${esAdmin ? 'pf-rol-badge--admin' : 'pf-rol-badge--tecnico'}`}>
+                        <div className="pf-hero-info">
+                            <div className="pf-hero-name-row">
+                                <h1 className="pf-hero-name">{usuario.nombre}</h1>
+                                <span className={`pf-hero-role-pill ${esAdmin ? 'pf-hero-role-pill--admin' : 'pf-hero-role-pill--tecnico'}`}>
                                     {LABEL_CARGO[usuario.rol] || usuario.rol}
                                 </span>
                             </div>
-                            <div className="pf-header-meta">
-                                <span>Cédula: {usuario.codigo_empleado || '—'}</span>
-                                <span className="pf-header-meta-sep">•</span>
-                                <span>{usuario.correo}</span>
+                            <div className="pf-hero-meta-row">
+                                <span className="pf-meta-item">🪪 Cédula: {usuario.codigo_empleado || '—'}</span>
+                                <span className="pf-meta-dot">•</span>
+                                <span className="pf-meta-item">✉ {usuario.correo}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3 Metric Columns with Vertical Dividers */}
+                    <div className="pf-hero-metrics">
+                        <div className="pf-hero-metric-item">
+                            <div className="pf-metric-icon pf-metric-icon--blue">
+                                <span>📅</span>
+                            </div>
+                            <div className="pf-metric-content">
+                                <span className="pf-metric-val">{asignacionesActivas.length}</span>
+                                <span className="pf-metric-lbl">ASIGNACIONES ACTIVAS</span>
+                            </div>
+                        </div>
+
+                        <div className="pf-hero-metric-sep" />
+
+                        <div className="pf-hero-metric-item">
+                            <div className="pf-metric-icon pf-metric-icon--green">
+                                <span>💵</span>
+                            </div>
+                            <div className="pf-metric-content">
+                                <span className="pf-metric-val pf-metric-val--green">
+                                    {formatCOP(totalGastadoViaticos)}
+                                </span>
+                                <span className="pf-metric-lbl">TOTAL GASTADO EN VIÁTICOS</span>
+                            </div>
+                        </div>
+
+                        <div className="pf-hero-metric-sep" />
+
+                        <div className="pf-hero-metric-item">
+                            <div className="pf-metric-icon pf-metric-icon--amber">
+                                <span>📄</span>
+                            </div>
+                            <div className="pf-metric-content">
+                                <span className="pf-metric-val pf-metric-val--amber">
+                                    {cuentasCobroGeneradas}
+                                </span>
+                                <span className="pf-metric-lbl">CUENTAS DE COBRO GENERADAS</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                {/* ── SECCIÓN GESTIÓN (CUADRÍCULA DE ACCIONES 2 COLUMNAS) ── */}
                 {esSuperAdminPropio ? (
                     <>
-                        {/* Panel de Control del propio Super Admin: contadores reales
-                           (calculados de datos ya cargados) + accesos reales a
-                           administración. Nada de botones sin funcionalidad detrás. */}
                         <h2 className="pf-section-title">Control del sistema</h2>
                         <div className="pf-resumen-bar">
                             <div className="pf-resumen-item">
@@ -394,140 +446,206 @@ export default function PerfilEmpleado() {
                             </div>
                         </div>
 
-                        <h2 className="pf-section-title">Administración</h2>
-                        <div className="pf-card pf-gestion-card">
-                            <div className="pf-gestion-grupo">
-                                <span className="pf-info-label">Usuarios</span>
-                                <div className="pf-gestion-acciones">
-                                    <button className="pf-viatico-detalle-btn" onClick={() => navigate('/admin/usuarios')}>
-                                        👥 Gestión de usuarios y roles
-                                    </button>
-                                    <button className="pf-viatico-detalle-btn" onClick={() => setMostrarCrearUsuario(true)}>
-                                        ➕ Crear usuario
-                                    </button>
+                        <div className="pf-gestion-section">
+                            <div className="pf-gestion-header">
+                                <div className="pf-gestion-title-wrap">
+                                    <span className="pf-gestion-icon">⚙️</span>
+                                    <h2 className="pf-gestion-title">GESTIÓN</h2>
+                                </div>
+                                <div className="pf-gestion-line-wrap">
+                                    <div className="pf-gestion-line" />
+                                    <div className="pf-gestion-line-accent" />
                                 </div>
                             </div>
-                            <div className="pf-gestion-grupo">
-                                <span className="pf-info-label">Operación</span>
-                                <div className="pf-gestion-acciones">
-                                    <button className="pf-viatico-detalle-btn" onClick={() => navigate('/admin/asignaciones')}>
-                                        📋 Asignaciones
-                                    </button>
+
+                            <span className="pf-subgroup-label">ADMINISTRACIÓN DEL SISTEMA</span>
+                            <div className="pf-action-grid">
+                                <div className="pf-action-card" onClick={() => navigate('/admin/usuarios')}>
+                                    <div className="pf-action-icon-box pf-action-icon--blue"><span>👥</span></div>
+                                    <div className="pf-action-info">
+                                        <strong className="pf-action-title">Gestión de usuarios y roles</strong>
+                                        <span className="pf-action-desc">Administrar personal y permisos</span>
+                                    </div>
+                                    <span className="pf-action-arrow">›</span>
                                 </div>
-                            </div>
-                            <div className="pf-gestion-grupo">
-                                <span className="pf-info-label">Auditoría</span>
-                                <div className="pf-gestion-acciones">
-                                    <button className="pf-viatico-detalle-btn" onClick={() => navigate('/admin/auditoria')}>
-                                        📊 Actividad administrativa
-                                    </button>
+                                <div className="pf-action-card" onClick={() => setMostrarCrearUsuario(true)}>
+                                    <div className="pf-action-icon-box pf-action-icon--green"><span>➕</span></div>
+                                    <div className="pf-action-info">
+                                        <strong className="pf-action-title">Crear usuario</strong>
+                                        <span className="pf-action-desc">Registrar nuevo técnico o administrador</span>
+                                    </div>
+                                    <span className="pf-action-arrow">›</span>
                                 </div>
-                            </div>
-                            {/* Estas 2 no tienen ningún backend detrás todavía (ni
-                               endpoints ni diseño de producto definido) — se listan
-                               como hoja de ruta, sin fingir que funcionan. */}
-                            <div className="pf-gestion-grupo">
-                                <span className="pf-info-label">Próximamente</span>
-                                <p className="pf-gestion-proximamente">
-                                    🛡️ Gestión de permisos · 📥 Importación / exportación
-                                </p>
+                                <div className="pf-action-card" onClick={() => navigate('/admin/asignaciones')}>
+                                    <div className="pf-action-icon-box pf-action-icon--purple"><span>📋</span></div>
+                                    <div className="pf-action-info">
+                                        <strong className="pf-action-title">Asignaciones globales</strong>
+                                        <span className="pf-action-desc">Supervisión operativa de proyectos</span>
+                                    </div>
+                                    <span className="pf-action-arrow">›</span>
+                                </div>
+                                <div className="pf-action-card" onClick={() => navigate('/admin/auditoria')}>
+                                    <div className="pf-action-icon-box pf-action-icon--amber"><span>📊</span></div>
+                                    <div className="pf-action-info">
+                                        <strong className="pf-action-title">Auditoría y trazabilidad</strong>
+                                        <span className="pf-action-desc">Historial y registros del sistema</span>
+                                    </div>
+                                    <span className="pf-action-arrow">›</span>
+                                </div>
                             </div>
                         </div>
                     </>
                 ) : (
                     <>
-                        {/* Sección Gestión: acciones reales que el viewer puede ejecutar
-                   sobre este usuario. El backend sigue siendo la autoridad real
-                   (verificar_autoridad_sobre_usuario / get_current_superadmin);
-                   esto solo decide qué mostrar. */}
                         {puedeGestionar ? (
-                            <div className="pf-card pf-gestion-card">
-                                <span className="pf-mision-label">⚙️ Gestión</span>
-                                <div className="pf-gestion-grupo">
-                                    <span className="pf-info-label">Información</span>
-                                    <div className="pf-gestion-acciones">
-                                        <button
-                                            className="pf-viatico-detalle-btn"
-                                            onClick={() => setMostrarEditarUsuario(true)}
-                                        >
-                                            ✏️ Editar información
-                                        </button>
+                            <div className="pf-gestion-section">
+                                <div className="pf-gestion-header">
+                                    <div className="pf-gestion-title-wrap">
+                                        <span className="pf-gestion-icon">⚙️</span>
+                                        <h2 className="pf-gestion-title">GESTIÓN</h2>
                                     </div>
-                                </div>
-                                <div className="pf-gestion-grupo">
-                                    <span className="pf-info-label">Operación</span>
-                                    <div className="pf-gestion-acciones">
-                                        <button
-                                            className="pf-viatico-detalle-btn"
-                                            onClick={() => navigate('/admin/asignaciones')}
-                                        >
-                                            Ver asignaciones
-                                        </button>
+                                    <div className="pf-gestion-line-wrap">
+                                        <div className="pf-gestion-line" />
+                                        <div className="pf-gestion-line-accent" />
                                     </div>
                                 </div>
 
-                                {user?.rol === 'superadmin' && (
-                                    <div className="pf-gestion-grupo">
-                                        <span className="pf-info-label">Rol del usuario</span>
-                                        <div className="pf-gestion-acciones">
-                                            {usuario.rol === 'superadmin' ? (
-                                                <select className="pf-rol-select" value="superadmin" disabled>
-                                                    <option value="superadmin">SuperAdmin</option>
-                                                </select>
+                                <span className="pf-subgroup-label">INFORMACIÓN Y OPERACIÓN</span>
+                                <div className="pf-action-grid">
+                                    {/* Card 1: Editar información */}
+                                    <div
+                                        className="pf-action-card"
+                                        onClick={() => setMostrarEditarUsuario(true)}
+                                        role="button"
+                                        tabIndex={0}
+                                    >
+                                        <div className="pf-action-icon-box pf-action-icon--blue">
+                                            <span>✏️</span>
+                                        </div>
+                                        <div className="pf-action-info">
+                                            <strong className="pf-action-title">Editar información</strong>
+                                            <span className="pf-action-desc">Actualiza tus datos personales</span>
+                                        </div>
+                                        <span className="pf-action-arrow">›</span>
+                                    </div>
+
+                                    {/* Card 2: Asignaciones */}
+                                    <div
+                                        className="pf-action-card"
+                                        onClick={() => setTecnicoParaAsignaciones(usuario)}
+                                        role="button"
+                                        tabIndex={0}
+                                    >
+                                        <div className="pf-action-icon-box pf-action-icon--blue">
+                                            <span>📋</span>
+                                        </div>
+                                        <div className="pf-action-info">
+                                            <strong className="pf-action-title">Asignaciones</strong>
+                                            <span className="pf-action-desc">Ver y gestionar tus asignaciones</span>
+                                        </div>
+                                        <span className="pf-action-arrow">›</span>
+                                    </div>
+
+                                    {/* Card 3: Cuenta de Cobro */}
+                                    <div
+                                        className="pf-action-card"
+                                        onClick={() => setTecnicoParaCuentasCobro(usuario)}
+                                        role="button"
+                                        tabIndex={0}
+                                    >
+                                        <div className="pf-action-icon-box pf-action-icon--green">
+                                            <span>💵</span>
+                                        </div>
+                                        <div className="pf-action-info">
+                                            <strong className="pf-action-title">Cuenta de Cobro</strong>
+                                            <span className="pf-action-desc">Gestiona tu cuenta de cobro</span>
+                                        </div>
+                                        <span className="pf-action-arrow">›</span>
+                                    </div>
+
+                                    {/* Card 4: Rol del usuario */}
+                                    <div className="pf-action-card pf-action-card--select">
+                                        <div className="pf-action-icon-box pf-action-icon--purple">
+                                            <span>👤</span>
+                                        </div>
+                                        <div className="pf-action-info">
+                                            <strong className="pf-action-title">Rol del usuario</strong>
+                                        </div>
+                                        <div className="pf-action-select-wrap">
+                                            {user?.rol === 'superadmin' ? (
+                                                usuario.rol === 'superadmin' ? (
+                                                    <select className="pf-styled-select" value="superadmin" disabled>
+                                                        <option value="superadmin">Super Admin</option>
+                                                    </select>
+                                                ) : (
+                                                    <select
+                                                        className="pf-styled-select"
+                                                        value={usuario.rol}
+                                                        disabled={cambiandoRol}
+                                                        onChange={(e) => cambiarRol(e.target.value)}
+                                                    >
+                                                        <option value="tecnico">Técnico</option>
+                                                        <option value="admin">Admin</option>
+                                                        <option value="superadmin">Super Admin</option>
+                                                    </select>
+                                                )
                                             ) : (
-                                                <select
-                                                    className="pf-rol-select"
-                                                    value={usuario.rol}
-                                                    disabled={cambiandoRol}
-                                                    onChange={(e) => cambiarRol(e.target.value)}
-                                                >
-                                                    <option value="tecnico">Técnico</option>
-                                                    <option value="admin">Admin</option>
-                                                    <option value="superadmin">SuperAdmin</option>
-                                                </select>
+                                                <span className="pf-role-readonly-pill">
+                                                    {LABEL_CARGO[usuario.rol] || usuario.rol}
+                                                </span>
                                             )}
                                         </div>
-                                        {errorRol && <p className="pf-gestion-error">{errorRol}</p>}
                                     </div>
-                                )}
+                                </div>
 
-                                {/* No se muestra en la propia tarjeta: el backend bloquea
-                                   la autodesactivación (nadie puede desactivarse a sí
-                                   mismo) y no tiene sentido ofrecer un botón que siempre
-                                   va a fallar. */}
+                                {errorRol && <p className="pf-gestion-error">{errorRol}</p>}
+
+                                {/* ACCIONES ADMINISTRATIVAS */}
                                 {!esPropiaTarjeta && (
-                                    <div className="pf-gestion-grupo">
-                                        <span className="pf-info-label">Acciones administrativas</span>
-                                        <div className="pf-gestion-acciones">
-                                            <button
-                                                className="pf-viatico-detalle-btn"
-                                                disabled={cambiandoEstado}
-                                                onClick={() => cambiarEstado(!usuario.activo)}
+                                    <>
+                                        <span className="pf-subgroup-label" style={{ marginTop: '1.75rem' }}>
+                                            ACCIONES ADMINISTRATIVAS
+                                        </span>
+                                        <div className="pf-admin-action-wrap">
+                                            <div
+                                                className={`pf-action-card pf-action-card--danger ${cambiandoEstado ? 'pf-action-card--disabled' : ''}`}
+                                                onClick={() => !cambiandoEstado && cambiarEstado(!usuario.activo)}
+                                                role="button"
+                                                tabIndex={0}
                                             >
-                                                {usuario.activo ? '🚫 Desactivar usuario' : '✅ Activar usuario'}
-                                            </button>
+                                                <div className="pf-action-icon-box pf-action-icon--red">
+                                                    <span>🚫</span>
+                                                </div>
+                                                <div className="pf-action-info">
+                                                    <strong className="pf-action-title">
+                                                        {usuario.activo ? 'Desactivar usuario' : 'Activar usuario'}
+                                                    </strong>
+                                                    <span className="pf-action-desc">
+                                                        {usuario.activo
+                                                            ? 'El usuario perderá acceso al sistema'
+                                                            : 'El usuario recuperará acceso al sistema'}
+                                                    </span>
+                                                </div>
+                                                <span className="pf-action-arrow">›</span>
+                                            </div>
                                         </div>
                                         {errorEstado && <p className="pf-gestion-error">{errorEstado}</p>}
-                                    </div>
+                                    </>
                                 )}
                             </div>
                         ) : (
-                            <div className="pf-card pf-gestion-card pf-gestion-card--lectura">
-                                <span className="pf-estado-pill pf-estado-pill--inactivo">
-                                    <span className="pf-estado-dot" />
+                            <div className="pf-gestion-card pf-gestion-card--lectura">
+                                <span className="pf-status-badge pf-status-badge--inactivo">
+                                    <span className="pf-status-dot" />
                                     Solo lectura
                                 </span>
-                                <p className="pf-info-label" style={{ marginTop: '0.5rem' }}>
+                                <p style={{ color: '#64748B', fontSize: '0.85rem', marginTop: '0.5rem' }}>
                                     No tienes autoridad administrativa sobre este usuario.
                                 </p>
                             </div>
                         )}
 
-                        {/* Sección 2: Misión / asignaciones actuales — SOLO para
-                           técnicos. Un admin/superadmin no tiene "asignación" ni
-                           "viáticos" propios que mostrar en su tarjeta (aplica
-                           tanto si es su propia tarjeta como si lo ve otro
-                           admin/superadmin con autoridad sobre él). */}
+                        {/* ── ASIGNACIÓN ACTUAL & HISTORIAL DE VIÁTICOS ── */}
                         {!esAdmin && (
                             <>
                                 <h2 className="pf-section-title">Asignación actual</h2>
@@ -536,12 +654,12 @@ export default function PerfilEmpleado() {
                                         {asignacionesActivas.map((asignacion) => (
                                             <div className="pf-mision-card" key={asignacion.id}>
                                                 <div className="pf-mision-top">
-                                                    <span className="pf-mision-label">📍 Asignación actual</span>
+                                                    <span className="pf-mision-label">📍 Asignación activa</span>
                                                 </div>
 
                                                 <div className="pf-mision-grid">
                                                     <div>
-                                                        <span className="pf-info-label">Cliente</span>
+                                                        <span className="pf-info-label">Proyecto</span>
                                                         <span className="pf-info-valor">{asignacion.cliente}</span>
                                                     </div>
                                                     <div>
@@ -564,41 +682,41 @@ export default function PerfilEmpleado() {
                                                     </div>
                                                 </div>
 
-                                                {/* Resumen financiero contextual dentro de la asignación */}
-                                                <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid #E2E8F0', display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.82rem', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                                                {/* Resumen financiero */}
+                                                <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid #E2E8F0', display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.82rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem' }}>
                                                         <div>
-                                                            <span style={{ color: '#64748B', display: 'block' }}>Anticipo</span>
-                                                            <strong style={{ color: '#1E293B' }}>{formatCOP(Number(asignacion.monto_anticipo || 0))}</strong>
+                                                            <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Anticipo</span>
+                                                            <strong style={{ color: '#1E293B', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.monto_anticipo || 0))}</strong>
                                                         </div>
                                                         <div>
-                                                            <span style={{ color: '#64748B', display: 'block' }}>Gastado</span>
-                                                            <strong style={{ color: '#0284C7' }}>{formatCOP(Number(asignacion.total_gastado || 0))}</strong>
+                                                            <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Gastado</span>
+                                                            <strong style={{ color: '#0284C7', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.total_gastado || 0))}</strong>
                                                         </div>
                                                         <div>
-                                                            <span style={{ color: '#64748B', display: 'block' }}>Saldo restante</span>
-                                                            <strong style={{ color: '#16A34A' }}>{formatCOP(Number(asignacion.saldo_restante || 0))}</strong>
+                                                            <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Saldo restante</span>
+                                                            <strong style={{ color: '#16A34A', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.saldo_restante || 0))}</strong>
                                                         </div>
                                                         <div>
-                                                            <span style={{ color: '#64748B', display: 'block' }}>Ítems</span>
-                                                            <strong>{asignacion.cantidad_viaticos || 0}</strong>
+                                                            <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Ítems</span>
+                                                            <strong style={{ fontSize: '0.92rem' }}>{asignacion.cantidad_viaticos || 0}</strong>
                                                         </div>
                                                     </div>
 
                                                     <button
                                                         type="button"
-                                                        className="admin-back-btn"
-                                                        style={{ margin: 0, padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                                                        className="pf-back-pill-btn"
+                                                        style={{ margin: 0, padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}
                                                         onClick={() => handleExportarAsignacion(asignacion.id)}
                                                         disabled={exportandoAsigId === asignacion.id}
                                                     >
-                                                        {exportandoAsigId === asignacion.id ? '⌛ Exportando...' : '📊 Exportar Excel de esta asignación'}
+                                                        {exportandoAsigId === asignacion.id ? '⌛ Exportando...' : '📊 Exportar Excel'}
                                                     </button>
                                                 </div>
 
                                                 {/* Cuenta de Cobro */}
                                                 <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                                                    <span style={{ color: '#64748B', fontWeight: 500 }}>Cuenta de cobro digital:</span>
+                                                    <span style={{ color: '#64748B', fontWeight: 600 }}>Cuenta de cobro digital:</span>
                                                     {asignacion.cuenta_cobro?.secure_url ? (
                                                         <button
                                                             type="button"
@@ -631,8 +749,8 @@ export default function PerfilEmpleado() {
                                                                 background: '#EFF6FF',
                                                                 color: '#0284C7',
                                                                 fontWeight: 700,
-                                                                padding: '0.25rem 0.65rem',
-                                                                borderRadius: '7px',
+                                                                padding: '0.3rem 0.75rem',
+                                                                borderRadius: '8px',
                                                                 border: '1px solid #BAE6FD',
                                                                 cursor: 'pointer',
                                                             }}
@@ -640,7 +758,7 @@ export default function PerfilEmpleado() {
                                                             📄 Ver documento
                                                         </button>
                                                     ) : (
-                                                        <span style={{ background: '#FEF9EC', color: '#92400E', fontWeight: 600, padding: '0.25rem 0.65rem', borderRadius: '7px', border: '1px solid #FDE68A' }}>
+                                                        <span style={{ background: '#FEF9EC', color: '#92400E', fontWeight: 600, padding: '0.25rem 0.65rem', borderRadius: '8px', border: '1px solid #FDE68A' }}>
                                                             ⏳ No adjuntada aún
                                                         </span>
                                                     )}
@@ -649,16 +767,16 @@ export default function PerfilEmpleado() {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="pf-mision-vacia">No tienes asignaciones activas.</div>
+                                    <div className="pf-mision-vacia">No hay asignaciones activas registradas.</div>
                                 )}
 
-                                {/* Sección 3: Filtros */}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
+                                {/* Viáticos del técnico */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginTop: '2rem', marginBottom: '0.75rem' }}>
                                     <h2 className="pf-section-title" style={{ margin: 0 }}>Viáticos</h2>
                                     <button
                                         type="button"
                                         className="asig-btn-nueva"
-                                        style={{ padding: '0.45rem 0.95rem', fontSize: '0.82rem' }}
+                                        style={{ padding: '0.45rem 1rem', fontSize: '0.82rem' }}
                                         onClick={handleExportarIndependientes}
                                         disabled={exportandoIndependiente}
                                     >
@@ -696,9 +814,7 @@ export default function PerfilEmpleado() {
                                     </div>
 
                                     <div className="pf-filtro-grupo">
-                                        <span className="pf-filtro-grupo-label">
-                                            Tipo de asignación
-                                        </span>
+                                        <span className="pf-filtro-grupo-label">Tipo de asignación</span>
                                         <div className="pf-tabs">
                                             {FILTROS_TIPO_ASIGNACION.map((f) => (
                                                 <button
@@ -713,15 +829,13 @@ export default function PerfilEmpleado() {
                                     </div>
 
                                     <div className="pf-filtro-grupo">
-                                        <span className="pf-filtro-grupo-label">
-                                            Buscar asignación
-                                        </span>
+                                        <span className="pf-filtro-grupo-label">Buscar asignación</span>
                                         <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                                             <input
                                                 type="text"
                                                 className="admin-input"
-                                                style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem', maxWidth: '190px' }}
-                                                placeholder="Nombre de cliente..."
+                                                style={{ padding: '0.45rem 0.85rem', fontSize: '0.85rem', maxWidth: '200px' }}
+                                                placeholder="Nombre de proyecto..."
                                                 value={busquedaAsignacion}
                                                 onChange={(e) => setBusquedaAsignacion(e.target.value)}
                                                 onKeyDown={(e) => {
@@ -732,8 +846,8 @@ export default function PerfilEmpleado() {
                                             />
                                             <button
                                                 type="button"
-                                                className="admin-back-btn"
-                                                style={{ margin: 0, padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                                                className="pf-back-pill-btn"
+                                                style={{ margin: 0, padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}
                                                 onClick={() => setFiltroClienteAsignacion(busquedaAsignacion.trim().toLowerCase())}
                                             >
                                                 Buscar
@@ -741,7 +855,7 @@ export default function PerfilEmpleado() {
                                             {filtroClienteAsignacion && (
                                                 <button
                                                     type="button"
-                                                    style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: '0.8rem' }}
+                                                    style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
                                                     onClick={() => {
                                                         setBusquedaAsignacion('');
                                                         setFiltroClienteAsignacion('');
@@ -754,7 +868,6 @@ export default function PerfilEmpleado() {
                                     </div>
                                 </div>
 
-                                {/* Sección 4: Resumen compacto */}
                                 <div className="pf-resumen-bar">
                                     <div className="pf-resumen-item pf-resumen-item--total">
                                         <span className="pf-resumen-valor">{formatCOP(resumenPeriodo.total)}</span>
@@ -779,9 +892,7 @@ export default function PerfilEmpleado() {
                                     </div>
                                 </div>
 
-                                {/* Sección 5: Historial como tarjetas */}
                                 <h2 className="pf-section-title">Historial</h2>
-
                                 {viaticosOrdenados.length === 0 ? (
                                     <div className="pf-mision-vacia">Sin viáticos registrados en este periodo.</div>
                                 ) : (
@@ -800,13 +911,19 @@ export default function PerfilEmpleado() {
                                                         </span>
                                                     </div>
 
-                                                    <div style={{ margin: '0.35rem 0' }}>
-                                                        {v.asignacion_id ? (
-                                                            <span style={{ fontSize: '0.75rem', background: '#EFF6FF', color: '#1D4ED8', padding: '0.15rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>
-                                                                📍 Asignación #{v.asignacion_id}
-                                                            </span>
-                                                        ) : (
-                                                            <span style={{ fontSize: '0.75rem', background: '#F8FAFC', color: '#64748B', border: '1px solid #E2E8F0', padding: '0.15rem 0.5rem', borderRadius: '4px', fontWeight: 500 }}>
+                                                    <div style={{ margin: '0.4rem 0' }}>
+                                                        {v.asignacion_id ? (() => {
+                                                            const _a = asignacionesFullMap.get(v.asignacion_id);
+                                                            const _label = _a
+                                                                ? [_a.cliente, LABEL_TIPO_ASIGNACION[_a.tipo] || _a.tipo].filter(Boolean).join(' - ')
+                                                                : `Asig. #${v.asignacion_id}`;
+                                                            return (
+                                                                <span style={{ fontSize: '0.75rem', background: '#EFF6FF', color: '#1D4ED8', padding: '0.2rem 0.55rem', borderRadius: '6px', fontWeight: 600 }} title={`ID interno: #${v.asignacion_id}`}>
+                                                                    📍 {_label}
+                                                                </span>
+                                                            );
+                                                        })() : (
+                                                            <span style={{ fontSize: '0.75rem', background: '#F8FAFC', color: '#64748B', border: '1px solid #E2E8F0', padding: '0.2rem 0.55rem', borderRadius: '6px', fontWeight: 500 }}>
                                                                 📄 Viático Independiente
                                                             </span>
                                                         )}
@@ -815,8 +932,6 @@ export default function PerfilEmpleado() {
                                                     <p className="pf-viatico-lugar">{v.cliente} · {v.ciudad}</p>
                                                     <p className="pf-viatico-fecha">{formatFechaLarga(v.fecha)}</p>
 
-                                                    {/* El backend no guarda un "motivo de rechazo" separado hoy;
-                                       si algún día se agrega, aparece automáticamente aquí. */}
                                                     {v.estado === 'rechazado' && v.motivo_rechazo && (
                                                         <p className="pf-viatico-motivo">Motivo: {v.motivo_rechazo}</p>
                                                     )}
@@ -849,6 +964,7 @@ export default function PerfilEmpleado() {
                 )}
             </div>
 
+            {/* Modales */}
             {mostrarCrearUsuario && (
                 <ModalCrearUsuario
                     onClose={() => setMostrarCrearUsuario(false)}
@@ -884,12 +1000,28 @@ export default function PerfilEmpleado() {
                 />
             )}
 
-            {/* Modal Cuenta de Cobro Formal */}
             {cuentaCobroVer && (
                 <ModalCuentaCobro
                     archivoUrl={cuentaCobroVer.archivoUrl}
                     cuenta={cuentaCobroVer.cuenta}
                     onClose={() => setCuentaCobroVer(null)}
+                />
+            )}
+
+            {tecnicoParaAsignaciones && (
+                <ModalAsignacionesTecnico
+                    tecnico={tecnicoParaAsignaciones}
+                    onClose={() => setTecnicoParaAsignaciones(null)}
+                    onAsignacionActualizada={() => {
+                        listarAsignaciones().then((res) => setAsignaciones(res.data)).catch(() => {});
+                    }}
+                />
+            )}
+
+            {tecnicoParaCuentasCobro && (
+                <ModalCuentasCobroTecnico
+                    tecnico={tecnicoParaCuentasCobro}
+                    onClose={() => setTecnicoParaCuentasCobro(null)}
                 />
             )}
         </div>

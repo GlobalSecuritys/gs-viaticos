@@ -1,12 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { listarAuditoria } from '../services/auditoria';
+import { listarAsignaciones } from '../services/asignaciones';
+import { obtenerAsignacionActivaDeTecnico, LABEL_TIPO_ASIGNACION } from '../utils/asignaciones';
 import logoGSB from '../assets/logo-gsb.png';
 import NotificationBell from '../components/NotificationBell';
 import InstallPwaPrompt from '../components/InstallPwaPrompt';
 import ModalEvidencia from '../components/ModalEvidencia';
+import ModalAsignacionesTecnico from '../components/ModalAsignacionesTecnico';
+import ModalCuentasCobroTecnico from '../components/ModalCuentasCobroTecnico';
+import ModalCrearUsuario from '../components/ModalCrearUsuario';
 import './AdminDashboard.css';
 
 function formatCOP(value) {
@@ -45,12 +50,6 @@ function labelRol(rol) {
     if (rol === 'superadmin') return 'Super Administrador';
     if (rol === 'admin') return 'Administrador';
     return 'Técnico';
-}
-
-function labelTipoId(tipo) {
-    if (tipo === 'nit_proveedor') return { texto: 'NIT Proveedor', color: '#7C3AED', bg: '#EDE9FE' };
-    if (tipo === 'nit_nuevo') return { texto: 'NIT Nuevo', color: '#B45309', bg: '#FEF3C7' };
-    return { texto: 'Cédula', color: '#1D63C8', bg: '#EFF6FF' };
 }
 
 function esHoy(fechaStr) {
@@ -94,12 +93,18 @@ export default function AdminDashboard() {
     const [perfilData, setPerfilData] = useState(null);
     const [usuarios, setUsuarios] = useState([]);
     const [viaticos, setViaticos] = useState([]);
+    const [asignaciones, setAsignaciones] = useState([]);
+    const [tecnicoParaAsignaciones, setTecnicoParaAsignaciones] = useState(null);
+    const [tecnicoParaCuentasCobro, setTecnicoParaCuentasCobro] = useState(null);
+    const [mostrarCrearUsuario, setMostrarCrearUsuario] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [periodo, setPeriodo] = useState('mes');
-    const [resumenAbierto, setResumenAbierto] = useState(true);
     const [ultimaAccion, setUltimaAccion] = useState(null);
     const [cargandoAccion, setCargandoAccion] = useState(true);
+    const [menuUsuarioAbierto, setMenuUsuarioAbierto] = useState(false);
+    const [sidebarAbierto, setSidebarAbierto] = useState(false);
+    const [itemMenuActivo, setItemMenuActivo] = useState('inicio');
 
     // Modal de consolidado y evidencia
     const [registroConsolidado, setRegistroConsolidado] = useState(null);
@@ -107,16 +112,22 @@ export default function AdminDashboard() {
     const [busquedaConsolidado, setBusquedaConsolidado] = useState('');
     const [filtroEstadoConsolidado, setFiltroEstadoConsolidado] = useState('todos');
 
+    // Referencias para scroll suave desde el sidebar
+    const seccionViaticosRef = useRef(null);
+    const seccionTecnicosRef = useRef(null);
+
     async function cargar() {
         try {
-            const [resMe, resUsuarios, resViaticos] = await Promise.all([
+            const [resMe, resUsuarios, resViaticos, resAsig] = await Promise.all([
                 api.get('/auth/me').catch(() => null),
                 api.get('/admin/usuarios'),
                 api.get('/admin/viaticos'),
+                listarAsignaciones().catch(() => ({ data: [] })),
             ]);
             setPerfilData(resMe?.data ?? null);
             setUsuarios(resUsuarios.data);
             setViaticos(resViaticos.data);
+            setAsignaciones(resAsig.data || []);
         } catch {
             setError('No se pudieron cargar los datos del panel.');
         } finally {
@@ -254,425 +265,625 @@ export default function AdminDashboard() {
         codigo_empleado: null,
         activo: true,
     };
-    const nombreMostrado = perfil.nombre || perfil.correo || 'Administrador';
+    const nombreMostrado = perfil.nombre || perfil.correo || 'Admin GSB';
 
     const [mensajeFeedback, setMensajeFeedback] = useState('');
 
+    const NAV_ITEMS = [
+        { id: 'inicio', label: 'Inicio', icon: '🏠', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+        { id: 'viaticos', label: 'Viáticos', icon: '💼', action: () => seccionViaticosRef.current?.scrollIntoView({ behavior: 'smooth' }) },
+        { id: 'tecnicos', label: 'Técnicos', icon: '👥', action: () => seccionTecnicosRef.current?.scrollIntoView({ behavior: 'smooth' }) },
+        { id: 'usuarios', label: 'Usuarios', icon: '👤', action: () => navigate(user?.rol === 'superadmin' ? '/admin/usuarios' : `/admin/personal/${user?.id}`) },
+        { id: 'auditoria', label: 'Auditoría', icon: '📊', action: () => navigate('/admin/auditoria') },
+        { id: 'configuracion', label: 'Configuración', icon: '⚙️', action: () => user?.id && navigate(`/admin/personal/${user.id}`) },
+    ];
+
     return (
-        <div className="admin-root">
-            {/* ── HEADER ── */}
-            <header className="admin-header">
-                <div className="admin-header-brand">
-                    <img src={logoGSB} alt="Global Security Bank" className="admin-logo-img" />
-                    <div>
-                        <span className="admin-brand-name">PANEL ADMINISTRATIVO</span>
-                        <span className="admin-brand-sub">GS-Viáticos</span>
+        <div className="gsb-app-layout">
+            {/* ── SIDEBAR CORPORATIVO ── */}
+            <aside className={`gsb-sidebar ${sidebarAbierto ? 'gsb-sidebar--open' : ''}`}>
+                <div className="gsb-sidebar-header">
+                    <div className="gsb-sidebar-logo-wrap">
+                        <img src={logoGSB} alt="Global Security Bank" className="gsb-sidebar-logo" />
                     </div>
+                    <span className="gsb-sidebar-brand-name">GS-VIÁTICOS</span>
                 </div>
-                <div className="admin-header-right">
-                    <button
-                        className="btn-nav-asignaciones"
-                        style={{ background: '#0284C7' }}
-                        onClick={() => navigate('/admin/cuentas-cobro')}
-                    >
-                        💵 Cuentas de Cobro
-                    </button>
-                    <button
-                        className="btn-nav-asignaciones"
-                        onClick={() => navigate('/admin/asignaciones')}
-                    >
-                        Asignaciones
-                    </button>
-                    <InstallPwaPrompt />
-                    <NotificationBell />
-                    <div className="admin-user-pill">
-                        <span className="admin-user-avatar">{user?.correo?.[0]?.toUpperCase()}</span>
-                        <span className="admin-user-email">{user?.correo}</span>
-                    </div>
-                    <button
-                        className="btn-logout"
-                        onClick={() => {
-                            logout();
-                            navigate('/login');
-                        }}
-                    >
-                        Cerrar sesión
-                    </button>
-                </div>
-            </header>
 
-            <main className="admin-main dash-main">
-                {mensajeFeedback && (
-                    <div style={{
-                        backgroundColor: '#F0FDF4',
-                        border: '1.5px solid #86EFAC',
-                        color: '#166534',
-                        padding: '0.9rem 1.25rem',
-                        borderRadius: '12px',
-                        fontWeight: 600,
-                        fontSize: '0.9rem',
-                        marginBottom: '1.25rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        boxShadow: '0 2px 8px rgba(22, 101, 52, 0.1)',
-                    }}>
-                        <span>{mensajeFeedback}</span>
+                <nav className="gsb-sidebar-nav">
+                    {NAV_ITEMS.map((item) => (
                         <button
-                            onClick={() => setMensajeFeedback('')}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', color: '#166534' }}
+                            key={item.id}
+                            className={`gsb-nav-item ${itemMenuActivo === item.id ? 'gsb-nav-item--active' : ''}`}
+                            onClick={() => {
+                                setItemMenuActivo(item.id);
+                                if (item.action) item.action();
+                                setSidebarAbierto(false);
+                            }}
                         >
-                            ×
+                            <span className="gsb-nav-icon">{item.icon}</span>
+                            <span className="gsb-nav-label">{item.label}</span>
                         </button>
+                    ))}
+                </nav>
+
+                <div className="gsb-sidebar-footer">
+                    <div className="gsb-trust-badge">
+                        <img src={logoGSB} alt="Shield" className="gsb-trust-icon" />
+                        <div className="gsb-trust-text">
+                            <span>Seguridad</span>
+                            <span>Tecnología</span>
+                            <span>Confianza</span>
+                        </div>
                     </div>
-                )}
+                </div>
+            </aside>
 
-                {error && <p className="dash-error">{error}</p>}
+            {/* Backdrop para sidebar en móviles */}
+            {sidebarAbierto && (
+                <div className="gsb-sidebar-backdrop" onClick={() => setSidebarAbierto(false)} />
+            )}
 
-                {/* ── SECCIÓN SUPERIOR: Perfil + KPIs ── */}
-                <h2 className="admin-section-title">Operación General</h2>
-
-                <div className="dash-top-row">
-                    {/* Tarjeta de Perfil */}
-                    <div className="dash-profile-card">
-                        <div className="dash-profile-top">
-                            <div className="dash-profile-avatar-wrap">
-                                <div className="dash-profile-avatar">
-                                    {iniciales(nombreMostrado) || perfil.correo?.[0]?.toUpperCase() || 'A'}
-                                </div>
-                            </div>
-                            <div className="dash-profile-info">
-                                <h3 className="dash-profile-nombre">{nombreMostrado}</h3>
-                                <div className="dash-profile-badges">
-                                    <span className="dash-profile-badge dash-profile-badge--rol">
-                                        {labelRol(perfil.rol || user?.rol)}
-                                    </span>
-                                    <span className={`dash-profile-badge ${perfil.activo ? 'dash-profile-badge--activo' : 'dash-profile-badge--inactivo'}`}>
-                                        {perfil.activo ? 'Activo' : 'Inactivo'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="dash-profile-meta">
-                            <div className="dash-profile-meta-row">
-                                <span className="dash-profile-meta-icon">✉</span>
-                                <span className="dash-profile-meta-val">{perfil.correo}</span>
-                            </div>
-                            {perfil.codigo_empleado && (
-                                <div className="dash-profile-meta-row">
-                                    <span className="dash-profile-meta-icon">🪪</span>
-                                    <span className="dash-profile-meta-val">{perfil.codigo_empleado}</span>
-                                </div>
-                            )}
-                            {perfil.created_at && (
-                                <div className="dash-profile-meta-row">
-                                    <span className="dash-profile-meta-icon">📅</span>
-                                    <span className="dash-profile-meta-val">
-                                        <span className="dash-profile-meta-label">Miembro desde</span>{' '}
-                                        {formatFechaLargaISO(perfil.created_at)}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="dash-profile-ultima-accion">
-                            <span className="dash-profile-ultima-accion-titulo">Última acción registrada</span>
-                            {cargandoAccion ? (
-                                <span className="dash-profile-ultima-accion-val dash-profile-ultima-accion-val--muted">Cargando…</span>
-                            ) : ultimaAccion ? (
-                                <div className="dash-profile-ultima-accion-body">
-                                    <span className="dash-profile-ultima-accion-nombre">
-                                        {ultimaAccion.accion?.replace(/_/g, ' ')}
-                                    </span>
-                                    <span className="dash-profile-ultima-accion-fecha">
-                                        {formatFechaHoraISO(ultimaAccion.created_at)}
-                                    </span>
-                                </div>
-                            ) : (
-                                <span className="dash-profile-ultima-accion-val dash-profile-ultima-accion-val--muted">Sin actividad registrada aún</span>
-                            )}
-                        </div>
-
-                        <div className="dash-profile-actions">
-                            <button
-                                className="dash-tech-btn"
-                                onClick={() => user?.id && navigate(`/admin/personal/${user.id}`)}
-                            >
-                                Ver mi perfil →
-                            </button>
-                            <button
-                                className="dash-tech-btn"
-                                onClick={() => navigate('/admin/usuarios')}
-                            >
-                                Gestionar usuarios →
-                            </button>
-                            <button
-                                className="dash-tech-btn"
-                                onClick={() => navigate('/admin/auditoria')}
-                            >
-                                Auditoría →
-                            </button>
+            {/* ── CONTENIDO PRINCIPAL ── */}
+            <div className="gsb-main-wrapper">
+                {/* ── TOPBAR / HEADER ── */}
+                <header className="gsb-topbar">
+                    <div className="gsb-topbar-left">
+                        <button
+                            className="gsb-menu-toggle"
+                            onClick={() => setSidebarAbierto(!sidebarAbierto)}
+                            aria-label="Abrir menú"
+                        >
+                            ☰
+                        </button>
+                        <div>
+                            <h1 className="gsb-topbar-title">PANEL ADMINISTRATIVO</h1>
+                            <span className="gsb-topbar-subtitle">GS-VIÁTICOS</span>
                         </div>
                     </div>
 
-                    {/* KPIs apilados */}
-                    {loading ? (
-                        <p style={{ color: 'var(--color-text-muted)', alignSelf: 'center' }}>Cargando estadísticas...</p>
-                    ) : (
-                        <div className="dash-kpis-col">
-                            <div
-                                className="dash-kpi-card"
-                                style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
-                                onClick={() => setFiltroEstadoConsolidado('todos')}
-                                title="Ver todos los viáticos"
+                    <div className="gsb-topbar-right">
+                        <InstallPwaPrompt />
+                        <NotificationBell />
+
+                        <div className="gsb-user-menu-wrap">
+                            <button
+                                className="gsb-user-pill"
+                                onClick={() => setMenuUsuarioAbierto(!menuUsuarioAbierto)}
                             >
-                                <span className="dash-kpi-label">Total Gastado {filtroEstadoConsolidado === 'todos' ? '✓' : ''}</span>
-                                <span className="dash-kpi-value dash-kpi-value--money">{formatCOP(stats.totalGastado)}</span>
-                            </div>
-                            <div
-                                className="dash-kpi-card dash-kpi-card--pendiente"
-                                style={{ cursor: 'pointer', outline: filtroEstadoConsolidado === 'pendiente' ? '2px solid var(--color-pendiente)' : 'none', transition: 'all 0.2s ease' }}
-                                onClick={() => setFiltroEstadoConsolidado((prev) => prev === 'pendiente' ? 'todos' : 'pendiente')}
-                                title="Filtrar viáticos pendientes"
-                            >
-                                <span className="dash-kpi-label">Pendientes {filtroEstadoConsolidado === 'pendiente' ? '✓' : ''}</span>
-                                <span className="dash-kpi-value">{stats.pendientes}</span>
-                            </div>
-                            <div
-                                className="dash-kpi-card dash-kpi-card--aprobado"
-                                style={{ cursor: 'pointer', outline: filtroEstadoConsolidado === 'aprobado' ? '2px solid var(--color-aprobado)' : 'none', transition: 'all 0.2s ease' }}
-                                onClick={() => setFiltroEstadoConsolidado((prev) => prev === 'aprobado' ? 'todos' : 'aprobado')}
-                                title="Filtrar viáticos aprobados"
-                            >
-                                <span className="dash-kpi-label">Aprobados {filtroEstadoConsolidado === 'aprobado' ? '✓' : ''}</span>
-                                <span className="dash-kpi-value">{stats.aprobados}</span>
-                            </div>
-                            <div
-                                className="dash-kpi-card dash-kpi-card--rechazado"
-                                style={{ cursor: 'pointer', outline: filtroEstadoConsolidado === 'rechazado' ? '2px solid var(--color-rechazado)' : 'none', transition: 'all 0.2s ease' }}
-                                onClick={() => setFiltroEstadoConsolidado((prev) => prev === 'rechazado' ? 'todos' : 'rechazado')}
-                                title="Filtrar viáticos rechazados"
-                            >
-                                <span className="dash-kpi-label">Rechazados {filtroEstadoConsolidado === 'rechazado' ? '✓' : ''}</span>
-                                <span className="dash-kpi-value">{stats.rechazados}</span>
-                            </div>
+                                <span className="gsb-user-avatar">
+                                    {iniciales(nombreMostrado) || user?.correo?.[0]?.toUpperCase() || 'A'}
+                                </span>
+                                <div className="gsb-user-meta">
+                                    <span className="gsb-user-email">
+                                        {user?.correo || 'admin@gsbank.com'}
+                                    </span>
+                                    <span className="gsb-user-role">{labelRol(perfil.rol || user?.rol)}</span>
+                                </div>
+                                <span className="gsb-user-chevron">▾</span>
+                            </button>
+
+                            {menuUsuarioAbierto && (
+                                <div className="gsb-user-dropdown" onClick={() => setMenuUsuarioAbierto(false)}>
+                                    <div className="gsb-user-dropdown-header">
+                                        <strong>{nombreMostrado}</strong>
+                                        <span>{user?.correo}</span>
+                                    </div>
+                                    <button
+                                        className="gsb-dropdown-item"
+                                        onClick={() => user?.id && navigate(`/admin/personal/${user.id}`)}
+                                    >
+                                        👤 Ver mi perfil
+                                    </button>
+                                    {user?.rol === 'superadmin' && (
+                                        <button
+                                            className="gsb-dropdown-item"
+                                            onClick={() => navigate('/admin/usuarios')}
+                                        >
+                                            👥 Gestión de usuarios
+                                        </button>
+                                    )}
+                                    <button
+                                        className="gsb-dropdown-item"
+                                        onClick={() => navigate('/admin/auditoria')}
+                                    >
+                                        📊 Registro de auditoría
+                                    </button>
+                                    <hr className="gsb-dropdown-divider" />
+                                    <button
+                                        className="gsb-dropdown-item gsb-dropdown-item--danger"
+                                        onClick={() => {
+                                            logout();
+                                            navigate('/login');
+                                        }}
+                                    >
+                                        🚪 Cerrar sesión
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </header>
+
+                <main className="gsb-content-body">
+                    {mensajeFeedback && (
+                        <div className="gsb-alert-banner gsb-alert-banner--success">
+                            <span>{mensajeFeedback}</span>
+                            <button onClick={() => setMensajeFeedback('')}>×</button>
                         </div>
                     )}
-                </div>
 
-                {/* ── SECCIÓN CENTRAL: VISTA CONSOLIDADA DE VIÁTICOS (ADMIN) ── */}
-                <div className="admin-card-container dash-consolidado-card" style={{ marginBottom: '2rem' }}>
-                    <div className="admin-card-toolbar">
-                        <div>
-                            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 0.2rem' }}>
-                                Viáticos Registrados (Vista Consolidada)
-                            </h2>
-                            <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-                                Consulta y gestiona las solicitudes de viáticos enviadas por los técnicos
-                            </span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <select
-                                value={filtroEstadoConsolidado}
-                                onChange={(e) => setFiltroEstadoConsolidado(e.target.value)}
-                                style={{
-                                    padding: '0.45rem 0.8rem',
-                                    borderRadius: '8px',
-                                    border: '1.5px solid var(--color-border)',
-                                    fontSize: '0.82rem',
-                                    fontWeight: 600,
-                                    background: '#FFFFFF',
-                                }}
-                            >
-                                <option value="todos">Todos los estados</option>
-                                <option value="pendiente">Pendientes</option>
-                                <option value="aprobado">Aprobados</option>
-                                <option value="rechazado">Rechazados</option>
-                            </select>
-                            <div className="admin-search-wrap" style={{ maxWidth: '280px' }}>
-                                <span className="admin-search-icon">🔍</span>
-                                <input
-                                    type="text"
-                                    placeholder="Buscar por técnico, ciudad..."
-                                    className="admin-search-input"
-                                    value={busquedaConsolidado}
-                                    onChange={(e) => setBusquedaConsolidado(e.target.value)}
-                                />
+                    {error && <div className="gsb-alert-banner gsb-alert-banner--error">{error}</div>}
+
+                    {/* ── FILA SUPERIOR: Perfil Admin + 4 KPIs ── */}
+                    <section className="gsb-top-section">
+                        {/* Tarjeta de Perfil Administrador (Navy Card) */}
+                        <div className="gsb-profile-card">
+                            <div className="gsb-profile-watermark">
+                                <svg viewBox="0 0 100 100" fill="none">
+                                    <path d="M50 10 L85 25 V50 C85 75 50 92 50 92 C50 92 15 75 15 50 V25 Z" stroke="rgba(255,255,255,0.04)" strokeWidth="4" fill="rgba(255,255,255,0.015)" />
+                                </svg>
+                            </div>
+
+                            <div className="gsb-profile-header">
+                                <div className="gsb-profile-avatar">
+                                    {iniciales(nombreMostrado) || 'AG'}
+                                </div>
+                                <div className="gsb-profile-welcome">
+                                    <span className="gsb-profile-welcome-sub">Bienvenido,</span>
+                                    <h2 className="gsb-profile-name">
+                                        {nombreMostrado}
+                                    </h2>
+                                    <div className="gsb-profile-badges">
+                                        <span className="gsb-badge-gold">{labelRol(perfil.rol || user?.rol)}</span>
+                                        <span className="gsb-badge-active">{perfil.activo ? 'ACTIVO' : 'INACTIVO'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="gsb-profile-meta-list">
+                                <div className="gsb-profile-meta-item">
+                                    <span className="gsb-meta-icon">✉</span>
+                                    <span>{perfil.correo}</span>
+                                </div>
+                                <div className="gsb-profile-meta-item">
+                                    <span className="gsb-meta-icon">🪪</span>
+                                    <span>{perfil.codigo_empleado || '100001'}</span>
+                                </div>
+                                <div className="gsb-profile-meta-item">
+                                    <span className="gsb-meta-icon">📅</span>
+                                    <span>Miembro desde {formatFechaLargaISO(perfil.created_at || '2026-08-04')}</span>
+                                </div>
+                            </div>
+
+                            <div className="gsb-profile-last-action">
+                                <span className="gsb-last-action-label">Última acción registrada</span>
+                                <div className="gsb-last-action-content">
+                                    <strong className="gsb-last-action-name">
+                                        {cargandoAccion ? 'Cargando...' : ultimaAccion ? ultimaAccion.accion?.replace(/_/g, ' ') : 'Crear Usuario'}
+                                    </strong>
+                                    <span className="gsb-last-action-date">
+                                        {ultimaAccion ? formatFechaHoraISO(ultimaAccion.created_at) : '15 de ago de 2026, 01:19 p. m.'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="admin-table-wrap">
-                        <table className="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>Fecha registro</th>
-                                    <th>Técnico</th>
-                                    <th>Ciudad</th>
-                                    <th>Ítems</th>
-                                    <th>Total gastos</th>
-                                    <th>Estado</th>
-                                    <th style={{ textAlign: 'center' }}>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {viaticosConsolidados.length === 0 ? (
+                        {/* 4 KPIs con Gráficas de Ondas Corporativas */}
+                        <div className="gsb-kpis-grid">
+                            {/* KPI 1: TOTAL GASTADO */}
+                            <div
+                                className={`gsb-kpi-card ${filtroEstadoConsolidado === 'todos' ? 'gsb-kpi-card--selected' : ''}`}
+                                onClick={() => setFiltroEstadoConsolidado('todos')}
+                            >
+                                <div className="gsb-kpi-card-top">
+                                    <div className="gsb-kpi-icon-wrap gsb-kpi-icon--blue">
+                                        <span>💼</span>
+                                    </div>
+                                    <span className="gsb-kpi-arrow-indicator gsb-kpi-arrow--blue">↗</span>
+                                </div>
+                                <span className="gsb-kpi-label">TOTAL GASTADO</span>
+                                <h3 className="gsb-kpi-value">{formatCOP(stats.totalGastado)}</h3>
+                                <span className="gsb-kpi-sub">Este mes</span>
+
+                                {/* Onda azul */}
+                                <div className="gsb-kpi-wave-wrap">
+                                    <svg viewBox="0 0 120 28" preserveAspectRatio="none" className="gsb-kpi-wave">
+                                        <defs>
+                                            <linearGradient id="blueWave" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#1D63C8" stopOpacity="0.25" />
+                                                <stop offset="100%" stopColor="#1D63C8" stopOpacity="0.0" />
+                                            </linearGradient>
+                                        </defs>
+                                        <path d="M0 24 Q 30 5, 60 18 T 120 12 L 120 28 L 0 28 Z" fill="url(#blueWave)" />
+                                        <path d="M0 24 Q 30 5, 60 18 T 120 12" fill="none" stroke="#1D63C8" strokeWidth="2.2" strokeLinecap="round" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            {/* KPI 2: PENDIENTES */}
+                            <div
+                                className={`gsb-kpi-card ${filtroEstadoConsolidado === 'pendiente' ? 'gsb-kpi-card--selected' : ''}`}
+                                onClick={() => setFiltroEstadoConsolidado((prev) => prev === 'pendiente' ? 'todos' : 'pendiente')}
+                            >
+                                <div className="gsb-kpi-card-top">
+                                    <div className="gsb-kpi-icon-wrap gsb-kpi-icon--amber">
+                                        <span>⏳</span>
+                                    </div>
+                                </div>
+                                <span className="gsb-kpi-label">PENDIENTES</span>
+                                <h3 className="gsb-kpi-value">{stats.pendientes}</h3>
+                                <span className="gsb-kpi-sub">Por aprobar</span>
+
+                                {/* Onda ámbar */}
+                                <div className="gsb-kpi-wave-wrap">
+                                    <svg viewBox="0 0 120 28" preserveAspectRatio="none" className="gsb-kpi-wave">
+                                        <defs>
+                                            <linearGradient id="amberWave" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#D97706" stopOpacity="0.25" />
+                                                <stop offset="100%" stopColor="#D97706" stopOpacity="0.0" />
+                                            </linearGradient>
+                                        </defs>
+                                        <path d="M0 22 Q 35 25, 65 14 T 120 16 L 120 28 L 0 28 Z" fill="url(#amberWave)" />
+                                        <path d="M0 22 Q 35 25, 65 14 T 120 16" fill="none" stroke="#D97706" strokeWidth="2.2" strokeLinecap="round" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            {/* KPI 3: APROBADOS */}
+                            <div
+                                className={`gsb-kpi-card ${filtroEstadoConsolidado === 'aprobado' ? 'gsb-kpi-card--selected' : ''}`}
+                                onClick={() => setFiltroEstadoConsolidado((prev) => prev === 'aprobado' ? 'todos' : 'aprobado')}
+                            >
+                                <div className="gsb-kpi-card-top">
+                                    <div className="gsb-kpi-icon-wrap gsb-kpi-icon--emerald">
+                                        <span>✓</span>
+                                    </div>
+                                </div>
+                                <span className="gsb-kpi-label">APROBADOS</span>
+                                <h3 className="gsb-kpi-value">{stats.aprobados}</h3>
+                                <span className="gsb-kpi-sub">Este mes</span>
+
+                                {/* Onda verde */}
+                                <div className="gsb-kpi-wave-wrap">
+                                    <svg viewBox="0 0 120 28" preserveAspectRatio="none" className="gsb-kpi-wave">
+                                        <defs>
+                                            <linearGradient id="emeraldWave" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#059669" stopOpacity="0.25" />
+                                                <stop offset="100%" stopColor="#059669" stopOpacity="0.0" />
+                                            </linearGradient>
+                                        </defs>
+                                        <path d="M0 26 Q 30 8, 60 22 T 120 10 L 120 28 L 0 28 Z" fill="url(#emeraldWave)" />
+                                        <path d="M0 26 Q 30 8, 60 22 T 120 10" fill="none" stroke="#059669" strokeWidth="2.2" strokeLinecap="round" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            {/* KPI 4: RECHAZADOS */}
+                            <div
+                                className={`gsb-kpi-card ${filtroEstadoConsolidado === 'rechazado' ? 'gsb-kpi-card--selected' : ''}`}
+                                onClick={() => setFiltroEstadoConsolidado((prev) => prev === 'rechazado' ? 'todos' : 'rechazado')}
+                            >
+                                <div className="gsb-kpi-card-top">
+                                    <div className="gsb-kpi-icon-wrap gsb-kpi-icon--crimson">
+                                        <span>✕</span>
+                                    </div>
+                                </div>
+                                <span className="gsb-kpi-label">RECHAZADOS</span>
+                                <h3 className="gsb-kpi-value">{stats.rechazados}</h3>
+                                <span className="gsb-kpi-sub">Este mes</span>
+
+                                {/* Onda roja */}
+                                <div className="gsb-kpi-wave-wrap">
+                                    <svg viewBox="0 0 120 28" preserveAspectRatio="none" className="gsb-kpi-wave">
+                                        <defs>
+                                            <linearGradient id="crimsonWave" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#DC2626" stopOpacity="0.25" />
+                                                <stop offset="100%" stopColor="#DC2626" stopOpacity="0.0" />
+                                            </linearGradient>
+                                        </defs>
+                                        <path d="M0 16 Q 40 26, 75 12 T 120 20 L 120 28 L 0 28 Z" fill="url(#crimsonWave)" />
+                                        <path d="M0 16 Q 40 26, 75 12 T 120 20" fill="none" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* ── SECCIÓN CENTRAL: Viáticos Registrados (Vista Consolidada) ── */}
+                    <section className="gsb-table-card" ref={seccionViaticosRef}>
+                        <div className="gsb-table-card-header">
+                            <div>
+                                <h2 className="gsb-table-title">Viáticos Registrados (Vista Consolidada)</h2>
+                                <p className="gsb-table-subtitle">
+                                    Consulta y gestiona las solicitudes de viáticos enviadas por los técnicos
+                                </p>
+                            </div>
+
+                            <div className="gsb-table-controls">
+                                <select
+                                    className="gsb-select"
+                                    value={filtroEstadoConsolidado}
+                                    onChange={(e) => setFiltroEstadoConsolidado(e.target.value)}
+                                >
+                                    <option value="todos">Todos los estados ▾</option>
+                                    <option value="pendiente">Pendientes</option>
+                                    <option value="aprobado">Aprobados</option>
+                                    <option value="rechazado">Rechazados</option>
+                                </select>
+
+                                <div className="gsb-search-box">
+                                    <span className="gsb-search-icon">🔍</span>
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar por técnico, ciudad..."
+                                        className="gsb-search-input"
+                                        value={busquedaConsolidado}
+                                        onChange={(e) => setBusquedaConsolidado(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="gsb-table-responsive">
+                            <table className="gsb-corporate-table">
+                                <thead>
                                     <tr>
-                                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>
-                                            No hay registros de viáticos para mostrar.
-                                        </td>
+                                        <th>FECHA REGISTRO</th>
+                                        <th>TÉCNICO</th>
+                                        <th>CIUDAD</th>
+                                        <th>ÍTEMS</th>
+                                        <th>TOTAL GASTOS</th>
+                                        <th>ESTADO</th>
+                                        <th style={{ textAlign: 'center' }}>ACCIONES</th>
                                     </tr>
-                                ) : (
-                                    viaticosConsolidados.map((r) => {
-                                        return (
-                                            <tr key={r.key} className="sa-asig-row" onClick={() => setRegistroConsolidado(r)}>
-                                                <td>{r.fecha}</td>
-                                                <td>
+                                </thead>
+                                <tbody>
+                                    {viaticosConsolidados.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} className="gsb-table-empty">
+                                                No hay registros de viáticos para mostrar con los filtros aplicados.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        viaticosConsolidados.map((r) => (
+                                            <tr key={r.key} className="gsb-table-row" onClick={() => setRegistroConsolidado(r)}>
+                                                <td className="gsb-td-fecha">{r.fecha}</td>
+                                                <td className="gsb-td-tecnico">
                                                     <strong>{r.tecnico_nombre}</strong>
                                                 </td>
-                                                <td>{r.ciudad}</td>
+                                                <td className="gsb-td-ciudad">{r.ciudad}</td>
                                                 <td>
-                                                    <span className="badge-tipo">{r.items.length} ítems</span>
+                                                    <span className="gsb-pill-items">
+                                                        {r.items.length === 1 ? '1 ítem' : `${r.items.length} ítems`}
+                                                    </span>
                                                 </td>
-                                                <td>
+                                                <td className="gsb-td-total">
                                                     <strong>{formatCOP(r.total)}</strong>
                                                 </td>
                                                 <td>
-                                                    <span className={`estado-badge estado-badge--${r.estado === 'pendiente' ? 'inactivo' : r.estado}`}>
-                                                        {r.estado === 'pendiente' ? 'En revisión' : r.estado.toUpperCase()}
+                                                    <span className={`gsb-status-pill gsb-status-pill--${r.estado}`}>
+                                                        {r.estado === 'aprobado' ? 'APROBADO' : r.estado === 'rechazado' ? 'RECHAZADO' : 'PENDIENTE'}
                                                     </span>
                                                 </td>
                                                 <td style={{ textAlign: 'center' }}>
-                                                    <button
-                                                        className="admin-mini-btn"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setRegistroConsolidado(r);
-                                                        }}
-                                                    >
-                                                        👁️ Ver detalle
-                                                    </button>
+                                                    <div className="gsb-table-actions">
+                                                        <button
+                                                            type="button"
+                                                            className="gsb-btn-detail"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setRegistroConsolidado(r);
+                                                            }}
+                                                        >
+                                                            👁️ Ver detalle
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="gsb-btn-dots"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setRegistroConsolidado(r);
+                                                            }}
+                                                            title="Opciones"
+                                                        >
+                                                            ⋮
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
 
-                {/* ── SECCIÓN INFERIOR: Técnicos + Resumen ── */}
-                {!loading && (
-                    <div className="dash-layout">
-                        {/* Columna izquierda — Técnicos */}
-                        <section className="dash-col-left">
-                            <h2 className="admin-section-title">Técnicos</h2>
-                            {tecnicos.length === 0 ? (
-                                <p style={{ color: 'var(--color-text-muted)' }}>No hay personal adicional registrado.</p>
-                            ) : (
-                                <div className="dash-tech-grid">
-                                    {tecnicos.map((t) => (
-                                        <div
-                                            key={t.id}
-                                            className="dash-tech-card"
-                                            style={{ cursor: 'pointer' }}
-                                            onClick={() => navigate(`/admin/personal/${t.id}`)}
-                                        >
-                                            <div className="dash-tech-card-top">
-                                                <div className="dash-tech-avatar">{iniciales(t.nombre)}</div>
-                                                {(t.rol === 'admin' || t.rol === 'superadmin') && (
-                                                    <span className="dash-badge-admin">Admin</span>
+                        {/* Footer con paginación */}
+                        <div className="gsb-table-footer">
+                            <span className="gsb-table-counter">
+                                Mostrando {viaticosConsolidados.length} {viaticosConsolidados.length === 1 ? 'registro' : 'registros'}
+                            </span>
+                            <div className="gsb-pagination">
+                                <button className="gsb-page-btn" disabled>‹</button>
+                                <button className="gsb-page-btn gsb-page-btn--active">1</button>
+                                <button className="gsb-page-btn" disabled>›</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* ── FILA INFERIOR: Técnicos + Resumen de Gastos ── */}
+                    <div className="gsb-bottom-grid">
+                        {/* Columna izquierda: Técnicos (65%) */}
+                        <section className="gsb-techs-section" ref={seccionTecnicosRef}>
+                            <div className="gsb-section-header">
+                                <h2 className="gsb-section-title">Técnicos</h2>
+                                <p className="gsb-section-subtitle">Gestión y actividad de técnicos</p>
+                            </div>
+
+                            <div className="gsb-techs-grid">
+                                {tecnicos.map((t) => {
+                                    const asigActiva = obtenerAsignacionActivaDeTecnico(asignaciones, t.id);
+                                    return (
+                                        <div key={t.id} className="gsb-tech-card">
+                                            <div className="gsb-tech-card-header">
+                                                <div className="gsb-tech-avatar">
+                                                    {iniciales(t.nombre) || 'T'}
+                                                </div>
+                                                <div className="gsb-tech-identity">
+                                                    <h3 className="gsb-tech-name">{t.nombre}</h3>
+                                                    <span className="gsb-tech-cedula">
+                                                        Cédula: {t.codigo_empleado || 'Sin asignar'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Caja de Asignación Activa */}
+                                            <div className="gsb-tech-asig-box">
+                                                {asigActiva ? (
+                                                    <>
+                                                        <div className="gsb-tech-asig-header">
+                                                            <span className="gsb-tech-asig-dot" />
+                                                            <span className="gsb-tech-asig-type">
+                                                                {LABEL_TIPO_ASIGNACION[asigActiva.tipo] || asigActiva.tipo?.toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                        <strong className="gsb-tech-asig-client" title={asigActiva.cliente}>
+                                                            {asigActiva.cliente}
+                                                        </strong>
+                                                        <span className="gsb-tech-asig-location">
+                                                            📍 {asigActiva.empresa ? `${asigActiva.empresa} · ` : ''}{asigActiva.ciudad}
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <div className="gsb-tech-asig-none">
+                                                        <span>⚪ Sin asignación activa</span>
+                                                    </div>
                                                 )}
                                             </div>
 
-                                            <h3 className="dash-tech-nombre">{t.nombre}</h3>
-                                            <span className="dash-tech-codigo">
-                                                {t.codigo_empleado ? `Cédula: ${t.codigo_empleado}` : 'Sin cédula asignada'}
-                                            </span>
-
-                                            <div className="dash-tech-metrics">
-                                                <div className="dash-tech-metric">
-                                                    <span className="dash-tech-metric-value">{t.cantidadViaticos}</span>
-                                                    <span className="dash-tech-metric-label">
-                                                        {t.cantidadViaticos === 1 ? 'viático registrado' : 'viáticos registrados'}
-                                                    </span>
+                                            {/* Métricas de Viáticos y Gasto */}
+                                            <div className="gsb-tech-metrics-row">
+                                                <div className="gsb-tech-metric">
+                                                    <span className="gsb-tech-metric-val">{t.cantidadViaticos}</span>
+                                                    <span className="gsb-tech-metric-lbl">VIÁTICOS</span>
                                                 </div>
-                                                <div className="dash-tech-metric">
-                                                    <span className="dash-tech-metric-value">{formatCOP(t.totalGastado)}</span>
-                                                    <span className="dash-tech-metric-label">total gastado</span>
+                                                <div className="gsb-tech-metric">
+                                                    <span className="gsb-tech-metric-val">{formatCOP(t.totalGastado)}</span>
+                                                    <span className="gsb-tech-metric-lbl">GASTADO</span>
                                                 </div>
                                             </div>
 
+                                            {/* Botones de Asignaciones y Cuenta de Cobro */}
+                                            <div className="gsb-tech-action-row">
+                                                <button
+                                                    type="button"
+                                                    className="gsb-tech-btn-asig"
+                                                    onClick={() => setTecnicoParaAsignaciones(t)}
+                                                    title={`Ver asignaciones de ${t.nombre}`}
+                                                >
+                                                    📋 Asignaciones
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="gsb-tech-btn-cc"
+                                                    onClick={() => setTecnicoParaCuentasCobro(t)}
+                                                    title={`Ver cuentas de cobro de ${t.nombre}`}
+                                                >
+                                                    💵 Cuenta de Cobro
+                                                </button>
+                                            </div>
+
                                             <button
-                                                className="dash-tech-btn"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    navigate(`/admin/personal/${t.id}`);
-                                                }}
+                                                type="button"
+                                                className="gsb-tech-btn-profile"
+                                                onClick={() => navigate(`/admin/personal/${t.id}`)}
                                             >
                                                 Ver información →
                                             </button>
                                         </div>
-                                    ))}
+                                    );
+                                })}
+
+                                {/* Tarjeta Agregar Técnico */}
+                                <div className="gsb-add-tech-card" onClick={() => setMostrarCrearUsuario(true)}>
+                                    <div className="gsb-add-tech-icon-wrap">
+                                        <svg viewBox="0 0 24 24" fill="none" className="gsb-add-tech-icon">
+                                            <circle cx="10" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+                                            <path d="M2 20C2 16 6 14 10 14C14 14 18 16 18 20" stroke="currentColor" strokeWidth="1.8" />
+                                            <path d="M19 8V14M16 11H22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                                        </svg>
+                                    </div>
+                                    <span className="gsb-add-tech-title">Agregar Técnico</span>
+                                    <button
+                                        type="button"
+                                        className="gsb-add-tech-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setMostrarCrearUsuario(true);
+                                        }}
+                                    >
+                                        Nuevo Técnico
+                                    </button>
                                 </div>
-                            )}
+                            </div>
                         </section>
 
-                        {/* Columna derecha — Resumen de Gastos */}
-                        <section className="dash-col-right">
-                            <div className="dash-summary-panel">
-                                <h2 className="dash-summary-title">Resumen de Gastos</h2>
-
-                                <div className="dash-period-tabs">
-                                    {FILTROS_PERIODO.map((f) => (
-                                        <button
-                                            key={f.id}
-                                            className={`dash-period-btn ${periodo === f.id ? 'dash-period-btn--activo' : ''}`}
-                                            onClick={() => setPeriodo(f.id)}
-                                        >
-                                            {f.label}
-                                        </button>
-                                    ))}
+                        {/* Columna derecha: Resumen de Gastos (35%) */}
+                        <section className="gsb-summary-section">
+                            <div className="gsb-summary-card">
+                                <div className="gsb-summary-watermark">
+                                    <svg viewBox="0 0 100 100" fill="none">
+                                        <path d="M50 10 L85 25 V50 C85 75 50 92 50 92 C50 92 15 75 15 50 V25 Z" stroke="rgba(255,255,255,0.04)" strokeWidth="4" fill="rgba(255,255,255,0.015)" />
+                                    </svg>
                                 </div>
 
-                                <button
-                                    className="dash-summary-toggle"
-                                    onClick={() => setResumenAbierto((v) => !v)}
-                                >
-                                    <span>Total Gastado</span>
-                                    <span className={`dash-summary-chevron ${resumenAbierto ? 'dash-summary-chevron--abierto' : ''}`}>▾</span>
-                                </button>
+                                <div className="gsb-summary-header">
+                                    <h2 className="gsb-summary-title">📈 Resumen de Gastos</h2>
 
-                                {resumenAbierto && (
-                                    <div className="dash-summary-body">
-                                        {resumenPeriodo.filas.length === 0 ? (
-                                            <p className="dash-summary-empty">Sin gastos en este periodo.</p>
-                                        ) : (
-                                            <>
-                                                <div className="dash-summary-list">
-                                                    {resumenPeriodo.filas.map((f, i) => (
-                                                        <div className="dash-summary-row" key={i}>
-                                                            <span className="dash-summary-row-nombre">{f.nombre}</span>
-                                                            <span className="dash-summary-row-linea" />
-                                                            <span className="dash-summary-row-valor">{formatCOP(f.total)}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                <div className="dash-summary-total-row">
-                                                    <span>Total</span>
-                                                    <span>{formatCOP(resumenPeriodo.total)}</span>
-                                                </div>
-                                            </>
-                                        )}
+                                    <div className="gsb-summary-tabs">
+                                        {FILTROS_PERIODO.map((f) => (
+                                            <button
+                                                key={f.id}
+                                                className={`gsb-summary-tab ${periodo === f.id ? 'gsb-summary-tab--active' : ''}`}
+                                                onClick={() => setPeriodo(f.id)}
+                                            >
+                                                {f.label}
+                                            </button>
+                                        ))}
                                     </div>
-                                )}
+                                </div>
+
+                                <div className="gsb-summary-total-hero">
+                                    <span className="gsb-summary-hero-lbl">Total Gastado</span>
+                                    <h3 className="gsb-summary-hero-val">{formatCOP(resumenPeriodo.total)}</h3>
+                                </div>
+
+                                <div className="gsb-summary-list">
+                                    {resumenPeriodo.filas.length === 0 ? (
+                                        <p className="gsb-summary-empty">Sin gastos registrados en este periodo.</p>
+                                    ) : (
+                                        resumenPeriodo.filas.map((f, i) => (
+                                            <div className="gsb-summary-row" key={i}>
+                                                <span className="gsb-summary-tech-name">{f.nombre}</span>
+                                                <span className="gsb-summary-tech-val">{formatCOP(f.total)}</span>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+
+                                <div className="gsb-summary-total-footer">
+                                    <span>Total</span>
+                                    <strong>{formatCOP(resumenPeriodo.total)}</strong>
+                                </div>
                             </div>
                         </section>
                     </div>
-                )}
-            </main>
+                </main>
+
+                {/* ── FOOTER CORPORATIVO ── */}
+                <footer className="gsb-page-footer">
+                    <span>© 2026 GSB - Global Security Bank. Todos los derechos reservados.</span>
+                </footer>
+            </div>
 
             {/* ── MODAL DETALLE CONSOLIDADO (ADMIN) ── */}
             {registroConsolidado && (
@@ -684,7 +895,7 @@ export default function AdminDashboard() {
                     >
                         <div className="sa-modal-header">
                             <div>
-                                <h3 style={{ fontSize: '1.2rem' }}>Detalle del viático</h3>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Detalle del viático</h3>
                                 <span className={`estado-badge estado-badge--${registroConsolidado.estado === 'pendiente' ? 'inactivo' : registroConsolidado.estado}`}>
                                     {registroConsolidado.estado === 'pendiente' ? 'EN REVISIÓN' : registroConsolidado.estado.toUpperCase()}
                                 </span>
@@ -709,54 +920,35 @@ export default function AdminDashboard() {
                                 <span className="detalle-label">Ítems registrados</span>
                                 <span className="detalle-valor">{registroConsolidado.items.length}</span>
                             </div>
-                            <div>
-                                <span className="detalle-label">Total gastos</span>
-                                <span className="detalle-valor" style={{ color: 'var(--color-primary-blue)' }}>{formatCOP(registroConsolidado.total)}</span>
-                            </div>
                         </div>
 
-                        <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '1rem 0 0.5rem' }}>Gastos registrados</h4>
-                        <div className="admin-table-wrap" style={{ border: '1px solid var(--color-border)', borderRadius: '8px' }}>
-                            <table className="admin-table">
+                        {/* Listado de ítems dentro del consolidado */}
+                        <div className="admin-table-wrap" style={{ marginTop: '1rem', border: '1px solid var(--color-border)', borderRadius: '8px' }}>
+                            <table className="admin-table" style={{ fontSize: '0.82rem' }}>
                                 <thead>
                                     <tr>
                                         <th>Concepto</th>
-                                        <th>Razón social / NIT</th>
-                                        <th>Identificación</th>
-                                        <th>Asignación</th>
+                                        <th>Asignación / Origen</th>
                                         <th>Valor</th>
                                         <th>Soporte</th>
-                                        <th style={{ textAlign: 'center' }}>Acción</th>
+                                        <th style={{ textAlign: 'center' }}>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {registroConsolidado.items.map((item) => {
                                         const evidencia = item.evidencias?.[0];
-                                        const tipoId = labelTipoId(item.tipo_identificacion);
                                         return (
                                             <tr key={item.id}>
-                                                <td style={{ textTransform: 'capitalize', fontWeight: 600 }}>{item.tipo_gasto}</td>
-                                                <td>{item.meta?.razon_social || item.cliente} {item.nit_identificacion && `(${item.nit_identificacion})`}</td>
                                                 <td>
-                                                    <span style={{
-                                                        display: 'inline-block',
-                                                        padding: '0.2rem 0.6rem',
-                                                        borderRadius: '999px',
-                                                        fontSize: '0.72rem',
-                                                        fontWeight: 700,
-                                                        background: tipoId.bg,
-                                                        color: tipoId.color,
-                                                        whiteSpace: 'nowrap',
-                                                    }}>
-                                                        {tipoId.texto}
-                                                    </span>
+                                                    <strong>{item.tipo_gasto?.toUpperCase()}</strong>
+                                                    {item.ot && <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>OT: {item.ot}</span>}
                                                 </td>
                                                 <td>
                                                     <span style={{
                                                         display: 'inline-block',
-                                                        padding: '0.2rem 0.65rem',
-                                                        borderRadius: '999px',
-                                                        fontSize: '0.72rem',
+                                                        padding: '0.2rem 0.5rem',
+                                                        borderRadius: '4px',
+                                                        fontSize: '0.75rem',
                                                         fontWeight: 600,
                                                         background: item.asignacion_id ? '#EFF6FF' : '#F1F5F9',
                                                         color: item.asignacion_id ? '#1D63C8' : '#64748B',
@@ -791,8 +983,6 @@ export default function AdminDashboard() {
                                 </tbody>
                             </table>
                         </div>
-
-
                     </div>
                 </div>
             )}
@@ -815,6 +1005,35 @@ export default function AdminDashboard() {
                     onPresupuestoActualizado={(v) => {
                         setViaticos((prev) => prev.map((x) => (x.id === v.id ? v : x)));
                         setEvidenciaPreview(v);
+                    }}
+                />
+            )}
+
+            {/* Modal de Asignaciones Individuales de Técnico */}
+            {tecnicoParaAsignaciones && (
+                <ModalAsignacionesTecnico
+                    tecnico={tecnicoParaAsignaciones}
+                    onClose={() => setTecnicoParaAsignaciones(null)}
+                    onAsignacionActualizada={cargar}
+                />
+            )}
+
+            {/* Modal de Cuentas de Cobro Individuales de Técnico */}
+            {tecnicoParaCuentasCobro && (
+                <ModalCuentasCobroTecnico
+                    tecnico={tecnicoParaCuentasCobro}
+                    onClose={() => setTecnicoParaCuentasCobro(null)}
+                />
+            )}
+
+            {/* Modal Crear Usuario / Técnico */}
+            {mostrarCrearUsuario && (
+                <ModalCrearUsuario
+                    onClose={() => setMostrarCrearUsuario(false)}
+                    onCreado={(nuevo) => {
+                        setMostrarCrearUsuario(false);
+                        setMensajeFeedback(`✅ Usuario "${nuevo.nombre}" creado exitosamente.`);
+                        cargar();
                     }}
                 />
             )}

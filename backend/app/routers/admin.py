@@ -17,7 +17,7 @@ from app.schemas.viatico import (
 )
 from app.services.excel_export import generar_excel_viaticos_independientes
 from app.core.config import settings
-from app.core.security import get_current_admin, get_current_superadmin
+from app.core.security import get_current_admin, get_current_superadmin, get_current_master_admin, hash_password, verificar_autoridad_sobre_usuario
 from app.database import get_db
 from app.models.log_auditoria import LogAuditoria
 from app.models.notificacion import Notificacion
@@ -25,15 +25,11 @@ from app.models.usuario import Usuario
 from app.schemas.log_auditoria import LogAuditoriaResponse
 from app.schemas.notificacion import NotificacionResponse
 from app.services.auditoria import registrar_auditoria
-# reemplazar:
-from app.schemas.usuario import AdminBootstrap, UsuarioResponse, UsuarioRolUpdate
-
-# por:
-from app.core.security import hash_password, verificar_autoridad_sobre_usuario
 from app.schemas.usuario import (
     AdminBootstrap,
     UsuarioCreateAdmin,
     UsuarioEstadoUpdate,
+    UsuarioAccesoViaticosUpdate,
     UsuarioInfoUpdate,
     UsuarioResponse,
     UsuarioRolUpdate,
@@ -266,6 +262,42 @@ def cambiar_estado_usuario(
         usuario_objetivo=usuario,
         accion="cambiar_estado",
         detalle=f"activo={usuario.activo}",
+        resultado="exitoso",
+    )
+
+    return usuario
+
+
+@router.put("/usuarios/{id}/acceso-viaticos", response_model=UsuarioResponse)
+def cambiar_acceso_viaticos_usuario(
+    id: int,
+    datos: UsuarioAccesoViaticosUpdate,
+    current_master_admin: Annotated[Usuario, Depends(get_current_master_admin)],
+    db: Annotated[Session, Depends(get_db)]
+):
+    """Permite otorgar o quitar acceso a viáticos a un usuario.
+    Exclusivo para el usuario cuyo correo es 'admin@gsbank.com'.
+    Cualquier otro usuario (incluidos otros superadmins) recibe un 403.
+    """
+    stmt = select(Usuario).where(Usuario.id == id)
+    usuario = db.scalar(stmt)
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+
+    valor_anterior = usuario.acceso_viaticos
+    usuario.acceso_viaticos = datos.acceso_viaticos
+    db.commit()
+    db.refresh(usuario)
+
+    registrar_auditoria(
+        db,
+        actor=current_master_admin,
+        usuario_objetivo=usuario,
+        accion="cambiar_acceso_viaticos",
+        detalle=f"acceso_viaticos: {valor_anterior} → {usuario.acceso_viaticos}",
         resultado="exitoso",
     )
 

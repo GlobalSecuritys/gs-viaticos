@@ -195,7 +195,9 @@ export default function CuentaCobro() {
             const file = new File([blob], `cuenta_cobro_${consecutivo}.png`, { type: 'image/png' });
 
             await subirCuentaCobroAsignacion(targetId, file);
-            setExito(`✅ ¡Cuenta de cobro No. ${consecutivo} generada y vinculada exitosamente a la Asignación #${targetId}!`);
+            const asigNombre = asignaciones.find((a) => String(a.id) === String(targetId));
+            const asigLabel = asigNombre ? `${asigNombre.cliente} (${asigNombre.ciudad})` : `#${targetId}`;
+            setExito(`✅ ¡Cuenta de cobro No. ${consecutivo} generada y vinculada exitosamente a ${asigLabel}!`);
             await cargarAsignaciones();
         } catch (err) {
             setError(err.response?.data?.detail || 'Error al subir la cuenta de cobro generada.');
@@ -382,7 +384,7 @@ export default function CuentaCobro() {
                                         >
                                             {asignaciones.map((a) => (
                                                 <option key={a.id} value={a.id}>
-                                                    #{a.id} - {a.cliente} ({a.ciudad}) · {a.tipo?.toUpperCase()} {a.cuenta_cobro ? '· [Ya tiene cuenta cargada]' : ''}
+                                                    {a.cliente} ({a.ciudad}) · {a.tipo?.toUpperCase()} {a.cuenta_cobro ? '· [Ya tiene cuenta cargada]' : ''} (ID: #{a.id})
                                                 </option>
                                             ))}
                                         </select>

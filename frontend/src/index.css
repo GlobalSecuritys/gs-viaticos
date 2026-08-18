@@ -1,47 +1,68 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* 60% - Dominante: Gris azulado suave, cálido y acogedor */
-  --color-bg-primary: #EEF2F6;      
-  --color-bg-secondary: #FFFFFF;    /* Blanco puro para tarjetas y contenedores elevadas */
-  --color-bg-tertiary: #F8FAFC;     /* Tono intermedio para cabeceras de tabla, filtros y campos */
+  /* ===== Global Security Bank (GSB) Corporate Color Palette ===== */
 
-  /* 30% - Secundario (Azul corporativo principal y acentos GSB) */
-  --color-primary-blue: #0A3A60;    /* Azul banca corporativa */
-  --color-primary-blue-hover: #072B47;
-  --color-accent-blue: #1D63C8;     /* Azul tecnológico acentuado */
-  --color-accent-blue-hover: #174E9E;
-  --color-accent-blue-light: #EBF3FC;
+  /* Dark Navy Shades (Sidebars, Dark Cards, Brand Elements) */
+  --color-navy-darkest: #070D1E;     /* Fondo sidebar profundo */
+  --color-navy-dark: #0B172D;        /* Fondo tarjetas oscuras / header */
+  --color-navy-card: #0D1E3A;        /* Gradientes tarjetas dark */
+  --color-navy-card-2: #14284B;      /* Tono superior tarjeta perfil / resumen */
+  --color-navy-border: rgba(255, 255, 255, 0.08);
 
-  /* Dorado GSB - Solo acento corporativo */
-  --color-gold: #C5A029;
-  --color-gold-dark: #A1811F;
+  /* Light Theme Canvas (Main Workspace) */
+  --color-bg-primary: #EEF2F6;       /* Fondo suave gris azulado corporativo */
+  --color-bg-secondary: #FFFFFF;     /* Blanco puro para tarjetas elevadas */
+  --color-bg-tertiary: #F8FAFC;      /* Tono neutro para tablas y filtros */
+  --color-bg-subtle: #F1F5F9;
+
+  /* Primary Blue & Technological Accents */
+  --color-primary-blue: #0A2540;     /* Azul institucional GSB */
+  --color-primary-blue-hover: #071A2E;
+  --color-accent-blue: #1D63C8;      /* Azul tecnológico vivo */
+  --color-accent-blue-hover: #164FA3;
+  --color-accent-blue-light: #EFF6FF;
+  --color-accent-blue-subtle: rgba(29, 99, 200, 0.08);
+
+  /* GSB Gold Accent (Distintivo de Seguridad y Prestigio) */
+  --color-gold: #D4AF37;             /* Oro insignia GSB */
+  --color-gold-bright: #F5C518;      /* Oro brillante para números de KPI y highlights */
+  --color-gold-dark: #996515;
   --color-gold-light: #FDF9EA;
+  --color-gold-badge-bg: #45330D;
+  --color-gold-badge-text: #FDE68A;
 
-  /* 10% - Textos */
-  --color-text: #0F172A;            /* Slate 900 */
-  --color-text-muted: #475569;      /* Slate 600 */
-  --color-text-light: #94A3B8;      /* Slate 400 */
+  /* Typography Colors */
+  --color-text: #0F172A;             /* Slate 900 */
+  --color-text-secondary: #334155;   /* Slate 700 */
+  --color-text-muted: #64748B;       /* Slate 500 */
+  --color-text-light: #94A3B8;       /* Slate 400 */
+  --color-text-inverse: #FFFFFF;
 
-  /* Estados */
-  --color-pendiente: #D97706;       /* Amber 600 */
-  --color-pendiente-bg: #FEF3C7;    /* Amber 100 */
-  --color-aprobado: #059669;        /* Emerald 600 */
-  --color-aprobado-bg: #D1FAE5;     /* Emerald 100 */
-  --color-rechazado: #DC2626;       /* Red 600 */
-  --color-rechazado-bg: #FEE2E2;    /* Red 100 */
+  /* Status Colors */
+  --color-pendiente: #D97706;        /* Amber 600 */
+  --color-pendiente-bg: #FEF3C7;     /* Amber 100 */
+  --color-aprobado: #059669;         /* Emerald 600 */
+  --color-aprobado-bg: #D1FAE5;      /* Emerald 100 */
+  --color-rechazado: #DC2626;        /* Crimson Red 600 */
+  --color-rechazado-bg: #FEE2E2;     /* Red 100 */
 
-  /* Bordes y Sombras */
-  --color-border: #E2E8F0;          /* Slate 200 */
-  --color-border-hover: #CBD5E1;    /* Slate 300 */
-  --color-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  --color-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-  --color-shadow-md: 0 10px 15px -3px rgba(15, 23, 42, 0.07), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
-  --color-shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.09), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  /* Borders & Shadows */
+  --color-border: #E2E8F0;           /* Slate 200 */
+  --color-border-hover: #CBD5E1;     /* Slate 300 */
+  --color-border-subtle: #EDF2F7;
+
+  --color-shadow-sm: 0 1px 3px rgba(11, 23, 45, 0.05), 0 1px 2px rgba(11, 23, 45, 0.03);
+  --color-shadow: 0 4px 12px -2px rgba(11, 23, 45, 0.05), 0 2px 4px -1px rgba(11, 23, 45, 0.03);
+  --color-shadow-md: 0 10px 25px -4px rgba(11, 23, 45, 0.08), 0 4px 6px -2px rgba(11, 23, 45, 0.03);
+  --color-shadow-lg: 0 20px 30px -6px rgba(11, 23, 45, 0.10), 0 8px 12px -4px rgba(11, 23, 45, 0.04);
+  --color-shadow-navy: 0 14px 28px rgba(7, 13, 30, 0.35);
 
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
 }
 
 /* ===== Global Reset & Base Styles ===== */
@@ -61,12 +82,11 @@ html {
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   background-color: var(--color-bg-primary);
   color: var(--color-text);
-  line-height: 1.6;
+  line-height: 1.5;
   min-height: 100vh;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #root {
@@ -88,13 +108,13 @@ button {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
-  padding: 0.6rem 1rem;
+  padding: 0.55rem 1rem;
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
   box-shadow: var(--color-shadow-sm);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -107,13 +127,17 @@ button {
 }
 
 .admin-mini-btn {
-  padding: 0.45rem 0.8rem;
-  background: var(--color-bg-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
   font-weight: 600;
+  box-shadow: var(--color-shadow-sm);
   transition: all 0.15s ease;
 }
 
@@ -121,6 +145,7 @@ button {
   background: var(--color-accent-blue-light);
   border-color: var(--color-accent-blue);
   color: var(--color-accent-blue);
+  transform: translateY(-1px);
 }
 
 a {

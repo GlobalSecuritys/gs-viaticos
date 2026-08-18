@@ -7,12 +7,17 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from app.schemas.cuenta_cobro_asignacion import CuentaCobroAsignacionResponse
 
 TipoAsignacion = Literal[
-    "rtc",
+    "mantenimiento",
     "oficina",
+    "oficina_correctivo",
+    "oficina_preventivo",
+    "oficina_general",
+    "preventivo_rtc",
+    "rtc",
+    # Compatibilidad histórica
     "instalacion",
     "auditoria",
     "capacitacion",
-    "mantenimiento",
     "soporte",
 ]
 

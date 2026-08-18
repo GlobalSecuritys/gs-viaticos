@@ -1,0 +1,424 @@
+/* Modal Cuentas de Cobro Técnico - Estilo Consistente y Moderno */
+.mcct-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(6px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    box-sizing: border-box;
+    animation: mcctFadeIn 0.2s ease-out;
+}
+
+@keyframes mcctFadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.mcct-modal {
+    background: #FFFFFF;
+    border-radius: 18px;
+    width: 100%;
+    max-width: 920px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    border: 1px solid #E2E8F0;
+}
+
+/* Header */
+.mcct-header {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    color: #FFFFFF;
+    padding: 1.4rem 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mcct-header-user {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.mcct-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #0284C7;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.15rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.mcct-user-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.mcct-user-nombre {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+.mcct-badge-tech {
+    background: rgba(2, 132, 199, 0.3);
+    border: 1px solid #38BDF8;
+    color: #BAE6FD;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.mcct-user-sub {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.82rem;
+    color: #94A3B8;
+}
+
+.mcct-close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #FFFFFF;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.mcct-close-btn:hover {
+    background: rgba(239, 68, 68, 0.8);
+    transform: scale(1.05);
+}
+
+/* Alertas */
+.mcct-alert {
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.mcct-alert--error {
+    background: #FEF2F2;
+    color: #991B1B;
+    border-bottom: 1px solid #FCA5A5;
+}
+
+.mcct-alert button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+}
+
+/* Resumen KPIs */
+.mcct-kpis-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.85rem;
+    padding: 1.2rem 1.75rem 0.6rem;
+    background: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.mcct-kpi-card {
+    background: #FFFFFF;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid #E2E8F0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.mcct-kpi-lbl {
+    font-size: 0.75rem;
+    color: #64748B;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.mcct-kpi-val {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0F172A;
+}
+
+.mcct-kpi-card--success .mcct-kpi-val {
+    color: #16A34A;
+}
+
+.mcct-kpi-card--warning .mcct-kpi-val {
+    color: #D97706;
+}
+
+.mcct-kpi-card--money .mcct-kpi-val {
+    color: #0284C7;
+}
+
+/* Toolbar & Filtros */
+.mcct-toolbar {
+    padding: 0.85rem 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #FFFFFF;
+    border-bottom: 1px solid #F1F5F9;
+}
+
+.mcct-filter-pills {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.mcct-pill {
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid #E2E8F0;
+    background: #F8FAFC;
+    color: #475569;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.mcct-pill:hover {
+    background: #F1F5F9;
+}
+
+.mcct-pill--activo {
+    background: #0284C7;
+    color: #FFFFFF;
+    border-color: #0284C7;
+}
+
+/* Body & Grid */
+.mcct-body {
+    padding: 1.5rem 1.75rem;
+    overflow-y: auto;
+    flex: 1;
+    background: #F8FAFC;
+}
+
+.mcct-loading,
+.mcct-empty {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: #64748B;
+}
+
+.mcct-empty-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.mcct-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 1.25rem;
+}
+
+/* Tarjeta individual */
+.mcct-card {
+    background: #FFFFFF;
+    border-radius: 14px;
+    border: 1px solid #E2E8F0;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+}
+
+.mcct-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+}
+
+.mcct-card--con-doc {
+    border-left: 4px solid #16A34A;
+}
+
+.mcct-card--sin-doc {
+    border-left: 4px solid #D97706;
+}
+
+.mcct-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.mcct-card-asig-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.mcct-asig-num {
+    background: #F1F5F9;
+    color: #334155;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.mcct-asig-tipo {
+    background: #EFF6FF;
+    color: #1D4ED8;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.mcct-status-badge {
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.mcct-status-badge--adjunta {
+    background: #DCFCE7;
+    color: #15803D;
+    border: 1px solid #86EFAC;
+}
+
+.mcct-status-badge--pendiente {
+    background: #FEF3C7;
+    color: #B45309;
+    border: 1px solid #FCD34D;
+}
+
+.mcct-card-proyecto {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0F172A;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mcct-card-ubicacion {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.82rem;
+    color: #475569;
+}
+
+.mcct-card-fechas {
+    margin: 0.35rem 0 0 0;
+    font-size: 0.78rem;
+    color: #64748B;
+    font-weight: 500;
+}
+
+/* Financiero */
+.mcct-card-fin-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+    background: #F8FAFC;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    border: 1px solid #F1F5F9;
+}
+
+.mcct-fin-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.mcct-fin-lbl {
+    font-size: 0.68rem;
+    color: #64748B;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.mcct-fin-val {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+/* Acciones */
+.mcct-card-actions {
+    padding-top: 0.5rem;
+    border-top: 1px solid #F1F5F9;
+}
+
+.mcct-btn-ver-doc {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    border: 1.5px solid #0284C7;
+    background: #F0F9FF;
+    color: #0284C7;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: all 0.15s ease;
+}
+
+.mcct-btn-ver-doc:hover {
+    background: #0284C7;
+    color: #FFFFFF;
+    box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+}
+
+.mcct-msg-pendiente {
+    font-size: 0.76rem;
+    color: #94A3B8;
+    font-style: italic;
+    display: block;
+    text-align: center;
+    padding: 0.3rem 0;
+}
+
+@media (max-width: 640px) {
+    .mcct-cards-grid {
+        grid-template-columns: 1fr;
+    }
+    .mcct-kpis-row {
+        grid-template-columns: 1fr 1fr;
+    }
+}

@@ -17,6 +17,8 @@ import NuevaAsignacion from './pages/NuevaAsignacion';
 import DetalleAsignacion from './pages/DetalleAsignacion';
 import Auditoria from './pages/Auditoria';
 import AdminCuentasCobro from './pages/AdminCuentasCobro';
+import SeleccionModulo from './pages/SeleccionModulo';
+import TalentoHumano from './pages/TalentoHumano';
 
 export default function App() {
   return (
@@ -24,6 +26,22 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route
+            path="/seleccion-modulo"
+            element={
+              <AdminRoute>
+                <SeleccionModulo />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/talento-humano"
+            element={
+              <AdminRoute>
+                <TalentoHumano />
+              </AdminRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={

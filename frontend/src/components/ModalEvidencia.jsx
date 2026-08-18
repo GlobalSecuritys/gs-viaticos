@@ -143,8 +143,8 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                             {viatico.estado.charAt(0).toUpperCase() + viatico.estado.slice(1)}
                         </span>
                         {esAsignacion ? (
-                            <span style={{ fontSize: '0.78rem', background: '#EFF6FF', color: '#1D4ED8', padding: '0.2rem 0.6rem', borderRadius: '6px', fontWeight: 600 }}>
-                                📍 Asignación #{asigId}
+                        <span style={{ fontSize: '0.78rem', background: '#EFF6FF', color: '#1D4ED8', padding: '0.2rem 0.6rem', borderRadius: '6px', fontWeight: 600 }} title={`ID interno: #${asigId}`}>
+                                📍 {viatico.asignacion_resumen?.cliente || viatico.cliente || `Asig. #${asigId}`}
                             </span>
                         ) : (
                             <span style={{ fontSize: '0.78rem', background: '#F8FAFC', color: '#64748B', border: '1px solid #E2E8F0', padding: '0.2rem 0.6rem', borderRadius: '6px', fontWeight: 500 }}>
@@ -225,7 +225,7 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                     {esAsignacion ? (
                         <div className="modal-fin-box" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '10px', padding: '0.85rem', margin: '0.85rem 0' }}>
                             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1E40AF', display: 'block', marginBottom: '0.5rem' }}>
-                                📊 Control Financiero de Asignación #{asigId}
+                                📊 Control Financiero — {viatico.asignacion_resumen?.cliente || viatico.cliente || `Asig. #${asigId}`}
                             </span>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', fontSize: '0.82rem', textAlign: 'center' }}>
                                 <div>

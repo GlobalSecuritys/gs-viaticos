@@ -8,16 +8,16 @@
 .pwa-install-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    background: linear-gradient(135deg, #0A3A60 0%, #1D63C8 100%);
+    gap: 0.5rem;
+    background: #070D1E;
     color: #FFFFFF;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 999px;
-    padding: 0.45rem 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 1rem;
     font-size: 0.82rem;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(10, 58, 96, 0.25);
+    box-shadow: 0 2px 8px rgba(7, 13, 30, 0.25);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: inherit;
     white-space: nowrap;
@@ -25,8 +25,9 @@
 
 .pwa-install-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(29, 99, 200, 0.35);
-    background: linear-gradient(135deg, #072B47 0%, #174E9E 100%);
+    box-shadow: 0 4px 14px rgba(7, 13, 30, 0.35);
+    background: #112548;
+    border-color: rgba(212, 175, 55, 0.3);
 }
 
 .pwa-install-btn:active {

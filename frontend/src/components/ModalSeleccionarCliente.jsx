@@ -18,8 +18,8 @@ export default function ModalSeleccionarCliente({ clienteSeleccionado, onSelecci
             <div className="mc-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="mc-header">
                     <div>
-                        <h3 className="mc-title">Seleccionar Cliente</h3>
-                        <p className="mc-sub">Elige un cliente de la lista oficial ({clientesData.length} disponibles)</p>
+                        <h3 className="mc-title">Seleccionar Proyecto</h3>
+                        <p className="mc-sub">Elige un proyecto de la lista oficial ({clientesData.length} disponibles)</p>
                     </div>
                     <button className="mc-close-btn" type="button" onClick={onClose}>✕</button>
                 </div>

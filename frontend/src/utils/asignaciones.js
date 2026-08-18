@@ -4,22 +4,26 @@
 // en Fase 1). Todo dato viene del backend a través de services/asignaciones.js.
 
 export const TIPOS_ASIGNACION = [
-    'rtc',
-    'oficina',
-    'instalacion',
-    'auditoria',
-    'capacitacion',
     'mantenimiento',
-    'soporte',
+    'oficina_correctivo',
+    'oficina_preventivo',
+    'oficina_general',
+    'preventivo_rtc',
+    'rtc',
 ];
 
 export const LABEL_TIPO_ASIGNACION = {
-    rtc: 'RTC',
+    mantenimiento: 'Mantenimiento',
     oficina: 'Oficina',
+    oficina_correctivo: 'Oficina - Correctivo',
+    oficina_preventivo: 'Oficina - Preventivo',
+    oficina_general: 'Oficina General',
+    preventivo_rtc: 'Preventivo RTC',
+    rtc: 'RTC',
+    // Compatibilidad histórica
     instalacion: 'Instalación',
     auditoria: 'Auditoría',
     capacitacion: 'Capacitación',
-    mantenimiento: 'Mantenimiento',
     soporte: 'Soporte',
 };
 
@@ -66,6 +70,24 @@ export function obtenerAsignacionesActivasDeTecnico(asignaciones, tecnicoId) {
             (a.estado === 'pendiente' || a.estado === 'en_curso')
     );
     return [...delTecnico].sort((a, b) => (a.fecha_inicio || '').localeCompare(b.fecha_inicio || ''));
+}
+
+/**
+ * Construye la etiqueta visual de una asignación:
+ *   "Banco Agrario - Oficina Correctivo"
+ * Si algún dato falta, degrada graciosamente.
+ * @param {string|null} cliente  - Nombre del proyecto / cliente
+ * @param {string|null} tipo     - Tipo de asignación (raw key, ej. "oficina_correctivo")
+ * @param {number|null} id       - ID numérico (fallback último recurso)
+ */
+export function labelAsignacion(cliente, tipo, id) {
+    const proyecto = (cliente || '').trim();
+    const tipoLabel = tipo ? (LABEL_TIPO_ASIGNACION[tipo] || tipo) : null;
+
+    if (proyecto && tipoLabel) return `${proyecto} - ${tipoLabel}`;
+    if (proyecto) return proyecto;
+    if (tipoLabel) return tipoLabel;
+    return id != null ? `Asignación #${id}` : 'Asignación';
 }
 
 export function filtrarAsignaciones(asignaciones, { busqueda = '', tipo = '', estado = '' } = {}) {

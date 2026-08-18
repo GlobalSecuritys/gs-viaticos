@@ -16,6 +16,9 @@ export default function AdminUsuarios() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    // true solo si quien está logueado es el master admin
+    const isMasterAdmin = (user?.correo || '').trim().toLowerCase() === 'admin@gsbank.com';
+
     async function cargarUsuarios() {
         try {
             const { data } = await api.get('/admin/usuarios');
@@ -52,6 +55,17 @@ export default function AdminUsuarios() {
             cargarUsuarios();
         } catch (err) {
             setError(formatApiError(err, 'No se pudo cambiar el estado'));
+        }
+    }
+
+    async function cambiarAccesoViaticos(id, nuevoValor) {
+        try {
+            await api.put(`/admin/usuarios/${id}/acceso-viaticos`, {
+                acceso_viaticos: nuevoValor,
+            });
+            cargarUsuarios();
+        } catch (err) {
+            setError(formatApiError(err, 'No se pudo cambiar el acceso a viáticos'));
         }
     }
 
@@ -124,6 +138,8 @@ export default function AdminUsuarios() {
                                         <th>Rol</th>
                                         <th>Cambiar rol</th>
                                         <th>Estado</th>
+                                        {/* Columna visible solo para master admin */}
+                                        {isMasterAdmin && <th>Acceso viáticos</th>}
                                     </tr>
                                 </thead>
 
@@ -150,40 +166,27 @@ export default function AdminUsuarios() {
                                             </td>
 
                                             <td>
-                                                {u.rol === 'superadmin' ? (
+                                                {/* ── CAMBIO 4: master admin puede bajar superadmin;
+                                                    los demás superadmin ven el campo deshabilitado ── */}
+                                                {u.rol === 'superadmin' && !isMasterAdmin ? (
                                                     <select
                                                         className="admin-select"
                                                         value="superadmin"
                                                         disabled
                                                     >
-                                                        <option value="superadmin">
-                                                            SuperAdmin
-                                                        </option>
+                                                        <option value="superadmin">SuperAdmin</option>
                                                     </select>
                                                 ) : (
                                                     <select
                                                         className="admin-select"
                                                         value={u.rol}
                                                         onChange={(e) =>
-                                                            cambiarRol(
-                                                                u.id,
-                                                                e.target.value
-                                                            )
+                                                            cambiarRol(u.id, e.target.value)
                                                         }
                                                     >
-                                                        <option value="tecnico">
-                                                            Técnico
-                                                        </option>
-
-                                                        <option value="admin">
-                                                            Admin
-                                                        </option>
-
-                                                        {user?.rol === 'superadmin' && (
-                                                            <option value="superadmin">
-                                                                SuperAdmin
-                                                            </option>
-                                                        )}
+                                                        <option value="tecnico">Técnico</option>
+                                                        <option value="admin">Admin</option>
+                                                        <option value="superadmin">SuperAdmin</option>
                                                     </select>
                                                 )}
                                             </td>
@@ -205,6 +208,22 @@ export default function AdminUsuarios() {
                                                     </button>
                                                 )}
                                             </td>
+
+                                            {/* ── CAMBIO 3: switch acceso_viaticos, solo visible para master admin ── */}
+                                            {isMasterAdmin && (
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <label className="au-switch" title={`Acceso a viáticos: ${u.acceso_viaticos ? 'activado' : 'desactivado'}`}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={!!u.acceso_viaticos}
+                                                            onChange={(e) =>
+                                                                cambiarAccesoViaticos(u.id, e.target.checked)
+                                                            }
+                                                        />
+                                                        <span className="au-switch-track" />
+                                                    </label>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>

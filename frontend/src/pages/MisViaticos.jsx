@@ -203,8 +203,8 @@ export default function MisViaticos() {
                       <td className="td-main">
                         <div>{v.cliente}</div>
                         {v.asignacion_id ? (
-                          <span style={{ fontSize: '0.73rem', color: '#1D4ED8', background: '#EFF6FF', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 600 }}>
-                            📍 Asignación #{v.asignacion_id}
+                          <span style={{ fontSize: '0.73rem', color: '#1D4ED8', background: '#EFF6FF', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 600 }} title={`ID interno: #${v.asignacion_id}`}>
+                            📍 {v.cliente || `Asig. #${v.asignacion_id}`}
                           </span>
                         ) : (
                           <span style={{ fontSize: '0.73rem', color: '#64748B', background: '#F1F5F9', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
