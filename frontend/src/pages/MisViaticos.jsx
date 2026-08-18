@@ -228,6 +228,13 @@ export default function MisViaticos() {
               </button>
             </div>
           )}
+          {v.estado === 'rechazado' && (
+            <div className="mv-vi-acciones">
+              <button type="button" className="mv-btn-accion mv-btn-accion--reenviar" onClick={() => abrirEditar(v)}>
+                🔄 Corregir y reenviar
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -390,7 +397,14 @@ export default function MisViaticos() {
           <div className="mv-modal-overlay">
             <div className="mv-modal">
               <div className="mv-modal-header">
-                <h2>Editar Viatico #{viaticoEditando.id}</h2>
+                <div>
+                  <h2>Editar Viatico #{viaticoEditando.id}</h2>
+                  {viaticoEditando.estado === 'rechazado' && (
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.78rem', color: '#D97706', fontWeight: 600 }}>
+                      ⚠ Este viático fue rechazado. Al guardar se reenviará al administrador para revisión.
+                    </p>
+                  )}
+                </div>
                 <button type="button" className="mv-modal-close" onClick={() => setViaticoEditando(null)}>✕</button>
               </div>
               {errorEdit && <div className="form-error" style={{ margin: '1rem 1.25rem 0' }}><span>⚠</span> {errorEdit}</div>}
@@ -433,7 +447,14 @@ export default function MisViaticos() {
                 </div>
                 <div className="mv-modal-footer">
                   <button type="button" className="btn-back" onClick={() => setViaticoEditando(null)} disabled={guardandoEdit}>Cancelar</button>
-                  <button type="submit" className="btn-primary" disabled={guardandoEdit}>{guardandoEdit ? 'Guardando…' : 'Guardar Cambios'}</button>
+                  <button type="submit" className="btn-primary" disabled={guardandoEdit}>
+                    {guardandoEdit
+                      ? 'Guardando…'
+                      : viaticoEditando?.estado === 'rechazado'
+                        ? '🔄 Corregir y Reenviar'
+                        : 'Guardar Cambios'
+                    }
+                  </button>
                 </div>
               </form>
             </div>

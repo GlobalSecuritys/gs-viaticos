@@ -140,15 +140,20 @@ def actualizar_viatico(
             detail="Viático no encontrado"
         )
 
-    if viatico.estado != "pendiente":
+    if viatico.estado not in ("pendiente", "rechazado"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Solo se pueden editar viáticos en estado pendiente"
+            detail="Solo se pueden editar viáticos en estado pendiente o rechazado"
         )
 
     update_data = viatico_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(viatico, field, value)
+
+    # Si el viático estaba rechazado, al re-enviarlo vuelve a pendiente
+    if viatico.estado == "rechazado":
+        viatico.estado = "pendiente"
+        viatico.comentario_admin = None
 
     db.commit()
     db.refresh(viatico)

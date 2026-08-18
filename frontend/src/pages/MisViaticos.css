@@ -432,6 +432,19 @@
   color: #FFFFFF;
 }
 
+.mv-btn-accion--reenviar {
+  background-color: #FEF3C7;
+  color: #92400E;
+  border-color: rgba(217, 119, 6, 0.25);
+  width: 100%;
+  justify-content: center;
+}
+
+.mv-btn-accion--reenviar:hover {
+  background-color: #D97706;
+  color: #FFFFFF;
+}
+
 /* Modales */
 .mv-modal-overlay {
   position: fixed;
