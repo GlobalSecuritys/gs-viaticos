@@ -663,6 +663,12 @@ export default function PerfilEmpleado() {
                                                         <span className="pf-info-valor">{asignacion.cliente}</span>
                                                     </div>
                                                     <div>
+                                                        <span className="pf-info-label">Oficina</span>
+                                                        <span className="pf-info-valor" style={{ color: '#0284C7' }}>
+                                                            {asignacion.empresa || '—'}
+                                                        </span>
+                                                    </div>
+                                                    <div>
                                                         <span className="pf-info-label">Ciudad</span>
                                                         <span className="pf-info-valor">{asignacion.ciudad}</span>
                                                     </div>

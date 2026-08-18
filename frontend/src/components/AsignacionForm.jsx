@@ -21,13 +21,14 @@ const OPCIONES_TIPO = [
     { id: 'preventivo_rtc', label: 'Preventivo RTC' },
     { id: 'rtc', label: 'RTC' },
     { id: 'garantia', label: 'Garantia' },
+    { id: 'oficina', label: 'Oficina' },
 ];
 
 export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar, enviando, tecnicoPreseleccionado = null }) {
     const [form, setForm] = useState(() => {
         if (inicial) {
             let tipoInicial = inicial.tipo ?? '';
-            if (tipoInicial === 'oficina_correctivo' || tipoInicial === 'oficina') tipoInicial = 'correctivo';
+            if (tipoInicial === 'oficina_correctivo') tipoInicial = 'correctivo';
             if (tipoInicial === 'oficina_preventivo') tipoInicial = 'preventivo';
 
             return {

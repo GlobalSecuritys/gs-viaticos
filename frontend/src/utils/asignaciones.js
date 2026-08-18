@@ -10,6 +10,7 @@ export const TIPOS_ASIGNACION = [
     'preventivo_rtc',
     'rtc',
     'garantia',
+    'oficina',
 ];
 
 export const LABEL_TIPO_ASIGNACION = {
@@ -19,8 +20,8 @@ export const LABEL_TIPO_ASIGNACION = {
     preventivo_rtc: 'Preventivo RTC',
     rtc: 'RTC',
     garantia: 'Garantía',
-    // Compatibilidad histórica
     oficina: 'Oficina',
+    // Compatibilidad histórica
     oficina_correctivo: 'Oficina - Correctivo',
     oficina_preventivo: 'Oficina - Preventivo',
     oficina_general: 'Oficina General',

@@ -48,8 +48,12 @@ export default function AsignacionCard({ asignacion, onClick }) {
                 <div className="asig-card-body">
                     <p className="asig-card-cliente">
                         <strong>{asignacion.cliente}</strong>
-                        {asignacion.empresa ? ` · ${asignacion.empresa}` : ''}
                     </p>
+                    {asignacion.empresa && (
+                        <p className="asig-card-oficina" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0284C7', margin: '0.2rem 0' }}>
+                            🏢 Oficina: <span>{asignacion.empresa}</span>
+                        </p>
+                    )}
                     <p className="asig-card-ciudad">📍 {asignacion.ciudad}</p>
                 </div>
 
