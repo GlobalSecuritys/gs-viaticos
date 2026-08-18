@@ -743,3 +743,214 @@
     color: var(--color-text-muted);
     font-family: monospace;
 }
+
+/* ==========================================================================
+   Banners de Modo: Independiente vs Asignación
+   ========================================================================== */
+
+.nv-alerta-independiente {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+    border: 1.5px solid #FCD34D;
+    border-left: 5px solid #D97706;
+    padding: 1.1rem 1.35rem;
+    border-radius: 12px;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 3px 10px rgba(217, 119, 6, 0.08);
+}
+
+.nv-alerta-independiente-izq {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    flex: 1;
+}
+
+.nv-alerta-independiente-icono {
+    font-size: 1.6rem;
+    line-height: 1;
+    background: #FEF3C7;
+    border: 1px solid #FDE68A;
+    border-radius: 8px;
+    padding: 0.45rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.nv-alerta-independiente-contenido {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.nv-alerta-independiente-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.nv-alerta-independiente-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #D97706;
+    color: #FFFFFF;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+}
+
+.nv-alerta-independiente-titulo {
+    font-size: 0.98rem;
+    color: #92400E;
+    font-weight: 700;
+}
+
+.nv-alerta-independiente-texto {
+    font-size: 0.85rem;
+    color: #78350F;
+    margin: 0;
+    line-height: 1.45;
+}
+
+.nv-alerta-independiente-btn {
+    background: #FFFFFF;
+    color: #92400E;
+    border: 1.5px solid #F59E0B;
+    padding: 0.6rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    flex-shrink: 0;
+}
+
+.nv-alerta-independiente-btn:hover {
+    background: #FEF3C7;
+    border-color: #D97706;
+    color: #78350F;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(217, 119, 6, 0.15);
+}
+
+/* Banner de Asignación */
+.nv-alerta-asignacion {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+    border: 1.5px solid #93C5FD;
+    border-left: 5px solid #2563EB;
+    padding: 1.1rem 1.35rem;
+    border-radius: 12px;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.08);
+}
+
+.nv-alerta-asignacion-izq {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    flex: 1;
+}
+
+.nv-alerta-asignacion-icono {
+    font-size: 1.6rem;
+    line-height: 1;
+    background: #DBEAFE;
+    border: 1px solid #BFDBFE;
+    border-radius: 8px;
+    padding: 0.45rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.nv-alerta-asignacion-contenido {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.nv-alerta-asignacion-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.nv-alerta-asignacion-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #2563EB;
+    color: #FFFFFF;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+}
+
+.nv-alerta-asignacion-titulo {
+    font-size: 0.98rem;
+    color: #1E40AF;
+    font-weight: 700;
+}
+
+.nv-alerta-asignacion-texto {
+    font-size: 0.85rem;
+    color: #1E3A8A;
+    margin: 0;
+    line-height: 1.45;
+}
+
+.nv-alerta-asignacion-btn {
+    background: #FFFFFF;
+    color: #1E40AF;
+    border: 1.5px solid #60A5FA;
+    padding: 0.6rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    flex-shrink: 0;
+}
+
+.nv-alerta-asignacion-btn:hover {
+    background: #EFF6FF;
+    border-color: #2563EB;
+    color: #1E3A8A;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.15);
+}
+
+@media (max-width: 640px) {
+    .nv-alerta-independiente,
+    .nv-alerta-asignacion {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .nv-alerta-independiente-btn,
+    .nv-alerta-asignacion-btn {
+        justify-content: center;
+    }
+}

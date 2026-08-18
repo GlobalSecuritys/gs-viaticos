@@ -4,6 +4,7 @@ import api, { subirEvidencias } from '../services/api';
 import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import TecnicoLayout from '../components/TecnicoLayout';
 import { useAuth } from '../context/AuthContext';
+import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
 import { formatFechaLarga, formatCOP, formatMiles, limpiarNumero } from '../utils/personal';
 import './NuevoViatico.css';
 
@@ -54,6 +55,7 @@ export default function NuevoViatico() {
 
     const asignacionIdParam = searchParams.get('asignacion_id');
     const [asignacionDetalle, setAsignacionDetalle] = useState(null);
+    const [mostrarModalCambioTipo, setMostrarModalCambioTipo] = useState(false);
 
     useEffect(() => {
         if (asignacionIdParam) {
@@ -307,15 +309,60 @@ export default function NuevoViatico() {
     return (
         <TecnicoLayout>
             <div className="nv-root">
-                {/* Banner de vinculación si viene de una asignación */}
-                {asignacionIdParam && (
-                    <div className="nv-asig-badge-banner" style={{ background: '#EFF6FF', border: '1px solid #93C5FD', padding: '0.85rem 1.25rem', borderRadius: '10px', marginBottom: '1.25rem', color: '#1E40AF', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
-                        <span>📍</span>
-                        <div>
-                            <strong>Vinculado a Asignación</strong>                            {asignacionDetalle && (
-                                <span> — Cliente: <strong>{asignacionDetalle.cliente}</strong> ({asignacionDetalle.ciudad})</span>
-                            )}
+                {/* Banner de modo: Independiente vs Asignación */}
+                {asignacionIdParam ? (
+                    <div className="nv-alerta-asignacion">
+                        <div className="nv-alerta-asignacion-izq">
+                            <div className="nv-alerta-asignacion-icono">
+                                <span>📍</span>
+                            </div>
+                            <div className="nv-alerta-asignacion-contenido">
+                                <div className="nv-alerta-asignacion-header">
+                                    <span className="nv-alerta-asignacion-badge">Vinculado a Asignación</span>
+                                    <strong className="nv-alerta-asignacion-titulo">
+                                        {asignacionDetalle
+                                            ? [asignacionDetalle.cliente, asignacionDetalle.empresa, asignacionDetalle.ciudad].filter(Boolean).join(' / ')
+                                            : `Asignación #${asignacionIdParam}`}
+                                    </strong>
+                                </div>
+                                <p className="nv-alerta-asignacion-texto">
+                                    Los gastos registrados aquí se descontarán automáticamente del anticipo de esta asignación.
+                                </p>
+                            </div>
                         </div>
+                        <button
+                            type="button"
+                            className="nv-alerta-asignacion-btn"
+                            onClick={() => setMostrarModalCambioTipo(true)}
+                        >
+                            <span>🔄</span> Cambiar Asignación
+                        </button>
+                    </div>
+                ) : (
+                    <div className="nv-alerta-independiente">
+                        <div className="nv-alerta-independiente-izq">
+                            <div className="nv-alerta-independiente-icono">
+                                <span>⚠️</span>
+                            </div>
+                            <div className="nv-alerta-independiente-contenido">
+                                <div className="nv-alerta-independiente-header">
+                                    <span className="nv-alerta-independiente-badge">Modo Independiente</span>
+                                    <strong className="nv-alerta-independiente-titulo">
+                                        Estás registrando un viático de forma independiente
+                                    </strong>
+                                </div>
+                                <p className="nv-alerta-independiente-texto">
+                                    Este registro <strong>no está vinculado a ninguna asignación o proyecto específico</strong>. Se guardará de manera libre en tu historial y no descontará de ningún anticipo de misión.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            className="nv-alerta-independiente-btn"
+                            onClick={() => setMostrarModalCambioTipo(true)}
+                        >
+                            <span>📍</span> Vincular a Asignación
+                        </button>
                     </div>
                 )}
 
@@ -811,6 +858,12 @@ export default function NuevoViatico() {
                     </div>
                 </div>
             </div>
+
+            {mostrarModalCambioTipo && (
+                <ModalSeleccionarTipoViatico
+                    onClose={() => setMostrarModalCambioTipo(false)}
+                />
+            )}
         </TecnicoLayout>
     );
 }
