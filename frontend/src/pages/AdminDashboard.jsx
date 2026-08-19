@@ -112,7 +112,7 @@ export default function AdminDashboard() {
     const [busquedaConsolidado, setBusquedaConsolidado] = useState('');
     const [filtroEstadoConsolidado, setFiltroEstadoConsolidado] = useState('todos');
     const [busquedaTecnico, setBusquedaTecnico] = useState('');
-    const [seccionViaticosColapsada, setSeccionViaticosColapsada] = useState(false);
+    const [seccionViaticosColapsada, setSeccionViaticosColapsada] = useState(true);
 
     // Referencias para scroll suave desde el sidebar
     const seccionViaticosRef = useRef(null);
