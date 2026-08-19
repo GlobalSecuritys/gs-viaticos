@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.viatico import Viatico
+from app.models.cuenta_cobro import CuentaCobro  # noqa: F401 – necesario para eager load
 from app.schemas.viatico import (
     ViaticoResponse,
     ViaticoAdminResponse,
@@ -344,6 +345,7 @@ def _hacer_viatico_admin_response(v: Viatico) -> ViaticoAdminResponse:
         nombre=v.usuario.nombre,
         correo=v.usuario.correo,
         asignacion_resumen=asig_res,
+        cuenta_cobro=v.cuenta_cobro if hasattr(v, 'cuenta_cobro') else None,
     )
 
 
@@ -358,6 +360,7 @@ def listar_todos_los_viaticos(
             joinedload(Viatico.usuario),
             joinedload(Viatico.evidencias),
             joinedload(Viatico.asignacion),
+            joinedload(Viatico.cuenta_cobro),
         )
         .order_by(
             (Viatico.estado == "pendiente").desc(),
@@ -435,6 +438,7 @@ def definir_presupuesto_viatico(
             joinedload(Viatico.usuario),
             joinedload(Viatico.evidencias),
             joinedload(Viatico.asignacion),
+            joinedload(Viatico.cuenta_cobro),
         )
         .where(Viatico.id == id)
     )
@@ -491,7 +495,18 @@ def aprobar_viatico(
     if datos and datos.comentario_admin is not None:
         viatico.comentario_admin = datos.comentario_admin
     db.commit()
-    db.refresh(viatico)
+
+    # Re-fetch con eager load para serializar correctamente ViaticoResponse
+    viatico = db.scalar(
+        select(Viatico)
+        .options(
+            joinedload(Viatico.usuario),
+            joinedload(Viatico.evidencias),
+            joinedload(Viatico.asignacion),
+            joinedload(Viatico.cuenta_cobro),
+        )
+        .where(Viatico.id == id)
+    )
     return viatico
 
 
@@ -526,7 +541,18 @@ def rechazar_viatico(
     if datos and datos.comentario_admin is not None:
         viatico.comentario_admin = datos.comentario_admin
     db.commit()
-    db.refresh(viatico)
+
+    # Re-fetch con eager load para serializar correctamente ViaticoResponse
+    viatico = db.scalar(
+        select(Viatico)
+        .options(
+            joinedload(Viatico.usuario),
+            joinedload(Viatico.evidencias),
+            joinedload(Viatico.asignacion),
+            joinedload(Viatico.cuenta_cobro),
+        )
+        .where(Viatico.id == id)
+    )
     return viatico
 
 @router.get("/usuarios", response_model=List[UsuarioResponse])

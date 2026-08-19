@@ -7,6 +7,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.usuario import Usuario
+    from app.models.viatico import Viatico
 
 
 class CuentaCobro(Base):
@@ -17,6 +18,12 @@ class CuentaCobro(Base):
         Integer,
         ForeignKey("usuarios.id", ondelete="RESTRICT"),
         nullable=False,
+        index=True
+    )
+    viatico_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("viaticos.id", ondelete="SET NULL"),
+        nullable=True,
         index=True
     )
     fecha: Mapped[date] = mapped_column(Date, nullable=False)
@@ -60,3 +67,4 @@ class CuentaCobro(Base):
         return f"{self.fecha.year}-{self.id}" if self.fecha and self.id else ""
 
     usuario: Mapped["Usuario"] = relationship("Usuario")
+    viatico: Mapped[Optional["Viatico"]] = relationship("Viatico", back_populates="cuenta_cobro")

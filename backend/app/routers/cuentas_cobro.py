@@ -34,6 +34,7 @@ def crear_cuenta_cobro(
 
     nueva_cuenta = CuentaCobro(
         usuario_id=current_user.id,
+        viatico_id=cuenta_in.viatico_id,
         fecha=cuenta_in.fecha,
         ciudad=cuenta_in.ciudad,
         tipo_identificacion=cuenta_in.tipo_identificacion,

@@ -1,0 +1,202 @@
+/* Modal Formulario Corto Cuenta de Cobro */
+.mccc-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1300;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.mccc-modal {
+    background: #FFFFFF;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 580px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    animation: mcccFadeIn 0.2s ease-out;
+}
+
+@keyframes mcccFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.mccc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.mccc-header-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.mccc-header-icon {
+    font-size: 1.4rem;
+}
+
+.mccc-header-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0A3A60;
+}
+
+.mccc-header-sub {
+    font-size: 0.8rem;
+    color: #64748B;
+    margin-top: 0.15rem;
+}
+
+.mccc-close-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    color: #94A3B8;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 6px;
+    line-height: 1;
+}
+
+.mccc-close-btn:hover {
+    color: #0F172A;
+    background: #E2E8F0;
+}
+
+.mccc-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.mccc-badge-autofill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #EFF6FF;
+    border: 1px solid #DBEAFE;
+    border-radius: 8px;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.8rem;
+    color: #1E40AF;
+}
+
+.mccc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.mccc-field label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mccc-field input,
+.mccc-field textarea {
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #0F172A;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.mccc-field input:focus,
+.mccc-field textarea:focus {
+    outline: none;
+    border-color: #0A3A60;
+    box-shadow: 0 0 0 3px rgba(10, 58, 96, 0.12);
+}
+
+.mccc-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.mccc-error {
+    background: #FEF2F2;
+    border: 1px solid #FCA5A5;
+    color: #B91C1C;
+    padding: 0.65rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.mccc-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: #F8FAFC;
+    border-top: 1px solid #E2E8F0;
+}
+
+.mccc-btn-cancel {
+    padding: 0.6rem 1.1rem;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    color: #475569;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.mccc-btn-cancel:hover {
+    background: #F1F5F9;
+}
+
+.mccc-btn-confirm {
+    padding: 0.6rem 1.25rem;
+    background: #0A3A60;
+    border: none;
+    color: #FFFFFF;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+}
+
+.mccc-btn-confirm:hover {
+    opacity: 0.92;
+}
+
+.mccc-btn-confirm:active {
+    transform: scale(0.98);
+}

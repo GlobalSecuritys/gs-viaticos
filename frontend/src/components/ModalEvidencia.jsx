@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { parseDescripcion } from '../utils/descripcion';
 import { formatMiles, limpiarNumero } from '../utils/personal';
 import api from '../services/api';
+import ModalCuentaCobro from './ModalCuentaCobro';
 import './ModalEvidencia.css';
 
 const LABEL_TIPO = {
@@ -40,6 +41,7 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
     const [comentarioInput, setComentarioInput] = useState('');
     const [procesandoAccion, setProcesandoAccion] = useState(false);
     const [errorAccion, setErrorAccion] = useState('');
+    const [mostrarModalCc, setMostrarModalCc] = useState(false);
 
     async function handleConfirmarAccion(e) {
         e.preventDefault();
@@ -331,6 +333,93 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                         </div>
                     )}
 
+                    {/* ── CUENTA DE COBRO ADJUNTA ── */}
+                    {viatico.cuenta_cobro && (
+                        <div style={{
+                            background: '#F0FDF4',
+                            border: '1px solid #BBF7D0',
+                            borderRadius: '10px',
+                            padding: '0.85rem',
+                            margin: '0.85rem 0',
+                        }}>
+                            <span style={{
+                                fontSize: '0.78rem',
+                                textTransform: 'uppercase',
+                                color: '#166534',
+                                fontWeight: 700,
+                                letterSpacing: '0.05em',
+                                display: 'block',
+                                marginBottom: '0.6rem',
+                            }}>
+                                📄 Cuenta de Cobro Adjunta
+                            </span>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem 1rem', fontSize: '0.82rem', color: '#1E293B' }}>
+                                <div>
+                                    <span style={{ color: '#475569', fontSize: '0.75rem', display: 'block' }}>Consecutivo</span>
+                                    <strong>{viatico.cuenta_cobro.consecutivo}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ color: '#475569', fontSize: '0.75rem', display: 'block' }}>Estado</span>
+                                    <strong style={{ color: viatico.cuenta_cobro.estado === 'aprobada' ? '#16A34A' : viatico.cuenta_cobro.estado === 'rechazada' ? '#DC2626' : '#B45309' }}>
+                                        {viatico.cuenta_cobro.estado.charAt(0).toUpperCase() + viatico.cuenta_cobro.estado.slice(1)}
+                                    </strong>
+                                </div>
+                                <div>
+                                    <span style={{ color: '#475569', fontSize: '0.75rem', display: 'block' }}>Banco</span>
+                                    <strong>{viatico.cuenta_cobro.banco}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ color: '#475569', fontSize: '0.75rem', display: 'block' }}>Tipo de cuenta</span>
+                                    <strong>{viatico.cuenta_cobro.tipo_cuenta}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ color: '#475569', fontSize: '0.75rem', display: 'block' }}>No. cuenta</span>
+                                    <strong>{viatico.cuenta_cobro.numero_cuenta}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ color: '#475569', fontSize: '0.75rem', display: 'block' }}>Titular</span>
+                                    <strong>{viatico.cuenta_cobro.titular_nombre}</strong>
+                                </div>
+                                {viatico.cuenta_cobro.titular_celular && (
+                                    <div>
+                                        <span style={{ color: '#475569', fontSize: '0.75rem', display: 'block' }}>Celular</span>
+                                        <strong>{viatico.cuenta_cobro.titular_celular}</strong>
+                                    </div>
+                                )}
+                                <div style={{ gridColumn: 'span 2' }}>
+                                    <span style={{ color: '#475569', fontSize: '0.75rem', display: 'block' }}>Concepto</span>
+                                    <strong>{viatico.cuenta_cobro.concepto_servicio}</strong>
+                                </div>
+                            </div>
+                            <div style={{ marginTop: '0.65rem', paddingTop: '0.55rem', borderTop: '1px dashed #86EFAC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.75rem', color: '#15803D', display: 'block' }}>Valor total</span>
+                                    <strong style={{ fontSize: '0.98rem', color: '#166534' }}>{formatCOP(viatico.cuenta_cobro.total)}</strong>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setMostrarModalCc(true)}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.35rem',
+                                        background: '#166534',
+                                        color: '#FFFFFF',
+                                        fontWeight: 700,
+                                        padding: '0.4rem 0.8rem',
+                                        borderRadius: '6px',
+                                        border: 'none',
+                                        fontSize: '0.78rem',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+                                    }}
+                                >
+                                    📄 Ver documento
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="modal-info-valor-grande" style={{ marginTop: '0.5rem' }}>
                         <span className="modal-info-label">Valor total del viático</span>
                         <span className="modal-valor-monto">{formatCOP(viatico.valor)}</span>
@@ -392,6 +481,28 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                     )}
                 </div>
             </div>
+
+            {/* Modal de documento formal de Cuenta de Cobro */}
+            {mostrarModalCc && viatico.cuenta_cobro && (
+                <ModalCuentaCobro
+                    cuenta={{
+                        ...viatico.cuenta_cobro,
+                        identificacion: viatico.cuenta_cobro.identificacion || viatico.codigo_empleado,
+                        titular_cedula: viatico.cuenta_cobro.titular_cedula || viatico.codigo_empleado,
+                        items: viatico.cuenta_cobro.items || [
+                            {
+                                oficina: viatico.ciudad || 'SEDE',
+                                fecha_inicio: viatico.fecha,
+                                fecha_fin: viatico.fecha,
+                                num_tecnicos: 1,
+                                valor_diario: viatico.cuenta_cobro.total,
+                                valor_total: viatico.cuenta_cobro.total,
+                            }
+                        ]
+                    }}
+                    onClose={() => setMostrarModalCc(false)}
+                />
+            )}
         </div>
     );
 }

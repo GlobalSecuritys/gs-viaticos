@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 TipoGasto = Literal[
@@ -79,6 +79,29 @@ class EvidenciaResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CuentaCobroViatico(BaseModel):
+    """Subconjunto de CuentaCobro embebido en ViaticoResponse."""
+    id: int
+    consecutivo: str
+    fecha: date
+    ciudad: str
+    tipo_identificacion: Optional[str] = "cedula"
+    identificacion: Optional[str] = None
+    concepto_servicio: str
+    items: Optional[str] = None
+    total: Decimal
+    banco: str
+    tipo_cuenta: str
+    numero_cuenta: str
+    titular_nombre: str
+    titular_cedula: Optional[str] = None
+    titular_celular: Optional[str] = None
+    estado: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ViaticoResponse(ViaticoBase):
     id: int
     usuario_id: int
@@ -92,6 +115,7 @@ class ViaticoResponse(ViaticoBase):
     updated_at: datetime
     evidencias: list[EvidenciaResponse] = []
     asignacion_resumen: AsignacionResumenViatico | None = None
+    cuenta_cobro: Optional[CuentaCobroViatico] = None
 
     model_config = ConfigDict(from_attributes=True)
 

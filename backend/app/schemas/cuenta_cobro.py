@@ -29,12 +29,14 @@ class CuentaCobroCreate(BaseModel):
     titular_cedula: str
     titular_celular: Optional[str] = None
     autorizacion_datos: bool = True
+    viatico_id: Optional[int] = None
 
 
 class CuentaCobroResponse(BaseModel):
     id: int
     consecutivo: str
     usuario_id: int
+    viatico_id: Optional[int] = None
     fecha: date
     ciudad: str
     tipo_identificacion: str

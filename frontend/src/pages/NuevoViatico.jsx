@@ -5,6 +5,7 @@ import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import TecnicoLayout from '../components/TecnicoLayout';
 import { useAuth } from '../context/AuthContext';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
+import ModalCuentaCobroCorta from '../components/ModalCuentaCobroCorta';
 import { formatFechaLarga, formatCOP, formatMiles, limpiarNumero } from '../utils/personal';
 import { derivarLugarDesdeTipoAsignacion } from '../utils/asignaciones';
 import './NuevoViatico.css';
@@ -41,6 +42,7 @@ function getItemInicial(id) {
         destino: '',
         tiene_soporte: 'si',
         valor: '',
+        cuenta_cobro: null,
         archivo: null,
         previewUrl: null,
     };
@@ -54,6 +56,7 @@ export default function NuevoViatico() {
     const asignacionIdParam = searchParams.get('asignacion_id');
     const [asignacionDetalle, setAsignacionDetalle] = useState(null);
     const [mostrarModalCambioTipo, setMostrarModalCambioTipo] = useState(false);
+    const [modalCCGastoId, setModalCCGastoId] = useState(null);
 
     useEffect(() => {
         if (asignacionIdParam) {
@@ -280,6 +283,18 @@ export default function NuevoViatico() {
                                 `Gasto #${i + 1} (${g.concepto}): se creó el viático pero no fue posible subir la fotografía. Verifica tu conexión e intenta nuevamente.`
                             );
                         }
+                    }
+                }
+
+                // 3. Si adjuntó cuenta de cobro corta a este viático, crearla vinculada a viaticoCreado.id
+                if (g.cuenta_cobro) {
+                    try {
+                        await api.post('/cuentas-cobro', {
+                            ...g.cuenta_cobro,
+                            viatico_id: viaticoCreado.id,
+                        });
+                    } catch (errCc) {
+                        console.error(`Error guardando cuenta de cobro para gasto #${i + 1}`, errCc);
                     }
                 }
             }
@@ -723,6 +738,48 @@ export default function NuevoViatico() {
                                                     )}
                                                 </div>
                                             )}
+
+                                            {/* Cuenta de cobro vinculada a este viático */}
+                                            <div className="nv-gasto-cc-box">
+                                                {gasto.cuenta_cobro ? (
+                                                    <div className="nv-cc-tag-attached">
+                                                        <div className="nv-cc-tag-info">
+                                                            <span className="nv-cc-tag-icon">✅</span>
+                                                            <div>
+                                                                <strong>Cuenta de cobro adjunta</strong>
+                                                                <span className="nv-cc-tag-meta">
+                                                                    {formatCOP(gasto.cuenta_cobro.total)} · Cta: {gasto.cuenta_cobro.numero_cuenta}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="nv-cc-tag-actions">
+                                                            <button
+                                                                type="button"
+                                                                className="nv-cc-btn-edit"
+                                                                onClick={() => setModalCCGastoId(gasto.id)}
+                                                            >
+                                                                ✏️ Editar
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="nv-cc-btn-remove"
+                                                                onClick={() => handleGastoChange(gasto.id, 'cuenta_cobro', null)}
+                                                                title="Quitar cuenta de cobro"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        className="nv-cc-btn-attach"
+                                                        onClick={() => setModalCCGastoId(gasto.id)}
+                                                    >
+                                                        📄 Subir cuenta de cobro con este viático
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -820,6 +877,24 @@ export default function NuevoViatico() {
             {mostrarModalCambioTipo && (
                 <ModalSeleccionarTipoViatico
                     onClose={() => setMostrarModalCambioTipo(false)}
+                />
+            )}
+
+            {modalCCGastoId && (
+                <ModalCuentaCobroCorta
+                    isOpen={Boolean(modalCCGastoId)}
+                    onClose={() => setModalCCGastoId(null)}
+                    onConfirm={(cuentaData) => {
+                        setGastos((prev) =>
+                            prev.map((g) => (g.id === modalCCGastoId ? { ...g, cuenta_cobro: cuentaData } : g))
+                        );
+                        setModalCCGastoId(null);
+                    }}
+                    gasto={gastos.find((g) => g.id === modalCCGastoId)}
+                    asignacion={asignacionDetalle}
+                    user={user}
+                    fechaSeleccionada={fechaSeleccionada}
+                    initialData={gastos.find((g) => g.id === modalCCGastoId)?.cuenta_cobro}
                 />
             )}
         </TecnicoLayout>

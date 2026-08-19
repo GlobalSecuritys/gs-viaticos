@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from app.models.usuario import Usuario
     from app.models.evidencia_viatico import EvidenciaViatico
     from app.models.asignacion import Asignacion
+    from app.models.cuenta_cobro import CuentaCobro
 
 
 class Viatico(Base):
@@ -60,6 +61,12 @@ class Viatico(Base):
 
     usuario: Mapped["Usuario"] = relationship("Usuario", back_populates="viaticos")
     asignacion: Mapped[Optional["Asignacion"]] = relationship("Asignacion", back_populates="viaticos")
+    cuenta_cobro: Mapped[Optional["CuentaCobro"]] = relationship(
+        "CuentaCobro",
+        back_populates="viatico",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
     evidencias: Mapped[list["EvidenciaViatico"]] = relationship(
         "EvidenciaViatico",
         back_populates="viatico",

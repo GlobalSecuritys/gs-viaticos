@@ -81,6 +81,7 @@ def listar_viaticos(
         .options(
             joinedload(Viatico.evidencias),
             joinedload(Viatico.asignacion).joinedload(Asignacion.viaticos),
+            joinedload(Viatico.cuenta_cobro),
         )
         .where(Viatico.usuario_id == current_user.id)
         .order_by(Viatico.created_at.desc())
@@ -113,7 +114,10 @@ def obtener_viatico(
 ):
     stmt = (
         select(Viatico)
-        .options(joinedload(Viatico.evidencias))
+        .options(
+            joinedload(Viatico.evidencias),
+            joinedload(Viatico.cuenta_cobro),
+        )
         .where(Viatico.id == id, Viatico.usuario_id == current_user.id)
     )
     viatico = db.execute(stmt).unique().scalar_one_or_none()
