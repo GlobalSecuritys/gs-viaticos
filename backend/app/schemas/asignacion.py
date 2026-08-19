@@ -12,16 +12,7 @@ TipoAsignacion = Literal[
     "preventivo",
     "preventivo_rtc",
     "rtc",
-    "garantia",
-    # Compatibilidad histórica
     "oficina",
-    "oficina_correctivo",
-    "oficina_preventivo",
-    "oficina_general",
-    "instalacion",
-    "auditoria",
-    "capacitacion",
-    "soporte",
 ]
 
 EstadoAsignacion = Literal[

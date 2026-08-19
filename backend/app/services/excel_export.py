@@ -1,9 +1,12 @@
 import io
 import json
+import os
+from copy import copy
 from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
+import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
@@ -11,6 +14,51 @@ from openpyxl.utils import get_column_letter
 from app.models.asignacion import Asignacion
 from app.models.usuario import Usuario
 from app.models.viatico import Viatico
+
+TEMPLATE_PATH = os.path.join(
+    os.path.dirname(__file__),
+    "templates",
+    "FORMATO LEGALIZACION VIATICOS.xlsx",
+)
+
+MESES_ES = [
+    "", "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+]
+
+MESES_ABR = [
+    "", "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+    "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
+]
+
+def dividir_nombres_apellidos(nombre_completo: str) -> tuple[str, str]:
+    if not nombre_completo:
+        return ("—", "—")
+    partes = [p for p in nombre_completo.strip().split() if p]
+    if len(partes) == 0:
+        return ("—", "—")
+    if len(partes) == 1:
+        return (partes[0], "—")
+    if len(partes) == 2:
+        return (partes[0], partes[1])
+    if len(partes) == 3:
+        return (" ".join(partes[:2]), partes[2])
+    mitad = len(partes) // 2
+    return (" ".join(partes[:mitad]), " ".join(partes[mitad:]))
+
+def _formato_fecha_anticipo(f: Optional[date]) -> str:
+    if not f:
+        return "—"
+    if isinstance(f, date):
+        return f"{MESES_ES[f.month]} {f.day} {f.year}"
+    return str(f)
+
+def _formato_fecha_viaje(f: Optional[date]) -> str:
+    if not f:
+        return "—"
+    if isinstance(f, date):
+        return f"{f.day:02d}-{MESES_ABR[f.month]}"
+    return str(f)
 
 # ═══════════════════════════════════════════════════════════════════
 #  Paleta de colores — fiel a la foto de referencia
@@ -342,216 +390,114 @@ def generar_excel_viaticos_asignacion(
 ) -> io.BytesIO:
     """
     Genera un archivo Excel (.xlsx) con los viáticos asociados a una Asignación
-    siguiendo el formato corporativo GSB (basado en OP-FR-02).
+    utilizando como plantilla base el archivo oficial FORMATO LEGALIZACION VIATICOS.xlsx.
     """
-    wb = Workbook()
+    wb = openpyxl.load_workbook(TEMPLATE_PATH)
     ws = wb.active
-    ws.title = "Viáticos Asignación"
-
-    # ── Anchos de columna ────────────────────────────────────────
-    ws.column_dimensions["A"].width = 8
-    ws.column_dimensions["B"].width = 13
-    ws.column_dimensions["C"].width = 18
-    ws.column_dimensions["D"].width = 24
-    ws.column_dimensions["E"].width = 18
-    ws.column_dimensions["F"].width = 14
-    ws.column_dimensions["G"].width = 12
-    ws.column_dimensions["H"].width = 12
-    ws.column_dimensions["I"].width = 12
-    ws.column_dimensions["J"].width = 14
-    ws.column_dimensions["K"].width = 14
-
-    # ══ CABECERA CORPORATIVA ══════════════════════════════════════
-    ws.row_dimensions[1].height = 34
-    ws.row_dimensions[2].height = 16
-    ws.row_dimensions[3].height = 16
-    ws.row_dimensions[4].height = 16
-
-    ws.merge_cells("A1:A4")
-    logo = ws["A1"]
-    logo.value = "🛡 GSB"
-    logo.font = _font(bold=True, size=14, color=C_NAVY)
-    logo.alignment = _al("center", "center")
-    logo.fill = _fill("E9F0FB")
-    logo.border = _border(C_NAVY)
-
-    ws.merge_cells("B1:I4")
-    empresa_cell = ws["B1"]
-    empresa_cell.value = "GLOBAL SECURITY BANK SAS"
-    empresa_cell.font = _font(bold=True, size=14, color=C_NAVY)
-    empresa_cell.alignment = _al("center", "center")
-    empresa_cell.fill = _fill("FFFFFF")
-    empresa_cell.border = _border(C_NAVY)
-
-    meta_rows = [
-        ("Código",    "OP-FR-02"),
-        ("Versión",   "3"),
-        ("Fecha Act", date.today().strftime("%b-%y")),
-        ("Página",    "1 de 1"),
-    ]
-    for i, (lbl, val) in enumerate(meta_rows):
-        r = i + 1
-        cl = ws.cell(row=r, column=10, value=lbl)
-        cl.font = _font(bold=True, size=9)
-        cl.fill = _fill(C_LABEL_BG)
-        cl.border = _border("BFBFBF")
-        cl.alignment = _al("center", "center")
-
-        cv = ws.cell(row=r, column=11, value=val)
-        cv.font = _font(size=9)
-        cv.border = _border("BFBFBF")
-        cv.alignment = _al("center", "center")
-
-    # ══ BLOQUE INFO ASIGNACIÓN (filas 6-9) ═══════════════════════
-    ws.row_dimensions[5].height = 6
 
     tecnico = asignacion.tecnico
     nombre_tecnico = tecnico.nombre if tecnico else "—"
     cedula_tecnico = tecnico.codigo_empleado if tecnico else "—"
+    nombres, apellidos = dividir_nombres_apellidos(nombre_tecnico)
+    anticipo_num = float(asignacion.monto_anticipo or 0)
 
-    str_ini = asignacion.fecha_inicio.strftime("%d/%m/%Y") if isinstance(asignacion.fecha_inicio, date) else str(asignacion.fecha_inicio or "—")
-    str_fin = asignacion.fecha_fin.strftime("%d/%m/%Y")   if isinstance(asignacion.fecha_fin,   date) else str(asignacion.fecha_fin   or "—")
+    # ── Encabezados / Bloque Info ────────────────────────────────
+    ws["D6"] = nombres
+    ws["G6"] = apellidos
+    ws["C7"] = cedula_tecnico
 
-    emp_str = asignacion.empresa or "—"
-    anticipo_dec = Decimal(str(asignacion.monto_anticipo or 0))
+    aprobados_count = len([v for v in viaticos if str(v.estado).lower() == "aprobado"])
+    ws["F7"] = aprobados_count
+    ws["J7"] = date.today().strftime("%d/%m/%y")
 
-    # Fila 6: Técnico / Asignación #
-    ws.row_dimensions[6].height = 22
-    _label_cell(ws, 6, 1, "Técnico :")
-    ws.merge_cells("B6:D6")
-    _value_cell(ws, 6, 2, nombre_tecnico)
-    _label_cell(ws, 6, 5, "Asignación #:")
-    ws.merge_cells("F6:K6")
-    _value_cell(ws, 6, 6, str(asignacion.id))
+    if asignacion.fecha_inicio:
+        ws["C8"] = _formato_fecha_anticipo(asignacion.fecha_inicio)
+    else:
+        ws["C8"] = "—"
 
-    # Fila 7: Cédula / OT / Fecha planilla
-    ws.row_dimensions[7].height = 22
-    _label_cell(ws, 7, 1, "Cédula :")
-    ws.merge_cells("B7:C7")
-    _value_cell(ws, 7, 2, cedula_tecnico)
-    _label_cell(ws, 7, 4, "Tipo de asignación")
-    ws.merge_cells("E7:H7")
-    _value_cell(ws, 7, 5, (asignacion.tipo or "—").capitalize())
-    _label_cell(ws, 7, 9, "Fecha planilla :")
-    ws.merge_cells("J7:K7")
-    _value_cell(ws, 7, 10, date.today().strftime("%d/%m/%Y"))
+    ws["G8"] = "SI____ NO____"
+    ws["I8"] = "SI____ NO____"
+    ws["K8"] = anticipo_num
 
-    # Fila 8: Fecha inicio/fin / Empresa
-    ws.row_dimensions[8].height = 22
-    _label_cell(ws, 8, 1, "Período :")
-    ws.merge_cells("B8:C8")
-    _value_cell(ws, 8, 2, f"{str_ini}  →  {str_fin}")
-    _label_cell(ws, 8, 4, "Proyecto / Oficina :")
-    ws.merge_cells("E8:K8")
-    _value_cell(ws, 8, 5, f"{asignacion.cliente or '—'} — {emp_str}")
+    # ── Tabla de ítems ──────────────────────────────────────────
+    total_items = len(viaticos)
+    base_slots = 14  # filas 11 a 24 en la plantilla original
 
-    # Fila 9: Anticipo / Ciudad
-    ws.row_dimensions[9].height = 22
-    _label_cell(ws, 9, 1, "Valor del anticipo :")
-    cv_ant = ws.cell(row=9, column=2, value=float(anticipo_dec))
-    cv_ant.font = _font(bold=True, size=10, color=C_NAVY)
-    cv_ant.border = _border("BFBFBF")
-    cv_ant.alignment = _al("left", "center")
-    cv_ant.number_format = '_($* #,##0_);_($* (#,##0);_($* "-"_);_(@_)'
+    if total_items > base_slots:
+        extra = total_items - base_slots
+        ws.insert_rows(25, amount=extra)
+        for r in range(25, 25 + extra):
+            for c in range(1, 13):
+                src = ws.cell(row=24, column=c)
+                dst = ws.cell(row=r, column=c)
+                if src.has_style:
+                    dst.font = copy(src.font)
+                    dst.border = copy(src.border)
+                    dst.fill = copy(src.fill)
+                    dst.number_format = copy(src.number_format)
+                    dst.alignment = copy(src.alignment)
+        last_item_row = 24 + extra
+    else:
+        last_item_row = 24
 
-    _label_cell(ws, 9, 4, "Ciudad :")
-    ws.merge_cells("E9:K9")
-    _value_cell(ws, 9, 5, asignacion.ciudad or "—")
-
-    # ══ TABLA DE DATOS ════════════════════════════════════════════
-    ws.row_dimensions[10].height = 6
-
-    HEADERS = [
-        "No. ítem",
-        "Fecha de Viaje",
-        "NIT / Identificación",
-        "Razón Social",
-        "Concepto",
-        "Oficina que realizó",
-        "Origen",
-        "Destino",
-        "Tiene soporte\n(si o no)",
-        "Estado",
-        "Valor",
-    ]
-    HEADER_ROW = 11
-    _table_header_row(ws, HEADER_ROW, HEADERS, col_start=1)
-
-    row_idx = HEADER_ROW + 1
-    total_gastado = Decimal("0.00")
-
-    for i, v in enumerate(viaticos, start=1):
+    for idx, v in enumerate(viaticos):
+        r = 11 + idx
         try:
             meta = json.loads(v.descripcion or "{}")
         except Exception:
             meta = {}
 
-        origen  = meta.get("origen", "—") or "—"
-        destino = meta.get("destino", v.ciudad or "—") or "—"
-        tiene_soporte = "SI" if (getattr(v, "evidencias", None) and len(v.evidencias) > 0) else "no"
-        val = Decimal(str(v.valor or 0))
-        if v.estado != "rechazado":
-            total_gastado += val
-        alt = (i % 2 == 0)
-        bg = C_ROW_ALT if alt else "FFFFFF"
+        nit = v.nit_identificacion or meta.get("nit") or "—"
+        razon = meta.get("razon_social") or v.cliente or asignacion.cliente or "—"
+        concepto = (v.tipo_gasto or "—").capitalize()
+        oficina = meta.get("lugar") or meta.get("oficina") or asignacion.ciudad or "—"
+        origen = meta.get("origen") or "—"
+        destino = meta.get("destino") or v.ciudad or asignacion.ciudad or "—"
+        tiene_soporte = (
+            "SI"
+            if (
+                meta.get("tiene_soporte") is True
+                or (getattr(v, "evidencias", None) and len(v.evidencias) > 0)
+            )
+            else "NO"
+        )
+        val = float(v.valor or 0)
 
-        row_data = [
-            i,
-            v.fecha.strftime("%d-%b") if isinstance(v.fecha, date) else str(v.fecha),
-            v.nit_identificacion or "—",
-            v.cliente or asignacion.cliente or "—",
-            (v.tipo_gasto or "—").capitalize(),
-            meta.get("oficina", asignacion.ciudad or "—"),
-            origen,
-            destino,
-            tiene_soporte,
-            (v.estado or "—").capitalize(),
-        ]
+        ws.cell(row=r, column=2, value=idx + 1)
+        ws.cell(row=r, column=3, value=_formato_fecha_viaje(v.fecha))
+        ws.cell(row=r, column=4, value=nit)
+        ws.cell(row=r, column=5, value=razon)
+        ws.cell(row=r, column=6, value=concepto)
+        ws.cell(row=r, column=7, value=oficina)
+        ws.cell(row=r, column=8, value=origen)
+        ws.cell(row=r, column=9, value=destino)
+        ws.cell(row=r, column=10, value=tiene_soporte)
+        ws.cell(row=r, column=11, value=val)
 
-        ws.row_dimensions[row_idx].height = 18
-        for ci, cell_val in enumerate(row_data, start=1):
-            c = ws.cell(row=row_idx, column=ci, value=cell_val)
-            c.font = _font(size=9)
-            c.fill = _fill(bg)
-            c.border = _border()
-            c.alignment = _al("center" if ci in (1, 2, 9, 10) else "left", "center")
+    # ── Totales y Fórmulas ──────────────────────────────────────
+    subtotal_row = last_item_row + 1
+    ant_row = subtotal_row + 1
+    gsb_row = ant_row + 1
+    tec_row = gsb_row + 1
+    tot_row = tec_row + 1
 
-        _currency_cell(ws, row_idx, 11, val, bg=bg)
-        row_idx += 1
+    ws.cell(row=subtotal_row, column=10, value="Subtotal")
+    ws.cell(row=subtotal_row, column=11, value=f"=SUM(K11:K{last_item_row})")
 
-    # ══ FILAS DE TOTALES ═════════════════════════════════════════
-    ws.row_dimensions[row_idx].height = 20
-    ws.merge_cells(start_row=row_idx, start_column=9, end_row=row_idx, end_column=10)
-    sub_lbl = ws.cell(row=row_idx, column=9, value="Subtotal")
-    sub_lbl.font = _font(bold=True, size=10)
-    sub_lbl.fill = _fill(C_GOLD_BG)
-    sub_lbl.alignment = _al("right", "center")
-    sub_lbl.border = _border_all_dark()
-    _currency_cell(ws, row_idx, 11, total_gastado, bg=C_GOLD_BG, bold=True)
-    row_idx += 1
+    ws.cell(row=ant_row, column=10, value="valor del anticipo")
+    ws.cell(row=ant_row, column=11, value="=K8")
 
-    ws.row_dimensions[row_idx].height = 20
-    ws.merge_cells(start_row=row_idx, start_column=9, end_row=row_idx, end_column=10)
-    ant_lbl = ws.cell(row=row_idx, column=9, value="Valor del anticipo")
-    ant_lbl.font = _font(bold=True, size=10)
-    ant_lbl.fill = _fill(C_GOLD_LIGHT)
-    ant_lbl.alignment = _al("right", "center")
-    ant_lbl.border = _border_all_dark()
-    _currency_cell(ws, row_idx, 11, anticipo_dec, bg=C_GOLD_LIGHT, bold=True)
-    row_idx += 1
+    ws.cell(row=gsb_row, column=10, value="saldo a favor GSB")
+    ws.cell(row=gsb_row, column=11, value=f"=IF(K{ant_row}>K{subtotal_row}, K{ant_row}-K{subtotal_row}, 0)")
 
-    # Saldo restante
-    saldo_restante = max(Decimal("0.00"), anticipo_dec - total_gastado)
-    ws.row_dimensions[row_idx].height = 20
-    ws.merge_cells(start_row=row_idx, start_column=9, end_row=row_idx, end_column=10)
-    sal_lbl = ws.cell(row=row_idx, column=9, value="Saldo restante GSB")
-    sal_lbl.font = _font(bold=True, size=10, color=C_GREEN)
-    sal_lbl.fill = _fill(C_SALDO_BG)
-    sal_lbl.alignment = _al("right", "center")
-    sal_lbl.border = _border_all_dark()
-    _currency_cell(ws, row_idx, 11, saldo_restante, bg=C_SALDO_BG, bold=True, color=C_GREEN)
+    ws.cell(row=tec_row, column=10, value="saldo a favor TECNICO")
+    ws.cell(row=tec_row, column=11, value=f"=IF(K{subtotal_row}>K{ant_row}, K{subtotal_row}-K{ant_row}, 0)")
+
+    ws.cell(row=tot_row, column=10, value="TOTAL LEGALIZADO")
+    ws.cell(row=tot_row, column=11, value=f"=K{subtotal_row}")
 
     stream = io.BytesIO()
     wb.save(stream)
     stream.seek(0)
     return stream
+

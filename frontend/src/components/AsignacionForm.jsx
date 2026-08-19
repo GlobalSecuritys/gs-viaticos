@@ -21,7 +21,6 @@ const OPCIONES_TIPO = [
     { id: 'preventivo', label: 'Preventivo' },
     { id: 'preventivo_rtc', label: 'Preventivo RTC' },
     { id: 'rtc', label: 'RTC' },
-    { id: 'garantia', label: 'Garantia' },
     { id: 'oficina', label: 'Oficina' },
 ];
 

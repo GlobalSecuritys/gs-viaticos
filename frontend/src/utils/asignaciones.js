@@ -9,7 +9,6 @@ export const TIPOS_ASIGNACION = [
     'preventivo',
     'preventivo_rtc',
     'rtc',
-    'garantia',
     'oficina',
 ];
 
@@ -19,16 +18,7 @@ export const LABEL_TIPO_ASIGNACION = {
     preventivo: 'Preventivo',
     preventivo_rtc: 'Preventivo RTC',
     rtc: 'RTC',
-    garantia: 'Garantía',
     oficina: 'Oficina',
-    // Compatibilidad histórica
-    oficina_correctivo: 'Oficina - Correctivo',
-    oficina_preventivo: 'Oficina - Preventivo',
-    oficina_general: 'Oficina General',
-    instalacion: 'Instalación',
-    auditoria: 'Auditoría',
-    capacitacion: 'Capacitación',
-    soporte: 'Soporte',
 };
 
 export const ESTADOS_ASIGNACION = ['pendiente', 'en_curso', 'finalizada', 'cancelada'];
@@ -107,4 +97,40 @@ export function filtrarAsignaciones(asignaciones, { busqueda = '', tipo = '', es
             a.tecnico_nombre?.toLowerCase().includes(q)
         );
     });
+}
+
+/**
+ * Deriva automáticamente lugar_tipo ('rtc' | 'oficina'),
+ * lugar_subtipo ('correctivo' | 'preventivo' | null) y lugarFinal ('RTC' | 'Oficina (Correctivo)' | 'Oficina (Preventivo)')
+ * a partir del tipo de asignación.
+ * Si no hay asignación (viático independiente), retorna default oficina / correctivo.
+ */
+export function derivarLugarDesdeTipoAsignacion(tipoAsignacion) {
+    if (!tipoAsignacion) {
+        return {
+            lugar_tipo: 'oficina',
+            lugar_subtipo: 'correctivo',
+            lugarFinal: 'Oficina (Correctivo)',
+        };
+    }
+    const t = String(tipoAsignacion).toLowerCase();
+    if (t === 'rtc' || t === 'preventivo_rtc') {
+        return {
+            lugar_tipo: 'rtc',
+            lugar_subtipo: null,
+            lugarFinal: 'RTC',
+        };
+    }
+    if (t === 'preventivo') {
+        return {
+            lugar_tipo: 'oficina',
+            lugar_subtipo: 'preventivo',
+            lugarFinal: 'Oficina (Preventivo)',
+        };
+    }
+    return {
+        lugar_tipo: 'oficina',
+        lugar_subtipo: 'correctivo',
+        lugarFinal: 'Oficina (Correctivo)',
+    };
 }

@@ -112,6 +112,7 @@ export default function AdminDashboard() {
     const [busquedaConsolidado, setBusquedaConsolidado] = useState('');
     const [filtroEstadoConsolidado, setFiltroEstadoConsolidado] = useState('todos');
     const [busquedaTecnico, setBusquedaTecnico] = useState('');
+    const [seccionViaticosColapsada, setSeccionViaticosColapsada] = useState(false);
 
     // Referencias para scroll suave desde el sidebar
     const seccionViaticosRef = useRef(null);
@@ -602,123 +603,140 @@ export default function AdminDashboard() {
 
                     {/* ── SECCIÓN CENTRAL: Viáticos Registrados (Vista Consolidada) ── */}
                     <section className="gsb-table-card" ref={seccionViaticosRef}>
-                        <div className="gsb-table-card-header">
+                        <div
+                            className="gsb-table-card-header"
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => setSeccionViaticosColapsada((prev) => !prev)}
+                        >
                             <div>
-                                <h2 className="gsb-table-title">Viáticos Registrados (Vista Consolidada)</h2>
-                                <p className="gsb-table-subtitle">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                    <h2 className="gsb-table-title" style={{ margin: 0 }}>
+                                        Viáticos Registrados (Vista Consolidada)
+                                    </h2>
+                                    <span style={{ fontSize: '0.85rem', color: '#64748B', transition: 'transform 0.2s' }}>
+                                        {seccionViaticosColapsada ? '▼' : '▲'}
+                                    </span>
+                                </div>
+                                <p className="gsb-table-subtitle" style={{ marginTop: '0.2rem' }}>
                                     Consulta y gestiona las solicitudes de viáticos enviadas por los técnicos
                                 </p>
                             </div>
 
-                            <div className="gsb-table-controls">
-                                <select
-                                    className="gsb-select"
-                                    value={filtroEstadoConsolidado}
-                                    onChange={(e) => setFiltroEstadoConsolidado(e.target.value)}
-                                >
-                                    <option value="todos">Todos los estados ▾</option>
-                                    <option value="pendiente">Pendientes</option>
-                                    <option value="aprobado">Aprobados</option>
-                                    <option value="rechazado">Rechazados</option>
-                                </select>
+                            {!seccionViaticosColapsada && (
+                                <div className="gsb-table-controls" onClick={(e) => e.stopPropagation()}>
+                                    <select
+                                        className="gsb-select"
+                                        value={filtroEstadoConsolidado}
+                                        onChange={(e) => setFiltroEstadoConsolidado(e.target.value)}
+                                    >
+                                        <option value="todos">Todos los estados ▾</option>
+                                        <option value="pendiente">Pendientes</option>
+                                        <option value="aprobado">Aprobados</option>
+                                        <option value="rechazado">Rechazados</option>
+                                    </select>
 
-                                <div className="gsb-search-box">
-                                    <span className="gsb-search-icon">🔍</span>
-                                    <input
-                                        type="text"
-                                        placeholder="Buscar por técnico, ciudad..."
-                                        className="gsb-search-input"
-                                        value={busquedaConsolidado}
-                                        onChange={(e) => setBusquedaConsolidado(e.target.value)}
-                                    />
+                                    <div className="gsb-search-box">
+                                        <span className="gsb-search-icon">🔍</span>
+                                        <input
+                                            type="text"
+                                            placeholder="Buscar por técnico, ciudad..."
+                                            className="gsb-search-input"
+                                            value={busquedaConsolidado}
+                                            onChange={(e) => setBusquedaConsolidado(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
-                        <div className="gsb-table-responsive">
-                            <table className="gsb-corporate-table">
-                                <thead>
-                                    <tr>
-                                        <th>FECHA REGISTRO</th>
-                                        <th>TÉCNICO</th>
-                                        <th>CIUDAD</th>
-                                        <th>ÍTEMS</th>
-                                        <th>TOTAL GASTOS</th>
-                                        <th>ESTADO</th>
-                                        <th style={{ textAlign: 'center' }}>ACCIONES</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {viaticosConsolidados.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={7} className="gsb-table-empty">
-                                                No hay registros de viáticos para mostrar con los filtros aplicados.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        viaticosConsolidados.map((r) => (
-                                            <tr key={r.key} className="gsb-table-row" onClick={() => setRegistroConsolidado(r)}>
-                                                <td className="gsb-td-fecha">{r.fecha}</td>
-                                                <td className="gsb-td-tecnico">
-                                                    <strong>{r.tecnico_nombre}</strong>
-                                                </td>
-                                                <td className="gsb-td-ciudad">{r.ciudad}</td>
-                                                <td>
-                                                    <span className="gsb-pill-items">
-                                                        {r.items.length === 1 ? '1 ítem' : `${r.items.length} ítems`}
-                                                    </span>
-                                                </td>
-                                                <td className="gsb-td-total">
-                                                    <strong>{formatCOP(r.total)}</strong>
-                                                </td>
-                                                <td>
-                                                    <span className={`gsb-status-pill gsb-status-pill--${r.estado}`}>
-                                                        {r.estado === 'aprobado' ? 'APROBADO' : r.estado === 'rechazado' ? 'RECHAZADO' : 'PENDIENTE'}
-                                                    </span>
-                                                </td>
-                                                <td style={{ textAlign: 'center' }}>
-                                                    <div className="gsb-table-actions">
-                                                        <button
-                                                            type="button"
-                                                            className="gsb-btn-detail"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setRegistroConsolidado(r);
-                                                            }}
-                                                        >
-                                                            👁️ Ver detalle
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="gsb-btn-dots"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setRegistroConsolidado(r);
-                                                            }}
-                                                            title="Opciones"
-                                                        >
-                                                            ⋮
-                                                        </button>
-                                                    </div>
-                                                </td>
+                        {!seccionViaticosColapsada && (
+                            <>
+                                <div className="gsb-table-responsive">
+                                    <table className="gsb-corporate-table">
+                                        <thead>
+                                            <tr>
+                                                <th>FECHA REGISTRO</th>
+                                                <th>TÉCNICO</th>
+                                                <th>CIUDAD</th>
+                                                <th>ÍTEMS</th>
+                                                <th>TOTAL GASTOS</th>
+                                                <th>ESTADO</th>
+                                                <th style={{ textAlign: 'center' }}>ACCIONES</th>
                                             </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                        </thead>
+                                        <tbody>
+                                            {viaticosConsolidados.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={7} className="gsb-table-empty">
+                                                        No hay registros de viáticos para mostrar con los filtros aplicados.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                viaticosConsolidados.map((r) => (
+                                                    <tr key={r.key} className="gsb-table-row" onClick={() => setRegistroConsolidado(r)}>
+                                                        <td className="gsb-td-fecha">{r.fecha}</td>
+                                                        <td className="gsb-td-tecnico">
+                                                            <strong>{r.tecnico_nombre}</strong>
+                                                        </td>
+                                                        <td className="gsb-td-ciudad">{r.ciudad}</td>
+                                                        <td>
+                                                            <span className="gsb-pill-items">
+                                                                {r.items.length === 1 ? '1 ítem' : `${r.items.length} ítems`}
+                                                            </span>
+                                                        </td>
+                                                        <td className="gsb-td-total">
+                                                            <strong>{formatCOP(r.total)}</strong>
+                                                        </td>
+                                                        <td>
+                                                            <span className={`gsb-status-pill gsb-status-pill--${r.estado}`}>
+                                                                {r.estado === 'aprobado' ? 'APROBADO' : r.estado === 'rechazado' ? 'RECHAZADO' : 'PENDIENTE'}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ textAlign: 'center' }}>
+                                                            <div className="gsb-table-actions">
+                                                                <button
+                                                                    type="button"
+                                                                    className="gsb-btn-detail"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setRegistroConsolidado(r);
+                                                                    }}
+                                                                >
+                                                                    👁️ Ver detalle
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="gsb-btn-dots"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setRegistroConsolidado(r);
+                                                                    }}
+                                                                    title="Opciones"
+                                                                >
+                                                                    ⋮
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
 
-                        {/* Footer con paginación */}
-                        <div className="gsb-table-footer">
-                            <span className="gsb-table-counter">
-                                Mostrando {viaticosConsolidados.length} {viaticosConsolidados.length === 1 ? 'registro' : 'registros'}
-                            </span>
-                            <div className="gsb-pagination">
-                                <button className="gsb-page-btn" disabled>‹</button>
-                                <button className="gsb-page-btn gsb-page-btn--active">1</button>
-                                <button className="gsb-page-btn" disabled>›</button>
-                            </div>
-                        </div>
+                                {/* Footer con paginación */}
+                                <div className="gsb-table-footer">
+                                    <span className="gsb-table-counter">
+                                        Mostrando {viaticosConsolidados.length} {viaticosConsolidados.length === 1 ? 'registro' : 'registros'}
+                                    </span>
+                                    <div className="gsb-pagination">
+                                        <button className="gsb-page-btn" disabled>‹</button>
+                                        <button className="gsb-page-btn gsb-page-btn--active">1</button>
+                                        <button className="gsb-page-btn" disabled>›</button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </section>
 
                     {/* ── FILA INFERIOR: Técnicos + Resumen de Gastos ── */}

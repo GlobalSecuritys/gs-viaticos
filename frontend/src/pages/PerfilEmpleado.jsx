@@ -23,44 +23,12 @@ import {
     ICONO_TIPO_GASTO,
     LABEL_CARGO,
     LABEL_TIPO_GASTO,
-    filtrarPorRango,
     formatCOP,
     formatFechaLarga,
-    hoyISO,
     iniciales,
-    resumen,
 } from '../utils/personal';
 import logoGSB from '../assets/logo-gsb.png';
 import './PerfilEmpleado.css';
-
-const FILTROS_PERIODO = [
-    { id: 'hoy', label: 'Hoy' },
-    { id: 'mes', label: 'Mes' },
-    { id: 'personalizado', label: 'Personalizado' },
-];
-
-const FILTROS_TIPO_ASIGNACION = [
-    { id: 'todas', label: 'Todas' },
-    { id: 'rtc', label: 'RTC' },
-    { id: 'oficina', label: 'Oficina' },
-];
-
-function aISO(date) {
-    const mes = String(date.getMonth() + 1).padStart(2, '0');
-    const dia = String(date.getDate()).padStart(2, '0');
-    return `${date.getFullYear()}-${mes}-${dia}`;
-}
-
-function rangoMesCalendario(fechaBase = new Date()) {
-    const year = fechaBase.getFullYear();
-    const month = fechaBase.getMonth();
-    const ultimoDia = new Date(year, month + 1, 0).getDate();
-    const pad = (n) => String(n).padStart(2, '0');
-    return {
-        inicio: `${year}-${pad(month + 1)}-01`,
-        fin: `${year}-${pad(month + 1)}-${pad(ultimoDia)}`,
-    };
-}
 
 const LABEL_ESTADO_VIATICO = {
     aprobado: 'Aprobado',
@@ -80,9 +48,6 @@ export default function PerfilEmpleado() {
     const [todosViaticos, setTodosViaticos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [filtroPeriodo, setFiltroPeriodo] = useState('mes');
-    const [fechaDesde, setFechaDesde] = useState('');
-    const [fechaHasta, setFechaHasta] = useState('');
     const [mensajeFeedback, setMensajeFeedback] = useState('');
     const [cuentaCobroVer, setCuentaCobroVer] = useState(null);
     const [seleccionado, setSeleccionado] = useState(null);
@@ -144,15 +109,9 @@ export default function PerfilEmpleado() {
         }
     }
 
-    const [hoy] = useState(() => new Date());
-    const [inicioMesISO] = useState(() => aISO(new Date(hoy.getFullYear(), hoy.getMonth(), 1)));
-    const [rangoInicio, setRangoInicio] = useState(inicioMesISO);
-    const [rangoFin, setRangoFin] = useState(hoyISO());
-    const [tipoAsignacion, setTipoAsignacion] = useState('todas');
-    const [busquedaAsignacion, setBusquedaAsignacion] = useState('');
-    const [filtroClienteAsignacion, setFiltroClienteAsignacion] = useState('');
     const [exportandoIndependiente, setExportandoIndependiente] = useState(false);
     const [exportandoAsigId, setExportandoAsigId] = useState(null);
+    const [mostrarViaticosIndependientes, setMostrarViaticosIndependientes] = useState(false);
 
     useEffect(() => {
         async function cargar() {
@@ -214,56 +173,10 @@ export default function PerfilEmpleado() {
         [asignaciones]
     );
 
-    const viaticosFiltrados = useMemo(() => {
-        let base;
-        if (filtroPeriodo === 'hoy') {
-            const h = hoyISO();
-            base = filtrarPorRango(viaticos, h, h);
-        } else if (filtroPeriodo === 'mes') {
-            const { inicio, fin } = rangoMesCalendario(hoy);
-            base = filtrarPorRango(viaticos, inicio, fin);
-        } else {
-            base = filtrarPorRango(viaticos, rangoInicio, rangoFin);
-        }
-
-        if (tipoAsignacion !== 'todas') {
-            base = base.filter((v) => {
-                if (!v.asignacion_id) return false;
-                const asig = asignacionesFullMap.get(v.asignacion_id);
-                return asig?.tipo === tipoAsignacion;
-            });
-        }
-
-        if (filtroClienteAsignacion) {
-            base = base.filter((v) => {
-                if (!v.asignacion_id) return false;
-                const asig = asignacionesFullMap.get(v.asignacion_id);
-                return asig?.cliente?.toLowerCase().includes(filtroClienteAsignacion);
-            });
-        }
-
-        return base;
-    }, [filtroPeriodo, viaticos, rangoInicio, rangoFin, hoy, tipoAsignacion, filtroClienteAsignacion, asignacionesFullMap]);
-
     async function handleExportarIndependientes() {
         setExportandoIndependiente(true);
         try {
-            let fInicio = null;
-            let fFin = null;
-            if (filtroPeriodo === 'hoy') {
-                const h = hoyISO();
-                fInicio = h;
-                fFin = h;
-            } else if (filtroPeriodo === 'mes') {
-                const { inicio, fin } = rangoMesCalendario(hoy);
-                fInicio = inicio;
-                fFin = fin;
-            } else if (filtroPeriodo === 'personalizado') {
-                fInicio = rangoInicio;
-                fFin = rangoFin;
-            }
-
-            const res = await exportarViaticosIndependientes(id, fInicio, fFin);
+            const res = await exportarViaticosIndependientes(id);
             descargarBlob(res.data, `viaticos_independientes_${id}.xlsx`);
         } catch {
             alert('No se pudo exportar los viáticos independientes.');
@@ -284,46 +197,14 @@ export default function PerfilEmpleado() {
         }
     }
 
-    const { gruposAsignaciones, viaticosIndependientes } = useMemo(() => {
-        const porAsignacion = {};
-        const libres = [];
-        viaticosFiltrados.forEach((v) => {
-            if (v.asignacion_id) {
-                if (!porAsignacion[v.asignacion_id]) {
-                    const asig = asignacionesFullMap.get(v.asignacion_id);
-                    porAsignacion[v.asignacion_id] = {
-                        asignacion_id: v.asignacion_id,
-                        asignacion: asig || null,
-                        cliente: asig?.cliente || v.cliente || `Asignación #${v.asignacion_id}`,
-                        empresa: asig?.empresa || '',
-                        ciudad: asig?.ciudad || v.ciudad || '',
-                        tipo: asig?.tipo || '',
-                        monto_anticipo: asig?.monto_anticipo || 0,
-                        total_gastado: asig?.total_gastado || 0,
-                        saldo_restante: asig?.saldo_restante || 0,
-                        viaticos: [],
-                    };
-                }
-                porAsignacion[v.asignacion_id].viaticos.push(v);
-            } else {
-                libres.push(v);
-            }
-        });
-        const grupos = Object.values(porAsignacion).sort((a, b) => b.viaticos.length - a.viaticos.length);
-        return { gruposAsignaciones: grupos, viaticosIndependientes: libres };
-    }, [viaticosFiltrados, asignacionesFullMap]);
+    const viaticosIndependientes = useMemo(() => {
+        return viaticos.filter((v) => !v.asignacion_id);
+    }, [viaticos]);
 
     const [asigColapsadas, setAsigColapsadas] = useState({});
     const toggleColapsarAsig = (key) => {
         setAsigColapsadas((prev) => ({ ...prev, [key]: !prev[key] }));
     };
-
-    const resumenPeriodo = useMemo(() => resumen(viaticosFiltrados), [viaticosFiltrados]);
-
-    const viaticosOrdenados = useMemo(
-        () => [...viaticosFiltrados].sort((a, b) => b.fecha.localeCompare(a.fecha)),
-        [viaticosFiltrados]
-    );
 
     if (loading) {
         return (
@@ -882,364 +763,128 @@ export default function PerfilEmpleado() {
                                     <div className="pf-mision-vacia">No hay asignaciones activas registradas.</div>
                                 )}
 
-                                {/* Viáticos del técnico agrupados por asignación */}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginTop: '2.5rem', marginBottom: '0.75rem' }}>
-                                    <h2 className="pf-section-title" style={{ margin: 0 }}>Viáticos</h2>
-                                    <button
-                                        type="button"
-                                        className="asig-btn-nueva"
-                                        style={{ padding: '0.45rem 1rem', fontSize: '0.82rem' }}
-                                        onClick={handleExportarIndependientes}
-                                        disabled={exportandoIndependiente}
-                                    >
-                                        {exportandoIndependiente ? '⌛ Exportando...' : '📊 Exportar Excel'}
-                                    </button>
-                                </div>
-
-                                <div className="pf-filtros-wrap">
-                                    <div className="pf-filtro-grupo">
-                                        <span className="pf-filtro-grupo-label">Periodo</span>
-                                        <div className="pf-tabs">
-                                            {FILTROS_PERIODO.map((f) => (
-                                                <button
-                                                    key={f.id}
-                                                    className={`pf-tab ${filtroPeriodo === f.id ? 'pf-tab--activo' : ''}`}
-                                                    onClick={() => setFiltroPeriodo(f.id)}
-                                                >
-                                                    {f.label}
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        {filtroPeriodo === 'personalizado' && (
-                                            <div className="pf-rango-personalizado">
-                                                <label>
-                                                    Desde
-                                                    <input type="date" value={rangoInicio} onChange={(e) => setRangoInicio(e.target.value)} />
-                                                </label>
-                                                <label>
-                                                    Hasta
-                                                    <input type="date" value={rangoFin} onChange={(e) => setRangoFin(e.target.value)} />
-                                                </label>
-                                            </div>
-                                        )}
+                                {/* Viáticos Independientes (Gastos sin asignación) */}
+                                <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <button
+                                            type="button"
+                                            className="pf-back-pill-btn"
+                                            style={{ margin: 0, padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 700 }}
+                                            onClick={() => setMostrarViaticosIndependientes(true)}
+                                        >
+                                            📄 Ver viáticos independientes ({viaticosIndependientes.length})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="asig-btn-nueva"
+                                            style={{ padding: '0.45rem 1rem', fontSize: '0.82rem' }}
+                                            onClick={handleExportarIndependientes}
+                                            disabled={exportandoIndependiente || viaticosIndependientes.length === 0}
+                                        >
+                                            {exportandoIndependiente ? '⌛ Exportando...' : '📊 Exportar Excel'}
+                                        </button>
                                     </div>
-
-                                    <div className="pf-filtro-grupo">
-                                        <span className="pf-filtro-grupo-label">Tipo de asignación</span>
-                                        <div className="pf-tabs">
-                                            {FILTROS_TIPO_ASIGNACION.map((f) => (
-                                                <button
-                                                    key={f.id}
-                                                    className={`pf-tab ${tipoAsignacion === f.id ? 'pf-tab--activo' : ''}`}
-                                                    onClick={() => setTipoAsignacion(f.id)}
-                                                >
-                                                    {f.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="pf-filtro-grupo">
-                                        <span className="pf-filtro-grupo-label">Buscar asignación</span>
-                                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                                            <input
-                                                type="text"
-                                                className="admin-input"
-                                                style={{ padding: '0.45rem 0.85rem', fontSize: '0.85rem', maxWidth: '200px' }}
-                                                placeholder="Nombre de proyecto..."
-                                                value={busquedaAsignacion}
-                                                onChange={(e) => setBusquedaAsignacion(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        setFiltroClienteAsignacion(busquedaAsignacion.trim().toLowerCase());
-                                                    }
-                                                }}
-                                            />
-                                            <button
-                                                type="button"
-                                                className="pf-back-pill-btn"
-                                                style={{ margin: 0, padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}
-                                                onClick={() => setFiltroClienteAsignacion(busquedaAsignacion.trim().toLowerCase())}
-                                            >
-                                                Buscar
-                                            </button>
-                                            {filtroClienteAsignacion && (
-                                                <button
-                                                    type="button"
-                                                    style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-                                                    onClick={() => {
-                                                        setBusquedaAsignacion('');
-                                                        setFiltroClienteAsignacion('');
-                                                    }}
-                                                >
-                                                    ✕ Limpiar
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="pf-resumen-bar">
-                                    <div className="pf-resumen-item pf-resumen-item--total">
-                                        <span className="pf-resumen-valor">{formatCOP(resumenPeriodo.total)}</span>
-                                        <span className="pf-resumen-label">Total gastado</span>
-                                    </div>
-                                    <div className="pf-resumen-divisor" />
-                                    <div className="pf-resumen-item">
-                                        <span className="pf-resumen-valor">{resumenPeriodo.cantidad}</span>
-                                        <span className="pf-resumen-label">Solicitudes</span>
-                                    </div>
-                                    <div className="pf-resumen-item">
-                                        <span className="pf-resumen-valor pf-resumen-valor--pendiente">{resumenPeriodo.pendientes}</span>
-                                        <span className="pf-resumen-label">Pendientes</span>
-                                    </div>
-                                    <div className="pf-resumen-item">
-                                        <span className="pf-resumen-valor pf-resumen-valor--aprobado">{resumenPeriodo.aprobados}</span>
-                                        <span className="pf-resumen-label">Aprobadas</span>
-                                    </div>
-                                    <div className="pf-resumen-item">
-                                        <span className="pf-resumen-valor pf-resumen-valor--rechazado">{resumenPeriodo.rechazados}</span>
-                                        <span className="pf-resumen-label">Rechazadas</span>
-                                    </div>
-                                </div>
-
-                                {/* Paletas de Viáticos por Asignación e Independientes */}
-                                <div className="pf-paletas-container">
-                                    {gruposAsignaciones.length > 0 && gruposAsignaciones.map((grupo) => {
-                                        const estaColapsada = asigColapsadas[`paleta_${grupo.asignacion_id}`];
-                                        const totalGrupo = grupo.viaticos.reduce((sum, v) => sum + Number(v.valor || 0), 0);
-                                        const pendientes = grupo.viaticos.filter((v) => v.estado === 'pendiente').length;
-                                        const aprobados = grupo.viaticos.filter((v) => v.estado === 'aprobado').length;
-                                        const rechazados = grupo.viaticos.filter((v) => v.estado === 'rechazado').length;
-
-                                        return (
-                                            <div className="pf-paleta" key={grupo.asignacion_id}>
-                                                <div
-                                                    className="pf-paleta-header"
-                                                    onClick={() => toggleColapsarAsig(`paleta_${grupo.asignacion_id}`)}
-                                                >
-                                                    <div className="pf-paleta-header-izq">
-                                                        <div className="pf-paleta-icono">📋</div>
-                                                        <div className="pf-paleta-info">
-                                                            <div className="pf-paleta-titulo">
-                                                                <span>{grupo.cliente}</span>
-                                                                {grupo.empresa && (
-                                                                    <span style={{ fontSize: '0.8rem', color: '#0284C7', background: '#F0F9FF', border: '1px solid #BAE6FD', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
-                                                                        🏢 {grupo.empresa}
-                                                                    </span>
-                                                                )}
-                                                                {grupo.tipo && (
-                                                                    <span style={{ fontSize: '0.78rem', color: '#475569', background: '#F1F5F9', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
-                                                                        {LABEL_TIPO_ASIGNACION[grupo.tipo] || grupo.tipo}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="pf-paleta-subtitulo">
-                                                                {grupo.ciudad && <span>📍 {grupo.ciudad}</span>}
-                                                                <span>·</span>
-                                                                <span>Asignación #{grupo.asignacion_id}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="pf-paleta-header-der">
-                                                        <div className="pf-paleta-badges">
-                                                            {pendientes > 0 && <span className="pf-paleta-badge pf-paleta-badge--pendiente">{pendientes} pend.</span>}
-                                                            {aprobados > 0 && <span className="pf-paleta-badge pf-paleta-badge--aprobado">{aprobados} aprob.</span>}
-                                                            {rechazados > 0 && <span className="pf-paleta-badge pf-paleta-badge--rechazado">{rechazados} rech.</span>}
-                                                            <span className="pf-paleta-badge pf-paleta-badge--total">{formatCOP(totalGrupo)}</span>
-                                                        </div>
-                                                        <span className="pf-paleta-toggle-icon">{estaColapsada ? '▼' : '▲'}</span>
-                                                    </div>
-                                                </div>
-
-                                                {!estaColapsada && (
-                                                    <>
-                                                        <div className="pf-paleta-resumen-finance">
-                                                            <div className="pf-paleta-resumen-metricas">
-                                                                <div className="pf-paleta-resumen-metric">
-                                                                    <span className="pf-paleta-resumen-lbl">Anticipo</span>
-                                                                    <span className="pf-paleta-resumen-val">{formatCOP(Number(grupo.monto_anticipo || 0))}</span>
-                                                                </div>
-                                                                <div className="pf-paleta-resumen-metric">
-                                                                    <span className="pf-paleta-resumen-lbl">Gastado</span>
-                                                                    <span className="pf-paleta-resumen-val" style={{ color: '#0284C7' }}>{formatCOP(Number(grupo.total_gastado || totalGrupo))}</span>
-                                                                </div>
-                                                                <div className="pf-paleta-resumen-metric">
-                                                                    <span className="pf-paleta-resumen-lbl">Saldo restante</span>
-                                                                    <span className="pf-paleta-resumen-val" style={{ color: Number(grupo.saldo_restante || 0) < 0 ? '#DC2626' : '#16A34A' }}>
-                                                                        {formatCOP(Number(grupo.saldo_restante || 0))}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="pf-paleta-resumen-metric">
-                                                                    <span className="pf-paleta-resumen-lbl">Ítems</span>
-                                                                    <span className="pf-paleta-resumen-val">{grupo.viaticos.length}</span>
-                                                                </div>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                className="pf-back-pill-btn"
-                                                                style={{ margin: 0, padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleExportarAsignacion(grupo.asignacion_id);
-                                                                }}
-                                                                disabled={exportandoAsigId === grupo.asignacion_id}
-                                                            >
-                                                                {exportandoAsigId === grupo.asignacion_id ? '⌛ Exportando...' : '📊 Exportar Excel'}
-                                                            </button>
-                                                        </div>
-
-                                                        <div className="pf-paleta-body">
-                                                            <div className="pf-historial-grid" style={{ margin: 0 }}>
-                                                                {grupo.viaticos.map((v) => {
-                                                                    const miniatura = v.evidencias?.[0]?.secure_url;
-                                                                    return (
-                                                                        <div className="pf-viatico-card" key={v.id}>
-                                                                            <div className="pf-viatico-top">
-                                                                                <span className="pf-viatico-tipo">
-                                                                                    <span className="pf-viatico-icono">{ICONO_TIPO_GASTO[v.tipo_gasto] || '📎'}</span>
-                                                                                    {LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}
-                                                                                </span>
-                                                                                <span className={`pf-estado-badge pf-estado-badge--${v.estado}`}>
-                                                                                    {LABEL_ESTADO_VIATICO[v.estado] || v.estado}
-                                                                                </span>
-                                                                            </div>
-
-                                                                            <p className="pf-viatico-lugar">{v.cliente} · {v.ciudad}</p>
-                                                                            <p className="pf-viatico-fecha">{formatFechaLarga(v.fecha)}</p>
-
-                                                                            {v.estado === 'rechazado' && v.motivo_rechazo && (
-                                                                                <p className="pf-viatico-motivo">Motivo: {v.motivo_rechazo}</p>
-                                                                            )}
-
-                                                                            <div className="pf-viatico-footer">
-                                                                                <span className="pf-viatico-valor">{formatCOP(v.valor)}</span>
-                                                                                {miniatura ? (
-                                                                                    <img
-                                                                                        src={miniatura}
-                                                                                        alt="Evidencia"
-                                                                                        className="pf-viatico-thumb"
-                                                                                        onClick={() => setSeleccionado(v)}
-                                                                                        title="Ver evidencia"
-                                                                                    />
-                                                                                ) : (
-                                                                                    <span className="pf-viatico-sin-evidencia">Sin evidencia</span>
-                                                                                )}
-                                                                            </div>
-
-                                                                            <button className="pf-viatico-detalle-btn" onClick={() => setSeleccionado(v)}>
-                                                                                Ver detalle
-                                                                            </button>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-
-                                    {viaticosIndependientes.length > 0 && (
-                                        <div className="pf-paleta">
-                                            <div
-                                                className="pf-paleta-header"
-                                                onClick={() => toggleColapsarAsig('paleta_independientes')}
-                                            >
-                                                <div className="pf-paleta-header-izq">
-                                                    <div className="pf-paleta-icono" style={{ background: '#F8FAFC', color: '#64748B', borderColor: '#E2E8F0' }}>📄</div>
-                                                    <div className="pf-paleta-info">
-                                                        <div className="pf-paleta-titulo">Viáticos Independientes</div>
-                                                        <div className="pf-paleta-subtitulo">Gastos sin asignación vinculada ({viaticosIndependientes.length} registros)</div>
-                                                    </div>
-                                                </div>
-                                                <div className="pf-paleta-header-der">
-                                                    <div className="pf-paleta-badges">
-                                                        <span className="pf-paleta-badge pf-paleta-badge--total">
-                                                            {formatCOP(viaticosIndependientes.reduce((sum, v) => sum + Number(v.valor || 0), 0))}
-                                                        </span>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        className="pf-back-pill-btn"
-                                                        style={{ margin: 0, padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleExportarIndependientes();
-                                                        }}
-                                                        disabled={exportandoIndependiente}
-                                                    >
-                                                        {exportandoIndependiente ? '⌛ Exportando...' : '📊 Exportar'}
-                                                    </button>
-                                                    <span className="pf-paleta-toggle-icon">{asigColapsadas['paleta_independientes'] ? '▼' : '▲'}</span>
-                                                </div>
-                                            </div>
-
-                                            {!asigColapsadas['paleta_independientes'] && (
-                                                <div className="pf-paleta-body">
-                                                    <div className="pf-historial-grid" style={{ margin: 0 }}>
-                                                        {viaticosIndependientes.map((v) => {
-                                                            const miniatura = v.evidencias?.[0]?.secure_url;
-                                                            return (
-                                                                <div className="pf-viatico-card" key={v.id}>
-                                                                    <div className="pf-viatico-top">
-                                                                        <span className="pf-viatico-tipo">
-                                                                            <span className="pf-viatico-icono">{ICONO_TIPO_GASTO[v.tipo_gasto] || '📎'}</span>
-                                                                            {LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}
-                                                                        </span>
-                                                                        <span className={`pf-estado-badge pf-estado-badge--${v.estado}`}>
-                                                                            {LABEL_ESTADO_VIATICO[v.estado] || v.estado}
-                                                                        </span>
-                                                                    </div>
-
-                                                                    <p className="pf-viatico-lugar">{v.cliente} · {v.ciudad}</p>
-                                                                    <p className="pf-viatico-fecha">{formatFechaLarga(v.fecha)}</p>
-
-                                                                    {v.estado === 'rechazado' && v.motivo_rechazo && (
-                                                                        <p className="pf-viatico-motivo">Motivo: {v.motivo_rechazo}</p>
-                                                                    )}
-
-                                                                    <div className="pf-viatico-footer">
-                                                                        <span className="pf-viatico-valor">{formatCOP(v.valor)}</span>
-                                                                        {miniatura ? (
-                                                                            <img
-                                                                                src={miniatura}
-                                                                                alt="Evidencia"
-                                                                                className="pf-viatico-thumb"
-                                                                                onClick={() => setSeleccionado(v)}
-                                                                                title="Ver evidencia"
-                                                                            />
-                                                                        ) : (
-                                                                            <span className="pf-viatico-sin-evidencia">Sin evidencia</span>
-                                                                        )}
-                                                                    </div>
-
-                                                                    <button className="pf-viatico-detalle-btn" onClick={() => setSeleccionado(v)}>
-                                                                        Ver detalle
-                                                                    </button>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {viaticosFiltrados.length === 0 && (
-                                        <div className="pf-mision-vacia" style={{ padding: '2.5rem' }}>
-                                            No hay viáticos registrados para los filtros seleccionados.
-                                        </div>
-                                    )}
                                 </div>
                             </>
                         )}
                     </>
                 )}
             </div>
+
+            {/* Modal Viáticos Independientes */}
+            {mostrarViaticosIndependientes && (
+                <div className="evidencia-overlay" onClick={() => setMostrarViaticosIndependientes(false)}>
+                    <div
+                        className="evidencia-modal"
+                        style={{ maxWidth: '850px', width: '90%' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="evidencia-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#1E293B' }}>
+                                    📄 Viáticos Independientes
+                                </h3>
+                                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.82rem', color: '#64748B' }}>
+                                    Gastos sin asignación vinculada ({viaticosIndependientes.length} registros) · Total: {formatCOP(viaticosIndependientes.reduce((sum, v) => sum + Number(v.valor || 0), 0))}
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                {viaticosIndependientes.length > 0 && (
+                                    <button
+                                        type="button"
+                                        className="pf-back-pill-btn"
+                                        style={{ margin: 0, padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
+                                        onClick={handleExportarIndependientes}
+                                        disabled={exportandoIndependiente}
+                                    >
+                                        {exportandoIndependiente ? '⌛ Exportando...' : '📊 Exportar Excel'}
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    className="evidencia-btn-cerrar"
+                                    onClick={() => setMostrarViaticosIndependientes(false)}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="evidencia-body" style={{ maxHeight: '70vh', overflowY: 'auto', padding: '1.25rem' }}>
+                            {viaticosIndependientes.length > 0 ? (
+                                <div className="pf-historial-grid" style={{ margin: 0 }}>
+                                    {viaticosIndependientes.map((v) => {
+                                        const miniatura = v.evidencias?.[0]?.secure_url;
+                                        return (
+                                            <div className="pf-viatico-card" key={v.id}>
+                                                <div className="pf-viatico-top">
+                                                    <span className="pf-viatico-tipo">
+                                                        <span className="pf-viatico-icono">{ICONO_TIPO_GASTO[v.tipo_gasto] || '📎'}</span>
+                                                        {LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}
+                                                    </span>
+                                                    <span className={`pf-estado-badge pf-estado-badge--${v.estado}`}>
+                                                        {LABEL_ESTADO_VIATICO[v.estado] || v.estado}
+                                                    </span>
+                                                </div>
+
+                                                <p className="pf-viatico-lugar">{v.cliente || 'Sin cliente'} · {v.ciudad || 'Sin ciudad'}</p>
+                                                <p className="pf-viatico-fecha">{formatFechaLarga(v.fecha)}</p>
+
+                                                {v.estado === 'rechazado' && v.motivo_rechazo && (
+                                                    <p className="pf-viatico-motivo">Motivo: {v.motivo_rechazo}</p>
+                                                )}
+
+                                                <div className="pf-viatico-footer">
+                                                    <span className="pf-viatico-valor">{formatCOP(v.valor)}</span>
+                                                    {miniatura ? (
+                                                        <img
+                                                            src={miniatura}
+                                                            alt="Evidencia"
+                                                            className="pf-viatico-thumb"
+                                                            onClick={() => setSeleccionado(v)}
+                                                            title="Ver evidencia"
+                                                        />
+                                                    ) : (
+                                                        <span className="pf-viatico-sin-evidencia">Sin evidencia</span>
+                                                    )}
+                                                </div>
+
+                                                <button className="pf-viatico-detalle-btn" onClick={() => setSeleccionado(v)}>
+                                                    Ver detalle
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="pf-mision-vacia" style={{ padding: '2.5rem' }}>
+                                    No hay viáticos independientes registrados para este técnico.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modales */}
             {mostrarCrearUsuario && (

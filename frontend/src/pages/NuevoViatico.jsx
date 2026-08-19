@@ -6,6 +6,7 @@ import TecnicoLayout from '../components/TecnicoLayout';
 import { useAuth } from '../context/AuthContext';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
 import { formatFechaLarga, formatCOP, formatMiles, limpiarNumero } from '../utils/personal';
+import { derivarLugarDesdeTipoAsignacion } from '../utils/asignaciones';
 import './NuevoViatico.css';
 
 const CONCEPTOS = [
@@ -36,9 +37,6 @@ function getItemInicial(id) {
         proveedor_seleccionado: null, // { nit, nombre }
         razon_social: '',
         concepto: 'alimentacion',
-        lugar_tipo: 'oficina',       // 'oficina' | 'rtc'
-        lugar_subtipo: 'correctivo', // 'correctivo' | 'preventivo'
-        lugar: '',
         origen: '',
         destino: '',
         tiene_soporte: 'si',
@@ -232,16 +230,16 @@ export default function NuevoViatico() {
                     }
                 }
 
-                const lugarFinal = g.lugar_tipo === 'rtc'
-                    ? 'RTC'
-                    : (g.lugar_subtipo === 'preventivo' ? 'Oficina (Preventivo)' : 'Oficina (Correctivo)');
+                const { lugar_tipo, lugar_subtipo, lugarFinal } = derivarLugarDesdeTipoAsignacion(
+                    asignacionDetalle?.tipo
+                );
 
                 const descripcionEstructurada = JSON.stringify({
                     nit: nitFinal,
                     razon_social: g.razon_social || (asignacionDetalle ? asignacionDetalle.cliente : '—'),
                     lugar: lugarFinal,
-                    lugar_tipo: g.lugar_tipo,
-                    lugar_subtipo: g.lugar_tipo === 'oficina' ? g.lugar_subtipo : null,
+                    lugar_tipo: lugar_tipo,
+                    lugar_subtipo: lugar_subtipo,
                     origen: g.origen || '—',
                     destino: g.destino || (asignacionDetalle ? asignacionDetalle.ciudad : '—'),
                     tiene_soporte: g.tiene_soporte === 'si',
@@ -583,46 +581,6 @@ export default function NuevoViatico() {
                                                             </option>
                                                         ))}
                                                     </select>
-                                                </div>
-
-                                                {/* Oficina / lugar donde realizó */}
-                                                <div className="nv-field-group">
-                                                    <label>Lugar de realización</label>
-                                                    <div className="nv-lugar-toggle-group">
-                                                        <button
-                                                            type="button"
-                                                            className={`nv-toggle-btn ${gasto.lugar_tipo === 'oficina' ? 'nv-toggle-btn--active' : ''}`}
-                                                            onClick={() => handleGastoChange(gasto.id, 'lugar_tipo', 'oficina')}
-                                                        >
-                                                            🏢 Oficina
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className={`nv-toggle-btn ${gasto.lugar_tipo === 'rtc' ? 'nv-toggle-btn--active' : ''}`}
-                                                            onClick={() => handleGastoChange(gasto.id, 'lugar_tipo', 'rtc')}
-                                                        >
-                                                            📡 RTC
-                                                        </button>
-                                                    </div>
-
-                                                    {gasto.lugar_tipo === 'oficina' && (
-                                                        <div className="nv-lugar-subtipo-group">
-                                                            <button
-                                                                type="button"
-                                                                className={`nv-lugar-subtipo-btn ${gasto.lugar_subtipo === 'correctivo' ? 'nv-lugar-subtipo-btn--active' : ''}`}
-                                                                onClick={() => handleGastoChange(gasto.id, 'lugar_subtipo', 'correctivo')}
-                                                            >
-                                                                🔧 Correctivo
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                className={`nv-lugar-subtipo-btn ${gasto.lugar_subtipo === 'preventivo' ? 'nv-lugar-subtipo-btn--active' : ''}`}
-                                                                onClick={() => handleGastoChange(gasto.id, 'lugar_subtipo', 'preventivo')}
-                                                            >
-                                                                🛡️ Preventivo
-                                                            </button>
-                                                        </div>
-                                                    )}
                                                 </div>
 
                                                 {/* Origen */}
