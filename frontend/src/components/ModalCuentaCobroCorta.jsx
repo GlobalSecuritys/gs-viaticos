@@ -48,17 +48,10 @@ export default function ModalCuentaCobroCorta({
             return;
         }
 
-        // Si no hay datos iniciales, pre-cargar valor y concepto del gasto
+        // Si no hay datos iniciales, pre-cargar valor del gasto y dejar concepto vacío
         const defaultValor = gasto?.valor ? formatMiles(String(gasto.valor)) : '';
         setValor(defaultValor);
-
-        const conceptoBase = gasto?.concepto ? gasto.concepto.toUpperCase() : 'VIÁTICOS Y COMISIÓN';
-        const ciudadDestino = asignacion?.ciudad || gasto?.destino || 'SEDE';
-        const clienteProyecto = asignacion?.cliente || gasto?.razon_social || '';
-        const defaultConcepto = clienteProyecto
-            ? `Servicio de ${conceptoBase.toLowerCase()} en ${ciudadDestino} - ${clienteProyecto}`
-            : `Servicio de ${conceptoBase.toLowerCase()} en ${ciudadDestino}`;
-        setConcepto(defaultConcepto);
+        setConcepto('');
 
         // Consultar última cuenta de cobro previa para pre-cargar banco, cuenta y celular
         let cancel = false;
