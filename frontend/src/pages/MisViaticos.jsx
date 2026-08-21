@@ -21,6 +21,7 @@ const ICONO_GASTO = {
   hotel: '🏨',
   peajes: '🛣',
   parqueadero: '🅿',
+  materiales: '📦',
   otros: '📎',
 };
 
@@ -30,7 +31,7 @@ const CONCEPTOS = [
   { id: 'hotel', label: 'Hotel' },
   { id: 'peajes', label: 'Peajes' },
   { id: 'parqueadero', label: 'Parqueadero' },
-  { id: 'otros', label: 'Otros' },
+  { id: 'materiales', label: 'Materiales' },
 ];
 
 export default function MisViaticos() {
@@ -261,6 +262,7 @@ export default function MisViaticos() {
     const anticipoAsig = resumen?.monto_anticipo || asigObj?.monto_anticipo || 0;
     const gastadoAsig = resumen?.total_gastado || asigObj?.total_gastado || totalGrupo;
     const saldoAsig = resumen?.saldo_restante !== undefined ? resumen.saldo_restante : (asigObj?.saldo_restante !== undefined ? asigObj.saldo_restante : Math.max(0, anticipoAsig - gastadoAsig));
+    const saldoFavorTecnico = Number(gastadoAsig) > Number(anticipoAsig) ? Number(gastadoAsig) - Number(anticipoAsig) : 0;
 
     return (
       <div className="mv-paleta">
@@ -309,6 +311,12 @@ export default function MisViaticos() {
                   {formatCOP(saldoAsig)}
                 </span>
               </div>
+              {saldoFavorTecnico > 0 && (
+                <div className="mv-paleta-resumen-item mv-paleta-resumen-item--favor-tecnico" style={{ background: '#FEF2F2', padding: '0.35rem 0.6rem', borderRadius: '8px', border: '1px solid #FCA5A5' }}>
+                  <span className="mv-pr-label" style={{ color: '#991B1B', fontWeight: 700 }}>Saldo a favor técnico</span>
+                  <span className="mv-pr-val" style={{ color: '#DC2626', fontWeight: 800 }}>{formatCOP(saldoFavorTecnico)}</span>
+                </div>
+              )}
               <div className="mv-paleta-resumen-item">
                 <span className="mv-pr-label">Items</span>
                 <span className="mv-pr-val">{items.length}</span>
@@ -421,6 +429,7 @@ export default function MisViaticos() {
                   <div className="mv-form-field">
                     <label>Tipo de Gasto</label>
                     <select value={editForm.tipo_gasto} onChange={(e) => setEditForm({ ...editForm, tipo_gasto: e.target.value })}>
+                      {editForm.tipo_gasto === 'otros' && <option value="otros">Otros (Histórico)</option>}
                       {CONCEPTOS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                     </select>
                   </div>

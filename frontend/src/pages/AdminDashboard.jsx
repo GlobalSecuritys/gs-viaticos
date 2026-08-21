@@ -113,6 +113,8 @@ export default function AdminDashboard() {
     const [filtroEstadoConsolidado, setFiltroEstadoConsolidado] = useState('todos');
     const [busquedaTecnico, setBusquedaTecnico] = useState('');
     const [seccionViaticosColapsada, setSeccionViaticosColapsada] = useState(true);
+    // filtroAsigTecnicos: Map de tecnico.id -> asignacion_id seleccionada ('global' | string)
+    const [filtroAsigTecnicos, setFiltroAsigTecnicos] = useState({});
 
     // Referencias para scroll suave desde el sidebar
     const seccionViaticosRef = useRef(null);
@@ -811,6 +813,66 @@ export default function AdminDashboard() {
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {/* ── Widget de Saldo por Asignación ── */}
+                                            {(() => {
+                                                const asigTec = asignaciones.filter(
+                                                    a => String(a.tecnico_id || a.usuario_id) === String(t.id) &&
+                                                         (Number(a.monto_anticipo || 0) > 0 || Number(a.total_gastado || 0) > 0)
+                                                );
+                                                const filtroKey = filtroAsigTecnicos[t.id] || 'global';
+                                                const setFiltro = (val) => setFiltroAsigTecnicos(prev => ({ ...prev, [t.id]: val }));
+
+                                                const globalAnticipo = asigTec.reduce((s, a) => s + Number(a.monto_anticipo || 0), 0);
+                                                const globalGastado  = asigTec.reduce((s, a) => s + Number(a.total_gastado  || 0), 0);
+
+                                                let viewAnticipo, viewGastado;
+                                                if (filtroKey === 'global' || asigTec.length === 0) {
+                                                    viewAnticipo = globalAnticipo;
+                                                    viewGastado  = globalGastado;
+                                                } else {
+                                                    const sel = asigTec.find(a => String(a.id) === filtroKey);
+                                                    viewAnticipo = Number(sel?.monto_anticipo || 0);
+                                                    viewGastado  = Number(sel?.total_gastado  || 0);
+                                                }
+                                                const viewSaldo = viewAnticipo - viewGastado;
+                                                const esFavorTec = viewGastado > viewAnticipo;
+
+                                                return (
+                                                    <div className="gsb-tech-balance-widget">
+                                                        <div className="gsb-tech-bw-header">
+                                                            <span className="gsb-tech-bw-icon">💲</span>
+                                                            <select
+                                                                className="gsb-tech-asig-filter"
+                                                                value={filtroKey}
+                                                                onChange={e => setFiltro(e.target.value)}
+                                                                onClick={e => e.stopPropagation()}
+                                                            >
+                                                                <option value="global">🌐 Balance Global ({asigTec.length} asig.)</option>
+                                                                {asigTec.map(a => (
+                                                                    <option key={a.id} value={String(a.id)}>
+                                                                        📋 {a.cliente || `#${a.id}`}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div className="gsb-tech-bw-row">
+                                                            <span className="gsb-tech-bw-lbl">Anticipo</span>
+                                                            <span className="gsb-tech-bw-val">{formatCOP(viewAnticipo)}</span>
+                                                        </div>
+                                                        <div className="gsb-tech-bw-row">
+                                                            <span className="gsb-tech-bw-lbl">Gastado</span>
+                                                            <span className="gsb-tech-bw-val" style={{ color: '#0284C7' }}>{formatCOP(viewGastado)}</span>
+                                                        </div>
+                                                        <div className={`gsb-tech-bw-row gsb-tech-bw-saldo ${esFavorTec ? 'gsb-tech-bw-saldo--warn' : 'gsb-tech-bw-saldo--ok'}`}>
+                                                            <span className="gsb-tech-bw-lbl">
+                                                                {esFavorTec ? '🚨 Favor Técnico' : '✅ Saldo Empresa'}
+                                                            </span>
+                                                            <strong className="gsb-tech-bw-val">{formatCOP(Math.abs(viewSaldo))}</strong>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
 
                                             {/* Métricas de Viáticos y Gasto */}
                                             <div className="gsb-tech-metrics-row">

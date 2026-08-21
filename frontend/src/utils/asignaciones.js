@@ -10,6 +10,7 @@ export const TIPOS_ASIGNACION = [
     'preventivo_rtc',
     'rtc',
     'oficina',
+    'garantias',
 ];
 
 export const LABEL_TIPO_ASIGNACION = {
@@ -19,6 +20,7 @@ export const LABEL_TIPO_ASIGNACION = {
     preventivo_rtc: 'Preventivo RTC',
     rtc: 'RTC',
     oficina: 'Oficina',
+    garantias: 'Garantías',
 };
 
 export const ESTADOS_ASIGNACION = ['pendiente', 'en_curso', 'finalizada', 'cancelada'];

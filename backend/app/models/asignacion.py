@@ -21,7 +21,7 @@ class Asignacion(Base):
     Campos alineados 1:1 con lo que el frontend ya espera, según
     frontend/src/utils/asignaciones.js y AsignacionForm.jsx:
       - tipo: uno de TIPOS_ASIGNACION (mantenimiento, correctivo, preventivo,
-        preventivo_rtc, rtc, oficina)
+        preventivo_rtc, rtc, oficina, garantias)
       - estado: uno de ESTADOS_ASIGNACION (pendiente, en_curso, finalizada,
         cancelada)
     """

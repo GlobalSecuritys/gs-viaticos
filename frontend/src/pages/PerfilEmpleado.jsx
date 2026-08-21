@@ -622,6 +622,14 @@ export default function PerfilEmpleado() {
                                                                 <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Saldo restante</span>
                                                                 <strong style={{ color: '#16A34A', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.saldo_restante || 0))}</strong>
                                                             </div>
+                                                            {Number(asignacion.total_gastado || 0) > Number(asignacion.monto_anticipo || 0) && (
+                                                                <div style={{ background: '#FEF2F2', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid #FCA5A5' }}>
+                                                                    <span style={{ color: '#991B1B', display: 'block', fontSize: '0.72rem', fontWeight: 700 }}>🚨 Saldo a favor técnico</span>
+                                                                    <strong style={{ color: '#DC2626', fontSize: '0.92rem' }}>
+                                                                        {formatCOP(Number(asignacion.total_gastado || 0) - Number(asignacion.monto_anticipo || 0))}
+                                                                    </strong>
+                                                                </div>
+                                                            )}
                                                             <div>
                                                                 <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Ítems</span>
                                                                 <strong style={{ fontSize: '0.92rem' }}>{asignacion.cantidad_viaticos || viaticosDeAsig.length}</strong>

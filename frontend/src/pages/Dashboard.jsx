@@ -41,6 +41,7 @@ export default function Dashboard() {
     const [asignaciones, setAsignaciones] = useState([]);
     const [mostrarModalTipoViatico, setMostrarModalTipoViatico] = useState(false);
     const [, setLoading] = useState(true);
+    const [filtroSaldo, setFiltroSaldo] = useState('global');
 
     useEffect(() => {
         let activo = true;
@@ -76,23 +77,26 @@ export default function Dashboard() {
 
     // 1. Distribución por concepto
     const distribucionConcepto = useMemo(() => {
-        const totales = { hospedaje: 0, transporte: 0, alimentacion: 0, otros: 0 };
+        const totales = { hospedaje: 0, transporte: 0, alimentacion: 0, materiales: 0, otros: 0 };
         viaticos.forEach((v) => {
             const cat = (v.tipo_gasto || '').toLowerCase();
             const val = Number(v.valor) || 0;
             if (cat.includes('hospedaj') || cat.includes('hotel')) totales.hospedaje += val;
             else if (cat.includes('transport') || cat.includes('pasaj') || cat.includes('peaj')) totales.transporte += val;
             else if (cat.includes('aliment') || cat.includes('comida') || cat.includes('restauran')) totales.alimentacion += val;
+            else if (cat.includes('material')) totales.materiales += val;
             else totales.otros += val;
         });
 
         const sumaTotal = Object.values(totales).reduce((a, b) => a + b, 0) || 1;
-        return [
+        const lista = [
             { id: 'hospedaje', label: 'Hospedaje', color: '#1D63C8', val: totales.hospedaje, pct: Math.round((totales.hospedaje / sumaTotal) * 100) },
             { id: 'transporte', label: 'Transporte', color: '#F59E0B', val: totales.transporte, pct: Math.round((totales.transporte / sumaTotal) * 100) },
             { id: 'alimentacion', label: 'Alimentación', color: '#10B981', val: totales.alimentacion, pct: Math.round((totales.alimentacion / sumaTotal) * 100) },
+            { id: 'materiales', label: 'Materiales', color: '#6366F1', val: totales.materiales, pct: Math.round((totales.materiales / sumaTotal) * 100) },
             { id: 'otros', label: 'Otros', color: '#8B5CF6', val: totales.otros, pct: Math.round((totales.otros / sumaTotal) * 100) },
         ];
+        return lista.filter((item) => item.val > 0 || ['hospedaje', 'transporte', 'alimentacion', 'materiales'].includes(item.id));
     }, [viaticos]);
 
     // 2. Gastos por mes (este año)
@@ -138,6 +142,81 @@ export default function Dashboard() {
                         <span>📅 Hoy, {formatFechaLarga()}</span>
                     </div>
                 </div>
+
+                {/* ── SECCIÓN ESTADO DE SALDOS ── */}
+                {(() => {
+                    const asigConDatos = asignaciones.filter(a => Number(a.monto_anticipo || 0) > 0 || Number(a.total_gastado || 0) > 0);
+                    const globalAnticipo = asigConDatos.reduce((s, a) => s + Number(a.monto_anticipo || 0), 0);
+                    const globalGastado  = asigConDatos.reduce((s, a) => s + Number(a.total_gastado  || 0), 0);
+                    const globalSaldo    = globalAnticipo - globalGastado;
+
+                    let viewAnticipo, viewGastado, viewSaldo, viewLabel;
+                    if (filtroSaldo === 'global' || asigConDatos.length === 0) {
+                        viewAnticipo = globalAnticipo;
+                        viewGastado  = globalGastado;
+                        viewSaldo    = globalSaldo;
+                        viewLabel    = `🌐 Balance Global (${asigConDatos.length} asignación${asigConDatos.length !== 1 ? 'es' : ''})`;
+                    } else {
+                        const sel = asigConDatos.find(a => String(a.id) === filtroSaldo);
+                        viewAnticipo = Number(sel?.monto_anticipo || 0);
+                        viewGastado  = Number(sel?.total_gastado  || 0);
+                        viewSaldo    = viewAnticipo - viewGastado;
+                        viewLabel    = `📋 ${sel?.cliente || `Asig. #${filtroSaldo}`} · ${sel?.ciudad || ''}`;
+                    }
+
+                    const esFavorTecnico = viewGastado > viewAnticipo;
+
+                    return (
+                        <div className="dash-saldo-section">
+                            <div className="dash-saldo-header">
+                                <div className="dash-saldo-title-row">
+                                    <span className="dash-saldo-icon">💰</span>
+                                    <h2 className="dash-saldo-title">Estado de Saldos y Reembolsos</h2>
+                                </div>
+                                <select
+                                    className="dash-saldo-select"
+                                    value={filtroSaldo}
+                                    onChange={e => setFiltroSaldo(e.target.value)}
+                                >
+                                    <option value="global">🌐 Balance Global ({asigConDatos.length} asignaciones)</option>
+                                    {asigConDatos.map(a => (
+                                        <option key={a.id} value={String(a.id)}>
+                                            📋 {a.cliente || `Asig. #${a.id}`} · {a.ciudad || ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <p className="dash-saldo-sublabel">{viewLabel}</p>
+
+                            <div className="dash-saldo-metrics">
+                                <div className="dash-saldo-metric">
+                                    <span className="dash-saldo-metric-lbl">Anticipo</span>
+                                    <span className="dash-saldo-metric-val">{formatCOP(viewAnticipo)}</span>
+                                </div>
+                                <div className="dash-saldo-metric">
+                                    <span className="dash-saldo-metric-lbl">Gastado</span>
+                                    <span className="dash-saldo-metric-val" style={{ color: '#0284C7' }}>{formatCOP(viewGastado)}</span>
+                                </div>
+                                <div className={`dash-saldo-metric ${esFavorTecnico ? 'dash-saldo-metric--warn' : 'dash-saldo-metric--ok'}`}>
+                                    <span className="dash-saldo-metric-lbl">
+                                        {esFavorTecnico ? '🚨 Saldo a Favor Técnico' : '✅ Saldo Restante Empresa'}
+                                    </span>
+                                    <span className="dash-saldo-metric-val">
+                                        {formatCOP(Math.abs(viewSaldo))}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {esFavorTecnico && (
+                                <div className="dash-saldo-alert">
+                                    ⚠️ Tienes un reembolso pendiente de <strong>{formatCOP(viewGastado - viewAnticipo)}</strong>.
+                                    Contacta a tu administrador para el reintegro.
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* ── KPI CARDS ROW ── */}
                 <div className="dash-tec-kpi-grid">

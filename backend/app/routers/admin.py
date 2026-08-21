@@ -313,13 +313,17 @@ def _hacer_viatico_admin_response(v: Viatico) -> ViaticoAdminResponse:
         total_gastado = sum(item.valor for item in viaticos_asig if item.estado != "rechazado") if viaticos_asig else Decimal("0.00")
         anticipo = v.asignacion.monto_anticipo if v.asignacion.monto_anticipo is not None else Decimal("0.00")
         saldo_restante = max(Decimal("0.00"), anticipo - total_gastado)
+        saldo_favor_tecnico = max(Decimal("0.00"), total_gastado - anticipo)
         asig_res = AsignacionResumenViatico(
             id=v.asignacion.id,
             cliente=v.asignacion.cliente,
+            empresa=v.asignacion.empresa,
+            tipo=v.asignacion.tipo,
             ciudad=v.asignacion.ciudad,
             monto_anticipo=anticipo,
             total_gastado=total_gastado,
             saldo_restante=saldo_restante,
+            saldo_favor_tecnico=saldo_favor_tecnico,
         )
 
     return ViaticoAdminResponse(

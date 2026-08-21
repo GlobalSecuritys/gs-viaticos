@@ -123,6 +123,12 @@ export default function MisAsignaciones() {
                                             <span>Saldo restante GSB</span>
                                             <strong>{formatCOP(saldoRestante)}</strong>
                                         </div>
+                                        {totalGastado > anticipoNum && (
+                                            <div className="mac-fin-row" style={{ background: '#FEF2F2', padding: '0.35rem 0.5rem', borderRadius: '6px', border: '1px solid #FCA5A5' }}>
+                                                <span style={{ color: '#991B1B', fontWeight: 600 }}>🚨 Saldo a favor técnico</span>
+                                                <strong style={{ color: '#DC2626' }}>{formatCOP(totalGastado - anticipoNum)}</strong>
+                                            </div>
+                                        )}
                                         <div className="mac-fin-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span>Ítems vinculados: <strong>{cantItems}</strong></span>
                                             <span style={{ fontSize: '0.78rem', background: estadoLeg === 'excedido' ? '#FEE2E2' : '#F1F5F9', color: estadoLeg === 'excedido' ? '#991B1B' : '#475569', padding: '0.15rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>

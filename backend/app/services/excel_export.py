@@ -450,7 +450,7 @@ def generar_excel_viaticos_asignacion(
         nit = v.nit_identificacion or meta.get("nit") or "—"
         razon = meta.get("razon_social") or v.cliente or asignacion.cliente or "—"
         concepto = (v.tipo_gasto or "—").capitalize()
-        oficina = meta.get("lugar") or meta.get("oficina") or asignacion.ciudad or "—"
+        oficina = asignacion.empresa or asignacion.ciudad or "—"
         origen = meta.get("origen") or "—"
         destino = meta.get("destino") or v.ciudad or asignacion.ciudad or "—"
         tiene_soporte = (

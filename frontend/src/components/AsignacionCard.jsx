@@ -76,6 +76,12 @@ export default function AsignacionCard({ asignacion, onClick }) {
                             <span>Saldo Restante: <strong className={esExcedido ? 'text-excedido' : 'text-saldo'}>{formatCOP(saldo)}</strong></span>
                             <span>{porcentajeConsumido}% consumido</span>
                         </div>
+                        {esExcedido && (
+                            <div style={{ marginTop: '0.4rem', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '0.3rem 0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#991B1B' }}>🚨 Saldo a Favor Técnico</span>
+                                <strong style={{ color: '#DC2626', fontSize: '0.82rem' }}>{formatCOP(gastado - anticipo)}</strong>
+                            </div>
+                        )}
                     </div>
                 )}
 

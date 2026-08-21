@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password, verify_password
@@ -52,7 +52,8 @@ def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_db)]
 ):
-    stmt = select(Usuario).where(Usuario.correo == form_data.username)
+    correo_limpio = form_data.username.strip().lower()
+    stmt = select(Usuario).where(func.lower(Usuario.correo) == correo_limpio)
     usuario = db.scalar(stmt)
 
     if not usuario or not verify_password(form_data.password, usuario.password_hash):

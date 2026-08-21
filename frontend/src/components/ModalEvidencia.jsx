@@ -11,6 +11,7 @@ const LABEL_TIPO = {
     hotel: 'Hospedaje / Hotel',
     peajes: 'Peajes',
     parqueadero: 'Parqueadero',
+    materiales: 'Materiales',
     otros: 'Otros',
 };
 
@@ -250,6 +251,14 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                                     </strong>
                                 </div>
                             </div>
+                            {(viatico.asignacion_resumen?.total_gastado || 0) > (viatico.asignacion_resumen?.monto_anticipo || 0) && (
+                                <div style={{ marginTop: '0.6rem', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', padding: '0.4rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#991B1B' }}>🚨 Saldo a Favor Técnico</span>
+                                    <strong style={{ color: '#DC2626', fontSize: '0.95rem' }}>
+                                        {formatCOP((viatico.asignacion_resumen?.total_gastado || 0) - (viatico.asignacion_resumen?.monto_anticipo || 0))}
+                                    </strong>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="modal-fin-box" style={{ background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: '10px', padding: '0.85rem', margin: '0.85rem 0' }}>

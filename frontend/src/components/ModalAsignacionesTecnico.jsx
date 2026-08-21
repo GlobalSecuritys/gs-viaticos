@@ -316,6 +316,12 @@ export default function ModalAsignacionesTecnico({ tecnico, onClose, onAsignacio
                                                 <span className="mat-fin-lbl">Saldo</span>
                                                 <span className="mat-fin-val" style={{ color: '#16A34A' }}>{formatCOP(saldo)}</span>
                                             </div>
+                                            {gastado > anticipo && (
+                                                <div className="mat-asig-fin-item" style={{ background: '#FEF2F2', padding: '0.25rem 0.5rem', borderRadius: '6px', border: '1px solid #FCA5A5' }}>
+                                                    <span className="mat-fin-lbl" style={{ color: '#991B1B', fontWeight: 700 }}>Favor Técnico</span>
+                                                    <span className="mat-fin-val" style={{ color: '#DC2626', fontWeight: 800 }}>{formatCOP(gastado - anticipo)}</span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Acciones de la Tarjeta */}

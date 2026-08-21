@@ -16,7 +16,7 @@ const CONCEPTOS = [
     { value: 'hotel', label: 'Hospedaje / Hotel' },
     { value: 'peajes', label: 'Peajes' },
     { value: 'parqueadero', label: 'Parqueadero' },
-    { value: 'otros', label: 'Otros' },
+    { value: 'materiales', label: 'Materiales' },
 ];
 
 function hoyISO() {

@@ -241,6 +241,12 @@ export default function ModalCuentasCobroTecnico({ tecnico, onClose }) {
                                                 <span className="mcct-fin-lbl">Saldo</span>
                                                 <span className="mcct-fin-val" style={{ color: '#16A34A' }}>{formatCOP(saldo)}</span>
                                             </div>
+                                            {gastado > anticipo && (
+                                                <div className="mcct-fin-item" style={{ background: '#FEF2F2', padding: '0.25rem 0.5rem', borderRadius: '6px', border: '1px solid #FCA5A5' }}>
+                                                    <span className="mcct-fin-lbl" style={{ color: '#991B1B', fontWeight: 700 }}>Favor Técnico</span>
+                                                    <span className="mcct-fin-val" style={{ color: '#DC2626', fontWeight: 800 }}>{formatCOP(gastado - anticipo)}</span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Acciones */}

@@ -529,3 +529,135 @@
         font-size: 0.875rem;
     }
 }
+
+/* ── SECCIÓN ESTADO DE SALDOS (TAREA 4) ── */
+.dash-saldo-section {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    border-left: 4px solid #6366F1;
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.12);
+    order: -1; /* aparece antes de los KPIs */
+}
+
+.dash-saldo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.dash-saldo-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.dash-saldo-icon {
+    font-size: 1.4rem;
+}
+
+.dash-saldo-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #E2E8F0;
+    margin: 0;
+}
+
+.dash-saldo-select {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: #CBD5E1;
+    font-size: 0.82rem;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.dash-saldo-select:hover,
+.dash-saldo-select:focus {
+    border-color: #6366F1;
+}
+
+.dash-saldo-sublabel {
+    font-size: 0.78rem;
+    color: #94A3B8;
+    margin: 0;
+}
+
+.dash-saldo-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.dash-saldo-metric {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: center;
+}
+
+.dash-saldo-metric--ok {
+    border-color: rgba(34, 197, 94, 0.35);
+    background: rgba(34, 197, 94, 0.07);
+}
+
+.dash-saldo-metric--warn {
+    border-color: rgba(239, 68, 68, 0.45);
+    background: rgba(239, 68, 68, 0.1);
+    animation: pulse-warn 2s ease-in-out infinite;
+}
+
+@keyframes pulse-warn {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    50%       { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.15); }
+}
+
+.dash-saldo-metric-lbl {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dash-saldo-metric--ok  .dash-saldo-metric-lbl { color: #4ADE80; }
+.dash-saldo-metric--warn .dash-saldo-metric-lbl { color: #FCA5A5; }
+
+.dash-saldo-metric-val {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #F1F5F9;
+}
+
+.dash-saldo-metric--ok  .dash-saldo-metric-val { color: #4ADE80; }
+.dash-saldo-metric--warn .dash-saldo-metric-val { color: #F87171; }
+
+.dash-saldo-alert {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    font-size: 0.82rem;
+    color: #FCA5A5;
+}
+
+@media (max-width: 600px) {
+    .dash-saldo-metrics {
+        grid-template-columns: 1fr 1fr;
+    }
+    .dash-saldo-section {
+        padding: 1rem;
+    }
+}

@@ -93,6 +93,7 @@ def listar_viaticos(
             tot_gastado = sum(item.valor for item in v_asig if item.estado != "rechazado")
             anticipo = v.asignacion.monto_anticipo or Decimal("0.00")
             saldo = max(Decimal("0.00"), anticipo - tot_gastado)
+            saldo_favor_tec = max(Decimal("0.00"), tot_gastado - anticipo)
             v.asignacion_resumen = AsignacionResumenViatico(
                 id=v.asignacion.id,
                 cliente=v.asignacion.cliente,
@@ -102,6 +103,7 @@ def listar_viaticos(
                 monto_anticipo=anticipo,
                 total_gastado=tot_gastado,
                 saldo_restante=saldo,
+                saldo_favor_tecnico=saldo_favor_tec,
             )
     return viaticos
 

@@ -22,6 +22,7 @@ const OPCIONES_TIPO = [
     { id: 'preventivo_rtc', label: 'Preventivo RTC' },
     { id: 'rtc', label: 'RTC' },
     { id: 'oficina', label: 'Oficina' },
+    { id: 'garantias', label: 'Garantías' },
 ];
 
 export default function AsignacionForm({ tecnicos, inicial, onSubmit, onCancelar, enviando, tecnicoPreseleccionado = null }) {

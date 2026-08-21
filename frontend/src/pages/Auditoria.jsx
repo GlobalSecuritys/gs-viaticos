@@ -51,6 +51,7 @@ const LABEL_TIPO_GASTO = {
     hotel: 'Hotel',
     peajes: 'Peajes',
     parqueadero: 'Parqueadero',
+    materiales: 'Materiales',
     otros: 'Otros',
 };
 

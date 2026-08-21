@@ -9,6 +9,7 @@ TipoGasto = Literal[
     "hotel",
     "peajes",
     "parqueadero",
+    "materiales",
     "otros",
 ]
 
@@ -24,6 +25,7 @@ class AsignacionResumenViatico(BaseModel):
     monto_anticipo: Decimal
     total_gastado: Decimal
     saldo_restante: Decimal
+    saldo_favor_tecnico: Decimal = Decimal("0.00")
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -251,6 +251,14 @@ export default function DetalleAsignacion() {
                                         <span style={{ fontSize: '0.78rem', color: '#64748B', display: 'block' }}>Saldo restante GSB</span>
                                         <strong style={{ fontSize: '1.1rem', color: '#16A34A' }}>{formatCOP(Number(asignacion.saldo_restante || 0))}</strong>
                                     </div>
+                                    {Number(asignacion.total_gastado || 0) > Number(asignacion.monto_anticipo || 0) && (
+                                        <div style={{ background: '#FEF2F2', padding: '0.4rem 0.65rem', borderRadius: '8px', border: '1px solid #FCA5A5' }}>
+                                            <span style={{ fontSize: '0.78rem', color: '#991B1B', display: 'block', fontWeight: 700 }}>🚨 Saldo a favor técnico</span>
+                                            <strong style={{ fontSize: '1.1rem', color: '#DC2626', fontWeight: 800 }}>
+                                                {formatCOP(Number(asignacion.total_gastado || 0) - Number(asignacion.monto_anticipo || 0))}
+                                            </strong>
+                                        </div>
+                                    )}
                                     <div>
                                         <span style={{ fontSize: '0.78rem', color: '#64748B', display: 'block' }}>Ítems registrados</span>
                                         <strong style={{ fontSize: '1.1rem', color: '#475569' }}>{viaticosVinculados.length || asignacion.cantidad_viaticos || 0}</strong>

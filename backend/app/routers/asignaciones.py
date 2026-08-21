@@ -42,6 +42,7 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
     )
     anticipo = a.monto_anticipo if a.monto_anticipo is not None else Decimal("0.00")
     saldo_restante = max(Decimal("0.00"), anticipo - total_gastado)
+    saldo_favor_tecnico = max(Decimal("0.00"), total_gastado - anticipo)
     cant_items = len(viaticos_vinculados)
 
     if cant_items == 0:
@@ -73,6 +74,7 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
         monto_anticipo=anticipo,
         total_gastado=total_gastado,
         saldo_restante=saldo_restante,
+        saldo_favor_tecnico=saldo_favor_tecnico,
         cantidad_viaticos=cant_items,
         estado_legalizacion=estado_legalizacion,
         estado=a.estado,

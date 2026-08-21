@@ -13,6 +13,7 @@ TipoAsignacion = Literal[
     "preventivo_rtc",
     "rtc",
     "oficina",
+    "garantias",
 ]
 
 EstadoAsignacion = Literal[
@@ -94,6 +95,7 @@ class AsignacionResponse(AsignacionBase):
     monto_anticipo: Decimal = Decimal("0.00")
     total_gastado: Decimal = Decimal("0.00")
     saldo_restante: Decimal = Decimal("0.00")
+    saldo_favor_tecnico: Decimal = Decimal("0.00")
     cantidad_viaticos: int = 0
     estado_legalizacion: str = "sin_gastos"
     cuenta_cobro: CuentaCobroAsignacionResponse | None = None
