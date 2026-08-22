@@ -12,5 +12,6 @@ passlib[bcrypt]
 python-multipart
 pandas
 openpyxl
+Pillow
 httpx
 cloudinary==1.40.0

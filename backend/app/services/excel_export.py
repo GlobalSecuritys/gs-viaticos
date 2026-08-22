@@ -5,16 +5,17 @@ import zipfile
 from copy import copy
 from datetime import date
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from app.models.asignacion import Asignacion
-from app.models.usuario import Usuario
-from app.models.viatico import Viatico
+if TYPE_CHECKING:
+    from app.models.asignacion import Asignacion
+    from app.models.usuario import Usuario
+    from app.models.viatico import Viatico
 
 TEMPLATE_PATH = os.path.join(
     os.path.dirname(__file__),
@@ -194,6 +195,35 @@ def _autofit(ws, extra=4, minimum=10, maximum=40):
 
 
 # ═══════════════════════════════════════════════════════════════════
+#  HELPERS DE IMAGEN Y FORMATO
+# ═══════════════════════════════════════════════════════════════════
+def _get_logo_image(anchor: str = "B1", width: int = 105, height: int = 90) -> Optional[object]:
+    """Carga e instancia el logotipo corporativo GSB para insertarlo en openpyxl."""
+    try:
+        from openpyxl.drawing.image import Image as XLImage
+        logo_png = os.path.join(os.path.dirname(__file__), "templates", "logo-gsb.png")
+        if os.path.exists(logo_png):
+            img = XLImage(logo_png)
+            img.width = width
+            img.height = height
+            img.anchor = anchor
+            return img
+
+        if os.path.exists(TEMPLATE_PATH):
+            with zipfile.ZipFile(TEMPLATE_PATH, "r") as zf:
+                if "xl/media/image1.jpeg" in zf.namelist():
+                    img_bytes = zf.read("xl/media/image1.jpeg")
+                    img = XLImage(io.BytesIO(img_bytes))
+                    img.width = width
+                    img.height = height
+                    img.anchor = anchor
+                    return img
+    except Exception:
+        pass
+    return None
+
+
+# ═══════════════════════════════════════════════════════════════════
 #  EXCEL INDEPENDIENTES
 # ═══════════════════════════════════════════════════════════════════
 def generar_excel_viaticos_independientes(
@@ -211,36 +241,40 @@ def generar_excel_viaticos_independientes(
     ws.title = "Viáticos Independientes"
 
     TOTAL_COLS = 10   # A..J
-    META_COL   = 9    # cols J, K  (índice 9, 10)
+    META_COL   = 9    # cols I, J
 
     # ── Columnas de ancho fijo ──────────────────────────────────
-    ws.column_dimensions["A"].width = 8
-    ws.column_dimensions["B"].width = 13
+    ws.column_dimensions["A"].width = 10
+    ws.column_dimensions["B"].width = 14
     ws.column_dimensions["C"].width = 18
     ws.column_dimensions["D"].width = 24
     ws.column_dimensions["E"].width = 18
     ws.column_dimensions["F"].width = 14
-    ws.column_dimensions["G"].width = 12
+    ws.column_dimensions["G"].width = 14
     ws.column_dimensions["H"].width = 12
-    ws.column_dimensions["I"].width = 18
-    ws.column_dimensions["J"].width = 14
+    ws.column_dimensions["I"].width = 14
+    ws.column_dimensions["J"].width = 16
 
     # ══ FILA 1: Logo  |  Empresa  |  Metadatos ══════════════════
-    ws.row_dimensions[1].height = 34
-    ws.row_dimensions[2].height = 16
-    ws.row_dimensions[3].height = 16
-    ws.row_dimensions[4].height = 16
+    ws.row_dimensions[1].height = 24
+    ws.row_dimensions[2].height = 18
+    ws.row_dimensions[3].height = 18
+    ws.row_dimensions[4].height = 18
 
-    # Celda A1 — "logo" textual
-    ws.merge_cells("A1:A4")
-    logo = ws["A1"]
-    logo.value = "🛡 GSB"
-    logo.font = _font(bold=True, size=14, color=C_NAVY)
-    logo.alignment = _al("center", "center")
-    logo.fill = _fill("E9F0FB")
-    logo.border = _border(C_NAVY)
+    # Logo corporativo en celda A1
+    logo_img = _get_logo_image(anchor="A1", width=75, height=75)
+    if logo_img:
+        ws.add_image(logo_img)
+    else:
+        ws.merge_cells("A1:A4")
+        logo_fallback = ws["A1"]
+        logo_fallback.value = "🛡 GSB"
+        logo_fallback.font = _font(bold=True, size=14, color=C_NAVY)
+        logo_fallback.alignment = _al("center", "center")
+        logo_fallback.fill = _fill("E9F0FB")
+        logo_fallback.border = _border(C_NAVY)
 
-    # Nombre empresa (cols B-H, fila 1)
+    # Nombre empresa (cols B-H, fila 1 a 4)
     ws.merge_cells("B1:H4")
     empresa_cell = ws["B1"]
     empresa_cell.value = "GLOBAL SECURITY BANK SAS"
@@ -296,7 +330,7 @@ def generar_excel_viaticos_independientes(
     ws.merge_cells("I7:J7")
     _value_cell(ws, 7, 9, date.today().strftime("%d/%m/%Y"))
 
-    # Fila 8: Total ítems (se llenará abajo)
+    # Fila 8: Total ítems
     ws.row_dimensions[8].height = 22
     _label_cell(ws, 8, 1, "Total ítems :")
     _value_cell(ws, 8, 2, len(viaticos))
@@ -326,7 +360,6 @@ def generar_excel_viaticos_independientes(
     total_valor = Decimal("0.00")
 
     for i, v in enumerate(viaticos, start=1):
-        # Parsear descripcion para extraer origen/destino
         try:
             meta = json.loads(v.descripcion or "{}")
         except Exception:
@@ -336,9 +369,14 @@ def generar_excel_viaticos_independientes(
         destino = meta.get("destino", v.ciudad or "—") or "—"
         tiene_soporte = "SI" if (getattr(v, "evidencias", None) and len(v.evidencias) > 0) else "no"
         val = Decimal(str(v.valor or 0))
-        total_valor += val
-        alt = (i % 2 == 0)
+        estado_raw = (v.estado or "pendiente").strip().lower()
+        estado_cap = estado_raw.capitalize()
 
+        # Solo se suma al total si NO está rechazado
+        if estado_raw != "rechazado":
+            total_valor += val
+
+        alt = (i % 2 == 0)
         bg = C_ROW_ALT if alt else "FFFFFF"
         row_data = [
             i,
@@ -349,10 +387,10 @@ def generar_excel_viaticos_independientes(
             origen,
             destino,
             tiene_soporte,
-            (v.estado or "—").capitalize(),
+            estado_cap,
         ]
 
-        ws.row_dimensions[row_idx].height = 18
+        ws.row_dimensions[row_idx].height = 20
         for ci, cell_val in enumerate(row_data, start=1):
             c = ws.cell(row=row_idx, column=ci, value=cell_val)
             c.font = _font(size=9)
@@ -360,12 +398,27 @@ def generar_excel_viaticos_independientes(
             c.border = _border()
             c.alignment = _al("center" if ci in (1, 2, 8, 9) else "left", "center")
 
-        # Columna J: valor
-        _currency_cell(ws, row_idx, 10, val, bg=bg)
+            # Estilo condicional para columna Estado (col 9)
+            if ci == 9:
+                if estado_raw == "aprobado":
+                    c.font = _font(bold=True, color="166534", size=9)
+                    c.fill = _fill("E6F4EA")
+                elif estado_raw == "rechazado":
+                    c.font = _font(bold=True, color="C00000", size=9)
+                    c.fill = _fill("FCE8E6")
+                else:
+                    c.font = _font(bold=True, color="B45309", size=9)
+                    c.fill = _fill("FEF3C7")
+
+        # Columna 10 (J): valor
+        c_val = _currency_cell(ws, row_idx, 10, val, bg=bg)
+        if estado_raw == "rechazado":
+            c_val.font = _font(color="888888", size=9)
+
         row_idx += 1
 
     # ══ FILAS DE TOTALES ═════════════════════════════════════════
-    ws.row_dimensions[row_idx].height = 20
+    ws.row_dimensions[row_idx].height = 22
     # Subtotal label (cols H-I merged)
     ws.merge_cells(start_row=row_idx, start_column=8, end_row=row_idx, end_column=9)
     sub_lbl = ws.cell(row=row_idx, column=8, value="Subtotal")
@@ -374,7 +427,18 @@ def generar_excel_viaticos_independientes(
     sub_lbl.alignment = _al("right", "center")
     sub_lbl.border = _border_all_dark()
 
-    _currency_cell(ws, row_idx, 10, total_valor, bg=C_GOLD_BG, bold=True)
+    # Subtotal con fórmula SUMIF que excluye rechazados
+    last_data_row = row_idx - 1
+    c_sub = ws.cell(
+        row=row_idx,
+        column=10,
+        value=f'=SUMIF(I11:I{last_data_row}, "<>Rechazado", J11:J{last_data_row})' if last_data_row >= 11 else total_valor,
+    )
+    c_sub.font = _font(bold=True, color=C_DARK_TEXT, size=10)
+    c_sub.alignment = _al("right", "center")
+    c_sub.number_format = '_($* #,##0_);_($* (#,##0);_($* "-"_);_(@_)'
+    c_sub.fill = _fill(C_GOLD_BG)
+    c_sub.border = _border_all_dark()
 
     stream = io.BytesIO()
     wb.save(stream)
@@ -396,19 +460,11 @@ def generar_excel_viaticos_asignacion(
     wb = openpyxl.load_workbook(TEMPLATE_PATH)
     ws = wb.active
 
-    # ── Logo fix: extraer imagen embebida del template y re-insertarla ────────
-    # openpyxl no garantiza copiar las imágenes al re-serializar; extraemos el
-    # JPEG directamente del zip para que aparezca en cualquier máquina.
-    try:
-        with zipfile.ZipFile(TEMPLATE_PATH, 'r') as _zf:
-            _img_bytes = _zf.read('xl/media/image1.jpeg')
-        from openpyxl.drawing.image import Image as _XLImage
-        _logo = _XLImage(io.BytesIO(_img_bytes))
-        _logo.anchor = 'A1'
-        ws._images = []          # limpiar referencia rota heredada del load
-        ws.add_image(_logo)
-    except Exception:
-        pass  # si falla el logo, el resto del Excel sigue funcionando
+    # ── Inserción del Logotipo Corporativo GSB ────────────────────────────────
+    ws._images = []  # limpiar referencias heredadas para evitar duplicados o fallos
+    logo_img = _get_logo_image(anchor="B1", width=105, height=90)
+    if logo_img:
+        ws.add_image(logo_img)
     # ─────────────────────────────────────────────────────────────────────────
 
     tecnico = asignacion.tecnico
@@ -423,8 +479,7 @@ def generar_excel_viaticos_asignacion(
     ws["C7"] = cedula_tecnico
 
     aprobados_count = len([v for v in viaticos if str(v.estado).lower() == "aprobado"])
-    # Celda F7: mostrar las órdenes de servicio (OT) reales de los viáticos,
-    # deduplicadas y ordenadas, en vez del antiguo conteo de aprobados.
+    # Celda F7: mostrar las órdenes de servicio (OT) reales de los viáticos
     ots_unicas = list(dict.fromkeys(
         v.ot.strip() for v in viaticos if v.ot and v.ot.strip()
     ))
@@ -439,6 +494,21 @@ def generar_excel_viaticos_asignacion(
     ws["G8"] = "SI____ NO____"
     ws["I8"] = "SI____ NO____"
     ws["K8"] = anticipo_num
+
+    # ── Encabezado Columna Estado (L10) ──────────────────────────
+    c_l10 = ws.cell(row=10, column=12, value="Estado")
+    c_k10 = ws.cell(row=10, column=11)
+    if c_k10.has_style:
+        c_l10.font = copy(c_k10.font)
+        c_l10.fill = copy(c_k10.fill)
+        c_l10.border = copy(c_k10.border)
+        c_l10.alignment = copy(c_k10.alignment)
+    else:
+        c_l10.font = _font(bold=True, size=10, color=C_NAVY_TEXT)
+        c_l10.fill = _fill(C_NAVY)
+        c_l10.border = _border_all_dark()
+        c_l10.alignment = _al("center", "center")
+    ws.column_dimensions["L"].width = 15
 
     # ── Tabla de ítems ──────────────────────────────────────────
     total_items = len(viaticos)
@@ -483,6 +553,8 @@ def generar_excel_viaticos_asignacion(
             else "NO"
         )
         val = float(v.valor or 0)
+        estado_raw = (v.estado or "pendiente").strip().lower()
+        estado_cap = estado_raw.capitalize()
 
         ws.cell(row=r, column=2, value=idx + 1)
         ws.cell(row=r, column=3, value=_formato_fecha_viaje(v.fecha))
@@ -493,7 +565,29 @@ def generar_excel_viaticos_asignacion(
         ws.cell(row=r, column=8, value=origen)
         ws.cell(row=r, column=9, value=destino)
         ws.cell(row=r, column=10, value=tiene_soporte)
-        ws.cell(row=r, column=11, value=val)
+        
+        c_val = ws.cell(row=r, column=11, value=val)
+        c_val.number_format = '_($* #,##0_);_($* (#,##0);_($* "-"_);_(@_)'
+
+        # Columna 12 (L): Estado de aprobación/rechazo
+        c_est = ws.cell(row=r, column=12, value=estado_cap)
+        if ws.cell(row=r, column=11).has_style:
+            c_est.border = copy(ws.cell(row=r, column=11).border)
+        else:
+            c_est.border = _border()
+        c_est.alignment = _al("center", "center")
+
+        if estado_raw == "aprobado":
+            c_est.font = _font(bold=True, size=9, color="166534")
+            c_est.fill = _fill("E6F4EA")
+        elif estado_raw == "rechazado":
+            c_est.font = _font(bold=True, size=9, color="C00000")
+            c_est.fill = _fill("FCE8E6")
+            # Texto atenuado para el valor rechazado
+            c_val.font = _font(size=9, color="888888")
+        else:
+            c_est.font = _font(bold=True, size=9, color="B45309")
+            c_est.fill = _fill("FEF3C7")
 
     # ── Totales y Fórmulas ──────────────────────────────────────
     subtotal_row = last_item_row + 1
@@ -503,7 +597,8 @@ def generar_excel_viaticos_asignacion(
     tot_row = tec_row + 1
 
     ws.cell(row=subtotal_row, column=10, value="Subtotal")
-    ws.cell(row=subtotal_row, column=11, value=f"=SUM(K11:K{last_item_row})")
+    # Subtotal dinámico: SUMIF suma únicamente los que NO digan 'Rechazado'
+    ws.cell(row=subtotal_row, column=11, value=f'=SUMIF(L11:L{last_item_row}, "<>Rechazado", K11:K{last_item_row})')
 
     ws.cell(row=ant_row, column=10, value="valor del anticipo")
     ws.cell(row=ant_row, column=11, value="=K8")
