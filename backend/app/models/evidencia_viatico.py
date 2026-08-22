@@ -22,6 +22,11 @@ class EvidenciaViatico(Base):
     )
     secure_url: Mapped[str] = mapped_column(String(500), nullable=False)
     public_id: Mapped[str] = mapped_column(String(300), nullable=False)
+    origen: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        server_default="tecnico",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         nullable=False,

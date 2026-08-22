@@ -76,6 +76,7 @@ class EvidenciaResponse(BaseModel):
     id: int
     secure_url: str
     public_id: str
+    origen: str = "tecnico"
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

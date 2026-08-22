@@ -30,7 +30,7 @@ function formatDate(dateStr) {
     return `${day}/${month}/${year}`;
 }
 
-export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onAprobar, onRechazar, onPresupuestoActualizado }) {
+export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onAprobar, onRechazar, onPresupuestoActualizado, onViaticoActualizado }) {
     const [viatico, setViatico] = useState(viaticoInicial);
     const [indiceActivo, setIndiceActivo] = useState(0);
     const [editandoPresupuesto, setEditandoPresupuesto] = useState(false);
@@ -43,6 +43,100 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
     const [procesandoAccion, setProcesandoAccion] = useState(false);
     const [errorAccion, setErrorAccion] = useState('');
     const [mostrarModalCc, setMostrarModalCc] = useState(false);
+
+    // Estado para subida de soporte adicional por parte del Administrador
+    const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
+    const [previewAdminUrl, setPreviewAdminUrl] = useState(null);
+    const [subiendoAdmin, setSubiendoAdmin] = useState(false);
+    const [errorSubidaAdmin, setErrorSubidaAdmin] = useState('');
+    const [exitoAdminMsg, setExitoAdminMsg] = useState('');
+
+    // Estado para eliminación de evidencia
+    const [eliminandoEvidencia, setEliminandoEvidencia] = useState(false);
+    const [confirmarEliminarEv, setConfirmarEliminarEv] = useState(false);
+
+    function notificarPadre(vActualizado) {
+        if (onViaticoActualizado) onViaticoActualizado(vActualizado);
+        if (onPresupuestoActualizado) onPresupuestoActualizado(vActualizado);
+    }
+
+    function handleSeleccionarArchivo(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setErrorSubidaAdmin('');
+        setExitoAdminMsg('');
+        setArchivoSeleccionado(file);
+        setPreviewAdminUrl(URL.createObjectURL(file));
+        e.target.value = '';
+    }
+
+    function handleCancelarSeleccion() {
+        setArchivoSeleccionado(null);
+        if (previewAdminUrl) URL.revokeObjectURL(previewAdminUrl);
+        setPreviewAdminUrl(null);
+        setErrorSubidaAdmin('');
+    }
+
+    async function handleGuardarEvidenciaAdmin() {
+        if (!archivoSeleccionado) return;
+
+        setSubiendoAdmin(true);
+        setErrorSubidaAdmin('');
+        setExitoAdminMsg('');
+
+        const formData = new FormData();
+        formData.append('file', archivoSeleccionado);
+
+        try {
+            const { data: nuevaEv } = await api.post(`/admin/viaticos/${viatico.id}/evidencias`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            const nuevasEvs = [...(viatico.evidencias || []), nuevaEv];
+            const vActualizado = {
+                ...viatico,
+                evidencias: nuevasEvs
+            };
+            setViatico(vActualizado);
+            setIndiceActivo(nuevasEvs.length - 1);
+            notificarPadre(vActualizado);
+
+            handleCancelarSeleccion();
+            setExitoAdminMsg('✅ Fotografía guardada y actualizada correctamente.');
+            setTimeout(() => setExitoAdminMsg(''), 4000);
+        } catch (err) {
+            const detail = err.response?.data?.detail;
+            setErrorSubidaAdmin(typeof detail === 'string' ? detail : 'Error al guardar la fotografía de soporte.');
+        } finally {
+            setSubiendoAdmin(false);
+        }
+    }
+
+    async function handleEliminarEvidenciaActiva() {
+        const evActiva = (viatico.evidencias || [])[indiceActivo];
+        if (!evActiva) return;
+
+        setEliminandoEvidencia(true);
+        setErrorSubidaAdmin('');
+        try {
+            await api.delete(`/admin/viaticos/${viatico.id}/evidencias/${evActiva.id}`);
+            const nuevasEvs = (viatico.evidencias || []).filter(e => e.id !== evActiva.id);
+            const vActualizado = {
+                ...viatico,
+                evidencias: nuevasEvs
+            };
+            setViatico(vActualizado);
+            setIndiceActivo(prev => Math.max(0, Math.min(prev, nuevasEvs.length - 1)));
+            notificarPadre(vActualizado);
+            setConfirmarEliminarEv(false);
+            setExitoAdminMsg('🗑️ Fotografía eliminada correctamente.');
+            setTimeout(() => setExitoAdminMsg(''), 4000);
+        } catch (err) {
+            const detail = err.response?.data?.detail;
+            setErrorSubidaAdmin(typeof detail === 'string' ? detail : 'Error al eliminar la fotografía.');
+        } finally {
+            setEliminandoEvidencia(false);
+        }
+    }
 
     async function handleConfirmarAccion(e) {
         e.preventDefault();
@@ -71,6 +165,7 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
 
     const evidencias = viatico.evidencias || [];
     const tieneEvidencias = evidencias.length > 0;
+    const evActiva = tieneEvidencias ? evidencias[indiceActivo] : null;
 
     const parsed = parseDescripcion(viatico.descripcion);
 
@@ -98,7 +193,7 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
             });
             setViatico(data);
             setEditandoPresupuesto(false);
-            if (onPresupuestoActualizado) onPresupuestoActualizado(data);
+            notificarPadre(data);
         } catch {
             setErrorPresupuesto('No se pudo guardar el presupuesto.');
         } finally {
@@ -114,22 +209,100 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                 <div className="modal-imagen-lado">
                     {tieneEvidencias ? (
                         <>
-                            <img
-                                src={evidencias[indiceActivo]?.secure_url}
-                                alt={`Evidencia ${indiceActivo + 1}`}
-                                className="modal-imagen-principal"
-                            />
+                            <div className="modal-imagen-container">
+                                <div className={`modal-evidencia-badge ${evActiva?.origen === 'admin' ? 'modal-evidencia-badge--admin' : 'modal-evidencia-badge--tecnico'}`}>
+                                    {evActiva?.origen === 'admin' ? '🛡️ Soporte de Administración' : '👤 Foto subida por Técnico'}
+                                </div>
+
+                                <img
+                                    src={evActiva?.secure_url}
+                                    alt={`Evidencia ${indiceActivo + 1}`}
+                                    className="modal-imagen-principal"
+                                />
+
+                                {evidencias.length > 1 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="modal-nav-arrow modal-nav-arrow--prev"
+                                            disabled={indiceActivo === 0}
+                                            onClick={() => setIndiceActivo(i => Math.max(0, i - 1))}
+                                            title="Foto anterior"
+                                        >
+                                            ‹
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="modal-nav-arrow modal-nav-arrow--next"
+                                            disabled={indiceActivo === evidencias.length - 1}
+                                            onClick={() => setIndiceActivo(i => Math.min(evidencias.length - 1, i + 1))}
+                                            title="Foto siguiente"
+                                        >
+                                            ›
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Barra de herramientas para la foto activa: eliminar si fue subida por admin o errónea */}
+                            <div className="modal-foto-actions-bar">
+                                <span className="modal-foto-counter">
+                                    Foto {indiceActivo + 1} de {evidencias.length} {evActiva?.origen === 'admin' ? '(Admin)' : '(Técnico)'}
+                                </span>
+                                {confirmarEliminarEv ? (
+                                    <div className="modal-confirm-delete-inline">
+                                        <span>¿Borrar esta foto?</span>
+                                        <button
+                                            type="button"
+                                            className="modal-btn-confirm-del"
+                                            onClick={handleEliminarEvidenciaActiva}
+                                            disabled={eliminandoEvidencia}
+                                        >
+                                            {eliminandoEvidencia ? 'Borrando…' : 'Sí, borrar'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="modal-btn-cancel-del"
+                                            onClick={() => setConfirmarEliminarEv(false)}
+                                            disabled={eliminandoEvidencia}
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        className="modal-btn-delete-foto"
+                                        onClick={() => setConfirmarEliminarEv(true)}
+                                        title="Eliminar esta fotografía de soporte"
+                                    >
+                                        🗑️ Borrar esta foto
+                                    </button>
+                                )}
+                            </div>
+
                             {evidencias.length > 1 && (
                                 <div className="modal-thumbs-strip">
-                                    {evidencias.map((ev, i) => (
-                                        <img
-                                            key={ev.id}
-                                            src={ev.secure_url}
-                                            alt={`Miniatura ${i + 1}`}
-                                            className={`modal-thumb ${i === indiceActivo ? 'modal-thumb--activa' : ''}`}
-                                            onClick={() => setIndiceActivo(i)}
-                                        />
-                                    ))}
+                                    {evidencias.map((ev, i) => {
+                                        const esAdminThumb = ev.origen === 'admin';
+                                        return (
+                                            <div
+                                                key={ev.id || i}
+                                                className={`modal-thumb-wrap ${i === indiceActivo ? 'modal-thumb-wrap--activa' : ''}`}
+                                                onClick={() => { setIndiceActivo(i); setConfirmarEliminarEv(false); }}
+                                                title={esAdminThumb ? 'Soporte Admin' : 'Foto Técnico'}
+                                            >
+                                                <img
+                                                    src={ev.secure_url}
+                                                    alt={`Miniatura ${i + 1}`}
+                                                    className="modal-thumb"
+                                                />
+                                                <span className={`modal-thumb-tag ${esAdminThumb ? 'modal-thumb-tag--admin' : 'modal-thumb-tag--tecnico'}`}>
+                                                    {esAdminThumb ? '🛡️ Admin' : '👤 Técnico'}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </>
@@ -139,6 +312,59 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                             <p>Este viático no tiene fotografías adjuntas</p>
                         </div>
                     )}
+
+                    {/* Mensajes de éxito o error */}
+                    {exitoAdminMsg && (
+                        <div className="modal-admin-msg modal-admin-msg--success">{exitoAdminMsg}</div>
+                    )}
+                    {errorSubidaAdmin && (
+                        <div className="modal-admin-msg modal-admin-msg--error">⚠ {errorSubidaAdmin}</div>
+                    )}
+
+                    {/* Panel de subida de soporte del Administrador con previsualización y botón GUARDAR */}
+                    <div className="modal-admin-upload-wrap">
+                        {archivoSeleccionado ? (
+                            <div className="modal-admin-preview-box">
+                                <div className="modal-admin-preview-info">
+                                    {previewAdminUrl && (
+                                        <img src={previewAdminUrl} alt="Vista previa soporte admin" className="modal-admin-preview-img" />
+                                    )}
+                                    <div className="modal-admin-preview-meta">
+                                        <strong>{archivoSeleccionado.name}</strong>
+                                        <span>{(archivoSeleccionado.size / 1024).toFixed(0)} KB</span>
+                                    </div>
+                                </div>
+                                <div className="modal-admin-preview-actions">
+                                    <button
+                                        type="button"
+                                        className="modal-btn-guardar-foto"
+                                        onClick={handleGuardarEvidenciaAdmin}
+                                        disabled={subiendoAdmin}
+                                    >
+                                        {subiendoAdmin ? '⏳ Guardando…' : '💾 Guardar Fotografía'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="modal-btn-cancelar-foto"
+                                        onClick={handleCancelarSeleccion}
+                                        disabled={subiendoAdmin}
+                                    >
+                                        ✕ Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <label className="modal-btn-admin-upload">
+                                📷 + Seleccionar foto de soporte (Admin)
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleSeleccionarArchivo}
+                                    hidden
+                                />
+                            </label>
+                        )}
+                    </div>
                 </div>
 
                 <div className="modal-info-lado">

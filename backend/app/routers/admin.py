@@ -2,12 +2,13 @@ from datetime import date
 from decimal import Decimal
 from typing import Annotated, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.viatico import Viatico
+from app.models.evidencia_viatico import EvidenciaViatico
 from app.models.cuenta_cobro import CuentaCobro  # noqa: F401 – necesario para eager load
 from app.schemas.viatico import (
     ViaticoResponse,
@@ -15,8 +16,10 @@ from app.schemas.viatico import (
     ViaticoPresupuestoUpdate,
     ViaticoEstadoUpdate,
     AsignacionResumenViatico,
+    EvidenciaResponse,
 )
 from app.services.excel_export import generar_excel_viaticos_independientes
+from app.core.cloudinary import upload_evidencia_viatico
 from app.core.config import settings
 from app.core.security import get_current_admin, get_current_superadmin, get_current_master_admin, hash_password, verificar_autoridad_sobre_usuario
 from app.database import get_db
@@ -558,6 +561,117 @@ def rechazar_viatico(
         .where(Viatico.id == id)
     )
     return viatico
+
+
+@router.post(
+    "/viaticos/{id}/evidencias",
+    response_model=EvidenciaResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def subir_evidencia_admin(
+    id: int,
+    file: Annotated[UploadFile, File(description="Fotografía de soporte administrativo")],
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Permite al administrador subir una fotografía adicional de soporte
+    para un viático específico, registrada con origen='admin'.
+    Reutiliza exactamente la misma validación de tipo de archivo y tamaño
+    de upload_evidencia_viatico.
+    """
+    stmt = (
+        select(Viatico)
+        .options(joinedload(Viatico.usuario))
+        .where(Viatico.id == id)
+    )
+    viatico = db.scalar(stmt)
+    if not viatico:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Viático no encontrado",
+        )
+
+    verificar_autoridad_sobre_usuario(current_admin, viatico.usuario)
+
+    upload_result = await upload_evidencia_viatico(file)
+
+    nueva_evidencia = EvidenciaViatico(
+        viatico_id=viatico.id,
+        secure_url=upload_result.secure_url,
+        public_id=upload_result.public_id,
+        origen="admin",
+    )
+    db.add(nueva_evidencia)
+    db.commit()
+    db.refresh(nueva_evidencia)
+
+    registrar_auditoria(
+        db,
+        actor=current_admin,
+        usuario_objetivo=viatico.usuario,
+        accion="subir_evidencia_admin",
+        detalle=f"viático #{viatico.id}, evidencia_id={nueva_evidencia.id}",
+        resultado="exitoso",
+    )
+
+    return nueva_evidencia
+
+
+@router.delete(
+    "/viaticos/{id}/evidencias/{evidencia_id}",
+    status_code=status.HTTP_200_OK,
+)
+def eliminar_evidencia_admin(
+    id: int,
+    evidencia_id: int,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Permite al administrador eliminar una fotografía de evidencia/soporte
+    asociada a un viático (por ejemplo, si se subió una foto incorrecta).
+    """
+    stmt = (
+        select(Viatico)
+        .options(joinedload(Viatico.usuario))
+        .where(Viatico.id == id)
+    )
+    viatico = db.scalar(stmt)
+    if not viatico:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Viático no encontrado",
+        )
+
+    verificar_autoridad_sobre_usuario(current_admin, viatico.usuario)
+
+    stmt_ev = select(EvidenciaViatico).where(
+        EvidenciaViatico.id == evidencia_id,
+        EvidenciaViatico.viatico_id == id,
+    )
+    evidencia = db.scalar(stmt_ev)
+    if not evidencia:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Evidencia no encontrada para este viático",
+        )
+
+    origen_borrado = evidencia.origen
+    db.delete(evidencia)
+    db.commit()
+
+    registrar_auditoria(
+        db,
+        actor=current_admin,
+        usuario_objetivo=viatico.usuario,
+        accion="eliminar_evidencia_admin",
+        detalle=f"viático #{viatico.id}, evidencia_id={evidencia_id}, origen={origen_borrado}",
+        resultado="exitoso",
+    )
+
+    return {"detail": "Evidencia eliminada correctamente"}
+
 
 @router.get("/usuarios", response_model=List[UsuarioResponse])
 def listar_usuarios(
