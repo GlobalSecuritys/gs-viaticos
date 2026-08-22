@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import zipfile
 from copy import copy
 from datetime import date
 from decimal import Decimal
@@ -395,6 +396,21 @@ def generar_excel_viaticos_asignacion(
     wb = openpyxl.load_workbook(TEMPLATE_PATH)
     ws = wb.active
 
+    # ── Logo fix: extraer imagen embebida del template y re-insertarla ────────
+    # openpyxl no garantiza copiar las imágenes al re-serializar; extraemos el
+    # JPEG directamente del zip para que aparezca en cualquier máquina.
+    try:
+        with zipfile.ZipFile(TEMPLATE_PATH, 'r') as _zf:
+            _img_bytes = _zf.read('xl/media/image1.jpeg')
+        from openpyxl.drawing.image import Image as _XLImage
+        _logo = _XLImage(io.BytesIO(_img_bytes))
+        _logo.anchor = 'A1'
+        ws._images = []          # limpiar referencia rota heredada del load
+        ws.add_image(_logo)
+    except Exception:
+        pass  # si falla el logo, el resto del Excel sigue funcionando
+    # ─────────────────────────────────────────────────────────────────────────
+
     tecnico = asignacion.tecnico
     nombre_tecnico = tecnico.nombre if tecnico else "—"
     cedula_tecnico = tecnico.codigo_empleado if tecnico else "—"
@@ -407,7 +423,12 @@ def generar_excel_viaticos_asignacion(
     ws["C7"] = cedula_tecnico
 
     aprobados_count = len([v for v in viaticos if str(v.estado).lower() == "aprobado"])
-    ws["F7"] = aprobados_count
+    # Celda F7: mostrar las órdenes de servicio (OT) reales de los viáticos,
+    # deduplicadas y ordenadas, en vez del antiguo conteo de aprobados.
+    ots_unicas = list(dict.fromkeys(
+        v.ot.strip() for v in viaticos if v.ot and v.ot.strip()
+    ))
+    ws["F7"] = ", ".join(ots_unicas) if ots_unicas else str(aprobados_count)
     ws["J7"] = date.today().strftime("%d/%m/%y")
 
     if asignacion.fecha_inicio:

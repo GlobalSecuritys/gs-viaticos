@@ -61,6 +61,10 @@ export default function MisViaticos() {
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState('');
 
+  // Lightbox de evidencias
+  const [galeriaViatico, setGaleriaViatico] = useState(null); // viático cuyas fotos se muestran
+  const [fotoActiva, setFotoActiva] = useState(0);            // índice de foto activa
+
   useEffect(() => {
     let activo = true;
     Promise.all([
@@ -194,6 +198,7 @@ export default function MisViaticos() {
   }
 
   function FilaViatico({ v }) {
+    const tieneFotos = v.evidencias?.length > 0;
     return (
       <div className="mv-viatico-item">
         <div className="mv-vi-izq">
@@ -202,8 +207,15 @@ export default function MisViaticos() {
             <span className="mv-vi-tipo">{LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}</span>
             <span className="mv-vi-fecha">{formatFechaLarga(v.fecha)}</span>
             {v.ciudad && <span className="mv-vi-ciudad">📍 {v.ciudad}</span>}
-            {v.evidencias?.length > 0 ? (
-              <span className="mv-vi-ev">📎 {v.evidencias.length} foto{v.evidencias.length > 1 ? 's' : ''}</span>
+            {tieneFotos ? (
+              <button
+                type="button"
+                className="mv-vi-ev mv-vi-ev--btn"
+                onClick={() => { setGaleriaViatico(v); setFotoActiva(0); }}
+                title="Ver fotografías de soporte"
+              >
+                📷 {v.evidencias.length} foto{v.evidencias.length > 1 ? 's' : ''} — ver
+              </button>
             ) : (
               <span className="mv-vi-ev mv-vi-ev--vacio">Sin evidencia</span>
             )}
@@ -498,6 +510,91 @@ export default function MisViaticos() {
 
         {mostrarModalTipoViatico && (
           <ModalSeleccionarTipoViatico onClose={() => setMostrarModalTipoViatico(false)} />
+        )}
+
+        {/* ── LIGHTBOX DE EVIDENCIAS ────────────────────────────── */}
+        {galeriaViatico && (
+          <div
+            className="mv-lightbox-overlay"
+            onClick={() => setGaleriaViatico(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Galería de evidencias"
+          >
+            <div className="mv-lightbox" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="mv-lightbox-header">
+                <div>
+                  <span className="mv-lightbox-title">📷 Evidencias fotográficas</span>
+                  <span className="mv-lightbox-sub">
+                    {LABEL_TIPO_GASTO[galeriaViatico.tipo_gasto] || galeriaViatico.tipo_gasto}
+                    {' · '}{formatFechaLarga(galeriaViatico.fecha)}
+                    {' · '}{formatCOP(galeriaViatico.valor)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="mv-lightbox-close"
+                  onClick={() => setGaleriaViatico(null)}
+                  aria-label="Cerrar galería"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Foto principal */}
+              <div className="mv-lightbox-main">
+                <button
+                  type="button"
+                  className="mv-lightbox-nav mv-lightbox-nav--prev"
+                  disabled={fotoActiva === 0}
+                  onClick={() => setFotoActiva((i) => Math.max(0, i - 1))}
+                  aria-label="Foto anterior"
+                >
+                  ‹
+                </button>
+
+                <img
+                  key={galeriaViatico.evidencias[fotoActiva]?.secure_url}
+                  src={galeriaViatico.evidencias[fotoActiva]?.secure_url}
+                  alt={`Evidencia ${fotoActiva + 1} de ${galeriaViatico.evidencias.length}`}
+                  className="mv-lightbox-img"
+                />
+
+                <button
+                  type="button"
+                  className="mv-lightbox-nav mv-lightbox-nav--next"
+                  disabled={fotoActiva === galeriaViatico.evidencias.length - 1}
+                  onClick={() => setFotoActiva((i) => Math.min(galeriaViatico.evidencias.length - 1, i + 1))}
+                  aria-label="Foto siguiente"
+                >
+                  ›
+                </button>
+              </div>
+
+              {/* Contador */}
+              <div className="mv-lightbox-counter">
+                {fotoActiva + 1} / {galeriaViatico.evidencias.length}
+              </div>
+
+              {/* Miniaturas */}
+              {galeriaViatico.evidencias.length > 1 && (
+                <div className="mv-lightbox-thumbs">
+                  {galeriaViatico.evidencias.map((ev, idx) => (
+                    <button
+                      key={ev.secure_url}
+                      type="button"
+                      className={`mv-lightbox-thumb ${idx === fotoActiva ? 'mv-lightbox-thumb--active' : ''}`}
+                      onClick={() => setFotoActiva(idx)}
+                      aria-label={`Ver foto ${idx + 1}`}
+                    >
+                      <img src={ev.secure_url} alt={`Miniatura ${idx + 1}`} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </TecnicoLayout>

@@ -37,6 +37,7 @@ function getItemInicial(id) {
         proveedor_query: '',         // texto que el usuario escribe para buscar
         proveedor_seleccionado: null, // { nit, nombre }
         razon_social: '',
+        ot: '',                      // Orden de servicio
         concepto: 'alimentacion',
         origen: '',
         destino: '',
@@ -253,7 +254,7 @@ export default function NuevoViatico() {
                     fecha: fechaSeleccionada,
                     cliente: g.razon_social || (asignacionDetalle ? asignacionDetalle.cliente : (nitFinal || 'Gasto Operativo')),
                     ciudad: g.destino || (asignacionDetalle ? asignacionDetalle.ciudad : 'N/A'),
-                    ot: asignacionIdParam ? `ASIG-#${asignacionIdParam}` : (g.origen ? `${g.origen} -> ${g.destino}` : 'OT-CAMPO'),
+                    ot: g.ot.trim() || '',
                     tipo_gasto: g.concepto,
                     valor: val,
                     descripcion: descripcionEstructurada,
@@ -577,6 +578,19 @@ export default function NuevoViatico() {
                                                         value={gasto.razon_social}
                                                         onChange={(e) =>
                                                             handleGastoChange(gasto.id, 'razon_social', e.target.value)
+                                                        }
+                                                    />
+                                                </div>
+
+                                                {/* Orden de servicio */}
+                                                <div className="nv-field-group">
+                                                    <label>Orden de servicio</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Ej: OT-2025-001"
+                                                        value={gasto.ot}
+                                                        onChange={(e) =>
+                                                            handleGastoChange(gasto.id, 'ot', e.target.value)
                                                         }
                                                     />
                                                 </div>
