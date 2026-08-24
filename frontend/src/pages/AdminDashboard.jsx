@@ -285,8 +285,9 @@ export default function AdminDashboard() {
 
     const NAV_ITEMS = [
         { id: 'inicio', label: 'Inicio', icon: '🏠', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+        { id: 'talento-humano', label: 'Talento Humano', icon: '👥', action: () => navigate('/talento-humano') },
         { id: 'viaticos', label: 'Viáticos', icon: '💼', action: () => seccionViaticosRef.current?.scrollIntoView({ behavior: 'smooth' }) },
-        { id: 'tecnicos', label: 'Técnicos', icon: '👥', action: () => seccionTecnicosRef.current?.scrollIntoView({ behavior: 'smooth' }) },
+        { id: 'tecnicos', label: 'Técnicos', icon: '👷', action: () => seccionTecnicosRef.current?.scrollIntoView({ behavior: 'smooth' }) },
         { id: 'usuarios', label: 'Usuarios', icon: '👤', action: () => navigate(user?.rol === 'superadmin' ? '/admin/usuarios' : `/admin/personal/${user?.id}`) },
         { id: 'auditoria', label: 'Auditoría', icon: '📊', action: () => navigate('/admin/auditoria') },
         { id: 'configuracion', label: 'Configuración', icon: '⚙️', action: () => user?.id && navigate(`/admin/personal/${user.id}`) },

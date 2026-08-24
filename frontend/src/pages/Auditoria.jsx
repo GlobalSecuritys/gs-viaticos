@@ -310,8 +310,9 @@ export default function Auditoria() {
 
     const NAV_ITEMS = [
         { id: 'inicio', label: 'Inicio', icon: '🏠', action: () => navigate('/admin') },
+        { id: 'talento-humano', label: 'Talento Humano', icon: '👥', action: () => navigate('/talento-humano') },
         { id: 'viaticos', label: 'Viáticos', icon: '💼', action: () => navigate('/admin') },
-        { id: 'tecnicos', label: 'Técnicos', icon: '👥', action: () => navigate('/admin') },
+        { id: 'tecnicos', label: 'Técnicos', icon: '👷', action: () => navigate('/admin') },
         { id: 'usuarios', label: 'Usuarios', icon: '👤', action: () => navigate('/admin/usuarios') },
         { id: 'auditoria', label: 'Auditoría', icon: '📊', action: () => {} },
         { id: 'configuracion', label: 'Configuración', icon: '⚙️', action: () => user?.id && navigate(`/admin/personal/${user.id}`) },

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { subirEvidencias, eliminarEvidenciaViatico } from '../services/api';
 import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import TecnicoLayout from '../components/TecnicoLayout';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
@@ -34,6 +34,10 @@ const CONCEPTOS = [
   { id: 'materiales', label: 'Materiales' },
 ];
 
+const TIPOS_PERMITIDOS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const MAX_ARCHIVOS_TOTAL = 5;
+const MAX_TAMANO_BYTES = 5 * 1024 * 1024; // 5 MB
+
 export default function MisViaticos() {
   const navigate = useNavigate();
   const [viaticos, setViaticos] = useState([]);
@@ -43,6 +47,7 @@ export default function MisViaticos() {
   const [mostrarModalTipoViatico, setMostrarModalTipoViatico] = useState(false);
   const [colapsadas, setColapsadas] = useState({});
 
+  // Estado de edición de viático
   const [viaticoEditando, setViaticoEditando] = useState(null);
   const [editForm, setEditForm] = useState({
     cliente: '',
@@ -57,13 +62,21 @@ export default function MisViaticos() {
   const [guardandoEdit, setGuardandoEdit] = useState(false);
   const [errorEdit, setErrorEdit] = useState('');
 
+  // Gestión de fotos en la edición
+  const [evidenciasExistentes, setEvidenciasExistentes] = useState([]);
+  const [evidenciasAEliminar, setEvidenciasAEliminar] = useState(new Set());
+  const [nuevasFotos, setNuevasFotos] = useState([]);
+  const [errorFotos, setErrorFotos] = useState('');
+  const [dragActivo, setDragActivo] = useState(false);
+
+  // Estado de eliminación de viático completo
   const [viaticoEliminando, setViaticoEliminando] = useState(null);
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState('');
 
   // Lightbox de evidencias
-  const [galeriaViatico, setGaleriaViatico] = useState(null); // viático cuyas fotos se muestran
-  const [fotoActiva, setFotoActiva] = useState(0);            // índice de foto activa
+  const [galeriaViatico, setGaleriaViatico] = useState(null);
+  const [fotoActiva, setFotoActiva] = useState(0);
 
   useEffect(() => {
     let activo = true;
@@ -108,6 +121,7 @@ export default function MisViaticos() {
             monto_anticipo: asig.monto_anticipo,
             total_gastado: asig.total_gastado,
             saldo_restante: asig.saldo_restante,
+            estado: asig.estado,
           } : null);
 
           porAsignacion[v.asignacion_id] = {
@@ -140,10 +154,38 @@ export default function MisViaticos() {
     } catch { return false; }
   }
 
-  function abrirEditar(v) {
+  /**
+   * Determina si la asignación vinculada al viático está disponible para edición.
+   * Si no tiene asignación (independiente), siempre está disponible.
+   * Si tiene asignación, su estado debe ser 'pendiente' o 'en_curso'.
+   */
+  function esAsignacionDisponible(resumen, asigObj, v) {
+    if (!v?.asignacion_id) return true;
+    const estado = resumen?.estado || asigObj?.estado || v?.asignacion_resumen?.estado;
+    if (!estado) return true;
+    return estado === 'pendiente' || estado === 'en_curso';
+  }
+
+  function abrirEditar(v, grupoResumen, grupoAsigObj) {
+    if (!esAsignacionDisponible(grupoResumen, grupoAsigObj, v)) {
+      alert('Esta asignación se encuentra finalizada o cancelada y sus viáticos no pueden ser modificados.');
+      return;
+    }
+
+    // Limpiar previews previos de memoria si los hubiere
+    nuevasFotos.forEach((f) => {
+      if (f.preview) URL.revokeObjectURL(f.preview);
+    });
+
     setViaticoEditando(v);
     setErrorEdit('');
+    setErrorFotos('');
     setMostrarFechaEdit(false);
+    setEvidenciasExistentes(v.evidencias ? [...v.evidencias] : []);
+    setEvidenciasAEliminar(new Set());
+    setNuevasFotos([]);
+    setDragActivo(false);
+
     setEditForm({
       cliente: v.cliente || '',
       ciudad: v.ciudad || '',
@@ -155,16 +197,90 @@ export default function MisViaticos() {
     });
   }
 
-  function abrirEliminar(v) {
+  function cerrarModalEditar() {
+    nuevasFotos.forEach((f) => {
+      if (f.preview) URL.revokeObjectURL(f.preview);
+    });
+    setNuevasFotos([]);
+    setEvidenciasAEliminar(new Set());
+    setViaticoEditando(null);
+    setErrorEdit('');
+    setErrorFotos('');
+  }
+
+  function abrirEliminar(v, grupoResumen, grupoAsigObj) {
+    if (!esAsignacionDisponible(grupoResumen, grupoAsigObj, v)) {
+      alert('Esta asignación se encuentra finalizada o cancelada y sus viáticos no pueden ser eliminados.');
+      return;
+    }
     setViaticoEliminando(v);
     setErrorEliminar('');
+  }
+
+  // Marcar / Desmarcar foto existente para eliminación
+  function toggleEliminarEvidencia(id) {
+    setEvidenciasAEliminar((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+    setErrorFotos('');
+  }
+
+  // Validar y agregar nuevas fotos
+  function validarYAgregarNuevasFotos(archivosSeleccionados) {
+    setErrorFotos('');
+    const lista = Array.from(archivosSeleccionados || []);
+    if (lista.length === 0) return;
+
+    const activasExistentes = evidenciasExistentes.filter((e) => !evidenciasAEliminar.has(e.id)).length;
+    const totalActual = activasExistentes + nuevasFotos.length;
+
+    if (totalActual + lista.length > MAX_ARCHIVOS_TOTAL) {
+      setErrorFotos(`El viático puede tener máximo ${MAX_ARCHIVOS_TOTAL} fotografías en total. Disponibles: ${MAX_ARCHIVOS_TOTAL - totalActual}.`);
+      return;
+    }
+
+    for (const file of lista) {
+      if (!TIPOS_PERMITIDOS.includes(file.type)) {
+        setErrorFotos(`Formato no permitido: "${file.name}". Solo se aceptan JPG, PNG o WEBP.`);
+        return;
+      }
+      if (file.size > MAX_TAMANO_BYTES) {
+        setErrorFotos(`"${file.name}" supera los 5 MB permitidos.`);
+        return;
+      }
+    }
+
+    const conPreview = lista.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      id: crypto.randomUUID(),
+    }));
+
+    setNuevasFotos((prev) => [...prev, ...conPreview]);
+  }
+
+  function quitarNuevaFoto(id) {
+    setNuevasFotos((prev) => {
+      const item = prev.find((f) => f.id === id);
+      if (item?.preview) URL.revokeObjectURL(item.preview);
+      return prev.filter((f) => f.id !== id);
+    });
+    setErrorFotos('');
   }
 
   async function handleGuardarEdicion(e) {
     e.preventDefault();
     setGuardandoEdit(true);
     setErrorEdit('');
+
     try {
+      // 1. Guardar cambios en los datos del viático
       const payload = {
         cliente: editForm.cliente,
         ciudad: editForm.ciudad,
@@ -174,11 +290,42 @@ export default function MisViaticos() {
         descripcion: editForm.descripcion || null,
       };
       if (mostrarFechaEdit && editForm.fecha) payload.fecha = editForm.fecha;
-      const { data } = await api.put(`/viaticos/${viaticoEditando.id}`, payload);
-      setViaticos((prev) => prev.map((item) => item.id === viaticoEditando.id ? { ...item, ...data } : item));
-      setViaticoEditando(null);
+
+      await api.put(`/viaticos/${viaticoEditando.id}`, payload);
+
+      // 2. Eliminar fotos marcadas
+      if (evidenciasAEliminar.size > 0) {
+        for (const evId of evidenciasAEliminar) {
+          try {
+            await eliminarEvidenciaViatico(viaticoEditando.id, evId);
+          } catch (errEv) {
+            console.error(`Error al eliminar evidencia #${evId}:`, errEv);
+          }
+        }
+      }
+
+      // 3. Subir fotos nuevas si existen
+      if (nuevasFotos.length > 0) {
+        try {
+          await subirEvidencias(
+            viaticoEditando.id,
+            nuevasFotos.map((f) => f.file)
+          );
+        } catch (errUpload) {
+          console.error('Error al subir nuevas evidencias:', errUpload);
+          throw new Error('El viático se guardó pero falló la subida de fotos. Verifica tu conexión.');
+        }
+      }
+
+      // 4. Obtener el viático actualizado con sus nuevas evidencias
+      const { data: viaticoRefrescado } = await api.get(`/viaticos/${viaticoEditando.id}`);
+      setViaticos((prev) =>
+        prev.map((item) => (item.id === viaticoEditando.id ? { ...item, ...viaticoRefrescado } : item))
+      );
+
+      cerrarModalEditar();
     } catch (err) {
-      setErrorEdit(err.response?.data?.detail || 'No se pudo guardar el viatico.');
+      setErrorEdit(err.response?.data?.detail || err.message || 'No se pudo guardar el viático.');
     } finally {
       setGuardandoEdit(false);
     }
@@ -191,14 +338,16 @@ export default function MisViaticos() {
       setViaticos((prev) => prev.filter((item) => item.id !== viaticoEliminando.id));
       setViaticoEliminando(null);
     } catch (err) {
-      setErrorEliminar(err.response?.data?.detail || 'No se pudo eliminar el viatico.');
+      setErrorEliminar(err.response?.data?.detail || 'No se pudo eliminar el viático.');
     } finally {
       setEliminando(false);
     }
   }
 
-  function FilaViatico({ v }) {
+  function FilaViatico({ v, resumen, asigObj }) {
     const tieneFotos = v.evidencias?.length > 0;
+    const asignacionDisponible = esAsignacionDisponible(resumen, asigObj, v);
+
     return (
       <div className="mv-viatico-item">
         <div className="mv-vi-izq">
@@ -231,22 +380,45 @@ export default function MisViaticos() {
               💬 {v.comentario_admin}
             </span>
           )}
-          {v.estado === 'pendiente' && (
+
+          {!asignacionDisponible ? (
             <div className="mv-vi-acciones">
-              <button type="button" className="mv-btn-accion mv-btn-accion--edit" onClick={() => abrirEditar(v)}>
-                ✏ Editar
-              </button>
-              <button type="button" className="mv-btn-accion mv-btn-accion--del" onClick={() => abrirEliminar(v)}>
-                🗑 Borrar
-              </button>
+              <span className="mv-bloqueado-badge" title="Esta asignación está finalizada o cancelada">
+                🔒 Asig. Cerrada
+              </span>
             </div>
-          )}
-          {v.estado === 'rechazado' && (
-            <div className="mv-vi-acciones">
-              <button type="button" className="mv-btn-accion mv-btn-accion--reenviar" onClick={() => abrirEditar(v)}>
-                🔄 Corregir y reenviar
-              </button>
-            </div>
+          ) : (
+            <>
+              {v.estado === 'pendiente' && (
+                <div className="mv-vi-acciones">
+                  <button
+                    type="button"
+                    className="mv-btn-accion mv-btn-accion--edit"
+                    onClick={() => abrirEditar(v, resumen, asigObj)}
+                  >
+                    ✏ Editar
+                  </button>
+                  <button
+                    type="button"
+                    className="mv-btn-accion mv-btn-accion--del"
+                    onClick={() => abrirEliminar(v, resumen, asigObj)}
+                  >
+                    🗑 Borrar
+                  </button>
+                </div>
+              )}
+              {v.estado === 'rechazado' && (
+                <div className="mv-vi-acciones">
+                  <button
+                    type="button"
+                    className="mv-btn-accion mv-btn-accion--reenviar"
+                    onClick={() => abrirEditar(v, resumen, asigObj)}
+                  >
+                    🔄 Corregir y reenviar
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -266,8 +438,9 @@ export default function MisViaticos() {
     const nombreOficina = resumen?.empresa || asigObj?.empresa || '';
     const nombreLugar = resumen?.ciudad || asigObj?.ciudad || primerViatico.ciudad || '';
     const tipoAsig = resumen?.tipo || asigObj?.tipo || '';
+    const estadoAsig = resumen?.estado || asigObj?.estado || '';
+    const asignacionActiva = esAsignacionDisponible(resumen, asigObj, primerViatico);
 
-    // Formato: asignacion / oficina / lugar
     const partesTitulo = [nombreCliente, nombreOficina, nombreLugar].filter(Boolean);
     const tituloPaleta = partesTitulo.length > 0 ? partesTitulo.join(' / ') : `Asignación #${asignacion_id}`;
 
@@ -288,11 +461,18 @@ export default function MisViaticos() {
             <span className="mv-paleta-icono">📋</span>
             <div className="mv-paleta-titulo">
               <span className="mv-paleta-cliente">{tituloPaleta}</span>
-              {tipoAsig && (
-                <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', background: '#F1F5F9', padding: '0.12rem 0.45rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
-                  {LABEL_TIPO_ASIGNACION[tipoAsig] || tipoAsig}
-                </span>
-              )}
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                {tipoAsig && (
+                  <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', background: '#F1F5F9', padding: '0.12rem 0.45rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                    {LABEL_TIPO_ASIGNACION[tipoAsig] || tipoAsig}
+                  </span>
+                )}
+                {!asignacionActiva && (
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#991B1B', background: '#FEE2E2', padding: '0.12rem 0.45rem', borderRadius: '6px', border: '1px solid #FCA5A5' }}>
+                    🔒 Cerrada ({estadoAsig})
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="mv-paleta-header-der">
@@ -335,22 +515,26 @@ export default function MisViaticos() {
               </div>
             </div>
             <div className="mv-paleta-viaticos">
-              {items.map((v) => <FilaViatico key={v.id} v={v} />)}
+              {items.map((v) => <FilaViatico key={v.id} v={v} resumen={resumen} asigObj={asigObj} />)}
             </div>
-            <div className="mv-paleta-footer">
-              <button
-                type="button"
-                className="mv-paleta-btn-agregar"
-                onClick={() => navigate(`/nuevo-viatico?asignacion_id=${asignacion_id}`)}
-              >
-                + Agregar gasto a esta asignacion
-              </button>
-            </div>
+            {asignacionActiva && (
+              <div className="mv-paleta-footer">
+                <button
+                  type="button"
+                  className="mv-paleta-btn-agregar"
+                  onClick={() => navigate(`/nuevo-viatico?asignacion_id=${asignacion_id}`)}
+                >
+                  + Agregar gasto a esta asignación
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
     );
   }
+
+  const fotosActivasTotal = evidenciasExistentes.filter((e) => !evidenciasAEliminar.has(e.id)).length + nuevasFotos.length;
 
   return (
     <TecnicoLayout>
@@ -358,11 +542,11 @@ export default function MisViaticos() {
         <header className="form-header">
           <button className="btn-back" onClick={() => navigate('/dashboard')}>← Volver</button>
           <div className="form-header-title">
-            <h1>Mis Viaticos</h1>
-            <p>Historial y estado de tus viaticos registrados</p>
+            <h1>Mis Viáticos</h1>
+            <p>Historial y estado de tus viáticos registrados</p>
           </div>
           <button className="btn-nuevo" onClick={() => setMostrarModalTipoViatico(true)}>
-            + Nuevo Viatico
+            + Nuevo Viático
           </button>
         </header>
 
@@ -370,11 +554,11 @@ export default function MisViaticos() {
           {error && <div className="form-error" role="alert"><span>⚠</span> {error}</div>}
 
           {loading ? (
-            <div className="mv-loading"><div className="mv-spinner" /><span>Cargando tus viaticos…</span></div>
+            <div className="mv-loading"><div className="mv-spinner" /><span>Cargando tus viáticos…</span></div>
           ) : viaticos.length === 0 ? (
             <div className="mv-empty">
               <span className="mv-empty-icon">📋</span>
-              <p>Todavia no has registrado ningun viatico.</p>
+              <p>Todavía no has registrado ningún viático.</p>
               <button className="btn-primary" onClick={() => setMostrarModalTipoViatico(true)}>Registrar el primero</button>
             </div>
           ) : (
@@ -382,7 +566,7 @@ export default function MisViaticos() {
               {grupos.length > 0 && (
                 <section className="mv-section">
                   <div className="mv-section-header">
-                    <h2 className="mv-section-title"><span>📍</span> Por Asignacion</h2>
+                    <h2 className="mv-section-title"><span>📍</span> Por Asignación</h2>
                     <span className="mv-section-count">{grupos.length} asignacion{grupos.length > 1 ? 'es' : ''}</span>
                   </div>
                   <div className="mv-paletas-lista">
@@ -394,16 +578,16 @@ export default function MisViaticos() {
               {independientes.length > 0 && (
                 <section className="mv-section">
                   <div className="mv-section-header">
-                    <h2 className="mv-section-title"><span>📄</span> Viaticos Independientes</h2>
+                    <h2 className="mv-section-title"><span>📄</span> Viáticos Independientes</h2>
                     <span className="mv-section-count">{independientes.length} registro{independientes.length > 1 ? 's' : ''}</span>
                   </div>
                   <div className="mv-paleta mv-paleta--independiente">
                     <div className="mv-paleta-viaticos">
-                      {independientes.map((v) => <FilaViatico key={v.id} v={v} />)}
+                      {independientes.map((v) => <FilaViatico key={v.id} v={v} resumen={null} asigObj={null} />)}
                     </div>
                     <div className="mv-paleta-footer">
                       <button type="button" className="mv-paleta-btn-agregar" onClick={() => navigate('/nuevo-viatico')}>
-                        + Agregar viatico independiente
+                        + Agregar viático independiente
                       </button>
                     </div>
                   </div>
@@ -413,21 +597,24 @@ export default function MisViaticos() {
           )}
         </div>
 
+        {/* ── MODAL: EDITAR VIÁTICO (INCLUYE FOTOGRAFÍAS) ── */}
         {viaticoEditando && (
-          <div className="mv-modal-overlay">
-            <div className="mv-modal">
+          <div className="mv-modal-overlay" onClick={cerrarModalEditar}>
+            <div className="mv-modal" onClick={(e) => e.stopPropagation()}>
               <div className="mv-modal-header">
                 <div>
-                  <h2>Editar Viatico #{viaticoEditando.id}</h2>
+                  <h2>Editar Viático #{viaticoEditando.id}</h2>
                   {viaticoEditando.estado === 'rechazado' && (
                     <p style={{ margin: '0.25rem 0 0', fontSize: '0.78rem', color: '#D97706', fontWeight: 600 }}>
                       ⚠ Este viático fue rechazado. Al guardar se reenviará al administrador para revisión.
                     </p>
                   )}
                 </div>
-                <button type="button" className="mv-modal-close" onClick={() => setViaticoEditando(null)}>✕</button>
+                <button type="button" className="mv-modal-close" onClick={cerrarModalEditar}>✕</button>
               </div>
+
               {errorEdit && <div className="form-error" style={{ margin: '1rem 1.25rem 0' }}><span>⚠</span> {errorEdit}</div>}
+
               <form onSubmit={handleGuardarEdicion} className="mv-modal-body">
                 <div className="mv-form-grid">
                   <div className="mv-form-field">
@@ -435,7 +622,7 @@ export default function MisViaticos() {
                     <input type="text" required value={editForm.cliente} onChange={(e) => setEditForm({ ...editForm, cliente: e.target.value })} />
                   </div>
                   <div className="mv-form-field">
-                    <label>Ciudad / Ubicacion</label>
+                    <label>Ciudad / Ubicación</label>
                     <input type="text" required value={editForm.ciudad} onChange={(e) => setEditForm({ ...editForm, ciudad: e.target.value })} />
                   </div>
                   <div className="mv-form-field">
@@ -450,10 +637,12 @@ export default function MisViaticos() {
                     <input type="text" inputMode="numeric" required placeholder="$ 0" value={formatMiles(editForm.valor)} onChange={(e) => setEditForm({ ...editForm, valor: limpiarNumero(e.target.value) })} />
                   </div>
                 </div>
+
                 <div className="mv-form-field" style={{ marginTop: '0.85rem' }}>
-                  <label>Descripcion / Observacion (opcional)</label>
+                  <label>Descripción / Observación (opcional)</label>
                   <textarea rows={2} value={editForm.descripcion} onChange={(e) => setEditForm({ ...editForm, descripcion: e.target.value })} />
                 </div>
+
                 <div className="mv-fecha-colapsable">
                   <button type="button" className="mv-btn-colapsable" onClick={() => setMostrarFechaEdit((v) => !v)}>
                     <span>Editar fecha (opcional)</span>
@@ -466,8 +655,126 @@ export default function MisViaticos() {
                     </div>
                   )}
                 </div>
+
+                {/* ── GESTIÓN DE FOTOGRAFÍAS / EVIDENCIAS ── */}
+                <div className="mv-evidencias-seccion">
+                  <div className="mv-evidencias-header">
+                    <label className="mv-evidencias-label">
+                      📷 Fotografías de soporte (comprobantes / recibos)
+                    </label>
+                    <span className="mv-evidencias-conteo">
+                      {fotosActivasTotal} / {MAX_ARCHIVOS_TOTAL}
+                    </span>
+                  </div>
+
+                  {/* Fotos actuales existentes */}
+                  {evidenciasExistentes.length > 0 && (
+                    <div className="mv-fotos-bloque">
+                      <span className="mv-fotos-subtitulo">Fotografías actuales en el sistema:</span>
+                      <div className="mv-fotos-grid">
+                        {evidenciasExistentes.map((ev, idx) => {
+                          const eliminada = evidenciasAEliminar.has(ev.id);
+                          return (
+                            <div
+                              key={ev.id}
+                              className={`mv-foto-card ${eliminada ? 'mv-foto-card--eliminada' : ''}`}
+                            >
+                              <img src={ev.secure_url} alt={`Evidencia ${idx + 1}`} className="mv-foto-img" />
+                              {eliminada && (
+                                <div className="mv-foto-overlay-eliminada">
+                                  <span>❌ Se eliminará</span>
+                                </div>
+                              )}
+                              <div className="mv-foto-acciones">
+                                <button
+                                  type="button"
+                                  className="mv-foto-btn mv-foto-btn--ver"
+                                  onClick={() => {
+                                    setGaleriaViatico({ ...viaticoEditando, evidencias: [ev] });
+                                    setFotoActiva(0);
+                                  }}
+                                  title="Ver imagen completa"
+                                >
+                                  🔍 Ver
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`mv-foto-btn ${eliminada ? 'mv-foto-btn--deshacer' : 'mv-foto-btn--borrar'}`}
+                                  onClick={() => toggleEliminarEvidencia(ev.id)}
+                                >
+                                  {eliminada ? '↩ Deshacer' : '🗑 Quitar'}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fotos nuevas preparadas para subir */}
+                  {nuevasFotos.length > 0 && (
+                    <div className="mv-fotos-bloque">
+                      <span className="mv-fotos-subtitulo">Nuevas fotografías para subir:</span>
+                      <div className="mv-fotos-grid">
+                        {nuevasFotos.map((nf) => (
+                          <div key={nf.id} className="mv-foto-card mv-foto-card--nueva">
+                            <img src={nf.preview} alt="Nueva evidencia" className="mv-foto-img" />
+                            <span className="mv-foto-badge-nueva">🆕 Nueva</span>
+                            <button
+                              type="button"
+                              className="mv-foto-btn-quitar-nueva"
+                              onClick={() => quitarNuevaFoto(nf.id)}
+                              title="Quitar esta fotografía"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dropzone para agregar más fotografías */}
+                  {fotosActivasTotal < MAX_ARCHIVOS_TOTAL && (
+                    <div
+                      className={`mv-dropzone-compact ${dragActivo ? 'mv-dropzone-compact--activo' : ''}`}
+                      onDragOver={(e) => { e.preventDefault(); setDragActivo(true); }}
+                      onDragLeave={() => setDragActivo(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragActivo(false);
+                        validarYAgregarNuevasFotos(e.dataTransfer.files);
+                      }}
+                      onClick={() => document.getElementById('input-edit-fotos').click()}
+                    >
+                      <input
+                        id="input-edit-fotos"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        hidden
+                        onChange={(e) => validarYAgregarNuevasFotos(e.target.files)}
+                      />
+                      <span className="mv-dropzone-icon">📷</span>
+                      <div className="mv-dropzone-text-wrap">
+                        <span className="mv-dropzone-text-principal">
+                          {evidenciasExistentes.length === 0 && nuevasFotos.length === 0
+                            ? 'Subir fotografía o comprobante'
+                            : '+ Agregar otra fotografía'}
+                        </span>
+                        <span className="mv-dropzone-text-secundario">
+                          Haz clic o arrastra imágenes (JPG, PNG, WEBP, máx 5MB)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {errorFotos && <p className="mv-fotos-error">⚠ {errorFotos}</p>}
+                </div>
+
                 <div className="mv-modal-footer">
-                  <button type="button" className="btn-back" onClick={() => setViaticoEditando(null)} disabled={guardandoEdit}>Cancelar</button>
+                  <button type="button" className="btn-back" onClick={cerrarModalEditar} disabled={guardandoEdit}>Cancelar</button>
                   <button type="submit" className="btn-primary" disabled={guardandoEdit}>
                     {guardandoEdit
                       ? 'Guardando…'
@@ -482,26 +789,27 @@ export default function MisViaticos() {
           </div>
         )}
 
+        {/* ── MODAL: ELIMINAR VIÁTICO ── */}
         {viaticoEliminando && (
           <div className="mv-modal-overlay">
             <div className="mv-modal mv-modal--small">
               <div className="mv-modal-header">
-                <h2>Eliminar Viatico #{viaticoEliminando.id}</h2>
+                <h2>Eliminar Viático #{viaticoEliminando.id}</h2>
                 <button type="button" className="mv-modal-close" onClick={() => setViaticoEliminando(null)}>✕</button>
               </div>
               {errorEliminar && <div className="form-error" style={{ margin: '1rem 1.25rem 0' }}><span>⚠</span> {errorEliminar}</div>}
               <div className="mv-modal-body">
                 <p style={{ margin: '0 0 1rem', fontSize: '0.92rem', color: 'var(--color-text)' }}>
-                  Estas seguro de que deseas eliminar el viatico de <strong>{viaticoEliminando.cliente}</strong> por <strong>{formatCOP(viaticoEliminando.valor)}</strong>?
+                  ¿Estás seguro de que deseas eliminar el viático de <strong>{viaticoEliminando.cliente}</strong> por <strong>{formatCOP(viaticoEliminando.valor)}</strong>?
                 </p>
                 <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-                  Esta accion no se puede deshacer y notificara al administrador.
+                  Esta acción no se puede deshacer y notificará al administrador.
                 </p>
               </div>
               <div className="mv-modal-footer">
                 <button type="button" className="btn-back" onClick={() => setViaticoEliminando(null)} disabled={eliminando}>Cancelar</button>
                 <button type="button" className="btn-primary" style={{ backgroundColor: '#DC2626' }} onClick={handleConfirmarEliminar} disabled={eliminando}>
-                  {eliminando ? 'Eliminando…' : 'Si, Eliminar'}
+                  {eliminando ? 'Eliminando…' : 'Sí, Eliminar'}
                 </button>
               </div>
             </div>
@@ -512,7 +820,7 @@ export default function MisViaticos() {
           <ModalSeleccionarTipoViatico onClose={() => setMostrarModalTipoViatico(false)} />
         )}
 
-        {/* ── LIGHTBOX DE EVIDENCIAS ────────────────────────────── */}
+        {/* ── LIGHTBOX DE EVIDENCIAS ── */}
         {galeriaViatico && (
           <div
             className="mv-lightbox-overlay"
@@ -522,7 +830,6 @@ export default function MisViaticos() {
             aria-label="Galería de evidencias"
           >
             <div className="mv-lightbox" onClick={(e) => e.stopPropagation()}>
-              {/* Header */}
               <div className="mv-lightbox-header">
                 <div>
                   <span className="mv-lightbox-title">📷 Evidencias fotográficas</span>
@@ -542,7 +849,6 @@ export default function MisViaticos() {
                 </button>
               </div>
 
-              {/* Foto principal */}
               <div className="mv-lightbox-main">
                 <button
                   type="button"
@@ -572,12 +878,10 @@ export default function MisViaticos() {
                 </button>
               </div>
 
-              {/* Contador */}
               <div className="mv-lightbox-counter">
                 {fotoActiva + 1} / {galeriaViatico.evidencias.length}
               </div>
 
-              {/* Miniaturas */}
               {galeriaViatico.evidencias.length > 1 && (
                 <div className="mv-lightbox-thumbs">
                   {galeriaViatico.evidencias.map((ev, idx) => (

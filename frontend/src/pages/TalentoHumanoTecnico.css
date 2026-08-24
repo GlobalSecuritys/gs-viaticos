@@ -1,0 +1,538 @@
+/* ===== Talento Humano Tecnico Styles ===== */
+
+.tht-container {
+    padding: 1rem 2rem 3rem;
+    max-width: 1300px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* ── HEADER SUPERIOR ── */
+.tht-top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.tht-header-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.tht-back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    box-shadow: var(--color-shadow-sm);
+    transition: all 0.15s ease;
+}
+
+.tht-back-btn:hover {
+    background-color: var(--color-accent-blue-light);
+    border-color: var(--color-accent-blue);
+    color: var(--color-accent-blue);
+    transform: translateX(-2px);
+}
+
+.tht-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--color-navy-dark);
+    line-height: 1.2;
+}
+
+.tht-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-top: 0.15rem;
+}
+
+.tht-date-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    box-shadow: var(--color-shadow-sm);
+}
+
+/* ── TARJETA EJECUTIVA DE PERFIL (HEADER HERO) ── */
+.tht-hero-card {
+    background: #FFFFFF;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--color-shadow-sm);
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.75rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.tht-hero-avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0A2540 0%, #1D63C8 100%);
+    color: #FFFFFF;
+    font-weight: 800;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #D4AF37;
+    box-shadow: 0 4px 14px rgba(10, 37, 64, 0.2);
+    flex-shrink: 0;
+}
+
+.tht-hero-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.tht-hero-header-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.tht-hero-name {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--color-navy-dark);
+}
+
+.tht-hero-cargo-badge {
+    background: #EFF6FF;
+    color: #1D63C8;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.tht-hero-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.65rem 1.25rem;
+    font-size: 0.82rem;
+}
+
+.tht-hero-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.tht-hero-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.tht-hero-val {
+    font-weight: 600;
+    color: var(--color-navy-dark);
+    margin-top: 0.1rem;
+}
+
+.tht-hero-status-box {
+    background: #F0FDF4;
+    border: 1.5px solid #86EFAC;
+    border-radius: var(--radius-md);
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.tht-status-box-title {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #15803D;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.35rem;
+}
+
+.tht-status-box-val {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #166534;
+    font-weight: 800;
+    font-size: 1.1rem;
+}
+
+/* ── LAYOUT CENTRAL: HUB CARDS + SIDE WIDGETS ── */
+.tht-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.5rem;
+    margin-bottom: 1.75rem;
+}
+
+/* ── CARDS DE ACCESO PRINCIPAL (HUB) ── */
+.tht-hub-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.15rem;
+}
+
+.tht-hub-card {
+    background: #FFFFFF;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--color-shadow-sm);
+    padding: 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.tht-hub-card:hover {
+    transform: translateY(-2px);
+    border-color: #93C5FD;
+    box-shadow: var(--color-shadow);
+}
+
+.tht-hub-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    color: #FFFFFF;
+}
+
+.tht-hub-icon--blue { background: #1D63C8; }
+.tht-hub-icon--green { background: #10B981; }
+.tht-hub-icon--orange { background: #F59E0B; }
+.tht-hub-icon--purple { background: #8B5CF6; }
+.tht-hub-icon--teal { background: #0D9488; }
+.tht-hub-icon--gold { background: #D97706; }
+.tht-hub-icon--navy { background: #0A2540; }
+
+.tht-hub-card-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--color-navy-dark);
+}
+
+.tht-hub-card-desc {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
+    flex: 1;
+}
+
+.tht-hub-card-link {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-accent-blue);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+}
+
+/* ── SIDEBAR WIDGETS ── */
+.tht-sidebar-widgets {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+}
+
+.tht-widget-card {
+    background: #FFFFFF;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--color-shadow-sm);
+    padding: 1.25rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+}
+
+.tht-widget-title {
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: var(--color-navy-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tht-vacation-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+    padding: 0.25rem 0;
+}
+
+.tht-vacation-label {
+    color: var(--color-text-secondary);
+}
+
+.tht-vacation-val {
+    font-weight: 700;
+}
+
+.tht-vacation-val--green { color: #059669; }
+.tht-vacation-val--amber { color: #D97706; }
+.tht-vacation-val--blue { color: #1D63C8; }
+
+.tht-widget-btn {
+    padding: 0.6rem 0.85rem;
+    border-radius: var(--radius-md);
+    border: 1px solid #BFDBFE;
+    background: #EFF6FF;
+    color: #1D63C8;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-top: 0.35rem;
+}
+
+.tht-widget-btn:hover {
+    background: #DBEAFE;
+    border-color: #93C5FD;
+}
+
+/* Próximas capacitaciones */
+.tht-course-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-md);
+    padding: 0.85rem;
+    gap: 0.75rem;
+}
+
+.tht-course-info {
+    flex: 1;
+}
+
+.tht-course-name {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--color-navy-dark);
+    line-height: 1.3;
+}
+
+.tht-course-meta {
+    font-size: 0.74rem;
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+}
+
+.tht-course-date-box {
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.35rem 0.65rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.tht-date-num {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--color-navy-dark);
+    line-height: 1;
+}
+
+.tht-date-month {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--color-accent-blue);
+    text-transform: uppercase;
+}
+
+/* ── BANNER ACCIONES RÁPIDAS (BOTTOM) ── */
+.tht-quick-actions-bar {
+    background: #FFFBEB;
+    border: 1.5px solid #FDE68A;
+    border-radius: var(--radius-lg);
+    padding: 1.15rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    box-shadow: var(--color-shadow-sm);
+}
+
+.tht-quick-header {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #92400E;
+}
+
+.tht-quick-buttons-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.tht-quick-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1.15rem;
+    background: #FFFFFF;
+    border: 1px solid #FCD34D;
+    border-radius: var(--radius-md);
+    color: #78350F;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(180, 83, 9, 0.05);
+    transition: all 0.15s ease;
+}
+
+.tht-quick-btn:hover {
+    background: #FEF3C7;
+    border-color: #F59E0B;
+    transform: translateY(-1px);
+}
+
+/* ── MODALES TÉCNICO ── */
+.tht-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(7, 13, 30, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.tht-modal-card {
+    background: #FFFFFF;
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 600px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: var(--color-shadow-lg);
+    display: flex;
+    flex-direction: column;
+}
+
+.tht-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.tht-modal-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--color-navy-dark);
+}
+
+.tht-modal-close {
+    font-size: 1.4rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+.tht-modal-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* ── RESPONSIVE TÉCNICO ── */
+@media (max-width: 1024px) {
+    .tht-hero-card {
+        grid-template-columns: auto 1fr;
+    }
+    .tht-hero-status-box {
+        grid-column: 1 / -1;
+    }
+    .tht-hero-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .tht-main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .tht-container {
+        padding: 0.85rem 1rem 4rem;
+    }
+    .tht-hero-card {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    .tht-hero-avatar {
+        margin: 0 auto;
+    }
+    .tht-hero-header-row {
+        justify-content: center;
+    }
+    .tht-hub-cards-grid {
+        grid-template-columns: 1fr;
+    }
+    .tht-quick-buttons-row {
+        flex-direction: column;
+        width: 100%;
+    }
+    .tht-quick-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

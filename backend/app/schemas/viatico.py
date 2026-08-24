@@ -26,6 +26,7 @@ class AsignacionResumenViatico(BaseModel):
     total_gastado: Decimal
     saldo_restante: Decimal
     saldo_favor_tecnico: Decimal = Decimal("0.00")
+    estado: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

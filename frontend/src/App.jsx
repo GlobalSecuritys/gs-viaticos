@@ -37,9 +37,9 @@ export default function App() {
           <Route
             path="/talento-humano"
             element={
-              <AdminRoute>
+              <PrivateRoute>
                 <TalentoHumano />
-              </AdminRoute>
+              </PrivateRoute>
             }
           />
           <Route

@@ -617,3 +617,219 @@ def generar_excel_viaticos_asignacion(
     stream.seek(0)
     return stream
 
+
+# ═══════════════════════════════════════════════════════════════════
+#  EXCEL TALENTO HUMANO (PLANILLA CORPORATIVA)
+# ═══════════════════════════════════════════════════════════════════
+def generar_excel_talento_humano(empleados_data: list) -> io.BytesIO:
+    """
+    Genera un archivo Excel (.xlsx) con el consolidado del personal de
+    Talento Humano siguiendo el diseño corporativo de Global Security Bank.
+    """
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Talento Humano"
+
+    # ── Columnas de ancho fijo ──────────────────────────────────
+    column_widths = {
+        "A": 8,   # No.
+        "B": 28,  # Nombre Completo
+        "C": 15,  # Cédula
+        "D": 16,  # Código Empleado
+        "E": 22,  # Cargo
+        "F": 18,  # Área
+        "G": 28,  # Correo Electrónico
+        "H": 16,  # Teléfono
+        "I": 16,  # Ciudad
+        "J": 14,  # Fecha Ingreso
+        "K": 20,  # Tipo de Contrato
+        "L": 22,  # Jefe Inmediato
+        "M": 14,  # Estado Laboral
+        "N": 18,  # Salario
+        "O": 16,  # Docs Cargados
+    }
+    for col, width in column_widths.items():
+        ws.column_dimensions[col].width = width
+
+    # ══ FILA 1-4: Logo | Empresa | Metadatos ════════════════════
+    ws.row_dimensions[1].height = 24
+    ws.row_dimensions[2].height = 18
+    ws.row_dimensions[3].height = 18
+    ws.row_dimensions[4].height = 18
+
+    # Logo corporativo
+    logo_img = _get_logo_image(anchor="A1", width=75, height=75)
+    if logo_img:
+        ws.add_image(logo_img)
+    else:
+        ws.merge_cells("A1:A4")
+        logo_cell = ws["A1"]
+        logo_cell.value = "🛡 GSB"
+        logo_cell.font = _font(bold=True, size=14, color=C_NAVY)
+        logo_cell.alignment = _al("center", "center")
+        logo_cell.fill = _fill("E9F0FB")
+        logo_cell.border = _border(C_NAVY)
+
+    # Nombre empresa
+    ws.merge_cells("B1:M4")
+    empresa_cell = ws["B1"]
+    empresa_cell.value = "GLOBAL SECURITY BANK SAS — GESTIÓN DE TALENTO HUMANO"
+    empresa_cell.font = _font(bold=True, size=13, color=C_NAVY)
+    empresa_cell.alignment = _al("center", "center")
+    empresa_cell.fill = _fill("FFFFFF")
+    empresa_cell.border = _border(C_NAVY)
+
+    # Metadatos N-O
+    meta_rows = [
+        ("Código", "TH-FR-01"),
+        ("Versión", "1"),
+        ("Fecha Gen", date.today().strftime("%d/%m/%Y")),
+        ("Total Empleados", str(len(empleados_data))),
+    ]
+    for i, (lbl, val) in enumerate(meta_rows):
+        r = i + 1
+        cl = ws.cell(row=r, column=14, value=lbl)
+        cl.font = _font(bold=True, size=9)
+        cl.fill = _fill(C_LABEL_BG)
+        cl.border = _border("BFBFBF")
+        cl.alignment = _al("center", "center")
+
+        cv = ws.cell(row=r, column=15, value=val)
+        cv.font = _font(size=9)
+        cv.border = _border("BFBFBF")
+        cv.alignment = _al("center", "center")
+
+    # Separador
+    ws.row_dimensions[5].height = 8
+
+    # ══ TABLA DE ENCABEZADOS ═════════════════════════════════════
+    HEADERS = [
+        "No.",
+        "Nombre completo",
+        "Cédula",
+        "Código empleado",
+        "Cargo",
+        "Área",
+        "Correo electrónico",
+        "Teléfono",
+        "Ciudad",
+        "Fecha ingreso",
+        "Tipo contrato",
+        "Jefe inmediato",
+        "Estado laboral",
+        "Salario (COP)",
+        "Documentación",
+    ]
+    HEADER_ROW = 6
+    _table_header_row(ws, HEADER_ROW, HEADERS, col_start=1)
+
+    row_idx = HEADER_ROW + 1
+    total_salarios = Decimal("0.00")
+
+    for i, emp in enumerate(empleados_data, start=1):
+        alt = (i % 2 == 0)
+        bg = C_ROW_ALT if alt else "FFFFFF"
+
+        nombre = emp.get("nombre") or "—"
+        cedula = emp.get("cedula") or emp.get("codigo_empleado") or "—"
+        codigo = emp.get("codigo_empleado") or "—"
+        cargo = emp.get("cargo") or "Técnico Instalador"
+        area = emp.get("area") or "Instalaciones"
+        correo = emp.get("correo") or "—"
+        telefono = emp.get("telefono") or "—"
+        ciudad = emp.get("ciudad") or "—"
+        
+        f_ingreso = emp.get("fecha_ingreso")
+        if isinstance(f_ingreso, (date, datetime)):
+            str_ingreso = f_ingreso.strftime("%d/%m/%Y")
+        elif f_ingreso:
+            str_ingreso = str(f_ingreso)
+        else:
+            str_ingreso = "—"
+
+        tipo_contrato = emp.get("tipo_contrato") or "Término indefinido"
+        jefe = emp.get("jefe_inmediato") or "Carlos Ramírez"
+        estado_raw = (emp.get("estado_laboral") or "activo").strip().lower()
+        estado_cap = estado_raw.replace("_", " ").capitalize()
+        
+        salario_val = Decimal(str(emp.get("salario") or 0))
+        total_salarios += salario_val
+
+        docs_info = f"{emp.get('documentos_cargados', 0)} / {emp.get('documentos_totales', 6)}"
+
+        row_data = [
+            i,
+            nombre,
+            cedula,
+            codigo,
+            cargo,
+            area,
+            correo,
+            telefono,
+            ciudad,
+            str_ingreso,
+            tipo_contrato,
+            jefe,
+            estado_cap,
+        ]
+
+        ws.row_dimensions[row_idx].height = 20
+        for ci, cell_val in enumerate(row_data, start=1):
+            c = ws.cell(row=row_idx, column=ci, value=cell_val)
+            c.font = _font(size=9)
+            c.fill = _fill(bg)
+            c.border = _border()
+            c.alignment = _al("center" if ci in (1, 3, 4, 8, 9, 10, 13) else "left", "center")
+
+            # Estilo para estado
+            if ci == 13:
+                if estado_raw == "activo":
+                    c.font = _font(bold=True, color="166534", size=9)
+                    c.fill = _fill("E6F4EA")
+                elif estado_raw == "en_capacitacion":
+                    c.font = _font(bold=True, color="B45309", size=9)
+                    c.fill = _fill("FEF3C7")
+                else:
+                    c.font = _font(bold=True, color="C00000", size=9)
+                    c.fill = _fill("FCE8E6")
+
+        # Columna 14 (N): Salario
+        _currency_cell(ws, row_idx, 14, salario_val, bg=bg)
+
+        # Columna 15 (O): Documentación
+        c_doc = ws.cell(row=row_idx, column=15, value=docs_info)
+        c_doc.font = _font(size=9, bold=True)
+        c_doc.fill = _fill(bg)
+        c_doc.border = _border()
+        c_doc.alignment = _al("center", "center")
+
+        row_idx += 1
+
+    # Fila de Totales
+    ws.row_dimensions[row_idx].height = 22
+    ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=13)
+    lbl_tot = ws.cell(row=row_idx, column=1, value="Masa Salarial Total (COP)")
+    lbl_tot.font = _font(bold=True, size=10, color="000000")
+    lbl_tot.fill = _fill(C_GOLD_BG)
+    lbl_tot.alignment = _al("right", "center")
+    lbl_tot.border = _border_all_dark()
+
+    c_tot = ws.cell(
+        row=row_idx,
+        column=14,
+        value=f"=SUM(N7:N{row_idx - 1})" if row_idx > 7 else float(total_salarios),
+    )
+    c_tot.font = _font(bold=True, color=C_DARK_TEXT, size=10)
+    c_tot.alignment = _al("right", "center")
+    c_tot.number_format = '_($* #,##0_);_($* (#,##0);_($* "-"_);_(@_)'
+    c_tot.fill = _fill(C_GOLD_BG)
+    c_tot.border = _border_all_dark()
+
+    ws.cell(row=row_idx, column=15).fill = _fill(C_GOLD_BG)
+    ws.cell(row=row_idx, column=15).border = _border_all_dark()
+
+    stream = io.BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+    return stream
+

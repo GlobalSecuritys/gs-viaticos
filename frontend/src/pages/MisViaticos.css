@@ -1257,3 +1257,275 @@
   border-color: var(--color-accent-blue);
   box-shadow: 0 0 0 2px var(--color-accent-blue-light);
 }
+
+/* ================================================================
+   INSIGNIA DE ASIGNACIÓN CERRADA / BLOQUEADA
+   ================================================================ */
+.mv-bloqueado-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748B;
+  background-color: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  user-select: none;
+  cursor: help;
+}
+
+/* ================================================================
+   SECCIÓN DE FOTOGRAFÍAS EN MODAL DE EDICIÓN
+   ================================================================ */
+.mv-evidencias-seccion {
+  margin-top: 1.1rem;
+  padding: 1rem;
+  background-color: #F8FAFC;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.mv-evidencias-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mv-evidencias-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.mv-evidencias-conteo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background-color: #FFFFFF;
+  border: 1px solid var(--color-border);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.mv-fotos-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.mv-fotos-subtitulo {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mv-fotos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+  gap: 0.65rem;
+}
+
+.mv-foto-card {
+  position: relative;
+  background-color: #FFFFFF;
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.mv-foto-card:hover {
+  border-color: #94A3B8;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.09);
+}
+
+.mv-foto-card--eliminada {
+  border-color: #EF4444;
+  background-color: #FEF2F2;
+  opacity: 0.85;
+}
+
+.mv-foto-card--nueva {
+  border-color: #3B82F6;
+}
+
+.mv-foto-img {
+  width: 100%;
+  height: 75px;
+  object-fit: cover;
+  display: block;
+}
+
+.mv-foto-overlay-eliminada {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 28px;
+  background: rgba(220, 38, 38, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.2rem;
+  backdrop-filter: blur(1px);
+}
+
+.mv-foto-acciones {
+  display: flex;
+  border-top: 1px solid var(--color-border);
+  background-color: #F8FAFC;
+}
+
+.mv-foto-btn {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.35rem 0.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.mv-foto-btn--ver {
+  color: #2563EB;
+  border-right: 1px solid var(--color-border);
+}
+
+.mv-foto-btn--ver:hover {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.mv-foto-btn--borrar {
+  color: #DC2626;
+}
+
+.mv-foto-btn--borrar:hover {
+  background-color: #FEE2E2;
+}
+
+.mv-foto-btn--deshacer {
+  color: #059669;
+  background-color: #ECFDF5;
+  font-weight: 700;
+}
+
+.mv-foto-btn--deshacer:hover {
+  background-color: #D1FAE5;
+}
+
+.mv-foto-badge-nueva {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background-color: #2563EB;
+  color: #FFFFFF;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.mv-foto-btn-quitar-nueva {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  background-color: rgba(15, 23, 42, 0.75);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.mv-foto-btn-quitar-nueva:hover {
+  background-color: #DC2626;
+  transform: scale(1.1);
+}
+
+/* Dropzone compacto para agregar fotos */
+.mv-dropzone-compact {
+  border: 1.5px dashed #94A3B8;
+  border-radius: 8px;
+  background-color: #FFFFFF;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mv-dropzone-compact:hover {
+  border-color: #2563EB;
+  background-color: #EFF6FF;
+}
+
+.mv-dropzone-compact--activo {
+  border-color: #2563EB;
+  background-color: #DBEAFE;
+  transform: scale(1.01);
+}
+
+.mv-dropzone-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.mv-dropzone-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.mv-dropzone-text-principal {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.mv-dropzone-text-secundario {
+  font-size: 0.72rem;
+  color: #64748B;
+}
+
+.mv-fotos-error {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #DC2626;
+  background-color: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+}

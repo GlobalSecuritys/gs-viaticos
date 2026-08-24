@@ -8,11 +8,18 @@ from app.routers.auth import router as auth_router
 from app.routers.viaticos import router as viaticos_router
 from app.routers.proveedores import router as proveedores_router
 from app.routers.cuentas_cobro import router as cuentas_cobro_router
+from app.routers.talento_humano import router as talento_humano_router
 
 from sqlalchemy import text
 from app.database import engine
 from app.models.cuenta_cobro import CuentaCobro
 from app.models.cuenta_cobro_asignacion import CuentaCobroAsignacion
+from app.models.talento_humano import (
+    EmpleadoPerfil,
+    EmpleadoDocumento,
+    EmpleadoHistorial,
+    EmpleadoSolicitud,
+)
 
 app = FastAPI(
     title="GS Viáticos API",
@@ -28,6 +35,10 @@ def startup_db_check():
             conn.commit()
         CuentaCobro.__table__.create(bind=engine, checkfirst=True)
         CuentaCobroAsignacion.__table__.create(bind=engine, checkfirst=True)
+        EmpleadoPerfil.__table__.create(bind=engine, checkfirst=True)
+        EmpleadoDocumento.__table__.create(bind=engine, checkfirst=True)
+        EmpleadoHistorial.__table__.create(bind=engine, checkfirst=True)
+        EmpleadoSolicitud.__table__.create(bind=engine, checkfirst=True)
     except Exception as e:
         print(f"Startup DB check warning: {e}")
 
@@ -57,6 +68,7 @@ app.include_router(asignaciones_router)
 app.include_router(asignaciones_tecnico_router)
 app.include_router(proveedores_router)
 app.include_router(cuentas_cobro_router)
+app.include_router(talento_humano_router)
 
 
 @app.get("/", include_in_schema=False)

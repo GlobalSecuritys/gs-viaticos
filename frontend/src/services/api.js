@@ -39,6 +39,10 @@ export async function subirEvidencias(viaticoId, archivos) {
   });
 }
 
+export function eliminarEvidenciaViatico(viaticoId, evidenciaId) {
+  return api.delete(`/viaticos/${viaticoId}/evidencias/${evidenciaId}`);
+}
+
 export function exportarViaticosIndependientes(usuarioId, fechaInicio, fechaFin) {
   const params = new URLSearchParams({ usuario_id: usuarioId });
   if (fechaInicio) params.append('fecha_inicio', fechaInicio);
@@ -52,6 +56,32 @@ export function exportarViaticosAsignacion(asignacionId) {
   return api.get(`/admin/asignaciones/${asignacionId}/exportar`, {
     responseType: 'blob',
   });
+}
+
+export function exportarTalentoHumanoExcel() {
+  return api.get('/talento-humano/exportar-excel', {
+    responseType: 'blob',
+  });
+}
+
+export async function subirDocumentoTalentoHumano(usuarioId, file, tipoDocumento, nombreDocumento) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('tipo_documento', tipoDocumento);
+  if (nombreDocumento) {
+    formData.append('nombre_documento', nombreDocumento);
+  }
+
+  return api.post(`/talento-humano/empleados/${usuarioId}/documentos`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 60000,
+  });
+}
+
+export function eliminarDocumentoTalentoHumano(usuarioId, documentoId) {
+  return api.delete(`/talento-humano/empleados/${usuarioId}/documentos/${documentoId}`);
 }
 
 export function descargarBlob(blobData, filename) {

@@ -255,3 +255,57 @@ async def upload_cuenta_cobro(file: UploadFile) -> CloudinaryUploadResult:
         secure_url=secure_url,
         public_id=public_id,
     )
+
+
+TALENTO_HUMANO_FOLDER = "gs_viaticos/talento_humano/documentos"
+
+
+def _upload_talento_humano_sync(content: bytes) -> dict:
+    return cloudinary.uploader.upload(
+        content,
+        folder=TALENTO_HUMANO_FOLDER,
+        resource_type="auto",
+        use_filename=True,
+        unique_filename=True,
+        timeout=45,
+    )
+
+
+async def upload_documento_talento_humano(file: UploadFile) -> CloudinaryUploadResult:
+    """
+    Sube un documento de Talento Humano (PDF, JPG, PNG, etc.) a Cloudinary.
+    """
+    content = await file.read()
+    _validate_cuenta_cobro_file(file, content)
+
+    try:
+        result = await asyncio.to_thread(_upload_talento_humano_sync, content)
+    except CloudinaryError as exc:
+        logger.error("Error al subir documento de talento humano a Cloudinary: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="No se pudo subir el documento a almacenamiento. Intenta nuevamente.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Error inesperado al subir documento de talento humano a Cloudinary")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ocurrió un error inesperado al procesar el archivo.",
+        ) from exc
+    finally:
+        await file.close()
+
+    secure_url = result.get("secure_url")
+    public_id = result.get("public_id")
+
+    if not secure_url or not public_id:
+        logger.error("Respuesta inesperada de Cloudinary: %s", result)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Respuesta inválida del servicio de almacenamiento.",
+        )
+
+    return CloudinaryUploadResult(
+        secure_url=secure_url,
+        public_id=public_id,
+    )

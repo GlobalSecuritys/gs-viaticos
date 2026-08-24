@@ -31,6 +31,7 @@ function formatFecha(iso) {
 
 const NAV_ITEMS = [
     { id: 'inicio', label: 'Inicio', icon: '⊞', path: '/superadmin' },
+    { id: 'talento-humano', label: 'Talento Humano', icon: '👥', path: '/talento-humano' },
     { id: 'viaticos', label: 'Viáticos', icon: '📋', path: '/admin/viaticos' },
     { id: 'usuarios', label: 'Usuarios', icon: '👥', path: '/admin/usuarios' },
     { id: 'evidencias', label: 'Evidencias', icon: '📎', path: null },

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -13,6 +14,7 @@ from app.models.notificacion import Notificacion
 from app.models.usuario import Usuario
 from app.models.viatico import Viatico
 from app.schemas.viatico import (
+    AsignacionResumenViatico,
     EvidenciaResponse,
     ViaticoCreate,
     ViaticoResponse,
@@ -23,6 +25,27 @@ router = APIRouter(prefix="/viaticos", tags=["Viáticos"])
 
 MIN_EVIDENCIAS = 1
 MAX_EVIDENCIAS = 5
+
+
+def _adjuntar_resumen_asignacion(v: Viatico) -> None:
+    if v.asignacion:
+        v_asig = v.asignacion.viaticos or []
+        tot_gastado = sum(item.valor for item in v_asig if item.estado != "rechazado")
+        anticipo = v.asignacion.monto_anticipo or Decimal("0.00")
+        saldo = max(Decimal("0.00"), anticipo - tot_gastado)
+        saldo_favor_tec = max(Decimal("0.00"), tot_gastado - anticipo)
+        v.asignacion_resumen = AsignacionResumenViatico(
+            id=v.asignacion.id,
+            cliente=v.asignacion.cliente,
+            empresa=v.asignacion.empresa,
+            tipo=v.asignacion.tipo,
+            ciudad=v.asignacion.ciudad,
+            monto_anticipo=anticipo,
+            total_gastado=tot_gastado,
+            saldo_restante=saldo,
+            saldo_favor_tecnico=saldo_favor_tec,
+            estado=v.asignacion.estado,
+        )
 
 
 # --- Endpoints de viáticos --------------------------------------------------
@@ -46,6 +69,11 @@ def crear_viatico(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="La asignación especificada no pertenece al usuario actual."
             )
+        if asig.estado in ("finalizada", "cancelada"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se pueden registrar viáticos en una asignación finalizada o cancelada."
+            )
 
     nuevo_viatico = Viatico(
         usuario_id=current_user.id,
@@ -67,9 +95,6 @@ def crear_viatico(
     return nuevo_viatico
 
 
-from decimal import Decimal
-from app.schemas.viatico import AsignacionResumenViatico
-
 @router.get("", response_model=List[ViaticoResponse])
 @router.get("/", response_model=List[ViaticoResponse], include_in_schema=False)
 def listar_viaticos(
@@ -88,23 +113,7 @@ def listar_viaticos(
     )
     viaticos = db.execute(stmt).unique().scalars().all()
     for v in viaticos:
-        if v.asignacion:
-            v_asig = v.asignacion.viaticos or []
-            tot_gastado = sum(item.valor for item in v_asig if item.estado != "rechazado")
-            anticipo = v.asignacion.monto_anticipo or Decimal("0.00")
-            saldo = max(Decimal("0.00"), anticipo - tot_gastado)
-            saldo_favor_tec = max(Decimal("0.00"), tot_gastado - anticipo)
-            v.asignacion_resumen = AsignacionResumenViatico(
-                id=v.asignacion.id,
-                cliente=v.asignacion.cliente,
-                empresa=v.asignacion.empresa,
-                tipo=v.asignacion.tipo,
-                ciudad=v.asignacion.ciudad,
-                monto_anticipo=anticipo,
-                total_gastado=tot_gastado,
-                saldo_restante=saldo,
-                saldo_favor_tecnico=saldo_favor_tec,
-            )
+        _adjuntar_resumen_asignacion(v)
     return viaticos
 
 
@@ -118,6 +127,7 @@ def obtener_viatico(
         select(Viatico)
         .options(
             joinedload(Viatico.evidencias),
+            joinedload(Viatico.asignacion).joinedload(Asignacion.viaticos),
             joinedload(Viatico.cuenta_cobro),
         )
         .where(Viatico.id == id, Viatico.usuario_id == current_user.id)
@@ -128,6 +138,7 @@ def obtener_viatico(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Viático no encontrado"
         )
+    _adjuntar_resumen_asignacion(viatico)
     return viatico
 
 
@@ -138,8 +149,16 @@ def actualizar_viatico(
     current_user: Annotated[Usuario, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)]
 ):
-    stmt = select(Viatico).where(Viatico.id == id, Viatico.usuario_id == current_user.id)
-    viatico = db.scalar(stmt)
+    stmt = (
+        select(Viatico)
+        .options(
+            joinedload(Viatico.evidencias),
+            joinedload(Viatico.asignacion).joinedload(Asignacion.viaticos),
+            joinedload(Viatico.cuenta_cobro),
+        )
+        .where(Viatico.id == id, Viatico.usuario_id == current_user.id)
+    )
+    viatico = db.execute(stmt).unique().scalar_one_or_none()
     if not viatico:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -152,6 +171,13 @@ def actualizar_viatico(
             detail="Solo se pueden editar viáticos en estado pendiente o rechazado"
         )
 
+    if viatico.asignacion_id and viatico.asignacion:
+        if viatico.asignacion.estado in ("finalizada", "cancelada"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede editar un viático cuya asignación está finalizada o cancelada."
+            )
+
     update_data = viatico_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(viatico, field, value)
@@ -163,6 +189,7 @@ def actualizar_viatico(
 
     db.commit()
     db.refresh(viatico)
+    _adjuntar_resumen_asignacion(viatico)
     return viatico
 
 
@@ -172,8 +199,12 @@ def eliminar_viatico(
     current_user: Annotated[Usuario, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)]
 ):
-    stmt = select(Viatico).where(Viatico.id == id, Viatico.usuario_id == current_user.id)
-    viatico = db.scalar(stmt)
+    stmt = (
+        select(Viatico)
+        .options(joinedload(Viatico.asignacion))
+        .where(Viatico.id == id, Viatico.usuario_id == current_user.id)
+    )
+    viatico = db.execute(stmt).unique().scalar_one_or_none()
     if not viatico:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -185,6 +216,13 @@ def eliminar_viatico(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Solo se pueden eliminar viáticos en estado pendiente"
         )
+
+    if viatico.asignacion_id and viatico.asignacion:
+        if viatico.asignacion.estado in ("finalizada", "cancelada"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede eliminar un viático cuya asignación está finalizada o cancelada."
+            )
 
     notif = Notificacion(
         tecnico_nombre=current_user.nombre,
@@ -199,7 +237,7 @@ def eliminar_viatico(
     return {"detail": "Viático eliminado correctamente"}
 
 
-# --- Endpoint: subida de evidencias (Cloudinary) ----------------------------
+# --- Endpoints de evidencias para el técnico (Cloudinary) -------------------
 
 @router.post(
     "/{id}/evidencias",
@@ -212,30 +250,47 @@ async def subir_evidencias_viatico(
     db: Annotated[Session, Depends(get_db)],
     files: Annotated[List[UploadFile], File(description="Entre 1 y 5 fotografías")],
 ):
-    stmt = select(Viatico).where(Viatico.id == id, Viatico.usuario_id == current_user.id)
-    viatico = db.scalar(stmt)
+    stmt = (
+        select(Viatico)
+        .options(
+            joinedload(Viatico.asignacion),
+            joinedload(Viatico.evidencias),
+        )
+        .where(Viatico.id == id, Viatico.usuario_id == current_user.id)
+    )
+    viatico = db.execute(stmt).unique().scalar_one_or_none()
     if not viatico:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Viático no encontrado",
         )
 
-    if viatico.estado != "pendiente":
+    if viatico.estado not in ("pendiente", "rechazado"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Solo se pueden adjuntar evidencias a viáticos en estado pendiente",
+            detail="Solo se pueden adjuntar evidencias a viáticos en estado pendiente o rechazado",
         )
 
+    if viatico.asignacion_id and viatico.asignacion:
+        if viatico.asignacion.estado in ("finalizada", "cancelada"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se pueden adjuntar evidencias a un viático cuya asignación está finalizada o cancelada.",
+            )
+
     evidencias_existentes = len(viatico.evidencias)
-    if not (
-        MIN_EVIDENCIAS <= evidencias_existentes + len(files) <= MAX_EVIDENCIAS
-    ):
+    if not files or len(files) < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Debes seleccionar al menos una fotografía para subir.",
+        )
+
+    if evidencias_existentes + len(files) > MAX_EVIDENCIAS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"El viático puede tener entre {MIN_EVIDENCIAS} y {MAX_EVIDENCIAS} "
-                f"fotografías en total. Actualmente tiene {evidencias_existentes} "
-                f"y se intentaron agregar {len(files)}."
+                f"El viático puede tener hasta {MAX_EVIDENCIAS} fotografías en total. "
+                f"Actualmente tiene {evidencias_existentes} y se intentaron agregar {len(files)}."
             ),
         )
 
@@ -247,6 +302,7 @@ async def subir_evidencias_viatico(
                 viatico_id=viatico.id,
                 secure_url=upload_result.secure_url,
                 public_id=upload_result.public_id,
+                origen="tecnico",
             )
         )
 
@@ -256,3 +312,60 @@ async def subir_evidencias_viatico(
         db.refresh(evidencia)
 
     return nuevas_evidencias
+
+
+@router.delete(
+    "/{id}/evidencias/{evidencia_id}",
+    status_code=status.HTTP_200_OK,
+)
+def eliminar_evidencia_tecnico(
+    id: int,
+    evidencia_id: int,
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Permite al técnico eliminar una fotografía de evidencia de su propio viático,
+    siempre y cuando el viático esté en estado pendiente o rechazado y su asignación
+    (si tiene) no esté finalizada o cancelada.
+    """
+    stmt = (
+        select(Viatico)
+        .options(joinedload(Viatico.asignacion))
+        .where(Viatico.id == id, Viatico.usuario_id == current_user.id)
+    )
+    viatico = db.execute(stmt).unique().scalar_one_or_none()
+    if not viatico:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Viático no encontrado",
+        )
+
+    if viatico.estado not in ("pendiente", "rechazado"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se pueden eliminar evidencias de viáticos en estado pendiente o rechazado",
+        )
+
+    if viatico.asignacion_id and viatico.asignacion:
+        if viatico.asignacion.estado in ("finalizada", "cancelada"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se pueden eliminar evidencias de un viático cuya asignación está finalizada o cancelada.",
+            )
+
+    stmt_ev = select(EvidenciaViatico).where(
+        EvidenciaViatico.id == evidencia_id,
+        EvidenciaViatico.viatico_id == id,
+    )
+    evidencia = db.scalar(stmt_ev)
+    if not evidencia:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Evidencia no encontrada para este viático",
+        )
+
+    db.delete(evidencia)
+    db.commit()
+
+    return {"detail": "Evidencia eliminada correctamente"}

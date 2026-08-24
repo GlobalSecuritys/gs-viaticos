@@ -26,6 +26,7 @@ export default function TecnicoLayout({ children }) {
         { path: '/mis-viaticos', label: 'Mis viáticos', icon: '📄' },
         { path: '/mis-asignaciones', label: 'Mis asignaciones', icon: '📋' },
         { path: '/cuenta-cobro', label: 'Cuenta de cobro', icon: '💵' },
+        { path: '/talento-humano', label: 'Talento Humano', icon: '👥' },
     ];
 
     const nombreMostrado = user?.nombre || user?.correo || 'Técnico';
