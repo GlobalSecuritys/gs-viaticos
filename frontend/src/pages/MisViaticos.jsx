@@ -34,9 +34,15 @@ const CONCEPTOS = [
   { id: 'materiales', label: 'Materiales' },
 ];
 
-const TIPOS_PERMITIDOS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const TIPOS_PERMITIDOS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
 const MAX_ARCHIVOS_TOTAL = 5;
-const MAX_TAMANO_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_TAMANO_BYTES = 10 * 1024 * 1024; // 10 MB
+
+function esArchivoPdf(url) {
+  if (!url) return false;
+  const cleanUrl = url.split('?')[0].toLowerCase();
+  return cleanUrl.endsWith('.pdf');
+}
 
 export default function MisViaticos() {
   const navigate = useNavigate();
@@ -231,7 +237,7 @@ export default function MisViaticos() {
     setErrorFotos('');
   }
 
-  // Validar y agregar nuevas fotos
+  // Validar y agregar nuevas fotos o PDFs
   function validarYAgregarNuevasFotos(archivosSeleccionados) {
     setErrorFotos('');
     const lista = Array.from(archivosSeleccionados || []);
@@ -241,17 +247,18 @@ export default function MisViaticos() {
     const totalActual = activasExistentes + nuevasFotos.length;
 
     if (totalActual + lista.length > MAX_ARCHIVOS_TOTAL) {
-      setErrorFotos(`El viático puede tener máximo ${MAX_ARCHIVOS_TOTAL} fotografías en total. Disponibles: ${MAX_ARCHIVOS_TOTAL - totalActual}.`);
+      setErrorFotos(`El viático puede tener máximo ${MAX_ARCHIVOS_TOTAL} soportes en total. Disponibles: ${MAX_ARCHIVOS_TOTAL - totalActual}.`);
       return;
     }
 
     for (const file of lista) {
-      if (!TIPOS_PERMITIDOS.includes(file.type)) {
-        setErrorFotos(`Formato no permitido: "${file.name}". Solo se aceptan JPG, PNG o WEBP.`);
+      const esValido = TIPOS_PERMITIDOS.includes(file.type) || file.name?.toLowerCase().endsWith('.pdf');
+      if (!esValido) {
+        setErrorFotos(`Formato no permitido: "${file.name}". Usa JPG, PNG, WEBP o PDF.`);
         return;
       }
       if (file.size > MAX_TAMANO_BYTES) {
-        setErrorFotos(`"${file.name}" supera los 5 MB permitidos.`);
+        setErrorFotos(`"${file.name}" supera los 10 MB permitidos.`);
         return;
       }
     }
@@ -259,6 +266,7 @@ export default function MisViaticos() {
     const conPreview = lista.map((file) => ({
       file,
       preview: URL.createObjectURL(file),
+      isPdf: file.type === 'application/pdf' || file.name?.toLowerCase().endsWith('.pdf'),
       id: crypto.randomUUID(),
     }));
 
@@ -313,7 +321,7 @@ export default function MisViaticos() {
           );
         } catch (errUpload) {
           console.error('Error al subir nuevas evidencias:', errUpload);
-          throw new Error('El viático se guardó pero falló la subida de fotos. Verifica tu conexión.');
+          throw new Error('El viático se guardó pero falló la subida de archivos. Verifica tu conexión.');
         }
       }
 
@@ -345,8 +353,19 @@ export default function MisViaticos() {
   }
 
   function FilaViatico({ v, resumen, asigObj }) {
-    const tieneFotos = v.evidencias?.length > 0;
+    const tieneEvidencias = v.evidencias?.length > 0;
     const asignacionDisponible = esAsignacionDisponible(resumen, asigObj, v);
+    const cantEvs = v.evidencias?.length || 0;
+    const soloPdfs = tieneEvidencias && v.evidencias.every((e) => esArchivoPdf(e.secure_url));
+
+    let textoEvidencia = '';
+    if (tieneEvidencias) {
+      if (soloPdfs) {
+        textoEvidencia = cantEvs > 1 ? `📄 ${cantEvs} PDFs — ver` : '📄 PDF — ver';
+      } else {
+        textoEvidencia = `📷 ${cantEvs} foto${cantEvs > 1 ? 's' : ''} — ver`;
+      }
+    }
 
     return (
       <div className="mv-viatico-item">
@@ -356,14 +375,14 @@ export default function MisViaticos() {
             <span className="mv-vi-tipo">{LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}</span>
             <span className="mv-vi-fecha">{formatFechaLarga(v.fecha)}</span>
             {v.ciudad && <span className="mv-vi-ciudad">📍 {v.ciudad}</span>}
-            {tieneFotos ? (
+            {tieneEvidencias ? (
               <button
                 type="button"
                 className="mv-vi-ev mv-vi-ev--btn"
                 onClick={() => { setGaleriaViatico(v); setFotoActiva(0); }}
-                title="Ver fotografías de soporte"
+                title={soloPdfs ? 'Ver documento PDF de soporte' : 'Ver fotografías de soporte'}
               >
-                📷 {v.evidencias.length} foto{v.evidencias.length > 1 ? 's' : ''} — ver
+                {textoEvidencia}
               </button>
             ) : (
               <span className="mv-vi-ev mv-vi-ev--vacio">Sin evidencia</span>
@@ -660,26 +679,34 @@ export default function MisViaticos() {
                 <div className="mv-evidencias-seccion">
                   <div className="mv-evidencias-header">
                     <label className="mv-evidencias-label">
-                      📷 Fotografías de soporte (comprobantes / recibos)
+                      📷 Fotografías / Documentos PDF de soporte
                     </label>
                     <span className="mv-evidencias-conteo">
                       {fotosActivasTotal} / {MAX_ARCHIVOS_TOTAL}
                     </span>
                   </div>
 
-                  {/* Fotos actuales existentes */}
+                  {/* Fotos/PDFs actuales existentes */}
                   {evidenciasExistentes.length > 0 && (
                     <div className="mv-fotos-bloque">
-                      <span className="mv-fotos-subtitulo">Fotografías actuales en el sistema:</span>
+                      <span className="mv-fotos-subtitulo">Soportes actuales en el sistema:</span>
                       <div className="mv-fotos-grid">
                         {evidenciasExistentes.map((ev, idx) => {
                           const eliminada = evidenciasAEliminar.has(ev.id);
+                          const esPdf = esArchivoPdf(ev.secure_url);
                           return (
                             <div
                               key={ev.id}
                               className={`mv-foto-card ${eliminada ? 'mv-foto-card--eliminada' : ''}`}
                             >
-                              <img src={ev.secure_url} alt={`Evidencia ${idx + 1}`} className="mv-foto-img" />
+                              {esPdf ? (
+                                <div style={{ width: '100%', height: '75px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#FEF2F2', color: '#DC2626' }}>
+                                  <span style={{ fontSize: '1.5rem' }}>📄</span>
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 'bold' }}>PDF</span>
+                                </div>
+                              ) : (
+                                <img src={ev.secure_url} alt={`Evidencia ${idx + 1}`} className="mv-foto-img" />
+                              )}
                               {eliminada && (
                                 <div className="mv-foto-overlay-eliminada">
                                   <span>❌ Se eliminará</span>
@@ -693,7 +720,7 @@ export default function MisViaticos() {
                                     setGaleriaViatico({ ...viaticoEditando, evidencias: [ev] });
                                     setFotoActiva(0);
                                   }}
-                                  title="Ver imagen completa"
+                                  title="Ver soporte completo"
                                 >
                                   🔍 Ver
                                 </button>
@@ -712,20 +739,27 @@ export default function MisViaticos() {
                     </div>
                   )}
 
-                  {/* Fotos nuevas preparadas para subir */}
+                  {/* Fotos/PDFs nuevas preparadas para subir */}
                   {nuevasFotos.length > 0 && (
                     <div className="mv-fotos-bloque">
-                      <span className="mv-fotos-subtitulo">Nuevas fotografías para subir:</span>
+                      <span className="mv-fotos-subtitulo">Nuevos soportes para subir:</span>
                       <div className="mv-fotos-grid">
                         {nuevasFotos.map((nf) => (
                           <div key={nf.id} className="mv-foto-card mv-foto-card--nueva">
-                            <img src={nf.preview} alt="Nueva evidencia" className="mv-foto-img" />
+                            {nf.isPdf ? (
+                              <div style={{ width: '100%', height: '75px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#FEF2F2', color: '#DC2626' }}>
+                                <span style={{ fontSize: '1.5rem' }}>📄</span>
+                                <span style={{ fontSize: '0.65rem', fontWeight: 'bold' }}>PDF</span>
+                              </div>
+                            ) : (
+                              <img src={nf.preview} alt="Nueva evidencia" className="mv-foto-img" />
+                            )}
                             <span className="mv-foto-badge-nueva">🆕 Nueva</span>
                             <button
                               type="button"
                               className="mv-foto-btn-quitar-nueva"
                               onClick={() => quitarNuevaFoto(nf.id)}
-                              title="Quitar esta fotografía"
+                              title="Quitar este soporte"
                             >
                               ✕
                             </button>
@@ -735,7 +769,7 @@ export default function MisViaticos() {
                     </div>
                   )}
 
-                  {/* Dropzone para agregar más fotografías */}
+                  {/* Dropzone para agregar más fotografías o PDFs */}
                   {fotosActivasTotal < MAX_ARCHIVOS_TOTAL && (
                     <div
                       className={`mv-dropzone-compact ${dragActivo ? 'mv-dropzone-compact--activo' : ''}`}
@@ -751,20 +785,20 @@ export default function MisViaticos() {
                       <input
                         id="input-edit-fotos"
                         type="file"
-                        accept="image/jpeg,image/png,image/webp"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
                         multiple
                         hidden
                         onChange={(e) => validarYAgregarNuevasFotos(e.target.files)}
                       />
-                      <span className="mv-dropzone-icon">📷</span>
+                      <span className="mv-dropzone-icon">📎</span>
                       <div className="mv-dropzone-text-wrap">
                         <span className="mv-dropzone-text-principal">
                           {evidenciasExistentes.length === 0 && nuevasFotos.length === 0
-                            ? 'Subir fotografía o comprobante'
-                            : '+ Agregar otra fotografía'}
+                            ? 'Subir fotografía, comprobante o PDF'
+                            : '+ Agregar otra fotografía o PDF'}
                         </span>
                         <span className="mv-dropzone-text-secundario">
-                          Haz clic o arrastra imágenes (JPG, PNG, WEBP, máx 5MB)
+                          Haz clic o arrastra archivos (JPG, PNG, WEBP, PDF, máx 10MB)
                         </span>
                       </div>
                     </div>
@@ -821,85 +855,141 @@ export default function MisViaticos() {
         )}
 
         {/* ── LIGHTBOX DE EVIDENCIAS ── */}
-        {galeriaViatico && (
-          <div
-            className="mv-lightbox-overlay"
-            onClick={() => setGaleriaViatico(null)}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Galería de evidencias"
-          >
-            <div className="mv-lightbox" onClick={(e) => e.stopPropagation()}>
-              <div className="mv-lightbox-header">
-                <div>
-                  <span className="mv-lightbox-title">📷 Evidencias fotográficas</span>
-                  <span className="mv-lightbox-sub">
-                    {LABEL_TIPO_GASTO[galeriaViatico.tipo_gasto] || galeriaViatico.tipo_gasto}
-                    {' · '}{formatFechaLarga(galeriaViatico.fecha)}
-                    {' · '}{formatCOP(galeriaViatico.valor)}
-                  </span>
+        {galeriaViatico && (() => {
+          const evActiva = galeriaViatico.evidencias?.[fotoActiva];
+          const esPdfActiva = evActiva ? esArchivoPdf(evActiva.secure_url) : false;
+          const soloPdfs = galeriaViatico.evidencias?.every((e) => esArchivoPdf(e.secure_url));
+
+          return (
+            <div
+              className="mv-lightbox-overlay"
+              onClick={() => setGaleriaViatico(null)}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Galería de evidencias"
+            >
+              <div className="mv-lightbox" onClick={(e) => e.stopPropagation()}>
+                <div className="mv-lightbox-header">
+                  <div>
+                    <span className="mv-lightbox-title">
+                      {soloPdfs ? '📄 Documento PDF' : esPdfActiva ? '📄 Documento PDF' : '📷 Evidencias fotográficas'}
+                    </span>
+                    <span className="mv-lightbox-sub">
+                      {LABEL_TIPO_GASTO[galeriaViatico.tipo_gasto] || galeriaViatico.tipo_gasto}
+                      {' · '}{formatFechaLarga(galeriaViatico.fecha)}
+                      {' · '}{formatCOP(galeriaViatico.valor)}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="mv-lightbox-close"
+                    onClick={() => setGaleriaViatico(null)}
+                    aria-label="Cerrar galería"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="mv-lightbox-close"
-                  onClick={() => setGaleriaViatico(null)}
-                  aria-label="Cerrar galería"
-                >
-                  ✕
-                </button>
-              </div>
 
-              <div className="mv-lightbox-main">
-                <button
-                  type="button"
-                  className="mv-lightbox-nav mv-lightbox-nav--prev"
-                  disabled={fotoActiva === 0}
-                  onClick={() => setFotoActiva((i) => Math.max(0, i - 1))}
-                  aria-label="Foto anterior"
-                >
-                  ‹
-                </button>
-
-                <img
-                  key={galeriaViatico.evidencias[fotoActiva]?.secure_url}
-                  src={galeriaViatico.evidencias[fotoActiva]?.secure_url}
-                  alt={`Evidencia ${fotoActiva + 1} de ${galeriaViatico.evidencias.length}`}
-                  className="mv-lightbox-img"
-                />
-
-                <button
-                  type="button"
-                  className="mv-lightbox-nav mv-lightbox-nav--next"
-                  disabled={fotoActiva === galeriaViatico.evidencias.length - 1}
-                  onClick={() => setFotoActiva((i) => Math.min(galeriaViatico.evidencias.length - 1, i + 1))}
-                  aria-label="Foto siguiente"
-                >
-                  ›
-                </button>
-              </div>
-
-              <div className="mv-lightbox-counter">
-                {fotoActiva + 1} / {galeriaViatico.evidencias.length}
-              </div>
-
-              {galeriaViatico.evidencias.length > 1 && (
-                <div className="mv-lightbox-thumbs">
-                  {galeriaViatico.evidencias.map((ev, idx) => (
+                <div className="mv-lightbox-main">
+                  {galeriaViatico.evidencias.length > 1 && (
                     <button
-                      key={ev.secure_url}
                       type="button"
-                      className={`mv-lightbox-thumb ${idx === fotoActiva ? 'mv-lightbox-thumb--active' : ''}`}
-                      onClick={() => setFotoActiva(idx)}
-                      aria-label={`Ver foto ${idx + 1}`}
+                      className="mv-lightbox-nav mv-lightbox-nav--prev"
+                      disabled={fotoActiva === 0}
+                      onClick={() => setFotoActiva((i) => Math.max(0, i - 1))}
+                      aria-label="Foto anterior"
                     >
-                      <img src={ev.secure_url} alt={`Miniatura ${idx + 1}`} />
+                      ‹
                     </button>
-                  ))}
+                  )}
+
+                  {esPdfActiva ? (
+                    <div style={{ width: '100%', height: '52vh', display: 'flex', flexDirection: 'column', background: '#FFFFFF', borderRadius: '8px', overflow: 'hidden' }}>
+                      <div style={{ padding: '0.5rem 0.8rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>📄 Documento PDF adjunto</span>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <a
+                            href={evActiva?.secure_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              fontSize: '0.78rem',
+                              background: '#2563EB',
+                              color: '#FFFFFF',
+                              padding: '0.3rem 0.75rem',
+                              borderRadius: '6px',
+                              textDecoration: 'none',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                            }}
+                          >
+                            ↗️ Abrir PDF
+                          </a>
+                        </div>
+                      </div>
+                      <iframe
+                        src={evActiva?.secure_url}
+                        title={`Documento PDF ${fotoActiva + 1}`}
+                        style={{ width: '100%', flex: 1, border: 'none' }}
+                      />
+                    </div>
+                  ) : (
+                    <img
+                      key={evActiva?.secure_url}
+                      src={evActiva?.secure_url}
+                      alt={`Evidencia ${fotoActiva + 1} de ${galeriaViatico.evidencias.length}`}
+                      className="mv-lightbox-img"
+                    />
+                  )}
+
+                  {galeriaViatico.evidencias.length > 1 && (
+                    <button
+                      type="button"
+                      className="mv-lightbox-nav mv-lightbox-nav--next"
+                      disabled={fotoActiva === galeriaViatico.evidencias.length - 1}
+                      onClick={() => setFotoActiva((i) => Math.min(galeriaViatico.evidencias.length - 1, i + 1))}
+                      aria-label="Foto siguiente"
+                    >
+                      ›
+                    </button>
+                  )}
                 </div>
-              )}
+
+                <div className="mv-lightbox-counter">
+                  {esPdfActiva ? '📄 PDF' : '📷 Foto'} {fotoActiva + 1} de {galeriaViatico.evidencias.length}
+                </div>
+
+                {galeriaViatico.evidencias.length > 1 && (
+                  <div className="mv-lightbox-thumbs">
+                    {galeriaViatico.evidencias.map((ev, idx) => {
+                      const esThumbPdf = esArchivoPdf(ev.secure_url);
+                      return (
+                        <button
+                          key={ev.secure_url || idx}
+                          type="button"
+                          className={`mv-lightbox-thumb ${idx === fotoActiva ? 'mv-lightbox-thumb--active' : ''}`}
+                          onClick={() => setFotoActiva(idx)}
+                          aria-label={`Ver soporte ${idx + 1}`}
+                        >
+                          {esThumbPdf ? (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#FEF2F2', color: '#DC2626', borderRadius: '4px' }}>
+                              <span style={{ fontSize: '1.1rem' }}>📄</span>
+                              <span style={{ fontSize: '0.55rem', fontWeight: 700 }}>PDF</span>
+                            </div>
+                          ) : (
+                            <img src={ev.secure_url} alt={`Miniatura ${idx + 1}`} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </TecnicoLayout>
   );
