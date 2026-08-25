@@ -77,6 +77,136 @@
     overflow: hidden;
 }
 
+.modal-imagen-container--pdf {
+    background: #1E293B;
+    padding: 0;
+    flex-direction: column;
+    height: 48vh;
+}
+
+.modal-pdf-viewer-wrap {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.modal-pdf-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0F172A;
+    padding: 0.5rem 0.85rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 6;
+}
+
+.modal-pdf-badge-tag {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #F87171;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.modal-pdf-header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.modal-btn-pdf-download {
+    background: #DC2626;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.modal-btn-pdf-download:hover {
+    background: #B91C1C;
+    transform: translateY(-1px);
+}
+
+.modal-btn-pdf-external {
+    background: rgba(255, 255, 255, 0.15);
+    color: #FFFFFF;
+    text-decoration: none;
+    border-radius: 6px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.modal-btn-pdf-external:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.modal-pdf-frame {
+    width: 100%;
+    flex: 1;
+    border: none;
+    background: #FFFFFF;
+}
+
+.modal-btn-download-inline {
+    background: #DC2626;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.73rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.modal-btn-download-inline:hover {
+    background: #B91C1C;
+}
+
+.modal-thumb--pdf {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: #DC2626;
+    gap: 0.1rem;
+}
+
+.modal-thumb-pdf-icon {
+    font-size: 1.3rem;
+    line-height: 1;
+}
+
+.modal-thumb-pdf-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+}
+
+.modal-admin-preview-pdf {
+    width: 48px;
+    height: 48px;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+}
+
 .modal-imagen-principal {
     max-width: 100%;
     max-height: 48vh;

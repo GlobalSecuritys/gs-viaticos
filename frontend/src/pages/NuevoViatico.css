@@ -420,6 +420,42 @@
     border: 1px solid var(--color-border);
 }
 
+.nv-soporte-pdf-card {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.85rem;
+    min-height: 50px;
+}
+
+.nv-soporte-pdf-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.nv-soporte-pdf-info {
+    display: flex;
+    flex-direction: column;
+    max-width: 200px;
+}
+
+.nv-soporte-pdf-name {
+    font-size: 0.82rem;
+    color: #991B1B;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nv-soporte-pdf-size {
+    font-size: 0.72rem;
+    color: #B91C1C;
+    font-weight: 500;
+}
+
 .nv-soporte-preview-actions {
     display: flex;
     gap: 0.5rem;

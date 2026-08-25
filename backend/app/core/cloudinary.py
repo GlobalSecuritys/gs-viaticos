@@ -45,11 +45,13 @@ ALLOWED_CONTENT_TYPES = {
     "image/x-png",
     "image/bmp",
     "image/tiff",
+    "application/pdf",
+    "application/x-pdf",
     "application/octet-stream",
 }
 
 ALLOWED_EXTENSIONS = {
-    ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".bmp", ".tiff"
+    ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".bmp", ".tiff", ".pdf"
 }
 
 MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024  # 15 MB
@@ -57,20 +59,24 @@ MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024  # 15 MB
 
 @dataclass
 class CloudinaryUploadResult:
-    """Resultado mínimo necesario tras subir una imagen."""
+    """Resultado mínimo necesario tras subir una imagen o PDF."""
 
     secure_url: str
     public_id: str
 
 
 def _validate_file(file: UploadFile, content: bytes) -> None:
-    """Valida tipo y tamaño del archivo (tolerante con navegadores móviles iOS/Android)."""
+    """Valida tipo y tamaño del archivo (tolerante con navegadores móviles iOS/Android y PDFs)."""
 
     content_type = (file.content_type or "").lower().strip()
     filename = (file.filename or "").lower().strip()
     ext = "." + filename.split(".")[-1] if "." in filename else ""
 
-    es_content_type_valido = content_type in ALLOWED_CONTENT_TYPES or content_type.startswith("image/")
+    es_content_type_valido = (
+        content_type in ALLOWED_CONTENT_TYPES
+        or content_type.startswith("image/")
+        or content_type == "application/pdf"
+    )
     es_extension_valida = ext in ALLOWED_EXTENSIONS
 
     if not (es_content_type_valido or es_extension_valida):
@@ -78,7 +84,7 @@ def _validate_file(file: UploadFile, content: bytes) -> None:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
                 f"Tipo de archivo no permitido ({file.content_type}). "
-                "Por favor adjunta una imagen (JPG, PNG, WEBP, HEIC)."
+                "Por favor adjunta una imagen (JPG, PNG, WEBP) o un documento PDF."
             ),
         )
 
@@ -107,9 +113,7 @@ def _upload_a_cloudinary_sync(content: bytes) -> dict:
     return cloudinary.uploader.upload(
         content,
         folder=VIATICOS_FOLDER,
-        resource_type="image",
-        quality="auto",
-        fetch_format="auto",
+        resource_type="auto",
         use_filename=True,
         unique_filename=True,
         timeout=45,

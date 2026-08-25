@@ -712,20 +712,34 @@ export default function NuevoViatico() {
                                             {/* Soporte (opcional) dentro de CADA ítem */}
                                             {gasto.tiene_soporte === 'si' && (
                                                 <div className="nv-gasto-soporte-box">
-                                                    <span className="nv-soporte-label">Soporte (opcional)</span>
-                                                    {gasto.previewUrl ? (
+                                                    <span className="nv-soporte-label">Soporte (opcional - Foto o PDF)</span>
+                                                    {gasto.archivo || gasto.previewUrl ? (
                                                         <div className="nv-soporte-preview-wrap">
-                                                            <img
-                                                                src={gasto.previewUrl}
-                                                                alt="Vista previa del soporte"
-                                                                className="nv-soporte-thumb"
-                                                            />
+                                                            {(gasto.archivo?.type === 'application/pdf' || gasto.archivo?.name?.toLowerCase().endsWith('.pdf')) ? (
+                                                                <div className="nv-soporte-pdf-card">
+                                                                    <span className="nv-soporte-pdf-icon">📄</span>
+                                                                    <div className="nv-soporte-pdf-info">
+                                                                        <strong className="nv-soporte-pdf-name" title={gasto.archivo.name}>
+                                                                            {gasto.archivo.name}
+                                                                        </strong>
+                                                                        <span className="nv-soporte-pdf-size">
+                                                                            {(gasto.archivo.size / 1024).toFixed(0)} KB · Documento PDF
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <img
+                                                                    src={gasto.previewUrl}
+                                                                    alt="Vista previa del soporte"
+                                                                    className="nv-soporte-thumb"
+                                                                />
+                                                            )}
                                                             <div className="nv-soporte-preview-actions">
                                                                 <label className="nv-foto-btn">
-                                                                    📷 Cambiar foto
+                                                                    🔄 Cambiar archivo
                                                                     <input
                                                                         type="file"
-                                                                        accept="image/*"
+                                                                        accept="image/*,application/pdf"
                                                                         onChange={(e) => handleFileChange(gasto.id, e)}
                                                                         hidden
                                                                     />
@@ -741,10 +755,10 @@ export default function NuevoViatico() {
                                                         </div>
                                                     ) : (
                                                         <label className="nv-foto-btn nv-foto-btn--empty">
-                                                            📷 Adjuntar foto
+                                                            📎 Adjuntar foto o PDF
                                                             <input
                                                                 type="file"
-                                                                accept="image/*"
+                                                                accept="image/*,application/pdf"
                                                                 onChange={(e) => handleFileChange(gasto.id, e)}
                                                                 hidden
                                                             />

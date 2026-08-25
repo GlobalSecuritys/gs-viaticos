@@ -30,6 +30,28 @@ function formatDate(dateStr) {
     return `${day}/${month}/${year}`;
 }
 
+function esArchivoPdf(url) {
+    if (!url) return false;
+    const cleanUrl = url.split('?')[0].toLowerCase();
+    return cleanUrl.endsWith('.pdf');
+}
+
+function handleDescargarSoporte(url, nombre = 'evidencia-viatico.pdf') {
+    if (!url) return;
+    let downloadUrl = url;
+    if (url.includes('/upload/') && !url.includes('/upload/fl_attachment/')) {
+        downloadUrl = url.replace('/upload/', '/upload/fl_attachment/');
+    }
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.setAttribute('download', nombre);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onAprobar, onRechazar, onPresupuestoActualizado, onViaticoActualizado }) {
     const [viatico, setViatico] = useState(viaticoInicial);
     const [indiceActivo, setIndiceActivo] = useState(0);
@@ -101,11 +123,11 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
             notificarPadre(vActualizado);
 
             handleCancelarSeleccion();
-            setExitoAdminMsg('✅ Fotografía guardada y actualizada correctamente.');
+            setExitoAdminMsg('✅ Soporte guardado y actualizado correctamente.');
             setTimeout(() => setExitoAdminMsg(''), 4000);
         } catch (err) {
             const detail = err.response?.data?.detail;
-            setErrorSubidaAdmin(typeof detail === 'string' ? detail : 'Error al guardar la fotografía de soporte.');
+            setErrorSubidaAdmin(typeof detail === 'string' ? detail : 'Error al guardar el archivo de soporte.');
         } finally {
             setSubiendoAdmin(false);
         }
@@ -128,11 +150,11 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
             setIndiceActivo(prev => Math.max(0, Math.min(prev, nuevasEvs.length - 1)));
             notificarPadre(vActualizado);
             setConfirmarEliminarEv(false);
-            setExitoAdminMsg('🗑️ Fotografía eliminada correctamente.');
+            setExitoAdminMsg('🗑️ Soporte eliminado correctamente.');
             setTimeout(() => setExitoAdminMsg(''), 4000);
         } catch (err) {
             const detail = err.response?.data?.detail;
-            setErrorSubidaAdmin(typeof detail === 'string' ? detail : 'Error al eliminar la fotografía.');
+            setErrorSubidaAdmin(typeof detail === 'string' ? detail : 'Error al eliminar el soporte.');
         } finally {
             setEliminandoEvidencia(false);
         }
@@ -166,6 +188,7 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
     const evidencias = viatico.evidencias || [];
     const tieneEvidencias = evidencias.length > 0;
     const evActiva = tieneEvidencias ? evidencias[indiceActivo] : null;
+    const esPdfActiva = evActiva ? esArchivoPdf(evActiva.secure_url) : false;
 
     const parsed = parseDescripcion(viatico.descripcion);
 
@@ -209,16 +232,48 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                 <div className="modal-imagen-lado">
                     {tieneEvidencias ? (
                         <>
-                            <div className="modal-imagen-container">
+                            <div className={`modal-imagen-container ${esPdfActiva ? 'modal-imagen-container--pdf' : ''}`}>
                                 <div className={`modal-evidencia-badge ${evActiva?.origen === 'admin' ? 'modal-evidencia-badge--admin' : 'modal-evidencia-badge--tecnico'}`}>
-                                    {evActiva?.origen === 'admin' ? '🛡️ Soporte de Administración' : '👤 Foto subida por Técnico'}
+                                    {evActiva?.origen === 'admin' ? '🛡️ Soporte de Administración' : '👤 Soporte subido por Técnico'}
                                 </div>
 
-                                <img
-                                    src={evActiva?.secure_url}
-                                    alt={`Evidencia ${indiceActivo + 1}`}
-                                    className="modal-imagen-principal"
-                                />
+                                {esPdfActiva ? (
+                                    <div className="modal-pdf-viewer-wrap">
+                                        <div className="modal-pdf-header-bar">
+                                            <span className="modal-pdf-badge-tag">📄 Documento PDF</span>
+                                            <div className="modal-pdf-header-actions">
+                                                <button
+                                                    type="button"
+                                                    className="modal-btn-pdf-download"
+                                                    onClick={() => handleDescargarSoporte(evActiva.secure_url, `soporte_viatico_${viatico.id}_${indiceActivo + 1}.pdf`)}
+                                                    title="Descargar este documento PDF"
+                                                >
+                                                    📥 Descargar PDF
+                                                </button>
+                                                <a
+                                                    href={evActiva.secure_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="modal-btn-pdf-external"
+                                                    title="Abrir en pestaña nueva"
+                                                >
+                                                    ↗️ Abrir
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <iframe
+                                            src={evActiva.secure_url}
+                                            title={`Documento PDF ${indiceActivo + 1}`}
+                                            className="modal-pdf-frame"
+                                        />
+                                    </div>
+                                ) : (
+                                    <img
+                                        src={evActiva?.secure_url}
+                                        alt={`Evidencia ${indiceActivo + 1}`}
+                                        className="modal-imagen-principal"
+                                    />
+                                )}
 
                                 {evidencias.length > 1 && (
                                     <>
@@ -227,7 +282,7 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                                             className="modal-nav-arrow modal-nav-arrow--prev"
                                             disabled={indiceActivo === 0}
                                             onClick={() => setIndiceActivo(i => Math.max(0, i - 1))}
-                                            title="Foto anterior"
+                                            title="Soporte anterior"
                                         >
                                             ‹
                                         </button>
@@ -236,7 +291,7 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                                             className="modal-nav-arrow modal-nav-arrow--next"
                                             disabled={indiceActivo === evidencias.length - 1}
                                             onClick={() => setIndiceActivo(i => Math.min(evidencias.length - 1, i + 1))}
-                                            title="Foto siguiente"
+                                            title="Soporte siguiente"
                                         >
                                             ›
                                         </button>
@@ -244,59 +299,80 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                                 )}
                             </div>
 
-                            {/* Barra de herramientas para la foto activa: eliminar si fue subida por admin o errónea */}
+                            {/* Barra de herramientas para el soporte activo */}
                             <div className="modal-foto-actions-bar">
                                 <span className="modal-foto-counter">
-                                    Foto {indiceActivo + 1} de {evidencias.length} {evActiva?.origen === 'admin' ? '(Admin)' : '(Técnico)'}
+                                    {esPdfActiva ? '📄 PDF' : '📷 Foto'} {indiceActivo + 1} de {evidencias.length} {evActiva?.origen === 'admin' ? '(Admin)' : '(Técnico)'}
                                 </span>
-                                {confirmarEliminarEv ? (
-                                    <div className="modal-confirm-delete-inline">
-                                        <span>¿Borrar esta foto?</span>
+                                
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    {esPdfActiva && (
                                         <button
                                             type="button"
-                                            className="modal-btn-confirm-del"
-                                            onClick={handleEliminarEvidenciaActiva}
-                                            disabled={eliminandoEvidencia}
+                                            className="modal-btn-download-inline"
+                                            onClick={() => handleDescargarSoporte(evActiva.secure_url, `soporte_viatico_${viatico.id}_${indiceActivo + 1}.pdf`)}
                                         >
-                                            {eliminandoEvidencia ? 'Borrando…' : 'Sí, borrar'}
+                                            📥 Descargar
                                         </button>
+                                    )}
+
+                                    {confirmarEliminarEv ? (
+                                        <div className="modal-confirm-delete-inline">
+                                            <span>¿Borrar este soporte?</span>
+                                            <button
+                                                type="button"
+                                                className="modal-btn-confirm-del"
+                                                onClick={handleEliminarEvidenciaActiva}
+                                                disabled={eliminandoEvidencia}
+                                            >
+                                                {eliminandoEvidencia ? 'Borrando…' : 'Sí, borrar'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="modal-btn-cancel-del"
+                                                onClick={() => setConfirmarEliminarEv(false)}
+                                                disabled={eliminandoEvidencia}
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    ) : (
                                         <button
                                             type="button"
-                                            className="modal-btn-cancel-del"
-                                            onClick={() => setConfirmarEliminarEv(false)}
-                                            disabled={eliminandoEvidencia}
+                                            className="modal-btn-delete-foto"
+                                            onClick={() => setConfirmarEliminarEv(true)}
+                                            title="Eliminar este soporte"
                                         >
-                                            Cancelar
+                                            🗑️ Borrar
                                         </button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        className="modal-btn-delete-foto"
-                                        onClick={() => setConfirmarEliminarEv(true)}
-                                        title="Eliminar esta fotografía de soporte"
-                                    >
-                                        🗑️ Borrar esta foto
-                                    </button>
-                                )}
+                                    )}
+                                </div>
                             </div>
 
                             {evidencias.length > 1 && (
                                 <div className="modal-thumbs-strip">
                                     {evidencias.map((ev, i) => {
                                         const esAdminThumb = ev.origen === 'admin';
+                                        const esPdfThumb = esArchivoPdf(ev.secure_url);
                                         return (
                                             <div
                                                 key={ev.id || i}
                                                 className={`modal-thumb-wrap ${i === indiceActivo ? 'modal-thumb-wrap--activa' : ''}`}
                                                 onClick={() => { setIndiceActivo(i); setConfirmarEliminarEv(false); }}
-                                                title={esAdminThumb ? 'Soporte Admin' : 'Foto Técnico'}
+                                                title={esAdminThumb ? 'Soporte Admin' : 'Soporte Técnico'}
                                             >
-                                                <img
-                                                    src={ev.secure_url}
-                                                    alt={`Miniatura ${i + 1}`}
-                                                    className="modal-thumb"
-                                                />
+                                                {esPdfThumb ? (
+                                                    <div className="modal-thumb modal-thumb--pdf">
+                                                        <span className="modal-thumb-pdf-icon">📄</span>
+                                                        <span className="modal-thumb-pdf-label">PDF</span>
+                                                    </div>
+                                                ) : (
+                                                    <img
+                                                        src={ev.secure_url}
+                                                        alt={`Miniatura ${i + 1}`}
+                                                        className="modal-thumb"
+                                                    />
+                                                )}
                                                 <span className={`modal-thumb-tag ${esAdminThumb ? 'modal-thumb-tag--admin' : 'modal-thumb-tag--tecnico'}`}>
                                                     {esAdminThumb ? '🛡️ Admin' : '👤 Técnico'}
                                                 </span>
@@ -309,7 +385,7 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                     ) : (
                         <div className="modal-sin-evidencia">
                             <span>📷</span>
-                            <p>Este viático no tiene fotografías adjuntas</p>
+                            <p>Este viático no tiene fotografías ni documentos PDF adjuntos</p>
                         </div>
                     )}
 
@@ -326,8 +402,14 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                         {archivoSeleccionado ? (
                             <div className="modal-admin-preview-box">
                                 <div className="modal-admin-preview-info">
-                                    {previewAdminUrl && (
-                                        <img src={previewAdminUrl} alt="Vista previa soporte admin" className="modal-admin-preview-img" />
+                                    {(archivoSeleccionado.type === 'application/pdf' || archivoSeleccionado.name?.toLowerCase().endsWith('.pdf')) ? (
+                                        <div className="modal-admin-preview-pdf">
+                                            <span>📄</span>
+                                        </div>
+                                    ) : (
+                                        previewAdminUrl && (
+                                            <img src={previewAdminUrl} alt="Vista previa soporte admin" className="modal-admin-preview-img" />
+                                        )
                                     )}
                                     <div className="modal-admin-preview-meta">
                                         <strong>{archivoSeleccionado.name}</strong>
@@ -341,7 +423,7 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                                         onClick={handleGuardarEvidenciaAdmin}
                                         disabled={subiendoAdmin}
                                     >
-                                        {subiendoAdmin ? '⏳ Guardando…' : '💾 Guardar Fotografía'}
+                                        {subiendoAdmin ? '⏳ Guardando…' : '💾 Guardar Soporte'}
                                     </button>
                                     <button
                                         type="button"
@@ -355,10 +437,10 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                             </div>
                         ) : (
                             <label className="modal-btn-admin-upload">
-                                📷 + Seleccionar foto de soporte (Admin)
+                                📎 + Seleccionar soporte (Foto o PDF - Admin)
                                 <input
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/*,application/pdf"
                                     onChange={handleSeleccionarArchivo}
                                     hidden
                                 />
