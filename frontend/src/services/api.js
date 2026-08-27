@@ -84,6 +84,10 @@ export function eliminarDocumentoTalentoHumano(usuarioId, documentoId) {
   return api.delete(`/talento-humano/empleados/${usuarioId}/documentos/${documentoId}`);
 }
 
+export function eliminarUsuario(usuarioId) {
+  return api.delete(`/admin/usuarios/${usuarioId}`);
+}
+
 export function descargarBlob(blobData, filename) {
   const url = window.URL.createObjectURL(new Blob([blobData]));
   const link = document.createElement('a');

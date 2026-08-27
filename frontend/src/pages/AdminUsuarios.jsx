@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { eliminarUsuario } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import './AdminDashboard.css';
 import './AdminUsuarios.css';
@@ -15,6 +15,8 @@ export default function AdminUsuarios() {
     const [busqueda, setBusqueda] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [mensajeExito, setMensajeExito] = useState('');
+    const [eliminandoId, setEliminandoId] = useState(null);
 
     // true solo si quien está logueado es el master admin
     const isMasterAdmin = (user?.correo || '').trim().toLowerCase() === 'admin@gsbank.com';
@@ -69,6 +71,39 @@ export default function AdminUsuarios() {
         }
     }
 
+    async function handleEliminarUsuario(usuario) {
+        if (user && user.id === usuario.id) {
+            alert('No puedes eliminar tu propia cuenta de usuario.');
+            return;
+        }
+
+        const confirmacion = window.confirm(
+            `⚠️ ATENCIÓN: ¿Estás COMPLETAMENTE seguro de eliminar al usuario '${usuario.nombre}'?\n\n` +
+            `Esta acción es DEFINITIVA e IRREVERSIBLE. Se borrarán permanentemente del sistema:\n` +
+            `• Todos sus viáticos y fotos/comprobantes de evidencia\n` +
+            `• Todas sus asignaciones y cuentas de cobro\n` +
+            `• Su ficha de Talento Humano y documentos adjuntos\n` +
+            `• Su cuenta de acceso al sistema\n\n` +
+            `¿Deseas continuar con la eliminación permanente?`
+        );
+
+        if (!confirmacion) return;
+
+        setEliminandoId(usuario.id);
+        setError('');
+        setMensajeExito('');
+
+        try {
+            const res = await eliminarUsuario(usuario.id);
+            setMensajeExito(res.data?.detail || `✅ Usuario '${usuario.nombre}' eliminado permanentemente.`);
+            await cargarUsuarios();
+        } catch (err) {
+            setError(formatApiError(err, 'No se pudo eliminar el usuario.'));
+        } finally {
+            setEliminandoId(null);
+        }
+    }
+
     const filtrados = usuarios.filter((u) =>
         u.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
         u.codigo_empleado?.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -117,6 +152,12 @@ export default function AdminUsuarios() {
                         </span>
                     </div>
 
+                    {mensajeExito && (
+                        <div className="admin-success-banner">
+                            {mensajeExito}
+                        </div>
+                    )}
+
                     {error && (
                         <div className="admin-error-banner">
                             {error}
@@ -140,6 +181,7 @@ export default function AdminUsuarios() {
                                         <th>Estado</th>
                                         {/* Columna visible solo para master admin */}
                                         {isMasterAdmin && <th>Acceso viáticos</th>}
+                                        <th>Acciones</th>
                                     </tr>
                                 </thead>
 
@@ -224,6 +266,24 @@ export default function AdminUsuarios() {
                                                     </label>
                                                 </td>
                                             )}
+
+                                            <td>
+                                                {user && user.id === u.id ? (
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                                                        Cuenta actual
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        className="admin-delete-btn"
+                                                        onClick={() => handleEliminarUsuario(u)}
+                                                        disabled={eliminandoId === u.id}
+                                                        title={`Eliminar definitivamente a ${u.nombre}`}
+                                                    >
+                                                        {eliminandoId === u.id ? '⌛ Eliminando...' : '🗑️ Eliminar'}
+                                                    </button>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

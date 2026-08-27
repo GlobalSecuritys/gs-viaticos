@@ -315,3 +315,43 @@
 .au-switch input:checked + .au-switch-track::after {
     transform: translateX(18px);
 }
+
+/* ── Botón Eliminar Usuario ── */
+.admin-delete-btn {
+    padding: 0.4rem 0.85rem;
+    border-radius: var(--radius-md);
+    border: 1px solid #FECACA;
+    background-color: #FEF2F2;
+    color: #DC2626;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--color-shadow-sm);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.admin-delete-btn:hover:not(:disabled) {
+    background-color: #FEE2E2;
+    border-color: #F87171;
+    color: #B91C1C;
+    transform: translateY(-1px);
+}
+
+.admin-delete-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.admin-success-banner {
+    margin: 1rem 1.5rem;
+    padding: 0.85rem 1.1rem;
+    background-color: #ECFDF5;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #059669;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+}

@@ -10,6 +10,14 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.viatico import Viatico
 from app.models.evidencia_viatico import EvidenciaViatico
 from app.models.cuenta_cobro import CuentaCobro  # noqa: F401 – necesario para eager load
+from app.models.asignacion import Asignacion
+from app.models.cuenta_cobro_asignacion import CuentaCobroAsignacion
+from app.models.talento_humano import (
+    EmpleadoPerfil,
+    EmpleadoDocumento,
+    EmpleadoHistorial,
+    EmpleadoSolicitud,
+)
 from app.schemas.viatico import (
     ViaticoResponse,
     ViaticoAdminResponse,
@@ -306,6 +314,109 @@ def cambiar_acceso_viaticos_usuario(
     )
 
     return usuario
+
+
+@router.delete("/usuarios/{id}", status_code=status.HTTP_200_OK)
+def eliminar_usuario_definitivo(
+    id: int,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Eliminación permanente y definitiva de un usuario y toda su información relacionada:
+    - Cuentas de cobro independientes y de asignaciones
+    - Viáticos y evidencias asociadas
+    - Asignaciones donde es el técnico asignado
+    - Reasignación de 'creado_por_id' si el usuario creó asignaciones para otros
+    - Datos de Talento Humano (perfil, documentos, historial, solicitudes)
+    - Registro inmutable en logs de auditoría
+    - Registro del usuario en base de datos
+    """
+    stmt = select(Usuario).where(Usuario.id == id)
+    usuario = db.scalar(stmt)
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+
+    if usuario.id == current_admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes eliminar tu propia cuenta."
+        )
+
+    try:
+        verificar_autoridad_sobre_usuario(current_admin, usuario)
+    except HTTPException as exc:
+        registrar_auditoria(
+            db,
+            actor=current_admin,
+            usuario_objetivo=usuario,
+            accion="eliminar_usuario",
+            detalle="Intento bloqueado: admin sin autoridad sobre superadmin",
+            resultado="fallido",
+        )
+        raise exc
+
+    # 1. Eliminar Cuentas de Cobro independientes del usuario
+    db.query(CuentaCobro).filter(CuentaCobro.usuario_id == id).delete(synchronize_session=False)
+
+    # 2. Obtener y eliminar viáticos del usuario y sus evidencias
+    viaticos_usuario = db.query(Viatico).filter(Viatico.usuario_id == id).all()
+    viatico_ids = [v.id for v in viaticos_usuario]
+    if viatico_ids:
+        # Cuentas de cobro ligadas a estos viáticos
+        db.query(CuentaCobro).filter(CuentaCobro.viatico_id.in_(viatico_ids)).delete(synchronize_session=False)
+        # Evidencias de los viáticos
+        db.query(EvidenciaViatico).filter(EvidenciaViatico.viatico_id.in_(viatico_ids)).delete(synchronize_session=False)
+        # Viáticos
+        db.query(Viatico).filter(Viatico.id.in_(viatico_ids)).delete(synchronize_session=False)
+
+    # 3. Asignaciones donde el usuario es el técnico asignado
+    asignaciones_tecnico = db.query(Asignacion).filter(Asignacion.tecnico_id == id).all()
+    asig_ids = [a.id for a in asignaciones_tecnico]
+    if asig_ids:
+        # Cuentas de cobro de asignación
+        db.query(CuentaCobroAsignacion).filter(CuentaCobroAsignacion.asignacion_id.in_(asig_ids)).delete(synchronize_session=False)
+        # Viáticos vinculados a estas asignaciones (si hubiera de otros)
+        viaticos_asig = db.query(Viatico).filter(Viatico.asignacion_id.in_(asig_ids)).all()
+        v_asig_ids = [v.id for v in viaticos_asig]
+        if v_asig_ids:
+            db.query(CuentaCobro).filter(CuentaCobro.viatico_id.in_(v_asig_ids)).delete(synchronize_session=False)
+            db.query(EvidenciaViatico).filter(EvidenciaViatico.viatico_id.in_(v_asig_ids)).delete(synchronize_session=False)
+            db.query(Viatico).filter(Viatico.id.in_(v_asig_ids)).delete(synchronize_session=False)
+        # Eliminar asignaciones del técnico
+        db.query(Asignacion).filter(Asignacion.id.in_(asig_ids)).delete(synchronize_session=False)
+
+    # 4. Cuentas de cobro de asignación donde tecnico_id sea este usuario
+    db.query(CuentaCobroAsignacion).filter(CuentaCobroAsignacion.tecnico_id == id).delete(synchronize_session=False)
+
+    # 5. Si el usuario creó asignaciones para otros técnicos, reasignar creado_por_id al admin actual
+    db.query(Asignacion).filter(Asignacion.creado_por_id == id).update(
+        {Asignacion.creado_por_id: current_admin.id}, synchronize_session=False
+    )
+
+    # 6. Tablas de Talento Humano
+    db.query(EmpleadoDocumento).filter(EmpleadoDocumento.usuario_id == id).delete(synchronize_session=False)
+    db.query(EmpleadoHistorial).filter(EmpleadoHistorial.usuario_id == id).delete(synchronize_session=False)
+    db.query(EmpleadoSolicitud).filter(EmpleadoSolicitud.usuario_id == id).delete(synchronize_session=False)
+    db.query(EmpleadoPerfil).filter(EmpleadoPerfil.usuario_id == id).delete(synchronize_session=False)
+
+    # 7. Registrar auditoría con snapshot antes de borrar el usuario
+    registrar_auditoria(
+        db,
+        actor=current_admin,
+        usuario_objetivo=usuario,
+        accion="eliminar_usuario",
+        detalle=f"Eliminación definitiva de usuario '{usuario.nombre}' ({usuario.correo}, rol: {usuario.rol}) y todos sus datos asociados.",
+        resultado="exitoso",
+    )
+
+    # 8. Eliminar el usuario
+    db.delete(usuario)
+    db.commit()
+
+    return {"detail": f"Usuario '{usuario.nombre}' y todos sus datos han sido eliminados permanentemente."}
 
 
 

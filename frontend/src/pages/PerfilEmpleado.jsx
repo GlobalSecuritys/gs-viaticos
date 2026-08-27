@@ -4,6 +4,7 @@ import api, {
     exportarViaticosIndependientes,
     exportarViaticosAsignacion,
     descargarBlob,
+    eliminarUsuario,
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { puedeGestionarUsuario } from '../utils/permisos';
@@ -107,6 +108,38 @@ export default function PerfilEmpleado() {
             setErrorEstado(formatApiError(err, 'No se pudo cambiar el estado.'));
         } finally {
             setCambiandoEstado(false);
+        }
+    }
+
+    const [eliminandoUsuario, setEliminandoUsuario] = useState(false);
+
+    async function handleEliminarUsuarioDefinitivo() {
+        if (!usuario) return;
+        if (user && String(user.id) === String(usuario.id)) {
+            alert('No puedes eliminar tu propia cuenta de usuario.');
+            return;
+        }
+
+        const confirmacion = window.confirm(
+            `⚠️ ATENCIÓN: ¿Estás COMPLETAMENTE seguro de eliminar al usuario '${usuario.nombre}'?\n\n` +
+            `Esta acción es DEFINITIVA e IRREVERSIBLE. Se borrarán permanentemente del sistema:\n` +
+            `• Todos sus viáticos y fotos/comprobantes de evidencia\n` +
+            `• Todas sus asignaciones y cuentas de cobro\n` +
+            `• Su ficha de Talento Humano y documentos adjuntos\n` +
+            `• Su cuenta de acceso al sistema\n\n` +
+            `¿Deseas continuar con la eliminación permanente?`
+        );
+
+        if (!confirmacion) return;
+
+        setEliminandoUsuario(true);
+        try {
+            await eliminarUsuario(usuario.id);
+            alert(`✅ Usuario '${usuario.nombre}' y todos sus datos han sido eliminados permanentemente.`);
+            navigate('/admin');
+        } catch (err) {
+            alert(formatApiError(err, 'No se pudo eliminar el usuario.'));
+            setEliminandoUsuario(false);
         }
     }
 
@@ -556,7 +589,7 @@ export default function PerfilEmpleado() {
                                         <span className="pf-subgroup-label" style={{ marginTop: '1.75rem' }}>
                                             ACCIONES ADMINISTRATIVAS
                                         </span>
-                                        <div className="pf-admin-action-wrap">
+                                        <div className="pf-admin-action-wrap" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
                                             <div
                                                 className={`pf-action-card pf-action-card--danger ${cambiandoEstado ? 'pf-action-card--disabled' : ''}`}
                                                 onClick={() => !cambiandoEstado && cambiarEstado(!usuario.activo)}
@@ -577,6 +610,27 @@ export default function PerfilEmpleado() {
                                                     </span>
                                                 </div>
                                                 <span className="pf-action-arrow">›</span>
+                                            </div>
+
+                                            <div
+                                                className={`pf-action-card pf-action-card--danger ${eliminandoUsuario ? 'pf-action-card--disabled' : ''}`}
+                                                onClick={() => !eliminandoUsuario && handleEliminarUsuarioDefinitivo()}
+                                                role="button"
+                                                tabIndex={0}
+                                                style={{ borderColor: '#FECACA', background: '#FEF2F2' }}
+                                            >
+                                                <div className="pf-action-icon-box" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+                                                    <span>🗑️</span>
+                                                </div>
+                                                <div className="pf-action-info">
+                                                    <strong className="pf-action-title" style={{ color: '#991B1B' }}>
+                                                        {eliminandoUsuario ? 'Eliminando...' : 'Eliminar usuario'}
+                                                    </strong>
+                                                    <span className="pf-action-desc" style={{ color: '#B91C1C' }}>
+                                                        Borra definitivamente al usuario y todos sus datos
+                                                    </span>
+                                                </div>
+                                                <span className="pf-action-arrow" style={{ color: '#DC2626' }}>›</span>
                                             </div>
                                         </div>
                                         {errorEstado && <p className="pf-gestion-error">{errorEstado}</p>}
