@@ -109,14 +109,14 @@ export default function DetalleAsignacion() {
     }
 
     async function handleEliminar() {
-        if (!window.confirm('¿Eliminar esta asignación? Esta acción no se puede deshacer.')) return;
+        if (!window.confirm('¿Deseas borrar esta asignación? Se ocultará del sistema y se eliminará permanentemente de la base de datos en 24 horas.')) return;
         setEnviando(true);
         setError('');
         try {
             await eliminarAsignacion(id);
             navigate('/admin/asignaciones');
         } catch {
-            setError('No se pudo eliminar la asignación.');
+            setError('No se pudo borrar la asignación.');
             setEnviando(false);
         }
     }
@@ -365,7 +365,7 @@ export default function DetalleAsignacion() {
                                 )}
                                 {puedeEliminar && (
                                     <button className="detalle-asig-btn-eliminar" onClick={handleEliminar} disabled={enviando}>
-                                        🗑️ Eliminar
+                                        🗑️ Borrar
                                     </button>
                                 )}
                             </div>

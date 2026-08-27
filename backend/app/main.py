@@ -32,6 +32,7 @@ def startup_db_check():
     try:
         with engine.connect() as conn:
             conn.execute(text("ALTER TABLE viaticos ADD COLUMN IF NOT EXISTS comentario_admin TEXT;"))
+            conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS eliminado_en TIMESTAMP WITHOUT TIME ZONE;"))
             conn.commit()
         CuentaCobro.__table__.create(bind=engine, checkfirst=True)
         CuentaCobroAsignacion.__table__.create(bind=engine, checkfirst=True)

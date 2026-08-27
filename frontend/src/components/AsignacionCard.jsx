@@ -4,7 +4,7 @@ import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION, CLASE_ESTADO_ASIGNACION
 import ModalCuentaCobro from './ModalCuentaCobro';
 import './AsignacionCard.css';
 
-export default function AsignacionCard({ asignacion, onClick }) {
+export default function AsignacionCard({ asignacion, onClick, onBorrar }) {
     const [mostrarModalCc, setMostrarModalCc] = useState(false);
     const nombre = asignacion.tecnico_nombre || `Técnico #${asignacion.tecnico_id}`;
 
@@ -97,7 +97,7 @@ export default function AsignacionCard({ asignacion, onClick }) {
                     )}
                 </div>
 
-                {/* Indicador Cuenta de Cobro */}
+                {/* Indicador Cuenta de Cobro y Botón Borrar */}
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -106,43 +106,61 @@ export default function AsignacionCard({ asignacion, onClick }) {
                     paddingTop: '0.6rem',
                     borderTop: '1px solid #F1F5F9',
                     fontSize: '0.78rem',
+                    gap: '0.5rem',
+                    flexWrap: 'wrap',
                 }}>
-                    <span style={{ color: '#64748B', fontWeight: 500 }}>Cuenta de cobro:</span>
-                    {asignacion.cuenta_cobro?.secure_url ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ color: '#64748B', fontWeight: 500 }}>Cuenta de cobro:</span>
+                        {asignacion.cuenta_cobro?.secure_url ? (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMostrarModalCc(true);
+                                }}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem',
+                                    background: '#EFF6FF',
+                                    color: '#0284C7',
+                                    fontWeight: 700,
+                                    padding: '0.2rem 0.6rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid #BAE6FD',
+                                    fontSize: '0.75rem',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                📄 Ver documento
+                            </button>
+                        ) : (
+                            <span style={{
+                                background: '#FEF9EC',
+                                color: '#92400E',
+                                fontWeight: 600,
+                                padding: '0.18rem 0.55rem',
+                                borderRadius: '6px',
+                                border: '1px solid #FDE68A',
+                                fontSize: '0.75rem',
+                            }}>
+                                ⏳ Pendiente
+                            </span>
+                        )}
+                    </div>
+
+                    {onBorrar && (
                         <button
                             type="button"
+                            className="asig-card-btn-borrar"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                setMostrarModalCc(true);
+                                onBorrar(asignacion);
                             }}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.3rem',
-                                background: '#EFF6FF',
-                                color: '#0284C7',
-                                fontWeight: 700,
-                                padding: '0.2rem 0.6rem',
-                                borderRadius: '6px',
-                                border: '1px solid #BAE6FD',
-                                fontSize: '0.75rem',
-                                cursor: 'pointer',
-                            }}
+                            title="Borrar asignación"
                         >
-                            📄 Ver documento
+                            🗑️ Borrar
                         </button>
-                    ) : (
-                        <span style={{
-                            background: '#FEF9EC',
-                            color: '#92400E',
-                            fontWeight: 600,
-                            padding: '0.18rem 0.55rem',
-                            borderRadius: '6px',
-                            border: '1px solid #FDE68A',
-                            fontSize: '0.75rem',
-                        }}>
-                            ⏳ Pendiente
-                        </span>
                     )}
                 </div>
             </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import api, { exportarViaticosAsignacion, exportarViaticosIndependientes, descargarBlob } from '../services/api';
-import { listarAsignaciones, crearAsignacion, actualizarAsignacion, finalizarAsignacion } from '../services/asignaciones';
+import { listarAsignaciones, crearAsignacion, actualizarAsignacion, finalizarAsignacion, eliminarAsignacion } from '../services/asignaciones';
 import { formatCOP, formatFechaCorta, iniciales } from '../utils/personal';
 import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION, CLASE_ESTADO_ASIGNACION } from '../utils/asignaciones';
 import AsignacionForm from './AsignacionForm';
@@ -109,6 +109,18 @@ export default function ModalAsignacionesTecnico({ tecnico, onClose, onAsignacio
             if (onAsignacionActualizada) onAsignacionActualizada();
         } catch {
             setError('No se pudo finalizar la asignación.');
+        }
+    }
+
+    async function handleBorrar(asignacionId) {
+        if (!window.confirm('¿Deseas borrar esta asignación? Se ocultará del sistema y se eliminará permanentemente de la base de datos en 24 horas.')) return;
+        try {
+            await eliminarAsignacion(asignacionId);
+            setMensajeFeedback('✅ Asignación borrada correctamente.');
+            await cargarDatos();
+            if (onAsignacionActualizada) onAsignacionActualizada();
+        } catch {
+            setError('No se pudo borrar la asignación.');
         }
     }
 
@@ -373,6 +385,15 @@ export default function ModalAsignacionesTecnico({ tecnico, onClose, onAsignacio
                                                         🏁 Finalizar
                                                     </button>
                                                 )}
+
+                                                <button
+                                                    type="button"
+                                                    className="mat-btn-borrar"
+                                                    onClick={() => handleBorrar(a.id)}
+                                                    title="Borrar asignación"
+                                                >
+                                                    🗑️ Borrar
+                                                </button>
                                             </div>
                                         </div>
                                     </div>

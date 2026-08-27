@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -84,7 +85,27 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
     )
 
 
+def purgar_asignaciones_eliminadas(db: Session) -> None:
+    """Elimina definitivamente de la base de datos todas las asignaciones
+    que fueron borradas (eliminado_en) hace más de 24 horas."""
+    try:
+        limite = datetime.utcnow() - timedelta(hours=24)
+        stmt = select(Asignacion).where(
+            Asignacion.eliminado_en.is_not(None),
+            Asignacion.eliminado_en <= limite,
+        )
+        vencidas = db.scalars(stmt).all()
+        for asig in vencidas:
+            db.delete(asig)
+        if vencidas:
+            db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Advertencia al purgar asignaciones vencidas: {e}")
+
+
 def _obtener_o_404(id: int, db: Session) -> Asignacion:
+    purgar_asignaciones_eliminadas(db)
     stmt = (
         select(Asignacion)
         .options(
@@ -93,7 +114,7 @@ def _obtener_o_404(id: int, db: Session) -> Asignacion:
             joinedload(Asignacion.viaticos),
             joinedload(Asignacion.cuenta_cobro),
         )
-        .where(Asignacion.id == id)
+        .where(Asignacion.id == id, Asignacion.eliminado_en.is_(None))
     )
     asignacion = db.scalar(stmt)
     if not asignacion:
@@ -109,6 +130,7 @@ def listar_asignaciones(
     current_admin: Annotated[Usuario, Depends(get_current_admin)],
     db: Annotated[Session, Depends(get_db)],
 ):
+    purgar_asignaciones_eliminadas(db)
     stmt = (
         select(Asignacion)
         .options(
@@ -117,6 +139,7 @@ def listar_asignaciones(
             joinedload(Asignacion.viaticos),
             joinedload(Asignacion.cuenta_cobro),
         )
+        .where(Asignacion.eliminado_en.is_(None))
         .order_by(Asignacion.fecha_inicio.desc())
     )
     asignaciones = db.execute(stmt).unique().scalars().all()
@@ -280,21 +303,7 @@ def eliminar_asignacion(
     db: Annotated[Session, Depends(get_db)],
 ):
     asignacion = _obtener_o_404(id, db)
-
-    es_superadmin = current_admin.rol == "superadmin"
-    # Regla de permisos ya definida por el frontend (DetalleAsignacion.jsx,
-    # `puedeEliminar`): SuperAdmin puede eliminar cualquiera; Admin solo
-    # puede eliminar asignaciones que sigan en estado 'pendiente'.
-    if not es_superadmin and asignacion.estado != "pendiente":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=(
-                "Solo un SuperAdmin puede eliminar asignaciones que ya no "
-                "estén pendientes"
-            ),
-        )
-
-    db.delete(asignacion)
+    asignacion.eliminado_en = datetime.utcnow()
     db.commit()
     return None
 
@@ -311,6 +320,7 @@ def listar_mis_asignaciones_activas(
     una, varias o ninguna). 'Activa' = estado pendiente o en_curso, SIN
     restricción de fechas.
     """
+    purgar_asignaciones_eliminadas(db)
     stmt = (
         select(Asignacion)
         .options(
@@ -322,6 +332,7 @@ def listar_mis_asignaciones_activas(
         .where(
             Asignacion.tecnico_id == current_user.id,
             Asignacion.estado.in_(("pendiente", "en_curso")),
+            Asignacion.eliminado_en.is_(None),
         )
         .order_by(Asignacion.fecha_inicio.asc())
     )

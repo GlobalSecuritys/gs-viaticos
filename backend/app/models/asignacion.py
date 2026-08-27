@@ -63,6 +63,13 @@ class Asignacion(Base):
         index=True,
     )
 
+    eliminado_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+        default=None,
+        index=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         nullable=False,
@@ -86,7 +93,6 @@ class Asignacion(Base):
     viaticos: Mapped[list["Viatico"]] = relationship(
         "Viatico",
         back_populates="asignacion",
-        cascade="all, delete-orphan",
     )
     cuenta_cobro: Mapped[Optional["CuentaCobroAsignacion"]] = relationship(
         "CuentaCobroAsignacion",

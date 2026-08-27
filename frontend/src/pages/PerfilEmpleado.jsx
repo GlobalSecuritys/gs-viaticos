@@ -7,7 +7,7 @@ import api, {
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { puedeGestionarUsuario } from '../utils/permisos';
-import { listarAsignaciones } from '../services/asignaciones';
+import { listarAsignaciones, eliminarAsignacion } from '../services/asignaciones';
 import {
     LABEL_TIPO_ASIGNACION,
     obtenerAsignacionesActivasDeTecnico,
@@ -200,6 +200,17 @@ export default function PerfilEmpleado() {
     const viaticosIndependientes = useMemo(() => {
         return viaticos.filter((v) => !v.asignacion_id);
     }, [viaticos]);
+
+    async function handleBorrarAsignacion(asignacionId) {
+        if (!window.confirm('¿Deseas borrar esta asignación? Se ocultará del sistema y se eliminará permanentemente de la base de datos en 24 horas.')) return;
+        try {
+            await eliminarAsignacion(asignacionId);
+            setAsignaciones((prev) => prev.filter((a) => a.id !== asignacionId));
+            setMensajeFeedback('✅ Asignación borrada correctamente.');
+        } catch {
+            alert('No se pudo borrar la asignación.');
+        }
+    }
 
     const [asigColapsadas, setAsigColapsadas] = useState({});
     const toggleColapsarAsig = (key) => {
@@ -572,8 +583,28 @@ export default function PerfilEmpleado() {
 
                                             return (
                                                 <div className="pf-mision-card" key={asignacion.id}>
-                                                    <div className="pf-mision-top">
+                                                    <div className="pf-mision-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                         <span className="pf-mision-label">📍 Asignación activa</span>
+                                                        <button
+                                                            type="button"
+                                                            style={{
+                                                                background: '#FEF2F2',
+                                                                border: '1px solid #FECACA',
+                                                                color: '#DC2626',
+                                                                padding: '0.25rem 0.65rem',
+                                                                borderRadius: '6px',
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: 700,
+                                                                cursor: 'pointer',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.25rem',
+                                                            }}
+                                                            onClick={() => handleBorrarAsignacion(asignacion.id)}
+                                                            title="Borrar asignación"
+                                                        >
+                                                            🗑️ Borrar
+                                                        </button>
                                                     </div>
 
                                                     <div className="pf-mision-grid">
@@ -636,15 +667,37 @@ export default function PerfilEmpleado() {
                                                             </div>
                                                         </div>
 
-                                                        <button
-                                                            type="button"
-                                                            className="pf-back-pill-btn"
-                                                            style={{ margin: 0, padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}
-                                                            onClick={() => handleExportarAsignacion(asignacion.id)}
-                                                            disabled={exportandoAsigId === asignacion.id}
-                                                        >
-                                                            {exportandoAsigId === asignacion.id ? '⌛ Exportando...' : '📊 Exportar Excel'}
-                                                        </button>
+                                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                            <button
+                                                                type="button"
+                                                                className="pf-back-pill-btn"
+                                                                style={{ margin: 0, padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}
+                                                                onClick={() => handleExportarAsignacion(asignacion.id)}
+                                                                disabled={exportandoAsigId === asignacion.id}
+                                                            >
+                                                                {exportandoAsigId === asignacion.id ? '⌛ Exportando...' : '📊 Exportar Excel'}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                style={{
+                                                                    background: '#FEF2F2',
+                                                                    border: '1px solid #FECACA',
+                                                                    color: '#DC2626',
+                                                                    padding: '0.4rem 0.85rem',
+                                                                    borderRadius: '6px',
+                                                                    fontSize: '0.78rem',
+                                                                    fontWeight: 700,
+                                                                    cursor: 'pointer',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.25rem',
+                                                                }}
+                                                                onClick={() => handleBorrarAsignacion(asignacion.id)}
+                                                                title="Borrar asignación"
+                                                            >
+                                                                🗑️ Borrar
+                                                            </button>
+                                                        </div>
                                                     </div>
 
                                                     {/* Cuenta de Cobro */}
