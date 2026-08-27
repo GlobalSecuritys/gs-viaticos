@@ -7,10 +7,11 @@ import api, {
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { puedeGestionarUsuario } from '../utils/permisos';
-import { listarAsignaciones, eliminarAsignacion } from '../services/asignaciones';
+import { listarAsignaciones, finalizarAsignacion, eliminarAsignacion } from '../services/asignaciones';
 import {
     LABEL_TIPO_ASIGNACION,
     obtenerAsignacionesActivasDeTecnico,
+    obtenerAsignacionesFinalizadasDeTecnico,
 } from '../utils/asignaciones';
 import ModalEvidencia from '../components/ModalEvidencia';
 import ModalCrearUsuario from '../components/ModalCrearUsuario';
@@ -150,6 +151,16 @@ export default function PerfilEmpleado() {
         [asignaciones, id]
     );
 
+    const asignacionesFinalizadas = useMemo(
+        () => obtenerAsignacionesFinalizadasDeTecnico(asignaciones, id),
+        [asignaciones, id]
+    );
+
+    const [historialAsigExpandidas, setHistorialAsigExpandidas] = useState({});
+    const toggleExpandirHistorialAsig = (asigId) => {
+        setHistorialAsigExpandidas((prev) => ({ ...prev, [asigId]: !prev[asigId] }));
+    };
+
     const totalGastadoViaticos = useMemo(() => {
         return viaticos.reduce((sum, v) => sum + Number(v.valor || 0), 0);
     }, [viaticos]);
@@ -209,6 +220,19 @@ export default function PerfilEmpleado() {
             setMensajeFeedback('✅ Asignación borrada correctamente.');
         } catch {
             alert('No se pudo borrar la asignación.');
+        }
+    }
+
+    async function handleFinalizarAsignacion(asignacionId) {
+        if (!window.confirm('¿Deseas finalizar esta asignación? Pasará al historial de asignaciones finalizadas.')) return;
+        try {
+            await finalizarAsignacion(asignacionId);
+            setAsignaciones((prev) =>
+                prev.map((a) => (a.id === asignacionId ? { ...a, estado: 'finalizada' } : a))
+            );
+            setMensajeFeedback('✅ Asignación finalizada correctamente.');
+        } catch {
+            alert('No se pudo finalizar la asignación.');
         }
     }
 
@@ -585,26 +609,48 @@ export default function PerfilEmpleado() {
                                                 <div className="pf-mision-card" key={asignacion.id}>
                                                     <div className="pf-mision-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                         <span className="pf-mision-label">📍 Asignación activa</span>
-                                                        <button
-                                                            type="button"
-                                                            style={{
-                                                                background: '#FEF2F2',
-                                                                border: '1px solid #FECACA',
-                                                                color: '#DC2626',
-                                                                padding: '0.25rem 0.65rem',
-                                                                borderRadius: '6px',
-                                                                fontSize: '0.75rem',
-                                                                fontWeight: 700,
-                                                                cursor: 'pointer',
-                                                                display: 'inline-flex',
-                                                                alignItems: 'center',
-                                                                gap: '0.25rem',
-                                                            }}
-                                                            onClick={() => handleBorrarAsignacion(asignacion.id)}
-                                                            title="Borrar asignación"
-                                                        >
-                                                            🗑️ Borrar
-                                                        </button>
+                                                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                                            <button
+                                                                type="button"
+                                                                style={{
+                                                                    background: '#ECFDF5',
+                                                                    border: '1px solid #A7F3D0',
+                                                                    color: '#059669',
+                                                                    padding: '0.25rem 0.65rem',
+                                                                    borderRadius: '6px',
+                                                                    fontSize: '0.75rem',
+                                                                    fontWeight: 700,
+                                                                    cursor: 'pointer',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.25rem',
+                                                                }}
+                                                                onClick={() => handleFinalizarAsignacion(asignacion.id)}
+                                                                title="Finalizar asignación y pasarla al historial"
+                                                            >
+                                                                ✅ Finalizar
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                style={{
+                                                                    background: '#FEF2F2',
+                                                                    border: '1px solid #FECACA',
+                                                                    color: '#DC2626',
+                                                                    padding: '0.25rem 0.65rem',
+                                                                    borderRadius: '6px',
+                                                                    fontSize: '0.75rem',
+                                                                    fontWeight: 700,
+                                                                    cursor: 'pointer',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.25rem',
+                                                                }}
+                                                                onClick={() => handleBorrarAsignacion(asignacion.id)}
+                                                                title="Borrar asignación"
+                                                            >
+                                                                🗑️ Borrar
+                                                            </button>
+                                                        </div>
                                                     </div>
 
                                                     <div className="pf-mision-grid">
@@ -667,7 +713,7 @@ export default function PerfilEmpleado() {
                                                             </div>
                                                         </div>
 
-                                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                                             <button
                                                                 type="button"
                                                                 className="pf-back-pill-btn"
@@ -676,6 +722,26 @@ export default function PerfilEmpleado() {
                                                                 disabled={exportandoAsigId === asignacion.id}
                                                             >
                                                                 {exportandoAsigId === asignacion.id ? '⌛ Exportando...' : '📊 Exportar Excel'}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                style={{
+                                                                    background: '#ECFDF5',
+                                                                    border: '1px solid #A7F3D0',
+                                                                    color: '#059669',
+                                                                    padding: '0.4rem 0.85rem',
+                                                                    borderRadius: '6px',
+                                                                    fontSize: '0.78rem',
+                                                                    fontWeight: 700,
+                                                                    cursor: 'pointer',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.25rem',
+                                                                }}
+                                                                onClick={() => handleFinalizarAsignacion(asignacion.id)}
+                                                                title="Finalizar asignación"
+                                                            >
+                                                                ✅ Finalizar asignación
                                                             </button>
                                                             <button
                                                                 type="button"
@@ -823,6 +889,284 @@ export default function PerfilEmpleado() {
                                 ) : (
                                     <div className="pf-mision-vacia">No hay asignaciones activas registradas.</div>
                                 )}
+
+                                {/* ── HISTORIAL DE ASIGNACIONES (FINALIZADAS) CON CARGA DIFERIDA ── */}
+                                <div style={{ marginTop: '2.5rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                        <h2 className="pf-section-title" style={{ margin: 0 }}>
+                                            Historial de asignaciones ({asignacionesFinalizadas.length})
+                                        </h2>
+                                    </div>
+
+                                    {asignacionesFinalizadas.length > 0 ? (
+                                        <div className="pf-historial-asig-lista">
+                                            {asignacionesFinalizadas.map((asignacion) => {
+                                                const estaExpandida = !!historialAsigExpandidas[asignacion.id];
+                                                // Optimización de rendimiento: Solo filtra y calcula viáticos si la asignación está expandida
+                                                const viaticosDeAsig = estaExpandida ? viaticos.filter((v) => v.asignacion_id === asignacion.id) : [];
+                                                const estaColapsadaViaticos = asigColapsadas[`asig_hist_${asignacion.id}`];
+
+                                                return (
+                                                    <div className="pf-historial-asig-card" key={asignacion.id}>
+                                                        {/* Fila compacta del Historial (siempre visible por defecto) */}
+                                                        <div
+                                                            className="pf-historial-asig-header"
+                                                            onClick={() => toggleExpandirHistorialAsig(asignacion.id)}
+                                                            style={{ cursor: 'pointer' }}
+                                                            title={estaExpandida ? 'Clic para colapsar' : 'Clic para ver detalle'}
+                                                        >
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+                                                                <span className="pf-historial-asig-icon">📁</span>
+                                                                <div style={{ minWidth: 0 }}>
+                                                                    <strong className="pf-historial-asig-title">{asignacion.cliente}</strong>
+                                                                    <div className="pf-historial-asig-meta">
+                                                                        <span>📍 {asignacion.ciudad}</span>
+                                                                        <span>• {formatFechaLarga(asignacion.fecha_inicio)}</span>
+                                                                        <span>• {LABEL_TIPO_ASIGNACION[asignacion.tipo] || asignacion.tipo}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                <span className="pf-badge-finalizada">
+                                                                    FINALIZADA
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    className={`pf-historial-asig-chevron ${estaExpandida ? 'pf-historial-asig-chevron--open' : ''}`}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        toggleExpandirHistorialAsig(asignacion.id);
+                                                                    }}
+                                                                    title={estaExpandida ? 'Colapsar detalle' : 'Expandir detalle'}
+                                                                >
+                                                                    ▼
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Renderizado condicional del detalle completo (solo cuando el usuario expande) */}
+                                                        {estaExpandida && (
+                                                            <div className="pf-historial-asig-body">
+                                                                <div className="pf-mision-grid">
+                                                                    <div>
+                                                                        <span className="pf-info-label">Proyecto</span>
+                                                                        <span className="pf-info-valor">{asignacion.cliente}</span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="pf-info-label">Oficina</span>
+                                                                        <span className="pf-info-valor" style={{ color: '#0284C7' }}>
+                                                                            {asignacion.empresa || '—'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="pf-info-label">Ciudad</span>
+                                                                        <span className="pf-info-valor">{asignacion.ciudad}</span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="pf-info-label">Tipo</span>
+                                                                        <span className="pf-info-valor">
+                                                                            {LABEL_TIPO_ASIGNACION[asignacion.tipo] || asignacion.tipo}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="pf-info-label">Inicio</span>
+                                                                        <span className="pf-info-valor">{formatFechaLarga(asignacion.fecha_inicio)}</span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="pf-info-label">Final</span>
+                                                                        <span className="pf-info-valor">{formatFechaLarga(asignacion.fecha_fin)}</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Resumen financiero */}
+                                                                <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid #E2E8F0', display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.82rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem' }}>
+                                                                        <div>
+                                                                            <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Anticipo</span>
+                                                                            <strong style={{ color: '#1E293B', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.monto_anticipo || 0))}</strong>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Gastado</span>
+                                                                            <strong style={{ color: '#0284C7', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.total_gastado || 0))}</strong>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Saldo restante</span>
+                                                                            <strong style={{ color: '#16A34A', fontSize: '0.92rem' }}>{formatCOP(Number(asignacion.saldo_restante || 0))}</strong>
+                                                                        </div>
+                                                                        {Number(asignacion.total_gastado || 0) > Number(asignacion.monto_anticipo || 0) && (
+                                                                            <div style={{ background: '#FEF2F2', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid #FCA5A5' }}>
+                                                                                <span style={{ color: '#991B1B', display: 'block', fontSize: '0.72rem', fontWeight: 700 }}>🚨 Saldo a favor técnico</span>
+                                                                                <strong style={{ color: '#DC2626', fontSize: '0.92rem' }}>
+                                                                                    {formatCOP(Number(asignacion.total_gastado || 0) - Number(asignacion.monto_anticipo || 0))}
+                                                                                </strong>
+                                                                            </div>
+                                                                        )}
+                                                                        <div>
+                                                                            <span style={{ color: '#64748B', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Ítems</span>
+                                                                            <strong style={{ fontSize: '0.92rem' }}>{asignacion.cantidad_viaticos || viaticosDeAsig.length}</strong>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="pf-back-pill-btn"
+                                                                            style={{ margin: 0, padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}
+                                                                            onClick={() => handleExportarAsignacion(asignacion.id)}
+                                                                            disabled={exportandoAsigId === asignacion.id}
+                                                                        >
+                                                                            {exportandoAsigId === asignacion.id ? '⌛ Exportando...' : '📊 Exportar Excel'}
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            style={{
+                                                                                background: '#FEF2F2',
+                                                                                border: '1px solid #FECACA',
+                                                                                color: '#DC2626',
+                                                                                padding: '0.4rem 0.85rem',
+                                                                                borderRadius: '6px',
+                                                                                fontSize: '0.78rem',
+                                                                                fontWeight: 700,
+                                                                                cursor: 'pointer',
+                                                                                display: 'inline-flex',
+                                                                                alignItems: 'center',
+                                                                                gap: '0.25rem',
+                                                                            }}
+                                                                            onClick={() => handleBorrarAsignacion(asignacion.id)}
+                                                                            title="Borrar asignación"
+                                                                        >
+                                                                            🗑️ Borrar
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Cuenta de Cobro */}
+                                                                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                                                                    <span style={{ color: '#64748B', fontWeight: 600 }}>Cuenta de cobro digital:</span>
+                                                                    {asignacion.cuenta_cobro?.secure_url ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setCuentaCobroVer({
+                                                                                archivoUrl: asignacion.cuenta_cobro.secure_url,
+                                                                                cuenta: {
+                                                                                    consecutivo: `ASIG-${asignacion.id}`,
+                                                                                    fecha: asignacion.fecha_inicio,
+                                                                                    ciudad: asignacion.ciudad,
+                                                                                    titular_nombre: usuario?.nombre || `Técnico #${usuario?.id}`,
+                                                                                    identificacion: usuario?.codigo_empleado || '—',
+                                                                                    concepto_servicio: `Servicios de viáticos y comisión - ${asignacion.cliente} (${asignacion.tipo})`,
+                                                                                    total: asignacion.total_gastado || asignacion.monto_anticipo || 0,
+                                                                                    items: [
+                                                                                        {
+                                                                                            oficina: asignacion.ciudad || 'SEDE',
+                                                                                            fecha_inicio: asignacion.fecha_inicio,
+                                                                                            fecha_fin: asignacion.fecha_fin,
+                                                                                            num_tecnicos: 1,
+                                                                                            valor_diario: asignacion.total_gastado || asignacion.monto_anticipo || 0,
+                                                                                            valor_total: asignacion.total_gastado || asignacion.monto_anticipo || 0,
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            })}
+                                                                            style={{
+                                                                                display: 'inline-flex',
+                                                                                alignItems: 'center',
+                                                                                gap: '0.3rem',
+                                                                                background: '#EFF6FF',
+                                                                                color: '#0284C7',
+                                                                                fontWeight: 700,
+                                                                                padding: '0.3rem 0.75rem',
+                                                                                borderRadius: '8px',
+                                                                                border: '1px solid #BAE6FD',
+                                                                                cursor: 'pointer',
+                                                                            }}
+                                                                        >
+                                                                            📄 Ver documento
+                                                                        </button>
+                                                                    ) : (
+                                                                        <span style={{ background: '#FEF9EC', color: '#92400E', fontWeight: 600, padding: '0.25rem 0.65rem', borderRadius: '8px', border: '1px solid #FDE68A' }}>
+                                                                            ⏳ No adjuntada aún
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Viáticos subidos directamente en esta tarjeta */}
+                                                                <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid #E2E8F0' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: estaColapsadaViaticos ? 0 : '0.85rem' }}>
+                                                                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                                            📋 Viáticos de esta asignación ({viaticosDeAsig.length})
+                                                                        </span>
+                                                                        {viaticosDeAsig.length > 0 && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => toggleColapsarAsig(`asig_hist_${asignacion.id}`)}
+                                                                                style={{ background: 'none', border: 'none', color: '#1D4ED8', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                                                                            >
+                                                                                {estaColapsadaViaticos ? 'Mostrar viáticos ▼' : 'Ocultar viáticos ▲'}
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {!estaColapsadaViaticos && (
+                                                                        viaticosDeAsig.length > 0 ? (
+                                                                            <div className="pf-historial-grid" style={{ marginBottom: '0.25rem' }}>
+                                                                                {viaticosDeAsig.map((v) => {
+                                                                                    const miniatura = v.evidencias?.[0]?.secure_url;
+                                                                                    return (
+                                                                                        <div className="pf-viatico-card" key={v.id}>
+                                                                                            <div className="pf-viatico-top">
+                                                                                                <span className="pf-viatico-tipo">
+                                                                                                    <span className="pf-viatico-icono">{ICONO_TIPO_GASTO[v.tipo_gasto] || '📎'}</span>
+                                                                                                    {LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}
+                                                                                                </span>
+                                                                                                <span className={`pf-estado-badge pf-estado-badge--${v.estado}`}>
+                                                                                                    {LABEL_ESTADO_VIATICO[v.estado] || v.estado}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            <p className="pf-viatico-lugar">{v.cliente} · {v.ciudad}</p>
+                                                                                            <p className="pf-viatico-fecha">{formatFechaLarga(v.fecha)}</p>
+                                                                                            {v.estado === 'rechazado' && v.motivo_rechazo && (
+                                                                                                <p className="pf-viatico-motivo">Motivo: {v.motivo_rechazo}</p>
+                                                                                            )}
+                                                                                            <div className="pf-viatico-footer">
+                                                                                                <span className="pf-viatico-valor">{formatCOP(v.valor)}</span>
+                                                                                                {miniatura ? (
+                                                                                                    <img
+                                                                                                        src={miniatura}
+                                                                                                        alt="Evidencia"
+                                                                                                        className="pf-viatico-thumb"
+                                                                                                        onClick={() => setSeleccionado(v)}
+                                                                                                        title="Ver evidencia"
+                                                                                                    />
+                                                                                                ) : (
+                                                                                                    <span className="pf-viatico-sin-evidencia">Sin evidencia</span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                            <button className="pf-viatico-detalle-btn" onClick={() => setSeleccionado(v)}>
+                                                                                                Ver detalle
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div style={{ fontSize: '0.82rem', color: '#94A3B8', fontStyle: 'italic', padding: '0.4rem 0' }}>
+                                                                                No hay viáticos registrados para esta asignación.
+                                                                            </div>
+                                                                        )
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="pf-mision-vacia">No hay asignaciones en el historial.</div>
+                                    )}
+                                </div>
 
                                 {/* Viáticos Independientes (Gastos sin asignación) */}
                                 <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>

@@ -722,6 +722,126 @@
     margin-bottom: 1rem;
 }
 
+/* ── HISTORIAL DE ASIGNACIONES (FINALIZADAS) ── */
+.pf-historial-asig-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.pf-historial-asig-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: var(--radius-lg, 12px);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease;
+}
+
+.pf-historial-asig-card:hover {
+    border-color: #CBD5E1;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+.pf-historial-asig-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1.25rem;
+    background: #F8FAFC;
+    transition: background 0.15s ease;
+    user-select: none;
+}
+
+.pf-historial-asig-header:hover {
+    background: #F1F5F9;
+}
+
+.pf-historial-asig-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.pf-historial-asig-title {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #1E293B;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pf-historial-asig-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.75rem;
+    color: #64748B;
+    margin-top: 0.15rem;
+    flex-wrap: wrap;
+}
+
+.pf-badge-finalizada {
+    background: #F1F5F9;
+    color: #475569;
+    border: 1px solid #CBD5E1;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.pf-historial-asig-chevron {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    color: #64748B;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+}
+
+.pf-historial-asig-chevron:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+}
+
+.pf-historial-asig-chevron--open {
+    transform: rotate(180deg);
+    background: #EFF6FF;
+    color: #0284C7;
+    border-color: #BAE6FD;
+}
+
+.pf-historial-asig-body {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid #E2E8F0;
+    background: #FFFFFF;
+    animation: pfFadeIn 0.2s ease-out;
+}
+
+@keyframes pfFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* ── FILTROS VIATICOS ── */
 .pf-filtros-wrap {
     display: flex;

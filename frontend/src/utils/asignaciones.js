@@ -68,6 +68,16 @@ export function obtenerAsignacionesActivasDeTecnico(asignaciones, tecnicoId) {
     return [...delTecnico].sort((a, b) => (a.fecha_inicio || '').localeCompare(b.fecha_inicio || ''));
 }
 
+// Devuelve todas las asignaciones finalizadas o archivadas del técnico
+export function obtenerAsignacionesFinalizadasDeTecnico(asignaciones, tecnicoId) {
+    const delTecnico = asignaciones.filter(
+        (a) =>
+            String(a.tecnico_id) === String(tecnicoId) &&
+            (a.estado === 'finalizada' || a.estado === 'cancelada')
+    );
+    return [...delTecnico].sort((a, b) => (b.fecha_fin || b.fecha_inicio || '').localeCompare(a.fecha_fin || a.fecha_inicio || ''));
+}
+
 /**
  * Construye la etiqueta visual de una asignación:
  *   "Banco Agrario - Oficina Correctivo"

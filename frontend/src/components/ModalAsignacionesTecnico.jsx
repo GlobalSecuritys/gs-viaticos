@@ -101,7 +101,7 @@ export default function ModalAsignacionesTecnico({ tecnico, onClose, onAsignacio
     }
 
     async function handleFinalizar(asignacionId) {
-        if (!window.confirm('¿Deseas finalizar esta asignación?')) return;
+        if (!window.confirm('¿Deseas finalizar esta asignación? Pasará al historial de asignaciones finalizadas.')) return;
         try {
             await finalizarAsignacion(asignacionId);
             setMensajeFeedback('✅ Asignación finalizada correctamente.');
@@ -382,7 +382,7 @@ export default function ModalAsignacionesTecnico({ tecnico, onClose, onAsignacio
                                                         className="mat-btn-finalizar"
                                                         onClick={() => handleFinalizar(a.id)}
                                                     >
-                                                        🏁 Finalizar
+                                                        ✅ Finalizar asignación
                                                     </button>
                                                 )}
 

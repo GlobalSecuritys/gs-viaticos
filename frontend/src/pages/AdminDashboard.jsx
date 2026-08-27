@@ -113,6 +113,23 @@ export default function AdminDashboard() {
     const [filtroEstadoConsolidado, setFiltroEstadoConsolidado] = useState('todos');
     const [busquedaTecnico, setBusquedaTecnico] = useState('');
     const [seccionViaticosColapsada, setSeccionViaticosColapsada] = useState(true);
+    // Control de colapso global e individual de tarjetas de técnicos (inician colapsadas por defecto)
+    const [expandirTodosTecnicos, setExpandirTodosTecnicos] = useState(false);
+    const [tecnicosExpandidos, setTecnicosExpandidos] = useState({});
+
+    const toggleExpandirTodos = () => {
+        const nuevoEstado = !expandirTodosTecnicos;
+        setExpandirTodosTecnicos(nuevoEstado);
+        setTecnicosExpandidos({});
+    };
+
+    const toggleTecnicoExpandido = (tecnicoId) => {
+        setTecnicosExpandidos((prev) => {
+            const estadoActual = prev[tecnicoId] !== undefined ? prev[tecnicoId] : expandirTodosTecnicos;
+            return { ...prev, [tecnicoId]: !estadoActual };
+        });
+    };
+
     // filtroAsigTecnicos: Map de tecnico.id -> asignacion_id seleccionada ('global' | string)
     const [filtroAsigTecnicos, setFiltroAsigTecnicos] = useState({});
 
@@ -747,9 +764,24 @@ export default function AdminDashboard() {
                         {/* Columna izquierda: Técnicos (65%) */}
                         <section className="gsb-techs-section" ref={seccionTecnicosRef}>
                             <div className="gsb-section-header gsb-techs-header">
-                                <div>
-                                    <h2 className="gsb-section-title">Técnicos</h2>
-                                    <p className="gsb-section-subtitle">Gestión y actividad de técnicos</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+                                    <div>
+                                        <h2 className="gsb-section-title">Técnicos</h2>
+                                        <p className="gsb-section-subtitle">Gestión y actividad de técnicos ({tecnicosFiltrados.length})</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="gsb-techs-toggle-all-btn"
+                                        onClick={toggleExpandirTodos}
+                                        title={expandirTodosTecnicos ? 'Colapsar todas las tarjetas' : 'Expandir todas las tarjetas'}
+                                    >
+                                        <span className={`gsb-techs-toggle-chevron ${expandirTodosTecnicos ? 'gsb-techs-toggle-chevron--open' : ''}`}>
+                                            ▼
+                                        </span>
+                                        <span className="gsb-techs-toggle-lbl">
+                                            {expandirTodosTecnicos ? 'Colapsar todos' : 'Expandir todos'}
+                                        </span>
+                                    </button>
                                 </div>
 
                                 <div className="gsb-search-box gsb-techs-search">
@@ -777,143 +809,208 @@ export default function AdminDashboard() {
                             <div className="gsb-techs-grid">
                                 {tecnicosFiltrados.map((t) => {
                                     const asigActiva = obtenerAsignacionActivaDeTecnico(asignaciones, t.id);
+                                    const estaExpandido = tecnicosExpandidos[t.id] !== undefined ? tecnicosExpandidos[t.id] : expandirTodosTecnicos;
+
                                     return (
-                                        <div key={t.id} className="gsb-tech-card">
-                                            <div className="gsb-tech-card-header">
+                                        <div key={t.id} className={`gsb-tech-card ${!estaExpandido ? 'gsb-tech-card--collapsed' : ''}`}>
+                                            <div
+                                                className="gsb-tech-card-header"
+                                                onClick={() => toggleTecnicoExpandido(t.id)}
+                                                style={{ cursor: 'pointer' }}
+                                                title={estaExpandido ? 'Clic para colapsar' : 'Clic para expandir'}
+                                            >
                                                 <div className="gsb-tech-avatar">
                                                     {iniciales(t.nombre) || 'T'}
                                                 </div>
-                                                <div className="gsb-tech-identity">
-                                                    <h3 className="gsb-tech-name">{t.nombre}</h3>
+                                                <div className="gsb-tech-identity" style={{ flex: 1 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem' }}>
+                                                        <h3 className="gsb-tech-name">{t.nombre}</h3>
+                                                        <span
+                                                            className={`gsb-tech-status-badge ${t.activo !== false ? 'gsb-tech-status-badge--active' : 'gsb-tech-status-badge--inactive'}`}
+                                                            title={t.activo !== false ? 'Técnico Activo' : 'Técnico Inactivo'}
+                                                        >
+                                                            {t.activo !== false ? 'ACTIVO' : 'INACTIVO'}
+                                                        </span>
+                                                    </div>
                                                     <span className="gsb-tech-cedula">
                                                         Cédula: {t.codigo_empleado || 'Sin asignar'}
                                                     </span>
                                                 </div>
+                                                <button
+                                                    type="button"
+                                                    className={`gsb-tech-card-toggle-btn ${estaExpandido ? 'gsb-tech-card-toggle-btn--open' : ''}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleTecnicoExpandido(t.id);
+                                                    }}
+                                                    title={estaExpandido ? 'Colapsar tarjeta' : 'Expandir tarjeta'}
+                                                >
+                                                    ▼
+                                                </button>
                                             </div>
 
-                                            {/* Caja de Asignación Activa */}
-                                            <div className="gsb-tech-asig-box">
-                                                {asigActiva ? (
-                                                    <>
-                                                        <div className="gsb-tech-asig-header">
-                                                            <span className="gsb-tech-asig-dot" />
-                                                            <span className="gsb-tech-asig-type">
-                                                                {LABEL_TIPO_ASIGNACION[asigActiva.tipo] || asigActiva.tipo?.toUpperCase()}
+                                            {/* ── Vista Compacta / Colapsada (Esencial) ── */}
+                                            {!estaExpandido ? (
+                                                <div className="gsb-tech-compact-body" onClick={() => toggleTecnicoExpandido(t.id)} style={{ cursor: 'pointer' }}>
+                                                    <div className="gsb-tech-compact-asig-row">
+                                                        {asigActiva ? (
+                                                            <span className="gsb-tech-mini-asig" title={`${asigActiva.cliente} - ${asigActiva.ciudad}`}>
+                                                                <span className="gsb-tech-asig-dot" />
+                                                                <strong className="gsb-tech-mini-cliente">{asigActiva.cliente}</strong>
+                                                                <span className="gsb-tech-mini-ciudad">· {asigActiva.ciudad}</span>
                                                             </span>
-                                                        </div>
-                                                        <strong className="gsb-tech-asig-client" title={asigActiva.cliente}>
-                                                            {asigActiva.cliente}
-                                                        </strong>
-                                                        <span className="gsb-tech-asig-location">
-                                                            📍 {asigActiva.empresa ? `${asigActiva.empresa} · ` : ''}{asigActiva.ciudad}
+                                                        ) : (
+                                                            <span className="gsb-tech-mini-asig gsb-tech-mini-asig--vacio">
+                                                                ⚪ Sin asignación activa
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="gsb-tech-compact-footer">
+                                                        <span className="gsb-tech-compact-viaticos-chip">
+                                                            🧾 {t.cantidadViaticos || 0} viát. · {formatCOP(t.totalGastado || 0)}
                                                         </span>
-                                                    </>
-                                                ) : (
-                                                    <div className="gsb-tech-asig-none">
-                                                        <span>⚪ Sin asignación activa</span>
+                                                        <button
+                                                            type="button"
+                                                            className="gsb-tech-mini-btn-ver"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                navigate(`/admin/personal/${t.id}`);
+                                                            }}
+                                                            title={`Ver perfil de ${t.nombre}`}
+                                                        >
+                                                            Ver perfil →
+                                                        </button>
                                                     </div>
-                                                )}
-                                            </div>
+                                                </div>
+                                            ) : (
+                                                /* ── Vista Expandida (Detalle Completo) ── */
+                                                <>
+                                                    {/* Caja de Asignación Activa */}
+                                                    <div className="gsb-tech-asig-box">
+                                                        {asigActiva ? (
+                                                            <>
+                                                                <div className="gsb-tech-asig-header">
+                                                                    <span className="gsb-tech-asig-dot" />
+                                                                    <span className="gsb-tech-asig-type">
+                                                                        {LABEL_TIPO_ASIGNACION[asigActiva.tipo] || asigActiva.tipo?.toUpperCase()}
+                                                                    </span>
+                                                                </div>
+                                                                <strong className="gsb-tech-asig-client" title={asigActiva.cliente}>
+                                                                    {asigActiva.cliente}
+                                                                </strong>
+                                                                <span className="gsb-tech-asig-location">
+                                                                    📍 {asigActiva.empresa ? `${asigActiva.empresa} · ` : ''}{asigActiva.ciudad}
+                                                                </span>
+                                                            </>
+                                                        ) : (
+                                                            <div className="gsb-tech-asig-none">
+                                                                <span>⚪ Sin asignación activa</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
 
-                                            {/* ── Widget de Saldo por Asignación ── */}
-                                            {(() => {
-                                                const asigTec = asignaciones.filter(
-                                                    a => String(a.tecnico_id || a.usuario_id) === String(t.id) &&
-                                                         (Number(a.monto_anticipo || 0) > 0 || Number(a.total_gastado || 0) > 0)
-                                                );
-                                                const filtroKey = filtroAsigTecnicos[t.id] || 'global';
-                                                const setFiltro = (val) => setFiltroAsigTecnicos(prev => ({ ...prev, [t.id]: val }));
+                                                    {/* ── Widget de Saldo por Asignación ── */}
+                                                    {(() => {
+                                                        const asigTec = asignaciones.filter(
+                                                            a => String(a.tecnico_id || a.usuario_id) === String(t.id) &&
+                                                                 (Number(a.monto_anticipo || 0) > 0 || Number(a.total_gastado || 0) > 0)
+                                                        );
+                                                        const filtroKey = filtroAsigTecnicos[t.id] || 'global';
+                                                        const setFiltro = (val) => setFiltroAsigTecnicos(prev => ({ ...prev, [t.id]: val }));
 
-                                                const globalAnticipo = asigTec.reduce((s, a) => s + Number(a.monto_anticipo || 0), 0);
-                                                const globalGastado  = asigTec.reduce((s, a) => s + Number(a.total_gastado  || 0), 0);
+                                                        const globalAnticipo = asigTec.reduce((s, a) => s + Number(a.monto_anticipo || 0), 0);
+                                                        const globalGastado  = asigTec.reduce((s, a) => s + Number(a.total_gastado  || 0), 0);
 
-                                                let viewAnticipo, viewGastado;
-                                                if (filtroKey === 'global' || asigTec.length === 0) {
-                                                    viewAnticipo = globalAnticipo;
-                                                    viewGastado  = globalGastado;
-                                                } else {
-                                                    const sel = asigTec.find(a => String(a.id) === filtroKey);
-                                                    viewAnticipo = Number(sel?.monto_anticipo || 0);
-                                                    viewGastado  = Number(sel?.total_gastado  || 0);
-                                                }
-                                                const viewSaldo = viewAnticipo - viewGastado;
-                                                const esFavorTec = viewGastado > viewAnticipo;
+                                                        let viewAnticipo, viewGastado;
+                                                        if (filtroKey === 'global' || asigTec.length === 0) {
+                                                            viewAnticipo = globalAnticipo;
+                                                            viewGastado  = globalGastado;
+                                                        } else {
+                                                            const sel = asigTec.find(a => String(a.id) === filtroKey);
+                                                            viewAnticipo = Number(sel?.monto_anticipo || 0);
+                                                            viewGastado  = Number(sel?.total_gastado  || 0);
+                                                        }
+                                                        const viewSaldo = viewAnticipo - viewGastado;
+                                                        const esFavorTec = viewGastado > viewAnticipo;
 
-                                                return (
-                                                    <div className="gsb-tech-balance-widget">
-                                                        <div className="gsb-tech-bw-header">
-                                                            <span className="gsb-tech-bw-icon">💲</span>
-                                                            <select
-                                                                className="gsb-tech-asig-filter"
-                                                                value={filtroKey}
-                                                                onChange={e => setFiltro(e.target.value)}
-                                                                onClick={e => e.stopPropagation()}
-                                                            >
-                                                                <option value="global">🌐 Balance Global ({asigTec.length} asig.)</option>
-                                                                {asigTec.map(a => (
-                                                                    <option key={a.id} value={String(a.id)}>
-                                                                        📋 {a.cliente || `#${a.id}`}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
+                                                        return (
+                                                            <div className="gsb-tech-balance-widget">
+                                                                <div className="gsb-tech-bw-header">
+                                                                    <span className="gsb-tech-bw-icon">💲</span>
+                                                                    <select
+                                                                        className="gsb-tech-asig-filter"
+                                                                        value={filtroKey}
+                                                                        onChange={e => setFiltro(e.target.value)}
+                                                                        onClick={e => e.stopPropagation()}
+                                                                    >
+                                                                        <option value="global">🌐 Balance Global ({asigTec.length} asig.)</option>
+                                                                        {asigTec.map(a => (
+                                                                            <option key={a.id} value={String(a.id)}>
+                                                                                📋 {a.cliente || `#${a.id}`}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+                                                                <div className="gsb-tech-bw-row">
+                                                                    <span className="gsb-tech-bw-lbl">Anticipo</span>
+                                                                    <span className="gsb-tech-bw-val">{formatCOP(viewAnticipo)}</span>
+                                                                </div>
+                                                                <div className="gsb-tech-bw-row">
+                                                                    <span className="gsb-tech-bw-lbl">Gastado</span>
+                                                                    <span className="gsb-tech-bw-val" style={{ color: '#0284C7' }}>{formatCOP(viewGastado)}</span>
+                                                                </div>
+                                                                <div className={`gsb-tech-bw-row gsb-tech-bw-saldo ${esFavorTec ? 'gsb-tech-bw-saldo--warn' : 'gsb-tech-bw-saldo--ok'}`}>
+                                                                    <span className="gsb-tech-bw-lbl">
+                                                                        {esFavorTec ? '🚨 Favor Técnico' : '✅ Saldo Empresa'}
+                                                                    </span>
+                                                                    <strong className="gsb-tech-bw-val">{formatCOP(Math.abs(viewSaldo))}</strong>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
+
+                                                    {/* Métricas de Viáticos y Gasto */}
+                                                    <div className="gsb-tech-metrics-row">
+                                                        <div className="gsb-tech-metric">
+                                                            <span className="gsb-tech-metric-val">{t.cantidadViaticos}</span>
+                                                            <span className="gsb-tech-metric-lbl">VIÁTICOS</span>
                                                         </div>
-                                                        <div className="gsb-tech-bw-row">
-                                                            <span className="gsb-tech-bw-lbl">Anticipo</span>
-                                                            <span className="gsb-tech-bw-val">{formatCOP(viewAnticipo)}</span>
-                                                        </div>
-                                                        <div className="gsb-tech-bw-row">
-                                                            <span className="gsb-tech-bw-lbl">Gastado</span>
-                                                            <span className="gsb-tech-bw-val" style={{ color: '#0284C7' }}>{formatCOP(viewGastado)}</span>
-                                                        </div>
-                                                        <div className={`gsb-tech-bw-row gsb-tech-bw-saldo ${esFavorTec ? 'gsb-tech-bw-saldo--warn' : 'gsb-tech-bw-saldo--ok'}`}>
-                                                            <span className="gsb-tech-bw-lbl">
-                                                                {esFavorTec ? '🚨 Favor Técnico' : '✅ Saldo Empresa'}
-                                                            </span>
-                                                            <strong className="gsb-tech-bw-val">{formatCOP(Math.abs(viewSaldo))}</strong>
+                                                        <div className="gsb-tech-metric">
+                                                            <span className="gsb-tech-metric-val">{formatCOP(t.totalGastado)}</span>
+                                                            <span className="gsb-tech-metric-lbl">GASTADO</span>
                                                         </div>
                                                     </div>
-                                                );
-                                            })()}
 
-                                            {/* Métricas de Viáticos y Gasto */}
-                                            <div className="gsb-tech-metrics-row">
-                                                <div className="gsb-tech-metric">
-                                                    <span className="gsb-tech-metric-val">{t.cantidadViaticos}</span>
-                                                    <span className="gsb-tech-metric-lbl">VIÁTICOS</span>
-                                                </div>
-                                                <div className="gsb-tech-metric">
-                                                    <span className="gsb-tech-metric-val">{formatCOP(t.totalGastado)}</span>
-                                                    <span className="gsb-tech-metric-lbl">GASTADO</span>
-                                                </div>
-                                            </div>
+                                                    {/* Botones de Asignaciones y Cuenta de Cobro */}
+                                                    <div className="gsb-tech-action-row">
+                                                        <button
+                                                            type="button"
+                                                            className="gsb-tech-btn-asig"
+                                                            onClick={() => setTecnicoParaAsignaciones(t)}
+                                                            title={`Ver asignaciones de ${t.nombre}`}
+                                                        >
+                                                            📋 Asignaciones
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="gsb-tech-btn-cc"
+                                                            onClick={() => setTecnicoParaCuentasCobro(t)}
+                                                            title={`Ver cuentas de cobro de ${t.nombre}`}
+                                                        >
+                                                            💵 Cuenta de Cobro
+                                                        </button>
+                                                    </div>
 
-                                            {/* Botones de Asignaciones y Cuenta de Cobro */}
-                                            <div className="gsb-tech-action-row">
-                                                <button
-                                                    type="button"
-                                                    className="gsb-tech-btn-asig"
-                                                    onClick={() => setTecnicoParaAsignaciones(t)}
-                                                    title={`Ver asignaciones de ${t.nombre}`}
-                                                >
-                                                    📋 Asignaciones
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="gsb-tech-btn-cc"
-                                                    onClick={() => setTecnicoParaCuentasCobro(t)}
-                                                    title={`Ver cuentas de cobro de ${t.nombre}`}
-                                                >
-                                                    💵 Cuenta de Cobro
-                                                </button>
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                className="gsb-tech-btn-profile"
-                                                onClick={() => navigate(`/admin/personal/${t.id}`)}
-                                            >
-                                                Ver información →
-                                            </button>
+                                                    <button
+                                                        type="button"
+                                                        className="gsb-tech-btn-profile"
+                                                        onClick={() => navigate(`/admin/personal/${t.id}`)}
+                                                    >
+                                                        Ver información →
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     );
                                 })}
