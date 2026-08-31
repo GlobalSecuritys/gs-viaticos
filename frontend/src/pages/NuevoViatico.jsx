@@ -26,6 +26,19 @@ function hoyISO() {
     return `${d.getFullYear()}-${mes}-${dia}`;
 }
 
+/**
+ * Devuelve true si la fecha actual está dentro del rango [fecha_inicio, fecha_fin]
+ * de la asignación (inclusive en ambos extremos).
+ */
+function estaEnRango(asignacion) {
+    if (!asignacion) return true; // sin asignación vinculada, siempre permitido
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const inicio = new Date(asignacion.fecha_inicio + 'T00:00:00');
+    const fin = new Date(asignacion.fecha_fin + 'T00:00:00');
+    return hoy >= inicio && hoy <= fin;
+}
+
 const CONTEXTO_KEY = 'gs_fecha_anterior_viatico';
 
 function getItemInicial(id) {
@@ -320,6 +333,10 @@ export default function NuevoViatico() {
 
     const cedulaUsuario = user?.codigo_empleado || '1.234.567.890';
 
+    // Regla de negocio: bloquear la carga si la fecha actual está fuera del rango
+    // de la asignación vinculada. Solo aplica cuando hay asignación seleccionada.
+    const fueraDeRango = asignacionIdParam && asignacionDetalle && !estaEnRango(asignacionDetalle);
+
     return (
         <TecnicoLayout>
             <div className="nv-root">
@@ -395,6 +412,23 @@ export default function NuevoViatico() {
 
                 {error && <div className="admin-error-banner">{error}</div>}
                 {exitoMsg && <div className="nv-success-banner">{exitoMsg}</div>}
+
+                {/* Banner de bloqueo: asignación fuera del período válido */}
+                {fueraDeRango && (
+                    <div className="nv-fuera-rango-banner">
+                        <span className="nv-fuera-rango-icono">🔒</span>
+                        <div>
+                            <strong>Carga de viáticos bloqueada</strong>
+                            <p>
+                                Esta asignación solo acepta viáticos entre el{' '}
+                                <strong>{asignacionDetalle.fecha_inicio}</strong> y el{' '}
+                                <strong>{asignacionDetalle.fecha_fin}</strong>.
+                                La fecha actual está fuera de ese rango.{' '}
+                                Contacta al administrador para extender el período.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 <div className="nv-layout-grid">
                     {/* Columna principal: Fecha + Lista de Gastos */}
@@ -893,9 +927,10 @@ export default function NuevoViatico() {
                                 type="button"
                                 className="nv-submit-btn"
                                 onClick={handleSubmit}
-                                disabled={loading}
+                                disabled={loading || fueraDeRango}
+                                title={fueraDeRango ? 'Carga bloqueada: la asignación está fuera de su período válido.' : undefined}
                             >
-                                {loading ? 'Enviando viáticos...' : '🚀 Revisar y enviar'}
+                                {loading ? 'Enviando viáticos...' : fueraDeRango ? '🔒 Carga bloqueada' : '🚀 Revisar y enviar'}
                             </button>
                         </div>
                     </div>

@@ -7,6 +7,18 @@ import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION } from '../utils/asignac
 import { formatFechaLarga, formatCOP } from '../utils/personal';
 import './MisAsignaciones.css';
 
+/**
+ * Devuelve true si la fecha actual está dentro del rango [fecha_inicio, fecha_fin]
+ * de la asignación (inclusive en ambos extremos).
+ */
+function estaEnRango(asignacion) {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const inicio = new Date(asignacion.fecha_inicio + 'T00:00:00');
+    const fin = new Date(asignacion.fecha_fin + 'T00:00:00');
+    return hoy >= inicio && hoy <= fin;
+}
+
 export default function MisAsignaciones() {
     const navigate = useNavigate();
 
@@ -173,12 +185,30 @@ export default function MisAsignaciones() {
                                         </p>
                                     )}
 
-                                    <button
-                                        className="mac-btn-viatico"
-                                        onClick={() => navigate(`/nuevo-viatico?asignacion_id=${a.id}`)}
-                                    >
-                                        📝 Registrar viático para esta asignación →
-                                    </button>
+                                    {/* Botón de registro de viático: activo solo dentro del rango de fechas */}
+                                    {estaEnRango(a) ? (
+                                        <button
+                                            className="mac-btn-viatico"
+                                            onClick={() => navigate(`/nuevo-viatico?asignacion_id=${a.id}`)}
+                                        >
+                                            📝 Registrar viático para esta asignación →
+                                        </button>
+                                    ) : (
+                                        <div className="mac-fuera-rango">
+                                            <button
+                                                className="mac-btn-viatico mac-btn-viatico--bloqueado"
+                                                disabled
+                                                title={`Periodo válido: ${formatFechaLarga(a.fecha_inicio)} – ${formatFechaLarga(a.fecha_fin)}`}
+                                            >
+                                                🔒 Registro bloqueado
+                                            </button>
+                                            <p className="mac-fuera-rango-msg">
+                                                ⚠️ Esta asignación está fuera de su período válido
+                                                ({formatFechaLarga(a.fecha_inicio)} – {formatFechaLarga(a.fecha_fin)}).
+                                                Contacta al administrador para extender la fecha.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}

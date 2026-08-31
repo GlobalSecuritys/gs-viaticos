@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, List
 
@@ -73,6 +74,20 @@ def crear_viatico(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No se pueden registrar viáticos en una asignación finalizada o cancelada."
+            )
+
+        # Validación de rango de fechas de la asignación
+        hoy = date.today()
+        if not (asig.fecha_inicio <= hoy <= asig.fecha_fin):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Solo puedes registrar viáticos en esta asignación "
+                    f"entre el {asig.fecha_inicio.strftime('%d/%m/%Y')} "
+                    f"y el {asig.fecha_fin.strftime('%d/%m/%Y')}. "
+                    f"La fecha actual ({hoy.strftime('%d/%m/%Y')}) está fuera de ese rango. "
+                    f"Contacta al administrador para extender el período."
+                ),
             )
 
     nuevo_viatico = Viatico(
@@ -176,6 +191,20 @@ def actualizar_viatico(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No se puede editar un viático cuya asignación está finalizada o cancelada."
+            )
+
+        # Validación de rango de fechas de la asignación al editar
+        hoy = date.today()
+        asig_edit = viatico.asignacion
+        if not (asig_edit.fecha_inicio <= hoy <= asig_edit.fecha_fin):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Solo puedes editar viáticos de esta asignación "
+                    f"entre el {asig_edit.fecha_inicio.strftime('%d/%m/%Y')} "
+                    f"y el {asig_edit.fecha_fin.strftime('%d/%m/%Y')}. "
+                    f"La fecha actual ({hoy.strftime('%d/%m/%Y')}) está fuera de ese rango."
+                ),
             )
 
     update_data = viatico_in.model_dump(exclude_unset=True)

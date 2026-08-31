@@ -103,3 +103,9 @@ class AsignacionResponse(AsignacionBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AsignacionExtenderFecha(BaseModel):
+    """Payload mínimo para extender (o acortar) la fecha de fin de una asignación."""
+
+    fecha_fin: date

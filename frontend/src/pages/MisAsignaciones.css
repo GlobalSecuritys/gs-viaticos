@@ -193,3 +193,33 @@
     background-color: var(--color-accent-blue);
     transform: translateY(-1px);
 }
+
+/* Estado bloqueado: fuera del rango de fechas de la asignación */
+.mac-btn-viatico--bloqueado {
+    background-color: #94A3B8;
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 0.75;
+}
+
+.mac-btn-viatico--bloqueado:hover {
+    background-color: #94A3B8;
+    transform: none;
+}
+
+.mac-fuera-rango {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.mac-fuera-rango-msg {
+    font-size: 0.8rem;
+    color: #92400E;
+    background-color: #FFFBEB;
+    border: 1px solid #FCD34D;
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.75rem;
+    margin: 0;
+    line-height: 1.5;
+}

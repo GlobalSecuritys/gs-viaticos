@@ -62,3 +62,7 @@ export function subirCuentaCobroAsignacion(asignacionId, file) {
         timeout: 60000,
     });
 }
+
+export function extenderFechaAsignacion(id, fecha_fin) {
+    return api.patch(`/admin/asignaciones/${id}/extender-fecha`, { fecha_fin });
+}

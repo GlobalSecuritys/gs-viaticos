@@ -481,6 +481,95 @@
     color: #991B1B;
 }
 
+.mat-btn-extender {
+    background: #EFF6FF;
+    border: 1px solid #93C5FD;
+    color: #1D4ED8;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.mat-btn-extender:hover {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.mat-extender-fecha-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    background: #F8FAFC;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    padding: 0.5rem;
+    width: 100%;
+    margin-top: 0.25rem;
+}
+
+.mat-extender-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #1E293B;
+}
+
+.mat-extender-input {
+    padding: 0.25rem 0.45rem;
+    border: 1px solid #94A3B8;
+    border-radius: 6px;
+    font-size: 0.76rem;
+    font-family: inherit;
+    color: #0F172A;
+    background: #FFFFFF;
+}
+
+.mat-extender-btns {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.35rem;
+}
+
+.mat-btn-confirmar {
+    background: #16A34A;
+    border: 1px solid #15803D;
+    color: #FFFFFF;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.mat-btn-confirmar:hover {
+    background: #15803D;
+}
+
+.mat-btn-cancelar-ext {
+    background: #F1F5F9;
+    border: 1px solid #CBD5E1;
+    color: #475569;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.mat-btn-cancelar-ext:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+}
+
+
 /* Formulario Wrap */
 .mat-form-wrap {
     background: #FFFFFF;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import api, { exportarViaticosAsignacion, exportarViaticosIndependientes, descargarBlob } from '../services/api';
-import { listarAsignaciones, crearAsignacion, actualizarAsignacion, finalizarAsignacion, eliminarAsignacion } from '../services/asignaciones';
+import { listarAsignaciones, crearAsignacion, actualizarAsignacion, finalizarAsignacion, eliminarAsignacion, extenderFechaAsignacion } from '../services/asignaciones';
 import { formatCOP, formatFechaCorta, iniciales } from '../utils/personal';
 import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION, CLASE_ESTADO_ASIGNACION } from '../utils/asignaciones';
 import AsignacionForm from './AsignacionForm';
@@ -23,6 +23,10 @@ export default function ModalAsignacionesTecnico({ tecnico, onClose, onAsignacio
     const [cuentaCobroSeleccionada, setCuentaCobroSeleccionada] = useState(null);
     const [exportandoId, setExportandoId] = useState(null);
     const [exportandoConsolidado, setExportandoConsolidado] = useState(false);
+
+    // Extender fecha de fin
+    const [extendiendoId, setExtendiendoId] = useState(null); // id de la asignación en edición de fecha
+    const [nuevaFechaFin, setNuevaFechaFin] = useState('');   // valor del input date
 
     // Filtro rápido de estado
     const [filtroEstado, setFiltroEstado] = useState('todas');
@@ -145,6 +149,24 @@ export default function ModalAsignacionesTecnico({ tecnico, onClose, onAsignacio
             alert('No se pudo exportar el consolidado de viáticos.');
         } finally {
             setExportandoConsolidado(false);
+        }
+    }
+
+    async function handleExtenderFecha(asignacionId) {
+        if (!nuevaFechaFin) {
+            alert('Selecciona una nueva fecha de fin.');
+            return;
+        }
+        try {
+            await extenderFechaAsignacion(asignacionId, nuevaFechaFin);
+            setMensajeFeedback('✅ Fecha de fin extendida correctamente.');
+            setExtendiendoId(null);
+            setNuevaFechaFin('');
+            await cargarDatos();
+            if (onAsignacionActualizada) onAsignacionActualizada();
+        } catch (err) {
+            const detail = err.response?.data?.detail;
+            setError(detail || 'No se pudo extender la fecha.');
         }
     }
 
@@ -383,6 +405,50 @@ export default function ModalAsignacionesTecnico({ tecnico, onClose, onAsignacio
                                                         onClick={() => handleFinalizar(a.id)}
                                                     >
                                                         ✅ Finalizar asignación
+                                                    </button>
+                                                )}
+
+                                                {/* Botón Extender fecha de fin */}
+                                                {extendiendoId === a.id ? (
+                                                    <div className="mat-extender-fecha-form">
+                                                        <label className="mat-extender-label">
+                                                            📅 Nueva fecha de fin:
+                                                            <input
+                                                                type="date"
+                                                                className="mat-extender-input"
+                                                                value={nuevaFechaFin}
+                                                                min={a.fecha_inicio}
+                                                                onChange={(e) => setNuevaFechaFin(e.target.value)}
+                                                            />
+                                                        </label>
+                                                        <div className="mat-extender-btns">
+                                                            <button
+                                                                type="button"
+                                                                className="mat-btn-confirmar"
+                                                                onClick={() => handleExtenderFecha(a.id)}
+                                                            >
+                                                                ✔️ Confirmar
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="mat-btn-cancelar-ext"
+                                                                onClick={() => { setExtendiendoId(null); setNuevaFechaFin(''); }}
+                                                            >
+                                                                ✕ Cancelar
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        className="mat-btn-extender"
+                                                        onClick={() => {
+                                                            setExtendiendoId(a.id);
+                                                            setNuevaFechaFin(a.fecha_fin || '');
+                                                        }}
+                                                        title="Extender o ajustar la fecha de fin para que el técnico pueda volver a subir viáticos"
+                                                    >
+                                                        📅 Extender fecha
                                                     </button>
                                                 )}
 

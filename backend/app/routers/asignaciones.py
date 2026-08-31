@@ -13,6 +13,7 @@ from app.models.usuario import Usuario
 from app.models.viatico import Viatico
 from app.schemas.asignacion import (
     AsignacionCreate,
+    AsignacionExtenderFecha,
     AsignacionResponse,
     AsignacionUpdate,
 )
@@ -291,6 +292,35 @@ def finalizar_asignacion(
         )
 
     asignacion.estado = "finalizada"
+    db.commit()
+    asignacion = _obtener_o_404(id, db)
+    return _a_response(asignacion)
+
+
+@router.patch("/{id}/extender-fecha", response_model=AsignacionResponse)
+def extender_fecha_asignacion(
+    id: int,
+    datos: AsignacionExtenderFecha,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Extiende (o ajusta) la fecha de fin de una asignación existente.
+    Útil para que el técnico pueda volver a subir viáticos dentro del
+    nuevo rango una vez que el administrador amplíe el período.
+    No modifica el estado ni ningún otro campo de la asignación.
+    """
+    from datetime import date as _date
+
+    asignacion = _obtener_o_404(id, db)
+
+    if datos.fecha_fin < asignacion.fecha_inicio:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La nueva fecha de fin no puede ser anterior a la fecha de inicio de la asignación.",
+        )
+
+    asignacion.fecha_fin = datos.fecha_fin
     db.commit()
     asignacion = _obtener_o_404(id, db)
     return _a_response(asignacion)
