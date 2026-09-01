@@ -19,6 +19,7 @@ import Auditoria from './pages/Auditoria';
 import AdminCuentasCobro from './pages/AdminCuentasCobro';
 import SeleccionModulo from './pages/SeleccionModulo';
 import TalentoHumano from './pages/TalentoHumano';
+import AdminBackup from './pages/AdminBackup';
 
 export default function App() {
   return (
@@ -151,6 +152,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <Auditoria />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/backup"
+            element={
+              <AdminRoute>
+                <AdminBackup />
               </AdminRoute>
             }
           />
