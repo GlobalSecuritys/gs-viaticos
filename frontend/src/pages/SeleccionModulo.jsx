@@ -245,8 +245,8 @@ export default function SeleccionModulo() {
         </footer>
       </main>
 
-      {/* ── PANEL LATERAL WHATSAPP (solo Super Admin) ── */}
-      {isMaster && <PanelContactoTecnicos />}
+      {/* ── PANEL LATERAL WHATSAPP (todos los Super Admin) ── */}
+      {user?.rol === 'superadmin' && <PanelContactoTecnicos />}
 
       </div>{/* /sm-hub-layout */}
     </div>
