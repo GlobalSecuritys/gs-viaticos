@@ -114,4 +114,17 @@ def verificar_autoridad_sobre_usuario(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Un administrador no puede realizar acciones administrativas sobre un Super Administrador"
-        )   
+        )
+
+def get_current_admin_calidad(
+    current_user: Annotated[Usuario, Depends(get_current_user)]
+) -> Usuario:
+    """Valida que el usuario tenga privilegios de administración en Calidad de Procesos (PilarAdmin o Superadmin o flag es_admin_calidad)."""
+    correo = (current_user.correo or "").strip().lower()
+    es_admin_calidad = getattr(current_user, "es_admin_calidad", False)
+    if not (es_admin_calidad or correo == "pilaradmin@gsbank.com" or current_user.rol == "superadmin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso restringido al Administrador de Calidad de Procesos (PilarAdmin@gsbank.com)"
+        )
+    return current_user

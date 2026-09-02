@@ -4,8 +4,8 @@
 
 .bkp-root {
   min-height: 100vh;
-  background-color: #0c0c0c;
-  color: #f0ede6;
+  background-color: transparent;
+  color: var(--color-text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   display: flex;
   flex-direction: column;
@@ -13,14 +13,16 @@
 
 /* ---------- Topbar Corporativo ---------- */
 .bkp-topbar {
-  background: linear-gradient(135deg, #0a192f 0%, #0d233a 50%, #161616 100%);
-  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
   padding: 1.1rem 2.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
   position: relative;
   overflow: hidden;
 }
@@ -33,7 +35,7 @@
   width: 220px;
   height: 220px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(212, 175, 55, 0.08), transparent 70%);
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.12), transparent 70%);
   pointer-events: none;
 }
 
@@ -47,36 +49,36 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: #FEF3C7;
+  border: 1px solid rgba(245, 158, 11, 0.35);
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  box-shadow: 0 0 12px rgba(212, 175, 55, 0.15);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
 }
 
 .bkp-logo-img {
-  width: 32px;
+  width: 30px;
   height: auto;
   object-fit: contain;
 }
 
 .bkp-brand h1 {
   font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-weight: 900;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #fff;
+  color: #0F172A;
   margin: 0;
 }
 
 .bkp-brand h1 span {
-  color: #f5c842;
+  color: #D97706;
 }
 
 .bkp-brand p {
   font-size: 0.78rem;
-  color: rgba(240, 237, 230, 0.6);
+  color: #64748B;
   margin-top: 2px;
 }
 
@@ -90,21 +92,22 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #f0ede6;
+  background: #FFFFFF;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  color: #0F172A;
   border-radius: 8px;
   padding: 0.5rem 0.95rem;
   font-size: 0.82rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
   transition: all 0.2s ease;
 }
 
 .bkp-btn-nav:hover {
-  background: rgba(212, 175, 55, 0.15);
-  border-color: rgba(212, 175, 55, 0.45);
-  color: #f5c842;
+  background: #FEF3C7;
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #92400E;
   transform: translateY(-1px);
 }
 
@@ -122,12 +125,12 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  color: #f5c842;
+  background: #FEF3C7;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #92400E;
   font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   padding: 0.35rem 0.9rem;
   border-radius: 999px;
   margin-bottom: 1.5rem;
@@ -135,10 +138,12 @@
 
 /* Card Genérico */
 .bkp-card {
-  background: #161616;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05);
 }
 
 /* ---------- Zona de Carga ---------- */
@@ -204,37 +209,37 @@
 
 .bkp-dz-title {
   font-size: 1.15rem;
-  font-weight: 700;
-  color: #f0ede6;
+  font-weight: 800;
+  color: #0F172A;
   margin: 0 0 0.4rem;
 }
 
 .bkp-dz-sub {
   font-size: 0.85rem;
-  color: rgba(240, 237, 230, 0.55);
+  color: #64748B;
   margin: 0;
 }
 
 .bkp-hint {
   font-size: 0.78rem;
-  color: rgba(240, 237, 230, 0.5);
+  color: #64748B;
   line-height: 1.6;
   margin: 0;
 }
 
 .bkp-hint code {
   font-family: ui-monospace, Consolas, monospace;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #FEF3C7;
+  border: 1px solid rgba(245, 158, 11, 0.3);
   border-radius: 4px;
   padding: 1px 5px;
-  color: #f5c842;
+  color: #92400E;
 }
 
 .bkp-error-box {
-  background: rgba(239, 68, 68, 0.1);
+  background: #FEE2E2;
   border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
+  color: #991B1B;
   border-radius: 8px;
   padding: 0.75rem 1.25rem;
   margin-bottom: 1.25rem;
@@ -250,20 +255,20 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #f5c842 0%, #d4af37 100%);
-  color: #0c0c0c;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #FFFFFF;
   border: none;
   border-radius: 9px;
   font-weight: 700;
   font-size: 0.86rem;
   padding: 0.65rem 1.25rem;
   cursor: pointer;
-  box-shadow: 0 3px 12px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 3px 12px rgba(217, 119, 6, 0.25);
   transition: all 0.2s ease;
 }
 
 .bkp-btn-primary:hover:not(:disabled) {
-  box-shadow: 0 5px 18px rgba(212, 175, 55, 0.45);
+  box-shadow: 0 5px 18px rgba(217, 119, 6, 0.38);
   transform: translateY(-2px);
 }
 
@@ -276,21 +281,22 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #f0ede6;
+  background: #FFFFFF;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  color: #0F172A;
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.84rem;
   padding: 0.55rem 1rem;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
   transition: all 0.2s ease;
 }
 
 .bkp-btn-outline:hover:not(:disabled) {
-  border-color: #f5c842;
-  color: #f5c842;
-  background: rgba(212, 175, 55, 0.08);
+  border-color: #D97706;
+  color: #B45309;
+  background: #FEF3C7;
 }
 
 .bkp-btn-sm {
@@ -318,8 +324,8 @@
 
 .bkp-stat strong {
   font-size: 1.6rem;
-  font-weight: 800;
-  color: #f5c842;
+  font-weight: 900;
+  color: #D97706;
   display: block;
   line-height: 1.1;
 }
@@ -328,11 +334,12 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(240, 237, 230, 0.6);
+  color: #64748B;
+  font-weight: 700;
 }
 
 .bkp-stat--warn strong {
-  color: #f59e0b;
+  color: #EA580C;
 }
 
 .bkp-summary-actions {
@@ -344,17 +351,17 @@
 
 .bkp-col-info {
   font-size: 0.76rem;
-  color: rgba(240, 237, 230, 0.55);
+  color: #64748B;
   margin: 0 0 1.5rem 0.5rem;
 }
 
 .bkp-col-info code {
   font-family: ui-monospace, Consolas, monospace;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #FEF3C7;
+  border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: 4px;
   padding: 1px 5px;
-  color: #f5c842;
+  color: #92400E;
 }
 
 /* ---------- Listado de Oficinas ---------- */
@@ -366,7 +373,7 @@
 
 .bkp-office-card {
   overflow: hidden;
-  border-left: 4px solid #f5c842;
+  border-left: 4px solid #D97706;
   transition: all 0.2s ease;
 }
 
@@ -378,13 +385,14 @@
   padding: 1.1rem 1.75rem;
   cursor: pointer;
   user-select: none;
-  background: #1b1b1b;
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
   transition: background 0.15s ease;
   flex-wrap: wrap;
 }
 
 .bkp-office-head:hover {
-  background: #222222;
+  background: #FFFFFF;
 }
 
 .bkp-office-title-wrap {
@@ -395,7 +403,7 @@
 }
 
 .bkp-chev {
-  color: #f5c842;
+  color: #D97706;
   transition: transform 0.2s ease;
   flex-shrink: 0;
 }
@@ -406,8 +414,8 @@
 
 .bkp-office-title-wrap h2 {
   font-size: 1.05rem;
-  font-weight: 700;
-  color: #f0ede6;
+  font-weight: 800;
+  color: #0F172A;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -416,10 +424,10 @@
 
 .bkp-chip {
   font-size: 0.72rem;
-  font-weight: 700;
-  color: #f5c842;
-  background: rgba(212, 175, 55, 0.12);
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  font-weight: 800;
+  color: #92400E;
+  background: #FEF3C7;
+  border: 1px solid rgba(245, 158, 11, 0.35);
   border-radius: 999px;
   padding: 2px 9px;
   flex-shrink: 0;
@@ -432,7 +440,7 @@
 
 .bkp-office-body {
   padding: 0 1.75rem 1.25rem;
-  background: #161616;
+  background: rgba(255, 255, 255, 0.85);
 }
 
 /* Sub-bloques por Técnico */

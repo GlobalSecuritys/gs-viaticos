@@ -22,3 +22,17 @@ export function puedeGestionarUsuario(viewerRol, targetRol) {
 export function esSoloLectura(viewerRol, targetRol) {
     return !puedeGestionarUsuario(viewerRol, targetRol);
 }
+
+/**
+ * Verifica si el usuario autenticado tiene permisos de administración
+ * en el módulo de Calidad de Procesos (PilarAdmin@gsbank.com, flag es_admin_calidad o superadmin).
+ */
+export function esAdminCalidad(user) {
+    if (!user) return false;
+    const correo = (user.correo || '').trim().toLowerCase();
+    return (
+        user.es_admin_calidad === true ||
+        correo === 'pilaradmin@gsbank.com' ||
+        user.rol === 'superadmin'
+    );
+}

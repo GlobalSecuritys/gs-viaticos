@@ -301,24 +301,28 @@ export default function AdminDashboard() {
     const [mensajeFeedback, setMensajeFeedback] = useState('');
 
     const NAV_ITEMS = [
-        { id: 'inicio', label: 'Inicio', icon: '🏠', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
-        { id: 'talento-humano', label: 'Talento Humano', icon: '👥', action: () => navigate('/talento-humano') },
-        { id: 'viaticos', label: 'Viáticos', icon: '💼', action: () => seccionTecnicosRef.current?.scrollIntoView({ behavior: 'smooth' }) },
-        { id: 'tecnicos', label: 'Técnicos', icon: '👷', action: () => seccionTecnicosRef.current?.scrollIntoView({ behavior: 'smooth' }) },
-        { id: 'usuarios', label: 'Usuarios', icon: '👤', action: () => navigate(user?.rol === 'superadmin' ? '/admin/usuarios' : `/admin/personal/${user?.id}`) },
-        { id: 'auditoria', label: 'Auditoría', icon: '📊', action: () => navigate('/admin/auditoria') },
-        { id: 'configuracion', label: 'Configuración', icon: '⚙️', action: () => user?.id && navigate(`/admin/personal/${user.id}`) },
+        { id: 'inicio', label: 'Resumen & Liquidaciones', icon: '🏠', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+        { id: 'gastos', label: 'Gastos & Comprobantes', icon: '💳', action: () => {
+            const el = document.querySelector('.gsb-filter-strip') || document.querySelector('.gsb-table-card');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+        } },
+        { id: 'tecnicos', label: 'Asignaciones & Técnicos', icon: '👷', action: () => seccionTecnicosRef.current?.scrollIntoView({ behavior: 'smooth' }) },
+        { id: 'cuentas-cobro', label: 'Cuentas de Cobro', icon: '💵', action: () => navigate('/admin/cuentas-cobro') },
+        { id: 'reportes', label: 'Reportes & Exportación', icon: '📊', action: () => setMostrarModalExportar(true) },
     ];
 
     return (
         <div className="gsb-app-layout">
-            {/* ── SIDEBAR CORPORATIVO ── */}
+            {/* ── SIDEBAR CORPORATIVO (MÓDULO VIÁTICOS) ── */}
             <aside className={`gsb-sidebar ${sidebarAbierto ? 'gsb-sidebar--open' : ''}`}>
-                <div className="gsb-sidebar-header">
+                <div className="gsb-sidebar-header" onClick={() => navigate('/seleccion-modulo')} style={{ cursor: 'pointer' }} title="Regresar al Hub de Módulos">
                     <div className="gsb-sidebar-logo-wrap">
                         <img src={logoGSB} alt="Global Security Bank" className="gsb-sidebar-logo" />
                     </div>
-                    <span className="gsb-sidebar-brand-name">GS-VIÁTICOS</span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span className="gsb-sidebar-brand-name">GS-VIÁTICOS</span>
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>‹ Hub de Módulos</span>
+                    </div>
                 </div>
 
                 <nav className="gsb-sidebar-nav">
@@ -339,6 +343,31 @@ export default function AdminDashboard() {
                 </nav>
 
                 <div className="gsb-sidebar-footer">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/seleccion-modulo')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.65rem',
+                            padding: '0.6rem 0.8rem',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '8px',
+                            color: '#F4F1EC',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            fontWeight: '700',
+                            fontFamily: 'inherit',
+                            marginBottom: '0.5rem',
+                            transition: 'all 0.2s ease',
+                        }}
+                    >
+                        <span>🔲</span>
+                        <span>Hub de Módulos</span>
+                    </button>
+
                     <div className="gsb-trust-badge">
                         <img src={logoGSB} alt="Shield" className="gsb-trust-icon" />
                         <div className="gsb-trust-text">

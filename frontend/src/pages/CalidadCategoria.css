@@ -1,0 +1,436 @@
+/* ══════════════════════════════════════════════════════════════
+   CalidadCategoria.css — Vista de Procesos por Categoría
+   ══════════════════════════════════════════════════════════════ */
+
+.sgc-cat-root {
+  min-height: 100vh;
+  background-color: transparent;
+  color: #1e293b;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.sgc-cat-main {
+  flex: 1;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem 4rem;
+}
+
+/* Breadcrumbs */
+.sgc-cat-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  margin-bottom: 1.25rem;
+  color: #64748b;
+}
+
+.sgc-crumb-link {
+  color: #2563eb;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.sgc-crumb-link:hover {
+  text-decoration: underline;
+}
+
+.sgc-crumb-sep {
+  color: #cbd5e1;
+}
+
+.sgc-crumb-current {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* Hero de Categoría */
+.sgc-cat-hero {
+  border-radius: 16px;
+  padding: 2rem 2.25rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.sgc-cat-hero--direccion {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1.5px solid #fde68a;
+}
+.sgc-cat-hero--direccion .sgc-cat-badge {
+  background: #fef08a;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+.sgc-cat-hero--direccion .sgc-cat-title {
+  color: #78350f;
+}
+
+.sgc-cat-hero--misional {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1.5px solid #bfdbfe;
+}
+.sgc-cat-hero--misional .sgc-cat-badge {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+.sgc-cat-hero--misional .sgc-cat-title {
+  color: #1e3a8a;
+}
+
+.sgc-cat-hero--apoyo {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1.5px solid #bbf7d0;
+}
+.sgc-cat-hero--apoyo .sgc-cat-badge {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+.sgc-cat-hero--apoyo .sgc-cat-title {
+  color: #14532d;
+}
+
+.sgc-cat-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  margin-bottom: 0.65rem;
+}
+
+.sgc-cat-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.45rem;
+}
+
+.sgc-cat-desc {
+  font-size: 0.92rem;
+  color: #475569;
+  max-width: 800px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Grid de Tarjetas */
+.sgc-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
+}
+
+.sgc-cat-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.sgc-cat-card:hover {
+  transform: translateY(-4px);
+  border-color: #2563eb;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.1);
+}
+
+.sgc-cat-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.sgc-cat-card-code-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 2px solid;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.sgc-cat-card-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.sgc-cat-card-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sgc-cat-card-subcode {
+  font-size: 0.74rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.sgc-btn-edit-proc {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sgc-btn-edit-proc:hover {
+  background: #0d233a;
+  color: #ffffff;
+}
+
+.sgc-cat-card-desc {
+  font-size: 0.84rem;
+  color: #475569;
+  line-height: 1.55;
+  flex: 1;
+  margin: 0 0 1.25rem;
+}
+
+.sgc-cat-card-meta {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.sgc-cat-resp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sgc-meta-label {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.sgc-resp-avatars-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.sgc-resp-chip {
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  color: #1e40af;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.sgc-resp-empty {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.sgc-cat-doc-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.sgc-cat-card-footer {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.85rem;
+}
+
+.sgc-cta-view {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #2563eb;
+  transition: color 0.15s ease;
+}
+
+.sgc-cat-card:hover .sgc-cta-view {
+  text-decoration: underline;
+}
+
+/* ── Modales ── */
+.sgc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.sgc-modal-card {
+  background: #ffffff;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 540px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: sgcModalIn 0.2s ease;
+}
+
+@keyframes sgcModalIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.sgc-modal-header {
+  padding: 1.25rem 1.75rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sgc-modal-header h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.sgc-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.sgc-modal-form {
+  padding: 1.5rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.sgc-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.sgc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sgc-form-group label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.sgc-form-group input,
+.sgc-form-group textarea,
+.sgc-form-group select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.sgc-form-group input:focus,
+.sgc-form-group textarea:focus,
+.sgc-form-group select:focus {
+  border-color: #2563eb;
+}
+
+.sgc-color-picker-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sgc-color-picker-wrap input[type="color"] {
+  width: 44px;
+  height: 38px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
+}
+
+.sgc-color-hex {
+  font-size: 0.82rem;
+  font-family: monospace;
+  font-weight: 700;
+  color: #475569;
+}
+
+.sgc-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.sgc-btn-secondary {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sgc-btn-primary {
+  background: #0d233a;
+  border: none;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.sgc-btn-primary:hover:not(:disabled) {
+  background: #1e3a8a;
+}
+
+.sgc-btn-primary:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}

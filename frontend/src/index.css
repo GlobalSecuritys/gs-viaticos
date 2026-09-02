@@ -1,39 +1,39 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
   /* ===== Global Security Bank (GSB) Corporate Color Palette ===== */
 
-  /* Dark Navy Shades (Sidebars, Dark Cards, Brand Elements) */
+  /* Dark Navy Shades (Sidebars Laterales — PRESERVADOS) */
   --color-navy-darkest: #070D1E;     /* Fondo sidebar profundo */
-  --color-navy-dark: #0B172D;        /* Fondo tarjetas oscuras / header */
+  --color-navy-dark: #0B172D;        /* Fondo tarjetas oscuras / header lateral */
   --color-navy-card: #0D1E3A;        /* Gradientes tarjetas dark */
   --color-navy-card-2: #14284B;      /* Tono superior tarjeta perfil / resumen */
   --color-navy-border: rgba(255, 255, 255, 0.08);
 
-  /* Light Theme Canvas (Main Workspace) */
-  --color-bg-primary: #EEF2F6;       /* Fondo suave gris azulado corporativo */
-  --color-bg-secondary: #FFFFFF;     /* Blanco puro para tarjetas elevadas */
-  --color-bg-tertiary: #F8FAFC;      /* Tono neutro para tablas y filtros */
-  --color-bg-subtle: #F1F5F9;
+  /* Light Theme Luminous Aurora Canvas (Main Workspace Everywhere) */
+  --color-bg-primary: transparent;
+  --color-bg-secondary: rgba(255, 255, 255, 0.90);     /* Blanco puro / glass para tarjetas elevadas */
+  --color-bg-tertiary: rgba(255, 255, 255, 0.78);      /* Tono translúcido para tablas y filtros */
+  --color-bg-subtle: rgba(241, 245, 249, 0.85);
 
   /* Primary Blue & Technological Accents */
-  --color-primary-blue: #0A2540;     /* Azul institucional GSB */
-  --color-primary-blue-hover: #071A2E;
-  --color-accent-blue: #1D63C8;      /* Azul tecnológico vivo */
-  --color-accent-blue-hover: #164FA3;
+  --color-primary-blue: #0F172A;     /* Slate profundo de alto contraste */
+  --color-primary-blue-hover: #1E293B;
+  --color-accent-blue: #2563EB;      /* Azul vivo eléctrico */
+  --color-accent-blue-hover: #1D4ED8;
   --color-accent-blue-light: #EFF6FF;
-  --color-accent-blue-subtle: rgba(29, 99, 200, 0.08);
+  --color-accent-blue-subtle: rgba(37, 99, 235, 0.08);
 
   /* GSB Gold Accent (Distintivo de Seguridad y Prestigio) */
-  --color-gold: #D4AF37;             /* Oro insignia GSB */
-  --color-gold-bright: #F5C518;      /* Oro brillante para números de KPI y highlights */
-  --color-gold-dark: #996515;
-  --color-gold-light: #FDF9EA;
-  --color-gold-badge-bg: #45330D;
-  --color-gold-badge-text: #FDE68A;
+  --color-gold: #D97706;             /* Oro ámbar insignia GSB */
+  --color-gold-bright: #F59E0B;      /* Oro brillante para números de KPI y highlights */
+  --color-gold-dark: #B45309;
+  --color-gold-light: #FEF3C7;
+  --color-gold-badge-bg: #FEF3C7;
+  --color-gold-badge-text: #92400E;
 
   /* Typography Colors */
-  --color-text: #0F172A;             /* Slate 900 */
+  --color-text: #0F172A;             /* Slate 900 (Ultra nítido) */
   --color-text-secondary: #334155;   /* Slate 700 */
   --color-text-muted: #64748B;       /* Slate 500 */
   --color-text-light: #94A3B8;       /* Slate 400 */
@@ -48,14 +48,14 @@
   --color-rechazado-bg: #FEE2E2;     /* Red 100 */
 
   /* Borders & Shadows */
-  --color-border: #E2E8F0;           /* Slate 200 */
-  --color-border-hover: #CBD5E1;     /* Slate 300 */
-  --color-border-subtle: #EDF2F7;
+  --color-border: rgba(226, 232, 240, 0.9);           /* Slate 200 */
+  --color-border-hover: rgba(203, 213, 225, 0.9);     /* Slate 300 */
+  --color-border-subtle: rgba(241, 245, 249, 0.8);
 
-  --color-shadow-sm: 0 1px 3px rgba(11, 23, 45, 0.05), 0 1px 2px rgba(11, 23, 45, 0.03);
-  --color-shadow: 0 4px 12px -2px rgba(11, 23, 45, 0.05), 0 2px 4px -1px rgba(11, 23, 45, 0.03);
-  --color-shadow-md: 0 10px 25px -4px rgba(11, 23, 45, 0.08), 0 4px 6px -2px rgba(11, 23, 45, 0.03);
-  --color-shadow-lg: 0 20px 30px -6px rgba(11, 23, 45, 0.10), 0 8px 12px -4px rgba(11, 23, 45, 0.04);
+  --color-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+  --color-shadow: 0 6px 18px -3px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  --color-shadow-md: 0 12px 28px -4px rgba(15, 23, 42, 0.07), 0 4px 10px -2px rgba(15, 23, 42, 0.03);
+  --color-shadow-lg: 0 20px 35px -6px rgba(15, 23, 42, 0.10), 0 8px 14px -4px rgba(15, 23, 42, 0.04);
   --color-shadow-navy: 0 14px 28px rgba(7, 13, 30, 0.35);
 
   --radius-sm: 6px;
@@ -83,7 +83,15 @@ html {
 
 body {
   font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: var(--color-bg-primary);
+  background-color: #F8FAFC;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(254, 240, 138, 0.38) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(186, 230, 253, 0.45) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(199, 210, 254, 0.38) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(167, 243, 208, 0.38) 0px, transparent 50%),
+    radial-gradient(rgba(15, 23, 42, 0.055) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 32px 32px;
+  background-attachment: fixed;
   color: var(--color-text);
   line-height: 1.5;
   min-height: 100vh;
@@ -146,9 +154,4 @@ button {
   border-color: var(--color-accent-blue);
   color: var(--color-accent-blue);
   transform: translateY(-1px);
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
 }

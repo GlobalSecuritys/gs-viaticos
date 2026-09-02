@@ -1,0 +1,617 @@
+/* ══════════════════════════════════════════════════════════════
+   CalidadProcesos.css — Mapa de Procesos SGC Global Security Bank
+   ══════════════════════════════════════════════════════════════ */
+
+.sgc-root {
+  min-height: 100vh;
+  background-color: transparent;
+  color: #1e293b;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Topbar ── */
+.sgc-topbar {
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  padding: 0.9rem 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.sgc-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sgc-logo-halo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #0d233a;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 12px rgba(13, 35, 58, 0.2);
+}
+
+.sgc-logo-img {
+  width: 30px;
+  height: auto;
+  object-fit: contain;
+}
+
+.sgc-topbar-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0d233a;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.sgc-topbar-sub {
+  font-size: 0.72rem;
+  color: #64748b;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.sgc-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+/* Modo Administrador Pill */
+.sgc-admin-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  color: #b45309;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+.sgc-admin-crown {
+  font-size: 0.9rem;
+}
+
+.sgc-btn-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sgc-btn-nav:hover {
+  background: #0d233a;
+  border-color: #0d233a;
+  color: #ffffff;
+}
+
+/* ── Main Layout ── */
+.sgc-main {
+  flex: 1;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.sgc-alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: 10px;
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.88rem;
+}
+
+.sgc-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 0;
+  gap: 1rem;
+  color: #64748b;
+}
+
+.sgc-spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0d233a;
+  animation: sgcSpin 0.75s linear infinite;
+}
+
+@keyframes sgcSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Contenedor del Mapa ── */
+.sgc-map-container {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 2.25rem 2rem 2.5rem;
+  box-shadow: 0 4px 24px rgba(13, 35, 58, 0.06);
+}
+
+/* ── Convenciones Box ── */
+.sgc-convenciones-card {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  font-size: 0.72rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  z-index: 10;
+}
+
+.sgc-convenciones-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sgc-convencion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #475569;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.sgc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sgc-dot--dir { background: #f59e0b; }
+.sgc-dot--mis { background: #3b82f6; }
+.sgc-dot--apo { background: #10b981; }
+.sgc-dot--usr { background: #8b5cf6; }
+
+/* ── Estructura de 3 Columnas ── */
+.sgc-map-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+/* Columnas laterales */
+.sgc-side-col {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.sgc-side-pill {
+  width: 110px;
+  min-height: 480px;
+  background: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 100%);
+  border: 1.5px solid #ddd6fe;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 0.6rem;
+  text-align: center;
+  gap: 1.5rem;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.1);
+}
+
+.sgc-side-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #c4b5fd;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+}
+
+.sgc-side-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sgc-side-text strong {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #5b21b6;
+  letter-spacing: 0.05em;
+  line-height: 1.35;
+}
+
+.sgc-side-text span {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #6d28d9;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+}
+
+.sgc-side-arrow-right,
+.sgc-side-arrow-left {
+  color: #1e3a8a;
+}
+
+/* Columna Central de Bloques */
+.sgc-center-blocks {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  max-width: 960px;
+}
+
+/* Bloque General */
+.sgc-section-block {
+  width: 100%;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem 1.5rem;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.sgc-section-block--direccion {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+}
+
+.sgc-section-block--misional {
+  background: #eff6ff;
+  border: 1.5px solid #bfdbfe;
+}
+
+.sgc-section-block--apoyo {
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+}
+
+.sgc-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sgc-block-header h3 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin: 0;
+  transition: opacity 0.2s ease;
+}
+
+.sgc-block-header--direccion h3 { color: #b45309; }
+.sgc-block-header--misional h3 { color: #1d4ed8; }
+.sgc-block-header--apoyo h3 { color: #15803d; }
+
+.sgc-header-hint {
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.sgc-block-header:hover h3 {
+  text-decoration: underline;
+}
+
+.sgc-block-header:hover .sgc-header-hint {
+  opacity: 0.8;
+}
+
+/* Filas de Tarjetas */
+.sgc-cards-row {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.sgc-cards-row--direccion {
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.sgc-cards-row--apoyo {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Misionales Grid específico */
+.sgc-misionales-grid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.sgc-mis-subcol-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  max-width: 360px;
+}
+
+.sgc-mis-subcol-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  max-width: 360px;
+}
+
+/* Conectores */
+.sgc-v-connector {
+  color: #1e3a8a;
+  display: flex;
+  justify-content: center;
+  margin: 0.35rem 0;
+}
+
+.sgc-v-mini-connector {
+  color: #1e3a8a;
+  display: flex;
+  justify-content: center;
+}
+
+.sgc-h-mini-connector {
+  color: #1e3a8a;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Tarjetas de Proceso ── */
+.sgc-proc-card {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  border: 1.5px solid transparent;
+  transition: transform 0.2s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.sgc-proc-card:hover {
+  transform: translateY(-4px) scale(1.015);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Colores de tarjetas */
+.sgc-proc-card--gold {
+  border-color: #fef08a;
+  background: linear-gradient(135deg, #ffffff 0%, #fffdf5 100%);
+}
+.sgc-proc-card--gold:hover {
+  border-color: #f59e0b;
+}
+.sgc-proc-card--gold .sgc-proc-icon-box {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.sgc-proc-card--blue {
+  border-color: #dbeafe;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+}
+.sgc-proc-card--blue:hover {
+  border-color: #3b82f6;
+}
+.sgc-proc-card--blue .sgc-proc-icon-box {
+  background: #e0e7ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.sgc-proc-card--green {
+  border-color: #dcfce7;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fdfa 100%);
+}
+.sgc-proc-card--green:hover {
+  border-color: #10b981;
+}
+.sgc-proc-card--green .sgc-proc-icon-box {
+  background: #d1fae5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+/* Icon box */
+.sgc-proc-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.sgc-proc-card:hover .sgc-proc-icon-box {
+  transform: scale(1.08) rotate(-2deg);
+}
+
+.sgc-proc-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sgc-proc-header {
+  margin-bottom: 0.25rem;
+}
+
+.sgc-proc-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sgc-proc-code {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.sgc-proc-responsable {
+  font-size: 0.74rem;
+  color: #475569;
+  margin: 0 0 0.35rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sgc-resp-label {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.sgc-resp-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.sgc-proc-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sgc-link-detalle {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #2563eb;
+  transition: color 0.15s ease;
+}
+
+.sgc-proc-card:hover .sgc-link-detalle {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.sgc-doc-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1180px) {
+  .sgc-convenciones-card {
+    position: static;
+    margin-bottom: 1.5rem;
+    display: inline-flex;
+    gap: 1.25rem;
+    align-items: center;
+  }
+  .sgc-convenciones-title {
+    margin: 0;
+  }
+  .sgc-map-layout {
+    flex-direction: column;
+  }
+  .sgc-side-col {
+    width: 100%;
+    justify-content: center;
+  }
+  .sgc-side-pill {
+    min-height: auto;
+    width: 100%;
+    max-width: 500px;
+    flex-direction: row;
+    padding: 0.85rem 1.5rem;
+  }
+  .sgc-side-arrow-right,
+  .sgc-side-arrow-left {
+    transform: rotate(90deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .sgc-topbar {
+    padding: 0.75rem 1rem;
+  }
+  .sgc-main {
+    padding: 1rem 0.75rem;
+  }
+  .sgc-map-container {
+    padding: 1.25rem 1rem;
+  }
+  .sgc-cards-row--direccion,
+  .sgc-cards-row--apoyo {
+    grid-template-columns: 1fr;
+  }
+  .sgc-misionales-grid {
+    flex-direction: column;
+  }
+  .sgc-h-mini-connector {
+    transform: rotate(90deg);
+  }
+}

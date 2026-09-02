@@ -313,3 +313,71 @@ async def upload_documento_talento_humano(file: UploadFile) -> CloudinaryUploadR
         secure_url=secure_url,
         public_id=public_id,
     )
+
+
+CALIDAD_PROCESOS_FOLDER = "gs_viaticos/calidad_procesos/documentos"
+
+
+def _upload_calidad_procesos_sync(content: bytes) -> dict:
+    return cloudinary.uploader.upload(
+        content,
+        folder=CALIDAD_PROCESOS_FOLDER,
+        resource_type="auto",
+        use_filename=True,
+        unique_filename=True,
+        timeout=45,
+    )
+
+
+async def upload_documento_calidad_procesos(file: UploadFile) -> CloudinaryUploadResult:
+    """
+    Sube un documento de Calidad de Procesos (PDF, DOCX, XLSX, JPG, PNG, etc.) a Cloudinary.
+    """
+    content = await file.read()
+    _validate_cuenta_cobro_file(file, content)
+
+    try:
+        result = await asyncio.to_thread(_upload_calidad_procesos_sync, content)
+    except CloudinaryError as exc:
+        logger.error("Error al subir documento de Calidad de Procesos a Cloudinary: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="No se pudo subir el documento a Cloudinary. Intenta nuevamente.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Error inesperado al subir documento de Calidad de Procesos a Cloudinary")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ocurrió un error inesperado al procesar el archivo.",
+        ) from exc
+    finally:
+        await file.close()
+
+    secure_url = result.get("secure_url")
+    public_id = result.get("public_id")
+
+    if not secure_url or not public_id:
+        logger.error("Respuesta inesperada de Cloudinary: %s", result)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Respuesta inválida del servicio de almacenamiento.",
+        )
+
+    return CloudinaryUploadResult(
+        secure_url=secure_url,
+        public_id=public_id,
+    )
+
+
+def _eliminar_cloudinary_sync(public_id: str) -> dict:
+    return cloudinary.uploader.destroy(public_id, resource_type="raw", invalidate=True)
+
+
+async def eliminar_archivo_cloudinary(public_id: str) -> None:
+    """Intenta eliminar un archivo de Cloudinary de forma asíncrona sin bloquear."""
+    if not public_id:
+        return
+    try:
+        await asyncio.to_thread(cloudinary.uploader.destroy, public_id, invalidate=True)
+    except Exception as e:
+        logger.warning(f"No se pudo eliminar de Cloudinary {public_id}: {e}")

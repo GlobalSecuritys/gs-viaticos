@@ -9,9 +9,10 @@ from app.routers.viaticos import router as viaticos_router
 from app.routers.proveedores import router as proveedores_router
 from app.routers.cuentas_cobro import router as cuentas_cobro_router
 from app.routers.talento_humano import router as talento_humano_router
+from app.routers.calidad_procesos import router as calidad_procesos_router, seed_procesos_calidad_si_vacio
 
 from sqlalchemy import text
-from app.database import engine
+from app.database import engine, SessionLocal
 from app.models.cuenta_cobro import CuentaCobro
 from app.models.cuenta_cobro_asignacion import CuentaCobroAsignacion
 from app.models.talento_humano import (
@@ -19,6 +20,11 @@ from app.models.talento_humano import (
     EmpleadoDocumento,
     EmpleadoHistorial,
     EmpleadoSolicitud,
+)
+from app.models.calidad_procesos import (
+    ProcesoCalidad,
+    ProcesoCalidadResponsable,
+    ProcesoCalidadDocumento,
 )
 
 app = FastAPI(
@@ -33,6 +39,8 @@ def startup_db_check():
         with engine.connect() as conn:
             conn.execute(text("ALTER TABLE viaticos ADD COLUMN IF NOT EXISTS comentario_admin TEXT;"))
             conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS eliminado_en TIMESTAMP WITHOUT TIME ZONE;"))
+            conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_admin_calidad BOOLEAN DEFAULT FALSE;"))
+            conn.execute(text("UPDATE usuarios SET es_admin_calidad = TRUE WHERE LOWER(TRIM(correo)) = 'pilaradmin@gsbank.com';"))
             conn.commit()
         CuentaCobro.__table__.create(bind=engine, checkfirst=True)
         CuentaCobroAsignacion.__table__.create(bind=engine, checkfirst=True)
@@ -40,6 +48,12 @@ def startup_db_check():
         EmpleadoDocumento.__table__.create(bind=engine, checkfirst=True)
         EmpleadoHistorial.__table__.create(bind=engine, checkfirst=True)
         EmpleadoSolicitud.__table__.create(bind=engine, checkfirst=True)
+        ProcesoCalidad.__table__.create(bind=engine, checkfirst=True)
+        ProcesoCalidadResponsable.__table__.create(bind=engine, checkfirst=True)
+        ProcesoCalidadDocumento.__table__.create(bind=engine, checkfirst=True)
+
+        with SessionLocal() as db:
+            seed_procesos_calidad_si_vacio(db)
     except Exception as e:
         print(f"Startup DB check warning: {e}")
 
@@ -70,6 +84,7 @@ app.include_router(asignaciones_tecnico_router)
 app.include_router(proveedores_router)
 app.include_router(cuentas_cobro_router)
 app.include_router(talento_humano_router)
+app.include_router(calidad_procesos_router)
 
 
 @app.get("/", include_in_schema=False)

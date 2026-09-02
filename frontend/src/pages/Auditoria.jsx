@@ -308,34 +308,37 @@ export default function Auditoria() {
         return <Navigate to="/admin" replace />;
     }
 
-    const NAV_ITEMS = [
-        { id: 'inicio', label: 'Inicio', icon: '🏠', action: () => navigate('/admin') },
-        { id: 'talento-humano', label: 'Talento Humano', icon: '👥', action: () => navigate('/talento-humano') },
-        { id: 'viaticos', label: 'Viáticos', icon: '💼', action: () => navigate('/admin') },
-        { id: 'tecnicos', label: 'Técnicos', icon: '👷', action: () => navigate('/admin') },
-        { id: 'usuarios', label: 'Usuarios', icon: '👤', action: () => navigate('/admin/usuarios') },
-        { id: 'auditoria', label: 'Auditoría', icon: '📊', action: () => {} },
-        { id: 'configuracion', label: 'Configuración', icon: '⚙️', action: () => user?.id && navigate(`/admin/personal/${user.id}`) },
+    const NAV_ITEMS_GLOBAL = [
+        { id: 'usuarios', label: 'Usuarios & Roles', icon: '👥', action: () => navigate('/admin/usuarios'), active: false },
+        { id: 'auditoria', label: 'Auditoría del Sistema', icon: '📊', action: () => {}, active: true },
+        { id: 'perfil', label: 'Mi Perfil', icon: '⚙️', action: () => user?.id && navigate(`/admin/personal/${user.id}`), active: false },
     ];
 
     const nombreMostrado = user?.nombre || user?.correo || 'Admin GSB';
 
     return (
         <div className="gsb-app-layout">
-            {/* ── SIDEBAR CORPORATIVO GSB ── */}
+            {/* ── SIDEBAR — ADMINISTRACIÓN GLOBAL ── */}
             <aside className={`gsb-sidebar ${sidebarAbierto ? 'gsb-sidebar--open' : ''}`}>
-                <div className="gsb-sidebar-header">
+                <div className="gsb-sidebar-header" onClick={() => navigate('/seleccion-modulo')} style={{ cursor: 'pointer' }} title="Regresar al Hub de Módulos">
                     <div className="gsb-sidebar-logo-wrap">
                         <img src={logoGSB} alt="Global Security Bank" className="gsb-sidebar-logo" />
                     </div>
-                    <span className="gsb-sidebar-brand-name">GS-VIÁTICOS</span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span className="gsb-sidebar-brand-name">ADMIN GLOBAL</span>
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>‹ Hub de Módulos</span>
+                    </div>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.75rem 0.2rem', fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    Administración Global
                 </div>
 
                 <nav className="gsb-sidebar-nav">
-                    {NAV_ITEMS.map((item) => (
+                    {NAV_ITEMS_GLOBAL.map((item) => (
                         <button
                             key={item.id}
-                            className={`gsb-nav-item ${item.id === 'auditoria' ? 'gsb-nav-item--active' : ''}`}
+                            className={`gsb-nav-item ${item.active ? 'gsb-nav-item--active' : ''}`}
                             onClick={() => {
                                 if (item.action) item.action();
                                 setSidebarAbierto(false);
@@ -348,6 +351,30 @@ export default function Auditoria() {
                 </nav>
 
                 <div className="gsb-sidebar-footer">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/seleccion-modulo')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.65rem',
+                            padding: '0.6rem 0.8rem',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '8px',
+                            color: '#F4F1EC',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            fontWeight: '700',
+                            fontFamily: 'inherit',
+                            marginBottom: '0.5rem',
+                            transition: 'all 0.2s ease',
+                        }}
+                    >
+                        <span>🔲</span>
+                        <span>Hub de Módulos</span>
+                    </button>
                     <div className="gsb-trust-badge">
                         <img src={logoGSB} alt="Shield" className="gsb-trust-icon" />
                         <div className="gsb-trust-text">

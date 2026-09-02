@@ -1,0 +1,386 @@
+/* ══════════════════════════════════════════════════════════════
+   GlobalHeader.css — Shell Superior del Ecosistema GS-VIÁTICOS
+   ══════════════════════════════════════════════════════════════ */
+
+.gh-root {
+  height: 64px;
+  background: #0b1120;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ── Izquierda ── */
+.gh-left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.gh-btn-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 22px;
+  height: 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.gh-btn-hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background-color: #cbd5e1;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+/* Hub Button */
+.gh-hub-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.35rem 0.65rem;
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.gh-hub-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.gh-logo-box {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.05));
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.gh-logo-img {
+  width: 22px;
+  height: auto;
+  object-fit: contain;
+}
+
+.gh-brand-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.gh-brand-name {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #f5c842;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gh-hub-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+}
+
+/* Selector Módulo Activo */
+.gh-module-indicator-wrap {
+  position: relative;
+}
+
+.gh-module-badge-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  color: #f1f5f9;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gh-module-badge-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.gh-module-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.gh-chevron {
+  color: #94a3b8;
+  transition: transform 0.2s ease;
+}
+
+/* ── Derecha ── */
+.gh-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+/* Botón Admin Global */
+.gh-admin-menu-wrap {
+  position: relative;
+}
+
+.gh-btn-admin-global {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: #f5c842;
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.gh-btn-admin-global:hover,
+.gh-btn-admin-global--active {
+  background: rgba(212, 175, 55, 0.2);
+  border-color: rgba(212, 175, 55, 0.6);
+  color: #ffe066;
+}
+
+/* Dropdowns Generales */
+.gh-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  padding: 0.5rem;
+  z-index: 200;
+  animation: ghDropdownIn 0.18s ease;
+}
+
+.gh-dropdown--modules {
+  left: 0;
+  right: auto;
+  width: 250px;
+}
+
+.gh-dropdown--admin {
+  width: 280px;
+}
+
+@keyframes ghDropdownIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.gh-dropdown-header {
+  padding: 0.5rem 0.75rem 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 0.35rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.gh-dropdown-header small {
+  font-size: 0.65rem;
+  color: #64748b;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.gh-dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #f1f5f9;
+  font-family: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.gh-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.gh-dropdown-item--active {
+  background: rgba(212, 175, 55, 0.15);
+  color: #f5c842;
+}
+
+.gh-mod-item-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.gh-mod-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.gh-mod-item-info strong {
+  font-size: 0.8rem;
+  color: #f1f5f9;
+}
+
+.gh-mod-item-info span {
+  font-size: 0.66rem;
+  color: #94a3b8;
+}
+
+.gh-nav-icon {
+  font-size: 1.1rem;
+}
+
+.gh-nav-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.gh-nav-text strong {
+  font-size: 0.8rem;
+  color: #f1f5f9;
+}
+
+.gh-nav-text span {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  line-height: 1.25;
+}
+
+/* User Pill */
+.gh-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem 0.25rem 0.35rem;
+}
+
+.gh-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d4af37, #f5c842);
+  color: #0b1120;
+  font-size: 0.78rem;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+}
+
+.gh-user-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.gh-user-name {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.gh-master-tag {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #f5c842;
+}
+
+.gh-role-tag {
+  font-size: 0.62rem;
+  color: #94a3b8;
+  text-transform: capitalize;
+}
+
+/* Botón Logout */
+.gh-btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: rgba(252, 165, 165, 0.85);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gh-btn-logout:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .gh-btn-hamburger {
+    display: flex;
+  }
+  .gh-brand-info {
+    display: none;
+  }
+  .gh-admin-label {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .gh-root {
+    padding: 0 0.85rem;
+  }
+  .gh-module-indicator-wrap {
+    display: none;
+  }
+  .gh-user-details {
+    display: none;
+  }
+  .gh-logout-text {
+    display: none;
+  }
+}

@@ -687,7 +687,7 @@ async def subir_documento_empleado(
     return EmpleadoDocumentoResponse.model_validate(doc)
 
 
-@router.delete("/empleados/{usuario_id}/documentos/{documento_id}", response_model=EmpleadoDocumentoResponse)
+@router.delete("/empleados/{usuario_id}/documentos/{documento_id}")
 def eliminar_documento_empleado(
     usuario_id: int,
     documento_id: int,
@@ -695,7 +695,8 @@ def eliminar_documento_empleado(
     db: Annotated[Session, Depends(get_db)],
 ):
     """
-    Restaura el estado del documento a 'pendiente' y elimina la URL asociada.
+    Restaura el estado del documento a 'pendiente' y elimina la URL asociada,
+    o elimina por completo el registro si es un documento personalizado.
     """
     stmt_doc = select(EmpleadoDocumento).where(
         EmpleadoDocumento.id == documento_id,
@@ -709,12 +710,8 @@ def eliminar_documento_empleado(
         )
 
     nombre_doc = doc.nombre_documento
-    doc.url_archivo = None
-    doc.public_id = None
-    doc.estado = "pendiente"
-    doc.fecha_carga = None
-    doc.cargado_por_id = None
-    doc.cargado_por_nombre = None
+    tipo_estandar = dict(DOCUMENTOS_ESTANDAR)
+    es_personalizado = doc.tipo_documento not in tipo_estandar
 
     db.add(
         EmpleadoHistorial(
@@ -724,13 +721,30 @@ def eliminar_documento_empleado(
             actor_rol=current_admin.rol,
             campo_modificado=f"Documento: {nombre_doc}",
             valor_anterior="Cargado",
-            valor_nuevo="Pendiente (Eliminado)",
+            valor_nuevo="Eliminado" if es_personalizado else "Pendiente (Eliminado)",
         )
     )
-    db.commit()
-    db.refresh(doc)
 
-    return EmpleadoDocumentoResponse.model_validate(doc)
+    if es_personalizado:
+        db.delete(doc)
+        db.commit()
+        return {
+            "id": documento_id,
+            "usuario_id": usuario_id,
+            "tipo_documento": "personalizado",
+            "nombre_documento": nombre_doc,
+            "estado": "eliminado",
+        }
+    else:
+        doc.url_archivo = None
+        doc.public_id = None
+        doc.estado = "pendiente"
+        doc.fecha_carga = None
+        doc.cargado_por_id = None
+        doc.cargado_por_nombre = None
+        db.commit()
+        db.refresh(doc)
+        return EmpleadoDocumentoResponse.model_validate(doc)
 
 
 @router.get("/exportar-excel")

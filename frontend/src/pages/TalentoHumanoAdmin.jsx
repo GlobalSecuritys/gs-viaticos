@@ -251,9 +251,28 @@ export default function TalentoHumanoAdmin() {
         setMostrarCargarDocModal(true);
     }
 
+    function abrirModalNuevoDocPersonalizado() {
+        setDocSeleccionadoParaCarga({
+            tipo_documento: `custom_${Date.now()}`,
+            nombre_documento: '',
+            esPersonalizado: true,
+        });
+        setArchivoSubir(null);
+        setMostrarCargarDocModal(true);
+    }
+
     async function handleSubirDocumento(e) {
         e.preventDefault();
-        if (!archivoSubir || !docSeleccionadoParaCarga) return;
+        if (!docSeleccionadoParaCarga) return;
+        const nombreDoc = (docSeleccionadoParaCarga.nombre_documento || '').trim();
+        if (!nombreDoc) {
+            setError('Debes ingresar un título o nombre para el documento.');
+            return;
+        }
+        if (!archivoSubir) {
+            setError('Por favor selecciona un archivo para subir.');
+            return;
+        }
         setSubiendoDoc(true);
         setError('');
         try {
@@ -261,10 +280,10 @@ export default function TalentoHumanoAdmin() {
                 empleadoSeleccionado.id,
                 archivoSubir,
                 docSeleccionadoParaCarga.tipo_documento,
-                docSeleccionadoParaCarga.nombre_documento
+                nombreDoc
             );
             setMostrarCargarDocModal(false);
-            setMensajeFeedback(`✅ Documento "${docSeleccionadoParaCarga.nombre_documento}" cargado con éxito.`);
+            setMensajeFeedback(`✅ Documento "${nombreDoc}" cargado con éxito.`);
             cargarFichaEmpleado(empleadoSeleccionado.id);
             cargarEmpleados(empleadoSeleccionado.id);
         } catch (err) {
@@ -278,21 +297,19 @@ export default function TalentoHumanoAdmin() {
         if (!window.confirm(`¿Estás seguro de eliminar el archivo de "${doc.nombre_documento}"?`)) return;
         try {
             await eliminarDocumentoTalentoHumano(empleadoSeleccionado.id, doc.id);
-            setMensajeFeedback(`Documento "${doc.nombre_documento}" restaurado a pendiente.`);
+            setMensajeFeedback(`Documento "${doc.nombre_documento}" eliminado / restaurado.`);
             cargarFichaEmpleado(empleadoSeleccionado.id);
+            cargarEmpleados(empleadoSeleccionado.id);
         } catch (err) {
             setError(formatApiError(err, 'Error al eliminar el documento.'));
         }
     }
 
     const NAV_ITEMS_ADMIN = [
-        { id: 'inicio', label: 'Inicio', icon: '🏠', action: () => navigate('/admin') },
-        { id: 'usuarios', label: 'Usuarios', icon: '👤', action: () => navigate(user?.rol === 'superadmin' ? '/admin/usuarios' : `/admin/personal/${user?.id}`) },
-        { id: 'talento-humano', label: 'Talento Humano', icon: '👥', active: true },
-        { id: 'viaticos', label: 'Viáticos', icon: '💼', action: () => navigate('/admin') },
-        { id: 'asignaciones', label: 'Asignaciones', icon: '📋', action: () => navigate('/admin/asignaciones') },
-        { id: 'auditoria', label: 'Auditoría', icon: '📊', action: () => navigate('/admin/auditoria') },
-        { id: 'cuentas-cobro', label: 'Cuenta de cobro', icon: '💵', action: () => navigate('/admin/cuentas-cobro') },
+        { id: 'general', label: 'Directorio & Ficha', icon: '👤', action: () => setTabActiva('general'), active: tabActiva === 'general' },
+        { id: 'documentos', label: 'Contratos & Documentos', icon: '📄', action: () => setTabActiva('documentos'), active: tabActiva === 'documentos' },
+        { id: 'adicional', label: 'Dotación & Seguridad', icon: '🦺', action: () => setTabActiva('adicional'), active: tabActiva === 'adicional' },
+        { id: 'historial', label: 'Historial & Solicitudes', icon: '📝', action: () => setTabActiva('historial'), active: tabActiva === 'historial' },
     ];
 
     const p = empleadoSeleccionado?.perfil || {};
@@ -300,13 +317,13 @@ export default function TalentoHumanoAdmin() {
 
     return (
         <div className="tha-root">
-            {/* ── SIDEBAR CORPORATIVO ── */}
+            {/* ── SIDEBAR CORPORATIVO (MÓDULO TALENTO HUMANO) ── */}
             <aside className="tha-sidebar">
-                <div className="tha-sidebar-brand" onClick={() => navigate('/admin')}>
+                <div className="tha-sidebar-brand" onClick={() => navigate('/seleccion-modulo')} style={{ cursor: 'pointer' }} title="Regresar al Hub de Módulos">
                     <img src={logoGSB} alt="Global Security Bank" className="tha-sidebar-logo" />
                     <div className="tha-brand-text">
-                        <span className="tha-brand-title">Global Security Bank</span>
-                        <span className="tha-brand-sub">Plataforma de Viáticos</span>
+                        <span className="tha-brand-title">TALENTO HUMANO</span>
+                        <span className="tha-brand-sub" style={{ color: '#94a3b8' }}>‹ Hub de Módulos</span>
                     </div>
                 </div>
 
@@ -336,6 +353,31 @@ export default function TalentoHumanoAdmin() {
                 </nav>
 
                 <div className="tha-sidebar-footer">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/seleccion-modulo')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.65rem',
+                            padding: '0.65rem 0.85rem',
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: '8px',
+                            color: '#F4F1EC',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            fontWeight: '700',
+                            fontFamily: 'inherit',
+                            marginBottom: '0.5rem',
+                            transition: 'all 0.2s ease',
+                        }}
+                    >
+                        <span>🔲</span>
+                        <span>Hub de Módulos</span>
+                    </button>
+
                     <button
                         className="tha-logout-btn"
                         onClick={() => {
@@ -761,9 +803,34 @@ export default function TalentoHumanoAdmin() {
                                         <div className="tha-blocks-grid" style={{ marginTop: '0.25rem' }}>
                                             {/* Card D: Documentación (Tabla) */}
                                             <div className="tha-info-block tha-info-block--span2">
-                                                <div className="tha-block-title">
-                                                    <span>📁</span>
-                                                    <span>Documentación</span>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                                                    <div className="tha-block-title" style={{ borderBottom: 'none', paddingBottom: 0, margin: 0 }}>
+                                                        <span>📁</span>
+                                                        <span>Documentación</span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={abrirModalNuevoDocPersonalizado}
+                                                        title="Crear título y subir un nuevo documento"
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.4rem',
+                                                            padding: '0.38rem 0.85rem',
+                                                            backgroundColor: 'var(--color-navy-dark)',
+                                                            color: '#FFFFFF',
+                                                            border: '1px solid rgba(255, 255, 255, 0.15)',
+                                                            borderRadius: '8px',
+                                                            fontSize: '0.78rem',
+                                                            fontWeight: '700',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s ease',
+                                                            boxShadow: '0 2px 6px rgba(7, 13, 30, 0.15)',
+                                                        }}
+                                                    >
+                                                        <span>➕</span>
+                                                        <span>Crear Título & Subir Documento</span>
+                                                    </button>
                                                 </div>
 
                                                 <div className="tha-docs-table-wrap">
@@ -883,13 +950,9 @@ export default function TalentoHumanoAdmin() {
                                             <button
                                                 className="tha-btn-nuevo"
                                                 style={{ padding: '0.45rem 0.95rem', fontSize: '0.8rem' }}
-                                                onClick={() => {
-                                                    setDocSeleccionadoParaCarga({ tipo_documento: 'otro', nombre_documento: 'Otro Documento' });
-                                                    setArchivoSubir(null);
-                                                    setMostrarCargarDocModal(true);
-                                                }}
+                                                onClick={abrirModalNuevoDocPersonalizado}
                                             >
-                                                ➕ Subir nuevo documento
+                                                ➕ Crear Título & Subir Documento
                                             </button>
                                         </div>
 
@@ -1423,24 +1486,34 @@ export default function TalentoHumanoAdmin() {
                     <div className="tha-modal-card" style={{ maxWidth: '480px' }}>
                         <div className="tha-modal-header">
                             <h3 className="tha-modal-title">
-                                Cargar {docSeleccionadoParaCarga.nombre_documento}
+                                {docSeleccionadoParaCarga.esPersonalizado || !docSeleccionadoParaCarga.nombre_documento
+                                    ? '➕ Subir Nuevo Documento'
+                                    : `Cargar ${docSeleccionadoParaCarga.nombre_documento}`}
                             </h3>
                             <button className="tha-modal-close" onClick={() => setMostrarCargarDocModal(false)}>×</button>
                         </div>
 
                         <form onSubmit={handleSubirDocumento}>
                             <div className="tha-modal-body">
-                                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                                    Seleccione el archivo en formato <strong>PDF</strong> o <strong>Imagen (JPG, PNG)</strong> para asociar al expediente de <strong>{empleadoSeleccionado.nombre}</strong>.
+                                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
+                                    {docSeleccionadoParaCarga.esPersonalizado
+                                        ? 'Ingresa el título o nombre del documento y adjunta el archivo en formato PDF o Imagen para asociarlo al expediente de '
+                                        : 'Seleccione el archivo en formato PDF o Imagen (JPG, PNG) para asociar al expediente de '}
+                                    <strong>{empleadoSeleccionado.nombre}</strong>.
                                 </p>
 
                                 <div className="tha-form-group">
-                                    <label>Nombre del Documento</label>
+                                    <label>
+                                        Título / Nombre del Documento <span style={{ color: '#DC2626' }}>*</span>
+                                    </label>
                                     <input
                                         type="text"
                                         className="tha-form-input"
+                                        placeholder="Ej. Certificado Alturas, Acuerdo Confidencialidad, Certificado Bancario..."
                                         value={docSeleccionadoParaCarga.nombre_documento}
                                         onChange={(e) => setDocSeleccionadoParaCarga({ ...docSeleccionadoParaCarga, nombre_documento: e.target.value })}
+                                        required
+                                        autoFocus={docSeleccionadoParaCarga.esPersonalizado}
                                     />
                                 </div>
 
@@ -1479,7 +1552,7 @@ export default function TalentoHumanoAdmin() {
                                 <button
                                     type="submit"
                                     className="tha-btn-submit"
-                                    disabled={!archivoSubir || subiendoDoc}
+                                    disabled={!archivoSubir || !docSeleccionadoParaCarga.nombre_documento?.trim() || subiendoDoc}
                                 >
                                     {subiendoDoc ? 'Subiendo...' : 'Subir Documento'}
                                 </button>

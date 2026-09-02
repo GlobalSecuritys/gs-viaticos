@@ -76,6 +76,7 @@ def login(
         "nombre": usuario.nombre,
         "codigo_empleado": usuario.codigo_empleado,
         "acceso_viaticos": usuario.acceso_viaticos,
+        "es_admin_calidad": getattr(usuario, "es_admin_calidad", False),
     })
     return Token(access_token=access_token, token_type="bearer")
 

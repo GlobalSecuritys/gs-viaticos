@@ -52,6 +52,7 @@ class UsuarioResponse(UsuarioBase):
     rol: str
     activo: bool
     acceso_viaticos: bool = False
+    es_admin_calidad: bool = False
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
