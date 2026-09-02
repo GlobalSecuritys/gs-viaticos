@@ -1,0 +1,254 @@
+/* ══════════════════════════════════════════════════════
+   PanelContactoTecnicos.css
+   Panel lateral fijo de accesos rápidos WhatsApp
+   ══════════════════════════════════════════════════════ */
+
+/* ─── Variables locales ─── */
+.pct-aside {
+  --wa-green:        #25D366;
+  --wa-green-dark:   #128C7E;
+  --wa-green-light:  #DCF8C6;
+  --wa-green-dim:    rgba(37, 211, 102, 0.10);
+  --wa-green-glow:   rgba(37, 211, 102, 0.22);
+  --panel-bg:        rgba(255, 255, 255, 0.88);
+  --panel-border:    rgba(37, 211, 102, 0.22);
+  --radius:          14px;
+  --transition:      all 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+/* ─── Contenedor Aside ─── */
+.pct-aside {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--panel-bg);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1.5px solid var(--panel-border);
+  border-radius: 22px;
+  box-shadow:
+    0 12px 32px -4px rgba(15, 23, 42, 0.07),
+    0 0 0 1px rgba(37, 211, 102, 0.08);
+  overflow: hidden;
+  animation: pctSlideIn 0.45s 0.15s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+  align-self: flex-start; /* no se estira verticalmente */
+  position: sticky;
+  top: 1.5rem;            /* se queda visible al hacer scroll */
+  max-height: calc(100vh - 100px);
+}
+
+@keyframes pctSlideIn {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ─── Header del panel ─── */
+.pct-header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 1rem 1rem 0.85rem;
+  background: linear-gradient(135deg, #f0fdf4 0%, rgba(255,255,255,0) 100%);
+  border-bottom: 1px solid rgba(37, 211, 102, 0.15);
+  flex-shrink: 0;
+}
+
+.pct-header-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--wa-green);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px var(--wa-green-glow);
+}
+
+.pct-header-icon .wap-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.pct-header-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  flex: 1;
+  min-width: 0;
+}
+
+.pct-header-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: 0.01em;
+  font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+.pct-header-sub {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: #64748B;
+}
+
+.pct-header-badge {
+  flex-shrink: 0;
+  background: var(--wa-green);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  border-radius: 999px;
+  min-width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  box-shadow: 0 2px 6px var(--wa-green-glow);
+}
+
+/* ─── Lista de técnicos ─── */
+.pct-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0.55rem 0.65rem;
+  overflow-y: auto;
+  flex: 1;
+
+  /* Scrollbar fina y discreta */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(37, 211, 102, 0.3) transparent;
+}
+
+.pct-list::-webkit-scrollbar        { width: 4px; }
+.pct-list::-webkit-scrollbar-track  { background: transparent; }
+.pct-list::-webkit-scrollbar-thumb  {
+  background: rgba(37, 211, 102, 0.35);
+  border-radius: 4px;
+}
+
+/* ─── Tarjeta de técnico ─── */
+.pct-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 11px;
+  background: transparent;
+  border: 1.5px solid transparent;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Microline izquierda invisible por defecto */
+.pct-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 20%; bottom: 20%;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--wa-green);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.pct-card:hover {
+  background: var(--wa-green-dim);
+  border-color: rgba(37, 211, 102, 0.3);
+  transform: translateX(3px);
+  box-shadow: 0 4px 14px var(--wa-green-glow);
+}
+
+.pct-card:hover::before {
+  opacity: 1;
+}
+
+.pct-card:active {
+  transform: translateX(3px) scale(0.97);
+}
+
+/* ─── Avatar inicial ─── */
+.pct-avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 6px rgba(37, 211, 102, 0.25);
+  transition: transform 0.25s ease;
+}
+
+.pct-card:hover .pct-avatar {
+  transform: scale(1.1);
+}
+
+/* ─── Nombre del técnico ─── */
+.pct-name {
+  flex: 1;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1E293B;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s ease;
+}
+
+.pct-card:hover .pct-name {
+  color: var(--wa-green-dark);
+}
+
+/* ─── Ícono WhatsApp en la tarjeta ─── */
+.pct-wa-icon {
+  flex-shrink: 0;
+  color: var(--wa-green);
+  opacity: 0.45;
+  display: grid;
+  place-items: center;
+  transition: opacity 0.2s ease, transform 0.25s ease;
+}
+
+.pct-wa-icon .wap-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.pct-card:hover .pct-wa-icon {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+/* ─── Footer del panel ─── */
+.pct-footer {
+  padding: 0.55rem 0.85rem;
+  border-top: 1px solid rgba(37, 211, 102, 0.12);
+  background: rgba(240, 253, 244, 0.6);
+  flex-shrink: 0;
+}
+
+.pct-footer span {
+  font-size: 0.62rem;
+  color: #94A3B8;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Responsive: ocultar en pantallas pequeñas ─── */
+@media (max-width: 960px) {
+  .pct-aside {
+    display: none;
+  }
+}

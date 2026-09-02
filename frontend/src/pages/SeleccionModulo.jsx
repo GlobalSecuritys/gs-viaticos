@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getAvailableModules, isAdminMaster, GLOBAL_ADMIN_NAV } from '../config/modulesConfig';
+import PanelContactoTecnicos from '../components/PanelContactoTecnicos';
 import logoGSB from '../assets/logo-gsb.png';
 import './SeleccionModulo.css';
 
@@ -124,7 +125,9 @@ export default function SeleccionModulo() {
         </div>
       </header>
 
-      {/* ── HERO SECTION ── */}
+      {/* ── HUB LAYOUT: contenido principal + sidebar WhatsApp ── */}
+      <div className="sm-hub-layout">
+      {/* ── HERO SECTION + MÓDULOS ── */}
       <main className="sm-main">
         <div className="sm-hero">
           <div className="sm-hero-badge">
@@ -241,6 +244,11 @@ export default function SeleccionModulo() {
           <span>© 2025 Global Security Bank · Sistema GS-VIÁTICOS & Ecosistema Integrado</span>
         </footer>
       </main>
+
+      {/* ── PANEL LATERAL WHATSAPP (solo Super Admin) ── */}
+      {isMaster && <PanelContactoTecnicos />}
+
+      </div>{/* /sm-hub-layout */}
     </div>
   );
 }

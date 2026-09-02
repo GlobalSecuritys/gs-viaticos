@@ -354,11 +354,94 @@ export default function AdminBackup() {
     }
   };
 
+  // Descarga masiva ZIP organizado por carpetas de oficina
   const handleDescargarTodo = async () => {
+    if (!oficinasAgrupadas.length) return;
+    const totalFotos = data.length;
     setDescargandoTodo(true);
-    await generarZip(data, 'viaticos_todas_las_oficinas.zip', setProgresoTexto);
-    setDescargandoTodo(false);
-    setProgresoTexto('');
+    setProgresoTexto(`Descargando 0/${totalFotos}…`);
+
+    try {
+      // Aplanar todas las fotos con sus metadatos de oficina/técnico
+      const todasLasFotos = [];
+      oficinasAgrupadas.forEach((ofData) => {
+        ofData.tecnicosList.forEach((tec) => {
+          tec.fotos.forEach((f) => {
+            todasLasFotos.push({ ...f, _oficinaLabel: ofData.label });
+          });
+        });
+      });
+
+      // Descargar todos los blobs en paralelo (5 workers)
+      const resultados = new Array(todasLasFotos.length);
+      const fallos = [];
+      let idxW = 0;
+      let hechas = 0;
+
+      async function worker() {
+        while (idxW < todasLasFotos.length) {
+          const i = idxW++;
+          try {
+            resultados[i] = await fetchBlob(todasLasFotos[i].url);
+          } catch (e) {
+            resultados[i] = null;
+            fallos.push(todasLasFotos[i]);
+          }
+          hechas++;
+          setProgresoTexto(`Descargando ${hechas}/${todasLasFotos.length}…`);
+        }
+      }
+
+      await Promise.all(Array.from({ length: Math.min(5, todasLasFotos.length) }, worker));
+
+      setProgresoTexto('Comprimiendo…');
+      const zip = new JSZip();
+
+      // Una carpeta por oficina
+      const carpetas = new Map();          // carpetaKey → JSZip folder
+      const usadosPorCarpeta = new Map();  // carpetaKey → Set de nombres de archivo
+
+      resultados.forEach((blob, i) => {
+        if (!blob) return;
+        const foto = todasLasFotos[i];
+        const carpetaKey = slug(foto._oficinaLabel, 'sin-oficina');
+
+        if (!carpetas.has(carpetaKey)) {
+          carpetas.set(carpetaKey, zip.folder(foto._oficinaLabel || carpetaKey));
+          usadosPorCarpeta.set(carpetaKey, new Set());
+        }
+
+        const folder = carpetas.get(carpetaKey);
+        const usados = usadosPorCarpeta.get(carpetaKey);
+        const base = nombreFoto(foto);
+        let nombre = base;
+        let k = 2;
+        while (usados.has(nombre + foto._ext)) nombre = `${base}_${k++}`;
+        usados.add(nombre + foto._ext);
+        folder.file(nombre + foto._ext, blob);
+      });
+
+      const totalIncluidas = [...usadosPorCarpeta.values()].reduce((acc, s) => acc + s.size, 0);
+
+      const zipBlob = await zip.generateAsync(
+        { type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } },
+        (meta) => setProgresoTexto(`Comprimiendo ${Math.round(meta.percent)}%…`)
+      );
+
+      saveAs(zipBlob, 'viaticos_backup_todas_las_oficinas.zip');
+
+      showToast(
+        fallos.length
+          ? `ZIP generado: ${totalIncluidas} fotos en ${carpetas.size} carpetas. (${fallos.length} no descargadas).`
+          : `ZIP generado: ${totalIncluidas} fotos organizadas en ${carpetas.size} carpeta(s) de oficinas.`,
+        fallos.length ? 'warn' : 'ok'
+      );
+    } catch (e) {
+      showToast('Error generando el ZIP: ' + e.message, 'err');
+    } finally {
+      setDescargandoTodo(false);
+      setProgresoTexto('');
+    }
   };
 
   const handleDescargarOficina = async (ofData) => {
