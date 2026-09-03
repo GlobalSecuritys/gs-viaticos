@@ -5,7 +5,7 @@ import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import TecnicoLayout from '../components/TecnicoLayout';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
 import { LABEL_TIPO_GASTO, formatCOP, formatFechaLarga, formatMiles, limpiarNumero } from '../utils/personal';
-import { LABEL_TIPO_ASIGNACION } from '../utils/asignaciones';
+import { LABEL_TIPO_ASIGNACION, calcularEstadoGraciaAsignacion } from '../utils/asignaciones';
 import './Forms.css';
 import './MisViaticos.css';
 
@@ -149,7 +149,10 @@ export default function MisViaticos() {
   }, [viaticos, asignacionesMap]);
 
   function toggleColapsada(key) {
-    setColapsadas((prev) => ({ ...prev, [key]: !prev[key] }));
+    setColapsadas((prev) => {
+      const actualmenteColapsada = prev[key] !== undefined ? prev[key] : true;
+      return { ...prev, [key]: !actualmenteColapsada };
+    });
   }
 
   function esDescripcionEstructurada(str) {
@@ -163,18 +166,19 @@ export default function MisViaticos() {
   /**
    * Determina si la asignación vinculada al viático está disponible para edición.
    * Si no tiene asignación (independiente), siempre está disponible.
-   * Si tiene asignación, su estado debe ser 'pendiente' o 'en_curso'.
+   * Si tiene asignación, verifica si está en período válido o dentro de las 24h de gracia.
    */
   function esAsignacionDisponible(resumen, asigObj, v) {
     if (!v?.asignacion_id) return true;
-    const estado = resumen?.estado || asigObj?.estado || v?.asignacion_resumen?.estado;
-    if (!estado) return true;
-    return estado === 'pendiente' || estado === 'en_curso';
+    const asignacion = asigObj || resumen || v?.asignacion_resumen;
+    if (!asignacion) return true;
+    const { puedeSubir } = calcularEstadoGraciaAsignacion(asignacion);
+    return puedeSubir;
   }
 
   function abrirEditar(v, grupoResumen, grupoAsigObj) {
     if (!esAsignacionDisponible(grupoResumen, grupoAsigObj, v)) {
-      alert('Esta asignación se encuentra finalizada o cancelada y sus viáticos no pueden ser modificados.');
+      alert('Esta asignación fue cerrada y el período de gracia de 24 horas para modificar viáticos ha finalizado.');
       return;
     }
 
@@ -444,9 +448,9 @@ export default function MisViaticos() {
     );
   }
 
-  function PaletaAsignacion({ grupo }) {
+  function PaletaAsignacion({ grupo, numero }) {
     const { asignacion_id, resumen, asigObj, viaticos: items } = grupo;
-    const isColapsada = !!colapsadas[asignacion_id];
+    const isColapsada = colapsadas[asignacion_id] !== undefined ? colapsadas[asignacion_id] : true;
     const totalGrupo = items.reduce((acc, v) => acc + parseFloat(v.valor || 0), 0);
     const pendientes = items.filter((v) => v.estado === 'pendiente').length;
     const aprobados = items.filter((v) => v.estado === 'aprobado').length;
@@ -477,7 +481,7 @@ export default function MisViaticos() {
           aria-expanded={!isColapsada}
         >
           <div className="mv-paleta-header-izq">
-            <span className="mv-paleta-icono">📋</span>
+            <span className="mv-paleta-numero">{numero}</span>
             <div className="mv-paleta-titulo">
               <span className="mv-paleta-cliente">{tituloPaleta}</span>
               <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
@@ -584,12 +588,46 @@ export default function MisViaticos() {
             <div className="mv-grupos-wrap">
               {grupos.length > 0 && (
                 <section className="mv-section">
-                  <div className="mv-section-header">
-                    <h2 className="mv-section-title"><span>📍</span> Por Asignación</h2>
-                    <span className="mv-section-count">{grupos.length} asignacion{grupos.length > 1 ? 'es' : ''}</span>
+                  <div className="mv-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <h2 className="mv-section-title"><span>📍</span> Por Asignación</h2>
+                      <span className="mv-section-count">{grupos.length} asignacion{grupos.length > 1 ? 'es' : ''}</span>
+                    </div>
+                    {grupos.length > 1 && (
+                      <button
+                        type="button"
+                        style={{
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          color: '#2563EB',
+                          background: '#EFF6FF',
+                          border: '1px solid #BFDBFE',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          padding: '0.25rem 0.65rem',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onClick={() => {
+                          const hayAlgunaAbierta = grupos.some(
+                            (g) => !(colapsadas[g.asignacion_id] !== undefined ? colapsadas[g.asignacion_id] : true)
+                          );
+                          const nuevoEstado = {};
+                          grupos.forEach((g) => {
+                            nuevoEstado[g.asignacion_id] = hayAlgunaAbierta;
+                          });
+                          setColapsadas(nuevoEstado);
+                        }}
+                      >
+                        {grupos.some((g) => !(colapsadas[g.asignacion_id] !== undefined ? colapsadas[g.asignacion_id] : true))
+                          ? 'Contraer todas ▲'
+                          : 'Expandir todas ▼'}
+                      </button>
+                    )}
                   </div>
                   <div className="mv-paletas-lista">
-                    {grupos.map((g) => <PaletaAsignacion key={g.asignacion_id} grupo={g} />)}
+                    {grupos.map((g, idx) => (
+                      <PaletaAsignacion key={g.asignacion_id} grupo={g} numero={idx + 1} />
+                    ))}
                   </div>
                 </section>
               )}

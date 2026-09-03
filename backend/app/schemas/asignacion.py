@@ -99,6 +99,12 @@ class AsignacionResponse(AsignacionBase):
     cantidad_viaticos: int = 0
     estado_legalizacion: str = "sin_gastos"
     cuenta_cobro: CuentaCobroAsignacionResponse | None = None
+    cerrada_en: datetime | None = None
+    limite_subida_viaticos: datetime | None = None
+    puede_subir_viaticos: bool = True
+    en_periodo_gracia: bool = False
+    horas_restantes_cierre: float | None = None
+    tiempo_restante_str: str | None = None
     created_at: datetime
     updated_at: datetime
 

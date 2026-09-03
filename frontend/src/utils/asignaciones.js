@@ -146,3 +146,128 @@ export function derivarLugarDesdeTipoAsignacion(tipoAsignacion) {
         lugarFinal: 'Oficina (Correctivo)',
     };
 }
+
+/**
+ * Calcula el estado de gracia de 24 horas de una asignación.
+ * Regla:
+ * Si la asignación se cierra (finalizada por admin o al término de su fecha final),
+ * el técnico cuenta con exactamente 24 horas adicionales de gracia para subir y
+ * corregir sus viáticos antes del bloqueo definitivo.
+ * 
+ * @param {Object} asignacion
+ * @returns {Object} { puedeSubir, enGracia, tiempoRestanteStr, limiteDate, cerrada, horasRestantes, nivelUrgencia }
+ */
+export function calcularEstadoGraciaAsignacion(asignacion) {
+    if (!asignacion) {
+        return {
+            puedeSubir: true,
+            enGracia: false,
+            tiempoRestanteStr: '',
+            limiteDate: null,
+            cerrada: false,
+            horasRestantes: null,
+            nivelUrgencia: 'normal',
+        };
+    }
+
+    const ahora = new Date();
+    const estado = (asignacion.estado || '').toLowerCase();
+
+    if (estado === 'cancelada') {
+        return {
+            puedeSubir: false,
+            enGracia: false,
+            tiempoRestanteStr: 'Asignación cancelada',
+            limiteDate: null,
+            cerrada: true,
+            horasRestantes: 0,
+            nivelUrgencia: 'bloqueada',
+        };
+    }
+
+    // 1. Asignación marcada como finalizada por el administrador
+    if (estado === 'finalizada') {
+        const fechaCierreBase = asignacion.cerrada_en || asignacion.updated_at;
+        let fechaCierre = fechaCierreBase ? new Date(fechaCierreBase) : null;
+        if (!fechaCierre || isNaN(fechaCierre.getTime())) {
+            fechaCierre = new Date(asignacion.fecha_fin + 'T23:59:59');
+        }
+
+        // Exactamente 24 horas a partir del cierre
+        const limiteGracia = new Date(fechaCierre.getTime() + 24 * 60 * 60 * 1000);
+        const msRestantes = limiteGracia.getTime() - ahora.getTime();
+
+        if (msRestantes > 0) {
+            const horas = Math.floor(msRestantes / (1000 * 60 * 60));
+            const minutos = Math.floor((msRestantes % (1000 * 60 * 60)) / (1000 * 60));
+            const tiempoRestanteStr = horas > 0 ? `${horas}h ${minutos}m` : `${minutos} min`;
+            return {
+                puedeSubir: true,
+                enGracia: true,
+                tiempoRestanteStr,
+                limiteDate: limiteGracia,
+                cerrada: true,
+                horasRestantes: msRestantes / (1000 * 60 * 60),
+                nivelUrgencia: horas < 6 ? 'urgente' : 'advertencia',
+            };
+        } else {
+            return {
+                puedeSubir: false,
+                enGracia: false,
+                tiempoRestanteStr: 'Plazo vencido (24h de gracia expiradas)',
+                limiteDate: limiteGracia,
+                cerrada: true,
+                horasRestantes: 0,
+                nivelUrgencia: 'bloqueada',
+            };
+        }
+    }
+
+    // 2. Asignación pendiente o en curso
+    const fechaFin = new Date(asignacion.fecha_fin + 'T23:59:59');
+    const limiteConGracia = new Date(fechaFin.getTime() + 24 * 60 * 60 * 1000);
+    const msRestantes = limiteConGracia.getTime() - ahora.getTime();
+
+    // Ya pasó la fecha fin oficial, pero está dentro de las 24 horas de gracia
+    if (ahora > fechaFin && msRestantes > 0) {
+        const horas = Math.floor(msRestantes / (1000 * 60 * 60));
+        const minutos = Math.floor((msRestantes % (1000 * 60 * 60)) / (1000 * 60));
+        const tiempoRestanteStr = horas > 0 ? `${horas}h ${minutos}m` : `${minutos} min`;
+        return {
+            puedeSubir: true,
+            enGracia: true,
+            tiempoRestanteStr,
+            limiteDate: limiteConGracia,
+            cerrada: false,
+            horasRestantes: msRestantes / (1000 * 60 * 60),
+            nivelUrgencia: horas < 6 ? 'urgente' : 'advertencia',
+        };
+    }
+
+    // Pasaron tanto la fecha fin como las 24h de gracia
+    if (msRestantes <= 0) {
+        return {
+            puedeSubir: false,
+            enGracia: false,
+            tiempoRestanteStr: 'Plazo y gracia finalizados',
+            limiteDate: limiteConGracia,
+            cerrada: true,
+            horasRestantes: 0,
+            nivelUrgencia: 'bloqueada',
+        };
+    }
+
+    // Está dentro del período normal
+    const msHastaFin = fechaFin.getTime() - ahora.getTime();
+    const horasHastaFin = msHastaFin / (1000 * 60 * 60);
+    return {
+        puedeSubir: true,
+        enGracia: false,
+        tiempoRestanteStr: horasHastaFin <= 24 ? `Cierra hoy (${Math.max(1, Math.round(horasHastaFin))}h)` : `Vigente`,
+        limiteDate: limiteConGracia,
+        cerrada: false,
+        horasRestantes: msRestantes / (1000 * 60 * 60),
+        nivelUrgencia: horasHastaFin <= 24 ? 'advertencia' : 'normal',
+    };
+}
+

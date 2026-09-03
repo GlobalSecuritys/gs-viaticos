@@ -14,6 +14,7 @@ function iniciales(nombre = '') {
 
 import NotificationBell from './NotificationBell';
 import InstallPwaPrompt from './InstallPwaPrompt';
+import PanelAlertasCierre from './PanelAlertasCierre';
 
 export default function TecnicoLayout({ children }) {
     const { user, logout } = useAuth();
@@ -91,6 +92,9 @@ export default function TecnicoLayout({ children }) {
                 </div>
                 {children}
             </main>
+
+            {/* Panel lateral de alerta en el costado */}
+            <PanelAlertasCierre />
         </div>
     );
 }

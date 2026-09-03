@@ -39,6 +39,7 @@ def startup_db_check():
         with engine.connect() as conn:
             conn.execute(text("ALTER TABLE viaticos ADD COLUMN IF NOT EXISTS comentario_admin TEXT;"))
             conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS eliminado_en TIMESTAMP WITHOUT TIME ZONE;"))
+            conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS cerrada_en TIMESTAMP WITHOUT TIME ZONE;"))
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_admin_calidad BOOLEAN DEFAULT FALSE;"))
             conn.execute(text("UPDATE usuarios SET es_admin_calidad = TRUE WHERE LOWER(TRIM(correo)) = 'pilaradmin@gsbank.com';"))
             conn.commit()

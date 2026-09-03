@@ -3,20 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import TecnicoLayout from '../components/TecnicoLayout';
 import api from '../services/api';
 import { listarAsignaciones, obtenerMisAsignacionesActivas } from '../services/asignaciones';
-import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION } from '../utils/asignaciones';
+import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION, calcularEstadoGraciaAsignacion } from '../utils/asignaciones';
 import { formatFechaLarga, formatCOP } from '../utils/personal';
 import './MisAsignaciones.css';
 
 /**
- * Devuelve true si la fecha actual está dentro del rango [fecha_inicio, fecha_fin]
- * de la asignación (inclusive en ambos extremos).
+ * Devuelve true si la asignación puede recibir viáticos (período normal o gracia de 24h).
  */
 function estaEnRango(asignacion) {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const inicio = new Date(asignacion.fecha_inicio + 'T00:00:00');
-    const fin = new Date(asignacion.fecha_fin + 'T00:00:00');
-    return hoy >= inicio && hoy <= fin;
+    if (!asignacion) return true;
+    const { puedeSubir } = calcularEstadoGraciaAsignacion(asignacion);
+    return puedeSubir;
 }
 
 export default function MisAsignaciones() {
@@ -184,31 +181,55 @@ export default function MisAsignaciones() {
                                             <strong>Notas:</strong> {a.observaciones}
                                         </p>
                                     )}
-
-                                    {/* Botón de registro de viático: activo solo dentro del rango de fechas */}
-                                    {estaEnRango(a) ? (
-                                        <button
-                                            className="mac-btn-viatico"
-                                            onClick={() => navigate(`/nuevo-viatico?asignacion_id=${a.id}`)}
-                                        >
-                                            📝 Registrar viático para esta asignación →
-                                        </button>
-                                    ) : (
-                                        <div className="mac-fuera-rango">
-                                            <button
-                                                className="mac-btn-viatico mac-btn-viatico--bloqueado"
-                                                disabled
-                                                title={`Periodo válido: ${formatFechaLarga(a.fecha_inicio)} – ${formatFechaLarga(a.fecha_fin)}`}
-                                            >
-                                                🔒 Registro bloqueado
-                                            </button>
-                                            <p className="mac-fuera-rango-msg">
-                                                ⚠️ Esta asignación está fuera de su período válido
-                                                ({formatFechaLarga(a.fecha_inicio)} – {formatFechaLarga(a.fecha_fin)}).
-                                                Contacta al administrador para extender la fecha.
-                                            </p>
-                                        </div>
-                                    )}
+                                    {(() => {
+                                         const infoGracia = calcularEstadoGraciaAsignacion(a);
+                                         if (infoGracia.puedeSubir) {
+                                             return (
+                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.75rem' }}>
+                                                     {infoGracia.enGracia && (
+                                                         <div style={{
+                                                             display: 'flex',
+                                                             alignItems: 'center',
+                                                             gap: '0.45rem',
+                                                             background: '#FEF2F2',
+                                                             border: '1px solid #FCA5A5',
+                                                             borderRadius: '8px',
+                                                             padding: '0.45rem 0.65rem',
+                                                             color: '#991B1B',
+                                                             fontSize: '0.78rem',
+                                                             fontWeight: 600,
+                                                         }}>
+                                                             <span>⏳</span>
+                                                             <span>Gracia de 24h activa: restan <strong>{infoGracia.tiempoRestanteStr}</strong> para registrar viáticos.</span>
+                                                         </div>
+                                                     )}
+                                                     <button
+                                                         className="mac-btn-viatico"
+                                                         style={infoGracia.enGracia ? { background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)' } : {}}
+                                                         onClick={() => navigate(`/nuevo-viatico?asignacion_id=${a.id}`)}
+                                                     >
+                                                         {infoGracia.enGracia ? '⏳ Registrar viático (Gracia 24h activa) →' : '📝 Registrar viático para esta asignación →'}
+                                                     </button>
+                                                 </div>
+                                             );
+                                         } else {
+                                             return (
+                                                 <div className="mac-fuera-rango">
+                                                     <button
+                                                         className="mac-btn-viatico mac-btn-viatico--bloqueado"
+                                                         disabled
+                                                         title={`Período y gracia expirados`}
+                                                     >
+                                                         🔒 Registro bloqueado
+                                                     </button>
+                                                     <p className="mac-fuera-rango-msg">
+                                                         ⚠️ Esta asignación se encuentra cerrada y su período de gracia de 24 horas para subir viáticos ha finalizado.
+                                                         Contacta al administrador para extender la asignación si requieres legalizaciones adicionales.
+                                                     </p>
+                                                 </div>
+                                             );
+                                         }
+                                     })()}
                                 </div>
                             );
                         })}

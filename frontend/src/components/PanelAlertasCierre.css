@@ -1,0 +1,474 @@
+/* ==========================================================================
+   PanelAlertasCierre - Panel lateral en el costado para técnicos
+   Avisos de cierre y ventana de gracia de 24 horas
+   ========================================================================== */
+
+/* Botón pestaña lateral flotante en el costado derecho */
+.pac-tab-btn {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 998;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem 0.65rem 0.75rem;
+  background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-right: none;
+  border-radius: 12px 0 0 12px;
+  box-shadow: -4px 4px 18px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pac-tab-btn:hover {
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  transform: translateY(-50%) translateX(-4px);
+  box-shadow: -6px 6px 22px rgba(37, 99, 235, 0.35);
+}
+
+.pac-tab-btn--alerta {
+  background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
+  border-color: rgba(251, 191, 36, 0.4);
+  animation: pacPulse 2.5s infinite;
+}
+
+.pac-tab-btn--gracia {
+  background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%);
+  border-color: rgba(248, 113, 113, 0.5);
+  animation: pacPulseUrgent 1.8s infinite;
+}
+
+@keyframes pacPulse {
+  0%, 100% {
+    box-shadow: -4px 4px 18px rgba(217, 119, 6, 0.3);
+  }
+  50% {
+    box-shadow: -6px 6px 24px rgba(217, 119, 6, 0.65);
+  }
+}
+
+@keyframes pacPulseUrgent {
+  0%, 100% {
+    box-shadow: -4px 4px 18px rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    box-shadow: -6px 6px 28px rgba(220, 38, 38, 0.75);
+  }
+}
+
+.pac-tab-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.pac-tab-label {
+  letter-spacing: 0.02em;
+}
+
+.pac-tab-badge {
+  background-color: #EF4444;
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  line-height: 1;
+  border: 1.5px solid #FFFFFF;
+}
+
+/* Backdrop móvil */
+.pac-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 999;
+  animation: pacFadeIn 0.2s ease;
+}
+
+@keyframes pacFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Panel lateral (Drawer en el costado derecho) */
+.pac-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 380px;
+  max-width: 92vw;
+  background-color: #FFFFFF;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.2);
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pac-panel--abierto {
+  transform: translateX(0);
+}
+
+/* Header del panel */
+.pac-header {
+  padding: 1.25rem 1.25rem 1rem;
+  background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pac-header-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pac-header-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.pac-header-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+}
+
+.pac-header-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.76rem;
+  color: #94A3B8;
+}
+
+.pac-close-btn {
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: #E2E8F0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pac-close-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+}
+
+/* Cuerpo del panel */
+.pac-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  background-color: #F8FAFC;
+}
+
+.pac-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: #64748B;
+  font-size: 0.88rem;
+}
+
+.pac-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #E2E8F0;
+  border-top-color: #2563EB;
+  border-radius: 50%;
+  animation: pacSpin 0.8s linear infinite;
+}
+
+@keyframes pacSpin {
+  to { transform: rotate(360deg); }
+}
+
+.pac-empty {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+  color: #64748B;
+}
+
+.pac-empty-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.pac-empty h4 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  color: #1E293B;
+  font-weight: 700;
+}
+
+.pac-empty p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #64748B;
+  line-height: 1.4;
+}
+
+/* Lista de tarjetas */
+.pac-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* Tarjeta individual */
+.pac-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.pac-card:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  border-color: #CBD5E1;
+}
+
+.pac-card--urgente {
+  border-color: #FCA5A5;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FFF5F5 100%);
+}
+
+.pac-card--advertencia {
+  border-color: #FDE68A;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FFFDF5 100%);
+}
+
+.pac-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pac-card-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background-color: #F1F5F9;
+  color: #475569;
+}
+
+.pac-card-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pac-card-status--gracia {
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FCA5A5;
+  animation: pacPulseText 1.5s infinite;
+}
+
+.pac-card-status--urgente {
+  background-color: #FEF3C7;
+  color: #D97706;
+  border: 1px solid #FDE68A;
+}
+
+.pac-card-status--normal {
+  background-color: #DCFCE7;
+  color: #16A34A;
+  border: 1px solid #BBF7D0;
+}
+
+@keyframes pacPulseText {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+.pac-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pac-card-cliente {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.3;
+}
+
+.pac-card-lugar {
+  font-size: 0.78rem;
+  color: #64748B;
+  font-weight: 500;
+}
+
+/* Caja de alerta dentro de la tarjeta */
+.pac-card-alerta {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.pac-card-alerta--urgente {
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+}
+
+.pac-card-alerta--advertencia {
+  background-color: #FFFBEB;
+  border: 1px solid #FEF3C7;
+  color: #92400E;
+}
+
+.pac-card-alerta--normal {
+  background-color: #F0FDF4;
+  border: 1px solid #DCFCE7;
+  color: #166534;
+}
+
+.pac-card-alerta-icon {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.pac-card-alerta-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pac-card-alerta-texto strong {
+  font-size: 0.8rem;
+}
+
+/* Fila del temporizador */
+.pac-card-timer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  border-top: 1px dashed #E2E8F0;
+  font-size: 0.78rem;
+}
+
+.pac-card-timer-label {
+  color: #64748B;
+  font-weight: 600;
+}
+
+.pac-card-timer-badge {
+  font-weight: 800;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+}
+
+.pac-card-timer-badge--urgente {
+  background-color: #EF4444;
+  color: #FFFFFF;
+}
+
+.pac-card-timer-badge--advertencia {
+  background-color: #F59E0B;
+  color: #FFFFFF;
+}
+
+.pac-card-timer-badge--normal {
+  background-color: #E2E8F0;
+  color: #334155;
+}
+
+/* Botón de acción para cargar viático */
+.pac-card-actions {
+  margin-top: 0.25rem;
+}
+
+.pac-btn-subir {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.85rem;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pac-btn-subir:hover {
+  background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+.pac-bloqueado-tag {
+  display: block;
+  text-align: center;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #94A3B8;
+  padding: 0.45rem;
+  background-color: #F1F5F9;
+  border-radius: 6px;
+}
+
+/* Footer del panel */
+.pac-footer {
+  padding: 0.85rem 1rem;
+  background-color: #F1F5F9;
+  border-top: 1px solid #E2E8F0;
+}
+
+.pac-footer-info {
+  font-size: 0.72rem;
+  color: #475569;
+  line-height: 1.4;
+  display: block;
+}

@@ -1,108 +1,166 @@
 /**
- * Compresión de imágenes en el cliente (browser) antes de subir al backend.
- * Reduce fotos de smartphones (10MB-20MB) a ~300KB-800KB (max 1920px, JPEG 0.82)
- * en milisegundos, evitando timeouts de red en Render y errores 413.
+ * Compresión de imágenes de alto rendimiento en el cliente (browser) antes de subir al backend.
+ * Reduce fotos de smartphones (10MB-20MB) a ~300KB-800KB (max 1920px, JPEG 0.85).
+ * 
+ * SOLUCIÓN AL PROBLEMA DE FOTOS EN BLANCO:
+ * Los navegadores modernos decodifican y orientan las imágenes EXIF automáticamente.
+ * Las implementaciones que intentaban reorientar manualmente aplicando transformaciones
+ * sobre el canvas hacían que drawImage dibujara la foto por fuera del área visible,
+ * dejando únicamente el fondo blanco (fillRect #FFFFFF) y generando una imagen blanca.
+ * 
+ * Esta versión utiliza createImageBitmap o Image nativo respetando la orientación real
+ * del navegador, dibuja directamente sobre el área visible y asegura que nunca se
+ * genere una imagen en blanco ni vacía.
  */
 
-export async function comprimirImagen(file, maxWidth = 1920, maxHeight = 1920, quality = 0.82) {
+export async function comprimirImagen(file, maxWidth = 1920, maxHeight = 1920, quality = 0.85) {
     if (!file || !(file instanceof File || file instanceof Blob)) {
         return file;
     }
 
-    // Si no es imagen (ej. PDF o tipo raro), retornar el original
+    // Si no es imagen (ej. PDF o tipo no estándar), retornar el archivo original intacto
     if (file.type && !file.type.startsWith('image/')) {
         return file;
     }
 
-    const getOrientation = (arrayBuffer) => {
-        const view = new DataView(arrayBuffer);
-        if (view.getUint16(0, false) !== 0xFFD8) return -2;
-        let length = view.byteLength, offset = 2;
-        while (offset < length) {
-            if (view.getUint16(offset + 2, false) <= 8) return -1;
-            let marker = view.getUint16(offset, false);
-            offset += 2;
-            if (marker === 0xFFE1) {
-                if (view.getUint32(offset += 2, false) !== 0x45786966) return -1;
-                let little = view.getUint16(offset += 6, false) === 0x4949;
-                offset += view.getUint32(offset + 4, little);
-                let tags = view.getUint16(offset, little);
-                offset += 2;
-                for (let i = 0; i < tags; i++) {
-                    if (view.getUint16(offset + (i * 12), little) === 0x0112) {
-                        return view.getUint16(offset + (i * 12) + 8, little);
-                    }
-                }
-            } else if ((marker & 0xFF00) !== 0xFF00) break;
-            else offset += view.getUint16(offset, false);
+    // No comprimir GIFs animados ni SVG
+    if (file.type === 'image/gif' || file.type === 'image/svg+xml') {
+        return file;
+    }
+
+    // Intentar primero con createImageBitmap (estándar moderno, ultra rápido y fuera del hilo principal)
+    if (typeof window !== 'undefined' && 'createImageBitmap' in window) {
+        try {
+            // imageOrientation: 'from-image' es el estándar para respetar EXIF nativo
+            const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+            const result = await renderBitmapToJpegFile(bitmap, file.name, maxWidth, maxHeight, quality);
+            if (result) return result;
+        } catch {
+            // Fallback a HTMLImageElement tradicional si createImageBitmap falla con algún formato específico
         }
-        return -1;
-    };
+    }
 
+    // Fallback con HTMLImageElement
     return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsArrayBuffer(file);
-        reader.onload = (e) => {
-            const orientation = getOrientation(e.target.result);
-            const img = new Image();
-            const url = URL.createObjectURL(file);
+        const url = URL.createObjectURL(file);
+        const img = new Image();
 
-            img.onload = () => {
+        const cleanup = () => {
+            try {
                 URL.revokeObjectURL(url);
-                let { width, height } = img;
+            } catch {
+                // Ignore cleanup errors
+            }
+        };
 
-                if (width > maxWidth || height > maxHeight) {
-                    if (width / height > maxWidth / maxHeight) {
-                        height = Math.round((height * maxWidth) / width);
-                        width = maxWidth;
-                    } else {
-                        width = Math.round((width * maxHeight) / height);
-                        height = maxHeight;
-                    }
+        img.onload = () => {
+            try {
+                let { naturalWidth: width, naturalHeight: height } = img;
+                if (!width || !height) {
+                    cleanup();
+                    return resolve(file); // Imagen inválida o tamaño 0, retornar original
                 }
+
+                // Calcular escala manteniendo la proporción
+                let scale = 1;
+                if (width > maxWidth || height > maxHeight) {
+                    scale = Math.min(maxWidth / width, maxHeight / height);
+                }
+
+                const targetWidth = Math.max(1, Math.round(width * scale));
+                const targetHeight = Math.max(1, Math.round(height * scale));
 
                 const canvas = document.createElement('canvas');
-                if (orientation >= 5 && orientation <= 8) {
-                    canvas.width = height;
-                    canvas.height = width;
-                } else {
-                    canvas.width = width;
-                    canvas.height = height;
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+
+                const ctx = canvas.getContext('2d', { alpha: false });
+                if (!ctx) {
+                    cleanup();
+                    return resolve(file);
                 }
 
-                const ctx = canvas.getContext('2d');
-                if (!ctx) return resolve(file);
-
+                // Fondo blanco suave de base solo si no hay canal alfa o por si el formato original era transparente
                 ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillRect(0, 0, targetWidth, targetHeight);
 
-                // Aplicar transformación por orientación EXIF
-                // Tabla indexada por (orientation - 2) ya que solo entramos cuando orientation > 1
-                //   2=flip-H, 3=180°, 4=flip-V, 5=90°+flip, 6=90°CW, 7=270°+flip, 8=270°CW
-                const transforms = {
-                    2: [-1, 0, 0, 1, width, 0],
-                    3: [-1, 0, 0, -1, width, height],
-                    4: [1, 0, 0, -1, 0, height],
-                    5: [0, 1, 1, 0, 0, 0],
-                    6: [0, 1, -1, 0, height, 0],
-                    7: [0, -1, -1, 0, height, width],
-                    8: [0, -1, 1, 0, 0, width],
-                };
-                if (transforms[orientation]) {
-                    ctx.transform(...transforms[orientation]);
-                }
+                // Dibujar directamente en el canvas con las dimensiones exactas calculadas
+                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                cleanup();
 
-                ctx.drawImage(img, 0, 0, width, height);
                 canvas.toBlob((blob) => {
-                    if (!blob) return resolve(file);
+                    if (!blob || blob.size === 0) {
+                        return resolve(file);
+                    }
                     const nombreBase = file.name ? file.name.replace(/\.[^/.]+$/, '') : 'evidencia';
-                    resolve(new File([blob], `${nombreBase}.jpg`, { type: 'image/jpeg', lastModified: Date.now() }));
+                    const compressedFile = new File([blob], `${nombreBase}.jpg`, {
+                        type: 'image/jpeg',
+                        lastModified: Date.now(),
+                    });
+                    resolve(compressedFile);
                 }, 'image/jpeg', quality);
-            };
-
-            img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
-            img.src = url;
+            } catch {
+                cleanup();
+                resolve(file);
+            }
         };
-        reader.onerror = () => resolve(file);
+
+        img.onerror = () => {
+            cleanup();
+            resolve(file); // En caso de error, siempre preservar el archivo original
+        };
+
+        img.src = url;
     });
+}
+
+function renderBitmapToJpegFile(bitmap, originalName, maxWidth, maxHeight, quality) {
+    try {
+        const width = bitmap.width;
+        const height = bitmap.height;
+
+        if (!width || !height) {
+            bitmap.close?.();
+            return null;
+        }
+
+        let scale = 1;
+        if (width > maxWidth || height > maxHeight) {
+            scale = Math.min(maxWidth / width, maxHeight / height);
+        }
+
+        const targetWidth = Math.max(1, Math.round(width * scale));
+        const targetHeight = Math.max(1, Math.round(height * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const ctx = canvas.getContext('2d', { alpha: false });
+        if (!ctx) {
+            bitmap.close?.();
+            return null;
+        }
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, targetWidth, targetHeight);
+        ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+        bitmap.close?.();
+
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                if (!blob || blob.size === 0) {
+                    return resolve(null);
+                }
+                const nombreBase = originalName ? originalName.replace(/\.[^/.]+$/, '') : 'evidencia';
+                resolve(new File([blob], `${nombreBase}.jpg`, {
+                    type: 'image/jpeg',
+                    lastModified: Date.now(),
+                }));
+            }, 'image/jpeg', quality);
+        });
+    } catch {
+        bitmap.close?.();
+        return null;
+    }
 }

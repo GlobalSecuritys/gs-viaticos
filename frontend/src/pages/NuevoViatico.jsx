@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
 import ModalCuentaCobroCorta from '../components/ModalCuentaCobroCorta';
 import { formatFechaLarga, formatCOP, formatMiles, limpiarNumero } from '../utils/personal';
-import { derivarLugarDesdeTipoAsignacion } from '../utils/asignaciones';
+import { derivarLugarDesdeTipoAsignacion, calcularEstadoGraciaAsignacion } from '../utils/asignaciones';
 import './NuevoViatico.css';
 
 const CONCEPTOS = [
@@ -27,16 +27,13 @@ function hoyISO() {
 }
 
 /**
- * Devuelve true si la fecha actual está dentro del rango [fecha_inicio, fecha_fin]
- * de la asignación (inclusive en ambos extremos).
+ * Devuelve true si la asignación está dentro de su período válido
+ * o en su período de gracia de 24 horas tras el cierre.
  */
 function estaEnRango(asignacion) {
     if (!asignacion) return true; // sin asignación vinculada, siempre permitido
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const inicio = new Date(asignacion.fecha_inicio + 'T00:00:00');
-    const fin = new Date(asignacion.fecha_fin + 'T00:00:00');
-    return hoy >= inicio && hoy <= fin;
+    const { puedeSubir } = calcularEstadoGraciaAsignacion(asignacion);
+    return puedeSubir;
 }
 
 const CONTEXTO_KEY = 'gs_fecha_anterior_viatico';
@@ -71,6 +68,7 @@ export default function NuevoViatico() {
     const [asignacionDetalle, setAsignacionDetalle] = useState(null);
     const [mostrarModalCambioTipo, setMostrarModalCambioTipo] = useState(false);
     const [modalCCGastoId, setModalCCGastoId] = useState(null);
+    const [modalZoomFotoUrl, setModalZoomFotoUrl] = useState(null);
 
     useEffect(() => {
         if (asignacionIdParam) {
@@ -413,18 +411,57 @@ export default function NuevoViatico() {
                 {error && <div className="admin-error-banner">{error}</div>}
                 {exitoMsg && <div className="nv-success-banner">{exitoMsg}</div>}
 
-                {/* Banner de bloqueo: asignación fuera del período válido */}
+                {/* Banner de alerta: Período de gracia de 24h activo */}
+                {asignacionDetalle && !fueraDeRango && calcularEstadoGraciaAsignacion(asignacionDetalle).enGracia && (() => {
+                    const infoGracia = calcularEstadoGraciaAsignacion(asignacionDetalle);
+                    const limiteStr = infoGracia.limiteDate
+                        ? `${String(infoGracia.limiteDate.getDate()).padStart(2, '0')}/${String(infoGracia.limiteDate.getMonth() + 1).padStart(2, '0')} a las ${String(infoGracia.limiteDate.getHours() % 12 || 12).padStart(2, '0')}:${String(infoGracia.limiteDate.getMinutes()).padStart(2, '0')} ${infoGracia.limiteDate.getHours() >= 12 ? 'PM' : 'AM'}`
+                        : '';
+                    return (
+                        <div className="nv-gracia-banner" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '1rem',
+                            padding: '1rem 1.25rem',
+                            marginBottom: '1.25rem',
+                            backgroundColor: '#FEF2F2',
+                            border: '1.5px solid #FCA5A5',
+                            borderRadius: '12px',
+                            color: '#991B1B',
+                            boxShadow: '0 4px 12px rgba(220, 38, 38, 0.08)'
+                        }}>
+                            <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>⏳</span>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                                    <strong style={{ fontSize: '0.95rem' }}>Período de Gracia de 24 Horas Activo</strong>
+                                    <span style={{
+                                        fontSize: '0.72rem',
+                                        fontWeight: 800,
+                                        background: '#DC2626',
+                                        color: '#FFFFFF',
+                                        padding: '0.15rem 0.5rem',
+                                        borderRadius: '999px'
+                                    }}>
+                                        Quedan {infoGracia.tiempoRestanteStr}
+                                    </span>
+                                </div>
+                                <p style={{ margin: 0, fontSize: '0.84rem', color: '#7F1D1D', lineHeight: 1.4 }}>
+                                    Esta asignación fue cerrada. Tienes plazo hasta el <strong>{limiteStr}</strong> para terminar de legalizar y registrar tus viáticos. Pasado este tiempo, la carga quedará bloqueada permanentemente.
+                                </p>
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* Banner de bloqueo: asignación fuera del período válido y de la gracia */}
                 {fueraDeRango && (
                     <div className="nv-fuera-rango-banner">
                         <span className="nv-fuera-rango-icono">🔒</span>
                         <div>
                             <strong>Carga de viáticos bloqueada</strong>
                             <p>
-                                Esta asignación solo acepta viáticos entre el{' '}
-                                <strong>{asignacionDetalle.fecha_inicio}</strong> y el{' '}
-                                <strong>{asignacionDetalle.fecha_fin}</strong>.
-                                La fecha actual está fuera de ese rango.{' '}
-                                Contacta al administrador para extender el período.
+                                Esta asignación se encuentra cerrada y su plazo de gracia de 24 horas para subir viáticos ha finalizado.{' '}
+                                Si necesitas registrar gastos adicionales, contacta al administrador para que extienda el período de la asignación.
                             </p>
                         </div>
                     </div>
@@ -762,15 +799,56 @@ export default function NuevoViatico() {
                                                                     </div>
                                                                 </div>
                                                             ) : (
-                                                                <img
-                                                                    src={gasto.previewUrl}
-                                                                    alt="Vista previa del soporte"
-                                                                    className="nv-soporte-thumb"
-                                                                />
+                                                                <div className="nv-soporte-thumb-wrap" style={{ position: 'relative', cursor: 'pointer' }}>
+                                                                    <img
+                                                                        src={gasto.previewUrl}
+                                                                        alt="Vista previa del soporte"
+                                                                        className="nv-soporte-thumb"
+                                                                        onClick={() => setModalZoomFotoUrl(gasto.previewUrl)}
+                                                                        title="Haz clic para ver la fotografía en grande"
+                                                                    />
+                                                                    <span
+                                                                        style={{
+                                                                            position: 'absolute',
+                                                                            bottom: '2px',
+                                                                            right: '2px',
+                                                                            background: 'rgba(0,0,0,0.65)',
+                                                                            color: '#fff',
+                                                                            fontSize: '0.65rem',
+                                                                            padding: '1px 4px',
+                                                                            borderRadius: '4px',
+                                                                            pointerEvents: 'none'
+                                                                        }}
+                                                                    >
+                                                                        🔍
+                                                                    </span>
+                                                                </div>
                                                             )}
                                                             <div className="nv-soporte-preview-actions">
+                                                                {!(gasto.archivo?.type === 'application/pdf' || gasto.archivo?.name?.toLowerCase().endsWith('.pdf')) && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="nv-foto-zoom-btn"
+                                                                        style={{
+                                                                            padding: '0.45rem 0.75rem',
+                                                                            background: '#EFF6FF',
+                                                                            border: '1px solid #BFDBFE',
+                                                                            borderRadius: '8px',
+                                                                            color: '#2563EB',
+                                                                            fontSize: '0.8rem',
+                                                                            fontWeight: 600,
+                                                                            cursor: 'pointer',
+                                                                            display: 'inline-flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '0.3rem'
+                                                                        }}
+                                                                        onClick={() => setModalZoomFotoUrl(gasto.previewUrl)}
+                                                                    >
+                                                                        🔍 Ver ampliada
+                                                                    </button>
+                                                                )}
                                                                 <label className="nv-foto-btn">
-                                                                    🔄 Cambiar archivo
+                                                                    🔄 Cambiar
                                                                     <input
                                                                         type="file"
                                                                         accept="image/*,application/pdf"
@@ -959,6 +1037,123 @@ export default function NuevoViatico() {
                     fechaSeleccionada={fechaSeleccionada}
                     initialData={gastos.find((g) => g.id === modalCCGastoId)?.cuenta_cobro}
                 />
+            )}
+
+            {/* Modal Lightbox para previsualizar la foto en grande antes de enviar */}
+            {modalZoomFotoUrl && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                        backdropFilter: 'blur(4px)',
+                        zIndex: 2000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '1.5rem',
+                    }}
+                    onClick={() => setModalZoomFotoUrl(null)}
+                >
+                    <div
+                        style={{
+                            backgroundColor: '#FFFFFF',
+                            borderRadius: '16px',
+                            maxWidth: '850px',
+                            maxHeight: '90vh',
+                            width: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{
+                            padding: '1rem 1.25rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            borderBottom: '1px solid #E2E8F0',
+                            background: '#F8FAFC',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '1.2rem' }}>📷</span>
+                                <strong style={{ fontSize: '0.95rem', color: '#1E293B' }}>
+                                    Previsualización de Fotografía de Soporte (10/10)
+                                </strong>
+                            </div>
+                            <button
+                                type="button"
+                                style={{
+                                    border: 'none',
+                                    background: '#E2E8F0',
+                                    borderRadius: '8px',
+                                    width: '32px',
+                                    height: '32px',
+                                    cursor: 'pointer',
+                                    fontSize: '1.1rem',
+                                    color: '#475569',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}
+                                onClick={() => setModalZoomFotoUrl(null)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div style={{
+                            flex: 1,
+                            overflow: 'auto',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '1rem',
+                            backgroundColor: '#0F172A',
+                        }}>
+                            <img
+                                src={modalZoomFotoUrl}
+                                alt="Soporte ampliado"
+                                style={{
+                                    maxWidth: '100%',
+                                    maxHeight: '75vh',
+                                    objectFit: 'contain',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                                }}
+                            />
+                        </div>
+                        <div style={{
+                            padding: '0.75rem 1.25rem',
+                            background: '#F8FAFC',
+                            borderTop: '1px solid #E2E8F0',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                        }}>
+                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                                ✓ Esta es la imagen que se comprimirá y subirá como comprobante.
+                            </span>
+                            <button
+                                type="button"
+                                style={{
+                                    padding: '0.45rem 1rem',
+                                    backgroundColor: '#2563EB',
+                                    color: '#FFFFFF',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontWeight: 600,
+                                    fontSize: '0.85rem',
+                                    cursor: 'pointer',
+                                }}
+                                onClick={() => setModalZoomFotoUrl(null)}
+                            >
+                                Entendido
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </TecnicoLayout>
     );

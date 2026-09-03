@@ -32,10 +32,106 @@ router_tecnico = APIRouter(prefix="/asignaciones", tags=["Asignaciones"])
 
 from decimal import Decimal
 
+
+def calcular_limite_subida_asignacion(a: Asignacion) -> dict:
+    """
+    Calcula los límites de cierre y período de gracia de 24 horas para la subida de viáticos.
+    Regla:
+    Si la asignación se cierra (ej: hoy 2 sep a las 12pm), el técnico tiene 24 horas (hasta 3 sep 12pm)
+    para terminar de subir o corregir sus viáticos.
+    """
+    ahora = datetime.utcnow()
+    estado = (a.estado or "").lower()
+
+    if estado == "cancelada":
+        return {
+            "cerrada_en": a.cerrada_en,
+            "limite_subida_viaticos": a.cerrada_en or a.updated_at,
+            "puede_subir_viaticos": False,
+            "en_periodo_gracia": False,
+            "horas_restantes_cierre": 0.0,
+            "tiempo_restante_str": "Asignación cancelada",
+        }
+
+    # Caso 1: Asignación marcada como finalizada por el admin
+    if estado == "finalizada":
+        fecha_cierre = a.cerrada_en or a.updated_at
+        if not fecha_cierre:
+            fecha_cierre = datetime.combine(a.fecha_fin, datetime.min.time()) + timedelta(hours=23, minutes=59)
+
+        limite = fecha_cierre + timedelta(hours=24)
+        delta = limite - ahora
+        segundos_restantes = delta.total_seconds()
+
+        if segundos_restantes > 0:
+            horas = int(segundos_restantes // 3600)
+            minutos = int((segundos_restantes % 3600) // 60)
+            tiempo_str = f"{horas}h {minutos}m" if horas > 0 else f"{minutos} min"
+            return {
+                "cerrada_en": fecha_cierre,
+                "limite_subida_viaticos": limite,
+                "puede_subir_viaticos": True,
+                "en_periodo_gracia": True,
+                "horas_restantes_cierre": round(segundos_restantes / 3600.0, 2),
+                "tiempo_restante_str": tiempo_str,
+            }
+        else:
+            return {
+                "cerrada_en": fecha_cierre,
+                "limite_subida_viaticos": limite,
+                "puede_subir_viaticos": False,
+                "en_periodo_gracia": False,
+                "horas_restantes_cierre": 0.0,
+                "tiempo_restante_str": "Plazo vencido (24h de gracia terminadas)",
+            }
+
+    # Caso 2: Asignación pendiente o en curso
+    # El fin de asignación oficial es el final del día de fecha_fin
+    fin_oficial = datetime.combine(a.fecha_fin, datetime.min.time()) + timedelta(hours=23, minutes=59, seconds=59)
+    limite = fin_oficial + timedelta(hours=24)
+    delta = limite - ahora
+    segundos_restantes = delta.total_seconds()
+
+    if ahora > fin_oficial and segundos_restantes > 0:
+        horas = int(segundos_restantes // 3600)
+        minutos = int((segundos_restantes % 3600) // 60)
+        return {
+            "cerrada_en": a.cerrada_en,
+            "limite_subida_viaticos": limite,
+            "puede_subir_viaticos": True,
+            "en_periodo_gracia": True,
+            "horas_restantes_cierre": round(segundos_restantes / 3600.0, 2),
+            "tiempo_restante_str": f"{horas}h {minutos}m",
+        }
+
+    if segundos_restantes <= 0:
+        return {
+            "cerrada_en": a.cerrada_en,
+            "limite_subida_viaticos": limite,
+            "puede_subir_viaticos": False,
+            "en_periodo_gracia": False,
+            "horas_restantes_cierre": 0.0,
+            "tiempo_restante_str": "Plazo finalizado",
+        }
+
+    # Período normal vigente
+    delta_fin = fin_oficial - ahora
+    horas_fin = delta_fin.total_seconds() / 3600.0
+    tiempo_str = f"Cierra hoy ({int(horas_fin)}h)" if horas_fin <= 24 else "Vigente"
+    return {
+        "cerrada_en": a.cerrada_en,
+        "limite_subida_viaticos": limite,
+        "puede_subir_viaticos": True,
+        "en_periodo_gracia": False,
+        "horas_restantes_cierre": round(segundos_restantes / 3600.0, 2),
+        "tiempo_restante_str": tiempo_str,
+    }
+
+
 def _a_response(a: Asignacion) -> AsignacionResponse:
     """Arma el AsignacionResponse resolviendo tecnico_nombre/creado_por_nombre
     a partir de las relaciones ya cargadas, además de calcular las métricas
-    financieras de la asignación (anticipo, gastado, saldo restante y estado)."""
+    financieras de la asignación y las ventanas de gracia de 24h para viáticos."""
     viaticos_vinculados = a.viaticos if hasattr(a, "viaticos") and a.viaticos else []
     total_gastado = (
         sum(v.valor for v in viaticos_vinculados if v.estado != "rechazado")
@@ -60,6 +156,8 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
     if hasattr(a, "cuenta_cobro") and a.cuenta_cobro:
         cuenta_cobro_resp = CuentaCobroAsignacionResponse.model_validate(a.cuenta_cobro)
 
+    info_gracia = calcular_limite_subida_asignacion(a)
+
     return AsignacionResponse(
         id=a.id,
         tecnico_id=a.tecnico_id,
@@ -81,6 +179,12 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
         estado_legalizacion=estado_legalizacion,
         estado=a.estado,
         cuenta_cobro=cuenta_cobro_resp,
+        cerrada_en=info_gracia["cerrada_en"],
+        limite_subida_viaticos=info_gracia["limite_subida_viaticos"],
+        puede_subir_viaticos=info_gracia["puede_subir_viaticos"],
+        en_periodo_gracia=info_gracia["en_periodo_gracia"],
+        horas_restantes_cierre=info_gracia["horas_restantes_cierre"],
+        tiempo_restante_str=info_gracia["tiempo_restante_str"],
         created_at=a.created_at,
         updated_at=a.updated_at,
     )
@@ -292,6 +396,7 @@ def finalizar_asignacion(
         )
 
     asignacion.estado = "finalizada"
+    asignacion.cerrada_en = datetime.utcnow()
     db.commit()
     asignacion = _obtener_o_404(id, db)
     return _a_response(asignacion)
@@ -346,9 +451,8 @@ def listar_mis_asignaciones_activas(
     db: Annotated[Session, Depends(get_db)],
 ):
     """
-    Devuelve TODAS las asignaciones activas del técnico autenticado (puede ser
-    una, varias o ninguna). 'Activa' = estado pendiente o en_curso, SIN
-    restricción de fechas.
+    Devuelve TODAS las asignaciones activas del técnico autenticado (pendiente o en_curso),
+    más aquellas asignaciones finalizadas cuyo período de gracia de 24 horas aún está vigente.
     """
     purgar_asignaciones_eliminadas(db)
     stmt = (
@@ -361,13 +465,18 @@ def listar_mis_asignaciones_activas(
         )
         .where(
             Asignacion.tecnico_id == current_user.id,
-            Asignacion.estado.in_(("pendiente", "en_curso")),
             Asignacion.eliminado_en.is_(None),
         )
         .order_by(Asignacion.fecha_inicio.asc())
     )
-    asignaciones = db.execute(stmt).unique().scalars().all()
-    return [_a_response(a) for a in asignaciones]
+    todas = db.execute(stmt).unique().scalars().all()
+    activas = []
+    for a in todas:
+        info_gracia = calcular_limite_subida_asignacion(a)
+        # Incluir si está pendiente/en_curso o si es finalizada pero con gracia de 24h activa
+        if a.estado in ("pendiente", "en_curso") or (a.estado == "finalizada" and info_gracia["puede_subir_viaticos"]):
+            activas.append(_a_response(a))
+    return activas
 
 
 @router_tecnico.post(
