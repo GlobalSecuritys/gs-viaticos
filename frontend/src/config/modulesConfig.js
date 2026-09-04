@@ -24,8 +24,8 @@ export const MODULES_CONFIG = [
       { label: 'Reportes Excel', icon: '📊' },
     ],
     canAccess: (user) => {
-      // Admins y superadmins tienen acceso al panel admin de viáticos
-      return user?.rol === 'admin' || user?.rol === 'superadmin';
+      // Admins y superadmins con permiso de viáticos activo
+      return (user?.rol === 'admin' || user?.rol === 'superadmin') && user?.acceso_viaticos !== false;
     },
     sidebarNav: [
       { id: 'inicio', label: 'Resumen General', icon: '🏠', path: '/admin', sectionId: 'top' },

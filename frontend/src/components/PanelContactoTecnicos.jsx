@@ -19,60 +19,51 @@ function WhatsAppIcon() {
 }
 
 /**
- * PanelContactoTecnicos
+ * PanelContactoTecnicos (Barra Horizontal Inferior)
  *
- * Panel lateral fijo con accesos directos de WhatsApp a los técnicos de campo.
- * Solo visible para el Super Admin (Admin Master) en la pantalla Hub.
- *
- * Cada tarjeta abre `https://wa.me/<telefono>` en una pestaña nueva.
+ * Barra horizontal con accesos directos de WhatsApp a los técnicos de campo.
+ * Ubicada en la parte inferior de la vista principal del Administrador / SuperAdmin.
+ * Cada chip abre `https://wa.me/<telefono>` en una pestaña nueva.
  */
 export default function PanelContactoTecnicos() {
   return (
-    <aside className="pct-aside" aria-label="Contacto rápido técnicos">
-      {/* Encabezado del panel */}
-      <div className="pct-header">
-        <span className="pct-header-icon">
+    <section className="pct-bar-horizontal" aria-label="Contacto rápido WhatsApp técnicos de campo">
+      {/* Cabecera / Identificador de la barra */}
+      <div className="pct-bar-header">
+        <span className="pct-header-icon" aria-hidden="true">
           <WhatsAppIcon />
         </span>
         <div className="pct-header-text">
-          <span className="pct-header-title">Técnicos</span>
-          <span className="pct-header-sub">Contacto directo</span>
+          <div className="pct-header-title-row">
+            <span className="pct-header-title">Técnicos de Campo</span>
+            <span className="pct-header-badge">{TECNICOS_CONTACTO.length}</span>
+          </div>
+          <span className="pct-header-sub">WhatsApp directo</span>
         </div>
-        <span className="pct-header-badge">{TECNICOS_CONTACTO.length}</span>
       </div>
 
-      {/* Lista de técnicos */}
-      <div className="pct-list">
+      {/* Contenedor desplazable con los chips de los técnicos */}
+      <div className="pct-chips-scroll" role="region" aria-label="Lista horizontal de técnicos">
         {TECNICOS_CONTACTO.map((tecnico) => (
           <a
             key={tecnico.telefono}
             href={`https://wa.me/${tecnico.telefono}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="pct-card"
-            title={`Abrir chat de WhatsApp con ${tecnico.nombre}`}
+            className="pct-chip-card"
+            title={`Abrir chat de WhatsApp con ${tecnico.nombre} (${tecnico.telefono})`}
             aria-label={`Contactar a ${tecnico.nombre} por WhatsApp`}
           >
-            {/* Avatar inicial */}
             <span className="pct-avatar">
               {tecnico.nombre[0].toUpperCase()}
             </span>
-
-            {/* Nombre */}
             <span className="pct-name">{tecnico.nombre}</span>
-
-            {/* Ícono WhatsApp */}
             <span className="pct-wa-icon" aria-hidden="true">
               <WhatsAppIcon />
             </span>
           </a>
         ))}
       </div>
-
-      {/* Footer del panel */}
-      <div className="pct-footer">
-        <span>wa.me · abre en nueva pestaña</span>
-      </div>
-    </aside>
+    </section>
   );
 }

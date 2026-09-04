@@ -13,6 +13,7 @@ import {
     LABEL_ESTADO_ASIGNACION,
     filtrarAsignaciones,
 } from '../utils/asignaciones';
+import { obtenerNombreUsuario } from '../utils/personal';
 import './SuperAdminDashboard.css';
 
 function formatCOP(value) {
@@ -137,13 +138,14 @@ export default function SuperAdminDashboard() {
 
     // Información del perfil: primero intenta /auth/me, si no está disponible usa JWT
     const perfil = perfilData ?? {
-        nombre: user?.nombre ?? 'Super Administrador',
+        nombre: user?.nombre ?? '',
         correo: user?.correo ?? '',
         codigo_empleado: 'EMP-0001',
         rol: 'superadmin',
         activo: true,
         fecha_registro: null,
     };
+    const nombrePerfil = obtenerNombreUsuario(perfil.nombre ? perfil : user, 'Super Administrador');
 
     return (
         <div className="sa-root">
@@ -189,11 +191,11 @@ export default function SuperAdminDashboard() {
                         <NotificationBell />
                         <div className="sa-topbar-user">
                             <div className="sa-topbar-avatar">
-                                {(perfil.nombre || perfil.correo || 'S')[0].toUpperCase()}
+                                {nombrePerfil[0].toUpperCase()}
                             </div>
                             <div className="sa-topbar-userinfo">
                                 <span className="sa-topbar-username">
-                                    {perfil.nombre || 'Super Administrador'}
+                                    {nombrePerfil}
                                 </span>
                                 <span className="sa-topbar-useremail">
                                     {perfil.correo}
@@ -224,14 +226,14 @@ export default function SuperAdminDashboard() {
                     <div className="sa-profile-card">
                         <div className="sa-profile-avatar-wrap">
                             <div className="sa-profile-avatar">
-                                {(perfil.nombre || 'S')[0].toUpperCase()}
+                                {nombrePerfil[0].toUpperCase()}
                             </div>
                             <span className="sa-profile-status-dot" title="Activo" />
                         </div>
 
                         <div className="sa-profile-info">
                             <h2 className="sa-profile-name">
-                                {perfil.nombre || 'Super Administrador'}
+                                {nombrePerfil}
                             </h2>
                             <div className="sa-profile-badges">
                                 <span className="sa-badge sa-badge--role">SUPERADMIN</span>

@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { listarAuditoria } from '../services/auditoria';
 import api from '../services/api';
+import { obtenerNombreUsuario } from '../utils/personal';
 import logoGSB from '../assets/logo-gsb.png';
 import NotificationBell from '../components/NotificationBell';
 import InstallPwaPrompt from '../components/InstallPwaPrompt';
@@ -314,7 +315,7 @@ export default function Auditoria() {
         { id: 'perfil', label: 'Mi Perfil', icon: '⚙️', action: () => user?.id && navigate(`/admin/personal/${user.id}`), active: false },
     ];
 
-    const nombreMostrado = user?.nombre || user?.correo || 'Admin GSB';
+    const nombreMostrado = obtenerNombreUsuario(user, 'Admin GSB');
 
     return (
         <div className="gsb-app-layout">

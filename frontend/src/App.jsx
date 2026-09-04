@@ -102,7 +102,7 @@ export default function App() {
           <Route
             path="/superadmin"
             element={
-              <AdminRoute>
+              <AdminRoute requireViaticos>
                 <SuperAdminDashboard />
               </AdminRoute>
             }
@@ -110,7 +110,7 @@ export default function App() {
           <Route
             path="/admin"
             element={
-              <AdminRoute>
+              <AdminRoute requireViaticos>
                 <AdminDashboard />
               </AdminRoute>
             }
@@ -130,7 +130,7 @@ export default function App() {
           <Route
             path="/admin/asignaciones"
             element={
-              <AdminRoute>
+              <AdminRoute requireViaticos>
                 <Asignaciones />
               </AdminRoute>
             }
@@ -138,7 +138,7 @@ export default function App() {
           <Route
             path="/admin/asignaciones/nueva"
             element={
-              <AdminRoute>
+              <AdminRoute requireViaticos>
                 <NuevaAsignacion />
               </AdminRoute>
             }
@@ -146,7 +146,7 @@ export default function App() {
           <Route
             path="/admin/asignaciones/:id"
             element={
-              <AdminRoute>
+              <AdminRoute requireViaticos>
                 <DetalleAsignacion />
               </AdminRoute>
             }
@@ -154,7 +154,7 @@ export default function App() {
           <Route
             path="/admin/cuentas-cobro"
             element={
-              <AdminRoute>
+              <AdminRoute requireViaticos>
                 <AdminCuentasCobro />
               </AdminRoute>
             }
@@ -164,7 +164,7 @@ export default function App() {
           <Route
             path="/admin/usuarios"
             element={
-              <AdminRoute>
+              <AdminRoute requireSuperadmin>
                 <AdminUsuarios />
               </AdminRoute>
             }

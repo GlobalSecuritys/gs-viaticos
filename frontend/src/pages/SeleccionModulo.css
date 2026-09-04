@@ -596,8 +596,8 @@
    ════════════════════════════════ */
 .sm-global-admin-bar {
     width: 100%;
-    max-width: 1080px;
-    margin-top: 2.75rem;
+    max-width: 1400px;
+    margin-top: 1.75rem;
     background: rgba(255, 255, 255, 0.88);
     border: 1.5px solid rgba(245, 158, 11, 0.25);
     border-radius: 18px;
@@ -609,6 +609,12 @@
     backdrop-filter: blur(16px);
     box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05);
     animation: fadeSlideUp 0.65s 0.2s ease both;
+}
+
+.sm-mapa-section {
+    width: 100%;
+    max-width: 1400px;
+    margin-top: 0.5rem;
 }
 
 .sm-global-admin-header {
@@ -674,11 +680,38 @@
     box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
 }
 
+.sm-btn-global-link--locked {
+    background: #F8FAFC !important;
+    border-color: #CBD5E1 !important;
+    color: #64748B !important;
+    cursor: not-allowed !important;
+    opacity: 0.85;
+}
+
+.sm-btn-global-link--locked:hover {
+    transform: none !important;
+    background: #FEE2E2 !important;
+    border-color: #FCA5A5 !important;
+    color: #B91C1C !important;
+    box-shadow: none !important;
+}
+
+.sm-global-lock-pill {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #DC2626;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+}
+
 /* ════════════════════════════════
    FOOTER
    ════════════════════════════════ */
 .sm-footer {
-    margin-top: 3.5rem;
+    margin-top: 2.5rem;
     font-size: 0.78rem;
     color: var(--text-muted);
     font-weight: 500;
@@ -688,36 +721,28 @@
 }
 
 /* ════════════════════════════════
-   HUB LAYOUT — MAIN + SIDEBAR
+   HUB LAYOUT — MAIN UNIFICADO
    ════════════════════════════════ */
-
-/**
- * Wrapper de dos columnas para el Hub:
- * - Columna izquierda (sm-main): contenido principal, crece libremente
- * - Columna derecha (pct-aside): panel WhatsApp fijo de 220px
- */
 .sm-hub-layout {
     position: relative;
     z-index: 1;
     display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 1.5rem;
+    flex-direction: column;
+    align-items: center;
     width: 100%;
-    max-width: 1320px;
+    max-width: 1440px;
     margin: 0 auto;
-    padding: 0 1.5rem;
+    padding: 0 1.5rem 2rem;
     flex: 1;
 }
 
-/* El main ya no necesita padding lateral propio ni max-width propio
-   porque el hub-layout lo controla */
 .sm-hub-layout .sm-main {
     flex: 1;
-    min-width: 0;     /* evita overflow en flex */
-    padding-left: 0;
-    padding-right: 0;
-    max-width: none;  /* el layout lo controla */
+    width: 100%;
+    max-width: 1400px;
+    padding: 2.5rem 0 1rem;
+    display: flex;
+    flex-direction: column;
     align-items: center;
 }
 

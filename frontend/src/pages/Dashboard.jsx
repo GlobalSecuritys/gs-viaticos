@@ -5,6 +5,7 @@ import api from '../services/api';
 import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import TecnicoLayout from '../components/TecnicoLayout';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
+import { obtenerNombreUsuario, obtenerPrimerNombre } from '../utils/personal';
 import './Dashboard.css';
 
 function formatCOP(value) {
@@ -120,8 +121,8 @@ export default function Dashboard() {
         }));
     }, [viaticos]);
 
-    const primerNombre = (user?.nombre || user?.correo || 'Técnico').split(' ')[0];
-    const nombreCompleto = user?.nombre || user?.correo || 'Técnico Instalador';
+    const primerNombre = obtenerPrimerNombre(user, 'Técnico');
+    const nombreCompleto = obtenerNombreUsuario(user, 'Técnico Instalador');
     const codigoEmpleado = user?.codigo_empleado ? `CC ${user.codigo_empleado}` : 'CC 1.234.567.890';
 
     return (

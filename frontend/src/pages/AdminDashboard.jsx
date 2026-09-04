@@ -12,6 +12,7 @@ import ModalEvidencia from '../components/ModalEvidencia';
 import ModalAsignacionesTecnico from '../components/ModalAsignacionesTecnico';
 import ModalCuentasCobroTecnico from '../components/ModalCuentasCobroTecnico';
 import ModalCrearUsuario from '../components/ModalCrearUsuario';
+import { obtenerNombreUsuario } from '../utils/personal';
 import './AdminDashboard.css';
 
 function formatCOP(value) {
@@ -296,7 +297,7 @@ export default function AdminDashboard() {
         codigo_empleado: null,
         activo: true,
     };
-    const nombreMostrado = perfil.nombre || perfil.correo || 'Admin GSB';
+    const nombreMostrado = obtenerNombreUsuario(perfil.nombre ? perfil : user, 'Admin GSB');
 
     const [mensajeFeedback, setMensajeFeedback] = useState('');
 

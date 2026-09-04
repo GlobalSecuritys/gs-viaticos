@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { MODULES_CONFIG, GLOBAL_ADMIN_NAV, isAdminMaster, getAvailableModules } from '../../config/modulesConfig';
 import NotificationBell from '../NotificationBell';
+import { obtenerNombreUsuario } from '../../utils/personal';
 import logoGSB from '../../assets/logo-gsb.png';
 import './GlobalHeader.css';
 
@@ -49,7 +50,7 @@ export default function GlobalHeader({ currentModuleId, onToggleSidebar, sidebar
     navigate('/login');
   };
 
-  const nombreUsuario = user?.nombre || user?.correo || 'Administrador';
+  const nombreUsuario = obtenerNombreUsuario(user, 'Administrador');
 
   return (
     <header className="gh-root">

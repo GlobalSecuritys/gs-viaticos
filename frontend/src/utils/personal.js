@@ -260,3 +260,56 @@ export const ICONO_TIPO_GASTO = {
     materiales: '📦',
     otros: '📦',
 };
+
+/**
+ * Convierte texto a Title Case (ej: "JOSE DANIEL URANGO RESTREPO" -> "José Daniel Urango Restrepo")
+ */
+export function aTitleCase(texto) {
+    if (!texto) return '';
+    return texto
+        .toLowerCase()
+        .split(' ')
+        .filter(Boolean)
+        .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+        .join(' ');
+}
+
+/**
+ * Obtiene el nombre formateado de un usuario para mostrar en pantalla, garantizando
+ * que NUNCA se muestre un correo electrónico como nombre o saludo.
+ */
+export function obtenerNombreUsuario(user, fallback = 'Usuario') {
+    if (!user) return fallback;
+    const nombre = typeof user === 'string' ? user : (user.nombre || '');
+    const nombreTrim = nombre.trim();
+
+    // Si tiene un nombre válido y no es un email
+    if (nombreTrim && !nombreTrim.includes('@')) {
+        return aTitleCase(nombreTrim);
+    }
+
+    // Si solo tiene correo o el nombre contenía un correo:
+    const correo = typeof user === 'object' ? (user.correo || '') : (typeof user === 'string' && user.includes('@') ? user : '');
+    if (correo && correo.includes('@')) {
+        const alias = correo.split('@')[0];
+        const limpio = alias
+            .replace(/[._-]+/g, ' ')
+            .replace(/([a-z])([A-Z])/g, '$1 $2')
+            .replace(/\badmin\b/gi, '')
+            .trim();
+        if (limpio) {
+            return aTitleCase(limpio);
+        }
+    }
+
+    return fallback;
+}
+
+/**
+ * Obtiene solo el primer nombre para saludos cercanos (ej: "¡Hola, Claudia! 👋")
+ */
+export function obtenerPrimerNombre(user, fallback = 'Usuario') {
+    const nombreCompleto = obtenerNombreUsuario(user, fallback);
+    const primer = nombreCompleto.split(' ')[0] || fallback;
+    return aTitleCase(primer);
+}

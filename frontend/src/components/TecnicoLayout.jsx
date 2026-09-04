@@ -15,6 +15,7 @@ function iniciales(nombre = '') {
 import NotificationBell from './NotificationBell';
 import InstallPwaPrompt from './InstallPwaPrompt';
 import PanelAlertasCierre from './PanelAlertasCierre';
+import { obtenerNombreUsuario } from '../utils/personal';
 
 export default function TecnicoLayout({ children }) {
     const { user, logout } = useAuth();
@@ -30,8 +31,8 @@ export default function TecnicoLayout({ children }) {
         { path: '/talento-humano', label: 'Talento Humano', icon: '👥' },
     ];
 
-    const nombreMostrado = user?.nombre || user?.correo || 'Técnico';
-    const init = iniciales(nombreMostrado) || user?.correo?.[0]?.toUpperCase() || 'T';
+    const nombreMostrado = obtenerNombreUsuario(user, 'Técnico');
+    const init = iniciales(nombreMostrado);
     const cargoMostrado = user?.rol === 'superadmin' ? 'SuperAdmin' : user?.rol === 'admin' ? 'Administrador' : 'Técnico Instalador';
 
     return (
