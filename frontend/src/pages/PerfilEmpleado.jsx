@@ -555,23 +555,18 @@ export default function PerfilEmpleado() {
                                             <strong className="pf-action-title">Rol del usuario</strong>
                                         </div>
                                         <div className="pf-action-select-wrap">
-                                            {user?.rol === 'superadmin' ? (
-                                                usuario.rol === 'superadmin' ? (
-                                                    <select className="pf-styled-select" value="superadmin" disabled>
-                                                        <option value="superadmin">Super Admin</option>
-                                                    </select>
-                                                ) : (
-                                                    <select
-                                                        className="pf-styled-select"
-                                                        value={usuario.rol}
-                                                        disabled={cambiandoRol}
-                                                        onChange={(e) => cambiarRol(e.target.value)}
-                                                    >
-                                                        <option value="tecnico">Técnico</option>
-                                                        <option value="admin">Admin</option>
-                                                        <option value="superadmin">Super Admin</option>
-                                                    </select>
-                                                )
+                                            {(user?.rol === 'admin' || user?.rol === 'superadmin') ? (
+                                                <select
+                                                    className="pf-styled-select"
+                                                    value={usuario.rol}
+                                                    disabled={cambiandoRol || esPropiaTarjeta}
+                                                    onChange={(e) => cambiarRol(e.target.value)}
+                                                    title={esPropiaTarjeta ? 'No puedes modificar tu propio rol' : `Cambiar rol de ${usuario.nombre}`}
+                                                >
+                                                    <option value="tecnico">Técnico</option>
+                                                    <option value="admin">Admin</option>
+                                                    <option value="superadmin">Super Admin</option>
+                                                </select>
                                             ) : (
                                                 <span className="pf-role-readonly-pill">
                                                     {LABEL_CARGO[usuario.rol] || usuario.rol}

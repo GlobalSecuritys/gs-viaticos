@@ -77,7 +77,7 @@ def bootstrap_admin(
 @router.post("/usuarios", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
 def crear_usuario(
     datos: UsuarioCreateAdmin,
-    current_superadmin: Annotated[Usuario, Depends(get_current_superadmin)],
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
     db: Annotated[Session, Depends(get_db)]
 ):
     """Creación de técnicos/admins por Super Admin. NO reemplaza /auth/registro
@@ -192,7 +192,7 @@ def editar_usuario(
 def cambiar_rol_usuario(
     id: int,
     datos: UsuarioRolUpdate,
-    current_superadmin: Annotated[Usuario, Depends(get_current_superadmin)],
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
     db: Annotated[Session, Depends(get_db)]
 ):
     stmt = select(Usuario).where(Usuario.id == id)
@@ -203,10 +203,10 @@ def cambiar_rol_usuario(
             detail="Usuario no encontrado"
         )
 
-    if usuario.id == current_superadmin.id and datos.rol != "superadmin":
+    if usuario.id == current_admin.id and datos.rol != current_admin.rol:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No puedes quitarte el rol de superadministrador."
+            detail="No puedes modificar tu propio rol. Pídele a otro administrador que lo haga."
         )
 
     rol_anterior = usuario.rol
@@ -216,7 +216,7 @@ def cambiar_rol_usuario(
 
     registrar_auditoria(
         db,
-        actor=current_superadmin,
+        actor=current_admin,
         usuario_objetivo=usuario,
         accion="cambiar_rol",
         detalle=f"rol: '{rol_anterior}' → '{usuario.rol}'",

@@ -164,7 +164,7 @@ export default function App() {
           <Route
             path="/admin/usuarios"
             element={
-              <AdminRoute requireSuperadmin>
+              <AdminRoute>
                 <AdminUsuarios />
               </AdminRoute>
             }

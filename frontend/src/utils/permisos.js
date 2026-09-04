@@ -11,11 +11,8 @@
  * puede gestionar.
  */
 
-export function puedeGestionarUsuario(viewerRol, targetRol) {
-    if (!viewerRol || !targetRol) return false;
-    if (viewerRol === 'admin' && targetRol === 'superadmin') {
-        return false;
-    }
+export function puedeGestionarUsuario(viewerRol, _targetRol) {
+    if (!viewerRol) return false;
     return viewerRol === 'admin' || viewerRol === 'superadmin';
 }
 

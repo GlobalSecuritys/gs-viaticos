@@ -208,29 +208,19 @@ export default function AdminUsuarios() {
                                             </td>
 
                                             <td>
-                                                {/* ── CAMBIO 4: master admin puede bajar superadmin;
-                                                    los demás superadmin ven el campo deshabilitado ── */}
-                                                {u.rol === 'superadmin' && !isMasterAdmin ? (
-                                                    <select
-                                                        className="admin-select"
-                                                        value="superadmin"
-                                                        disabled
-                                                    >
-                                                        <option value="superadmin">SuperAdmin</option>
-                                                    </select>
-                                                ) : (
-                                                    <select
-                                                        className="admin-select"
-                                                        value={u.rol}
-                                                        onChange={(e) =>
-                                                            cambiarRol(u.id, e.target.value)
-                                                        }
-                                                    >
-                                                        <option value="tecnico">Técnico</option>
-                                                        <option value="admin">Admin</option>
-                                                        <option value="superadmin">SuperAdmin</option>
-                                                    </select>
-                                                )}
+                                                <select
+                                                    className="admin-select"
+                                                    value={u.rol}
+                                                    disabled={user && user.id === u.id}
+                                                    onChange={(e) =>
+                                                        cambiarRol(u.id, e.target.value)
+                                                    }
+                                                    title={user && user.id === u.id ? 'No puedes modificar tu propio rol' : `Cambiar rol de ${u.nombre}`}
+                                                >
+                                                    <option value="tecnico">Técnico</option>
+                                                    <option value="admin">Admin</option>
+                                                    <option value="superadmin">SuperAdmin</option>
+                                                </select>
                                             </td>
 
                                             <td>

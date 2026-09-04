@@ -129,7 +129,7 @@ export const GLOBAL_ADMIN_NAV = [
     icon: '👥',
     description: 'Gestión de cuentas, permisos de acceso y estados de colaboradores.',
     path: '/admin/usuarios',
-    minRole: 'superadmin', // solo superadmin gestiona todos los usuarios
+    minRole: 'admin', // admins y superadmins gestionan usuarios y roles
   },
   {
     id: 'auditoria',
