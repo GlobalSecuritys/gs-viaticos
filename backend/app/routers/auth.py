@@ -220,15 +220,24 @@ def solicitar_reset(
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.post("/verificar-codigo")
-def verificar_codigo(body: VerificarCodigoIn):
+def verificar_codigo(
+    body: VerificarCodigoIn,
+    db: Annotated[Session, Depends(get_db)]
+):
     """
     Valida el código OTP. Si es correcto, lo marca como 'verificado'
     y extiende el TTL 5 minutos adicionales para que el usuario complete
-    el cambio de contraseña.
+    el cambio de contraseña. Acepta correo o código de empleado.
     """
     _limpiar_expirados()
 
-    correo_norm = body.correo.strip().lower()
+    termino = body.correo.strip().lower()
+    stmt = select(Usuario).where(
+        (func.lower(Usuario.correo) == termino) |
+        (func.lower(func.coalesce(Usuario.codigo_empleado, "")) == termino)
+    )
+    usuario = db.scalar(stmt)
+    correo_norm = usuario.correo.strip().lower() if usuario else termino
 
     with _store_lock:
         entrada = _reset_store.get(correo_norm)
@@ -271,6 +280,7 @@ def cambiar_password(
     """
     Cambia la contraseña del usuario. Requiere que el código OTP haya sido
     verificado en el paso anterior y que aún no haya expirado.
+    Acepta correo o código de empleado.
     """
     _limpiar_expirados()
 
@@ -280,7 +290,20 @@ def cambiar_password(
             detail="La nueva contraseña debe tener al menos 8 caracteres."
         )
 
-    correo_norm = body.correo.strip().lower()
+    termino = body.correo.strip().lower()
+    stmt = select(Usuario).where(
+        (func.lower(Usuario.correo) == termino) |
+        (func.lower(func.coalesce(Usuario.codigo_empleado, "")) == termino)
+    )
+    usuario = db.scalar(stmt)
+
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado."
+        )
+
+    correo_norm = usuario.correo.strip().lower()
 
     with _store_lock:
         entrada = _reset_store.get(correo_norm)
@@ -311,15 +334,6 @@ def cambiar_password(
             )
 
     # Actualizar contraseña en base de datos
-    stmt = select(Usuario).where(func.lower(Usuario.correo) == correo_norm)
-    usuario = db.scalar(stmt)
-
-    if not usuario:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado."
-        )
-
     usuario.password_hash = hash_password(body.nueva_password)
     db.commit()
 
