@@ -182,16 +182,26 @@ def solicitar_reset(
     _limpiar_expirados()
 
     termino = body.correo_o_usuario.strip().lower()
+    print(f"[AUTH RESET] Solicitud de reset recibida para término: '{termino}'")
 
-    # Buscar por correo o por código de empleado
+    # Buscar por correo, código de empleado o nombre
     stmt = select(Usuario).where(
         (func.lower(Usuario.correo) == termino) |
-        (func.lower(func.coalesce(Usuario.codigo_empleado, "")) == termino)
+        (func.lower(func.coalesce(Usuario.codigo_empleado, "")) == termino) |
+        (func.lower(Usuario.nombre) == termino)
     )
     usuario = db.scalar(stmt)
 
-    # Solo admin y superadmin pueden usar este flujo
-    if usuario and usuario.rol in ("admin", "superadmin") and usuario.activo:
+    # Si ingresaron el buzón institucional fijo, asociar al superadmin principal
+    if not usuario and termino == "tecnicoplantagsb@gsbsecurity.com":
+        usuario = db.scalar(
+            select(Usuario).where(Usuario.rol == "superadmin", Usuario.activo == True).order_by(Usuario.id.asc())
+        )
+        if usuario:
+            print(f"[AUTH RESET] Término es buzón institucional -> Asociado a superadmin {usuario.correo}")
+
+    if usuario and usuario.activo:
+        print(f"[AUTH RESET] Usuario válido: id={usuario.id}, correo={usuario.correo}, rol={usuario.rol}")
         codigo = _generar_codigo()
         correo_norm = usuario.correo.strip().lower()
 
@@ -201,15 +211,22 @@ def solicitar_reset(
                 "expires_at": time.time() + OTP_TTL_SECONDS,
                 "verificado": False,
             }
+            # Si el término ingresado fue tecnicoplantagsb@gsbsecurity.com o el código de empleado,
+            # también indexamos por el término para máxima compatibilidad en pasos 2 y 3
+            if termino != correo_norm:
+                _reset_store[termino] = _reset_store[correo_norm]
 
-        # Enviar correo (si falla, igual respondemos OK para no revelar info)
-        enviar_codigo_reset(correo_norm, codigo)
+        # Enviar correo al buzón fijo
+        enviado = enviar_codigo_reset(correo_norm, codigo)
+        print(f"[AUTH RESET] Resultado envío de correo: {enviado}")
+    else:
+        print(f"[AUTH RESET] ⚠️ No se encontró usuario activo para término '{termino}' (usuario={usuario})")
 
-    # Respuesta genérica para no exponer si el usuario existe
+    # Respuesta genérica para no exponer información sensible
     return {
         "ok": True,
         "mensaje": (
-            "Si la cuenta existe y tiene permisos de administrador, "
+            "Si la cuenta existe y está activa, "
             "recibirás el código en el buzón autorizado."
         ),
     }
@@ -234,13 +251,18 @@ def verificar_codigo(
     termino = body.correo.strip().lower()
     stmt = select(Usuario).where(
         (func.lower(Usuario.correo) == termino) |
-        (func.lower(func.coalesce(Usuario.codigo_empleado, "")) == termino)
+        (func.lower(func.coalesce(Usuario.codigo_empleado, "")) == termino) |
+        (func.lower(Usuario.nombre) == termino)
     )
     usuario = db.scalar(stmt)
+    if not usuario and termino == "tecnicoplantagsb@gsbsecurity.com":
+        usuario = db.scalar(
+            select(Usuario).where(Usuario.rol == "superadmin", Usuario.activo == True).order_by(Usuario.id.asc())
+        )
     correo_norm = usuario.correo.strip().lower() if usuario else termino
 
     with _store_lock:
-        entrada = _reset_store.get(correo_norm)
+        entrada = _reset_store.get(correo_norm) or _reset_store.get(termino)
 
         if not entrada:
             raise HTTPException(
@@ -249,7 +271,8 @@ def verificar_codigo(
             )
 
         if time.time() > entrada["expires_at"]:
-            del _reset_store[correo_norm]
+            _reset_store.pop(correo_norm, None)
+            _reset_store.pop(termino, None)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="El código ha expirado. Solicita uno nuevo."
@@ -293,9 +316,14 @@ def cambiar_password(
     termino = body.correo.strip().lower()
     stmt = select(Usuario).where(
         (func.lower(Usuario.correo) == termino) |
-        (func.lower(func.coalesce(Usuario.codigo_empleado, "")) == termino)
+        (func.lower(func.coalesce(Usuario.codigo_empleado, "")) == termino) |
+        (func.lower(Usuario.nombre) == termino)
     )
     usuario = db.scalar(stmt)
+    if not usuario and termino == "tecnicoplantagsb@gsbsecurity.com":
+        usuario = db.scalar(
+            select(Usuario).where(Usuario.rol == "superadmin", Usuario.activo == True).order_by(Usuario.id.asc())
+        )
 
     if not usuario:
         raise HTTPException(
@@ -306,7 +334,7 @@ def cambiar_password(
     correo_norm = usuario.correo.strip().lower()
 
     with _store_lock:
-        entrada = _reset_store.get(correo_norm)
+        entrada = _reset_store.get(correo_norm) or _reset_store.get(termino)
 
         if not entrada:
             raise HTTPException(
@@ -315,7 +343,8 @@ def cambiar_password(
             )
 
         if time.time() > entrada["expires_at"]:
-            del _reset_store[correo_norm]
+            _reset_store.pop(correo_norm, None)
+            _reset_store.pop(termino, None)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="La sesión de recuperación ha expirado. Inicia el proceso de nuevo."
@@ -340,5 +369,6 @@ def cambiar_password(
     # Limpiar el código del store
     with _store_lock:
         _reset_store.pop(correo_norm, None)
+        _reset_store.pop(termino, None)
 
     return {"ok": True, "mensaje": "Contraseña actualizada correctamente. Ya puedes iniciar sesión."}

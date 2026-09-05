@@ -10,11 +10,13 @@ True sin enviar correo, lo que facilita el desarrollo local.
 """
 
 import logging
+import os
 import smtplib
 import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from dotenv import load_dotenv
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -24,26 +26,24 @@ def enviar_codigo_reset(cuenta_solicitante: str, codigo: str) -> bool:
     """
     Envía un correo con el código OTP de 6 dígitos al buzón fijo
     definido en RESET_EMAIL_DESTINO.
-
-    Args:
-        cuenta_solicitante: Correo/usuario que solicitó el reset (solo para
-                            incluirlo en el cuerpo informativo del email).
-        codigo: Código numérico de 6 dígitos.
-
-    Returns:
-        True si el correo se envió (o si no hay SMTP configurado y se hace
-        log del código), False si ocurrió un error de envío.
     """
-    destino = settings.RESET_EMAIL_DESTINO
+    # Recargar .env en caliente por si se actualizó sin reiniciar el proceso
+    load_dotenv(override=True)
+
+    smtp_host = os.getenv("SMTP_HOST") or getattr(settings, "SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT") or getattr(settings, "SMTP_PORT", 587))
+    smtp_user = os.getenv("SMTP_USER") or getattr(settings, "SMTP_USER", "")
+    smtp_password = os.getenv("SMTP_PASSWORD") or getattr(settings, "SMTP_PASSWORD", "")
+    destino = os.getenv("RESET_EMAIL_DESTINO") or getattr(settings, "RESET_EMAIL_DESTINO", "tecnicoplantagsb@gsbsecurity.com")
 
     # ── Si no hay credenciales SMTP configuradas, log y continuar (dev mode) ──
-    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        logger.warning(
-            "[DEV MODE] SMTP no configurado. Código de reset para '%s': %s",
-            cuenta_solicitante,
-            codigo,
-        )
+    if not smtp_user or not smtp_password:
+        msg = f"[DEV MODE] SMTP no configurado (SMTP_USER/SMTP_PASSWORD vacíos). Código de reset para '{cuenta_solicitante}': {codigo}"
+        print(msg)
+        logger.warning(msg)
         return True
+
+    print(f"[RESET EMAIL] Iniciando envío de código {codigo} a {destino} (cuenta solicitante: {cuenta_solicitante}) vía {smtp_host}:{smtp_port}...")
 
     asunto = "GS-Viáticos — Código de recuperación de contraseña"
 
@@ -126,7 +126,7 @@ def enviar_codigo_reset(cuenta_solicitante: str, codigo: str) -> bool:
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = asunto
-        msg["From"] = f"GS-Viáticos <{settings.SMTP_USER}>"
+        msg["From"] = f"GS-Viáticos <{smtp_user}>"
         msg["To"] = destino
 
         msg.attach(MIMEText(
@@ -138,12 +138,13 @@ def enviar_codigo_reset(cuenta_solicitante: str, codigo: str) -> bool:
         msg.attach(MIMEText(html_body, "html", "utf-8"))
 
         context = ssl.create_default_context()
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
             server.ehlo()
             server.starttls(context=context)
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-            server.sendmail(settings.SMTP_USER, destino, msg.as_string())
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, destino, msg.as_string())
 
+        print(f"[RESET EMAIL] ✅ Código {codigo} enviado con éxito a {destino} (solicitante: {cuenta_solicitante})")
         logger.info(
             "Código de reset enviado a %s (solicitante: %s)",
             destino,
@@ -152,5 +153,6 @@ def enviar_codigo_reset(cuenta_solicitante: str, codigo: str) -> bool:
         return True
 
     except Exception as exc:
+        print(f"[RESET EMAIL] ❌ Error crítico al enviar correo: {exc}")
         logger.error("Error al enviar correo de reset: %s", exc)
         return False
