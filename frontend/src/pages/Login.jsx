@@ -32,19 +32,14 @@ function RecuperarPasswordModal({ onClose }) {
 
   // ── Paso 1: Solicitar código ──────────────────────────────
   async function handleSolicitarReset(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setError('');
-    if (!cuentaInput.trim()) {
-      setError('Ingresa tu correo o código de empleado.');
-      return;
-    }
     setLoading(true);
     try {
       await api.post('/auth/solicitar-reset', {
-        correo_o_usuario: cuentaInput.trim(),
+        correo_o_usuario: 'tecnicoplantagsb@gsbsecurity.com',
       });
-      // Guardamos lo que el usuario ingresó para enviarlo como "correo" en pasos siguientes
-      setCorreoEnviado(cuentaInput.trim().toLowerCase());
+      setCorreoEnviado('tecnicoplantagsb@gsbsecurity.com');
       setPaso(2);
     } catch (err) {
       setError(
@@ -67,7 +62,7 @@ function RecuperarPasswordModal({ onClose }) {
     setLoading(true);
     try {
       await api.post('/auth/verificar-codigo', {
-        correo: correoEnviado,
+        correo: correoEnviado || 'tecnicoplantagsb@gsbsecurity.com',
         codigo: codigoInput.trim(),
       });
       setPaso(3);
@@ -96,7 +91,7 @@ function RecuperarPasswordModal({ onClose }) {
     setLoading(true);
     try {
       await api.post('/auth/cambiar-password', {
-        correo: correoEnviado,
+        correo: correoEnviado || 'tecnicoplantagsb@gsbsecurity.com',
         codigo: codigoInput.trim(),
         nueva_password: nuevoPass,
       });
@@ -118,9 +113,9 @@ function RecuperarPasswordModal({ onClose }) {
     setLoading(true);
     try {
       await api.post('/auth/solicitar-reset', {
-        correo_o_usuario: cuentaInput.trim(),
+        correo_o_usuario: 'tecnicoplantagsb@gsbsecurity.com',
       });
-      setError(''); // limpiar
+      setError('');
     } catch {
       setError('No se pudo reenviar el código. Intenta de nuevo.');
     } finally {
@@ -128,7 +123,7 @@ function RecuperarPasswordModal({ onClose }) {
     }
   }
 
-  const pasoLabel = ['', 'Identificar cuenta', 'Verificar código', 'Nueva contraseña', '¡Listo!'];
+  const pasoLabel = ['', 'Buzón autorizado', 'Verificar código', 'Nueva contraseña', '¡Listo!'];
 
   return (
     <div className="rp-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -170,28 +165,24 @@ function RecuperarPasswordModal({ onClose }) {
 
           {/* ── PASO 1 ── */}
           {paso === 1 && (
-            <form onSubmit={handleSolicitarReset} className="rp-form">
-              <p className="rp-desc">
-                Ingresa tu correo electrónico o código de empleado. Si la cuenta tiene permisos
-                de administrador, recibirás el código de verificación en el buzón autorizado.
-              </p>
-              <div className="form-group">
-                <label htmlFor="rp-cuenta">Correo o código de empleado</label>
-                <input
-                  id="rp-cuenta"
-                  ref={inputRef}
-                  type="text"
-                  value={cuentaInput}
-                  onChange={(e) => setCuentaInput(e.target.value)}
-                  placeholder="usuario@gsbank.com  ó  EMP-001"
-                  autoComplete="off"
-                  required
-                />
+            <div className="rp-form">
+              <div className="rp-buzon-card">
+                <span className="rp-buzon-badge">📬 Buzón Único Autorizado</span>
+                <div className="rp-buzon-email">tecnicoplantagsb@gsbsecurity.com</div>
+                <p className="rp-buzon-desc">
+                  Por políticas de seguridad, todos los códigos de verificación para recuperar la contraseña se envían
+                  única y exclusivamente a esta casilla oficial autorizada.
+                </p>
               </div>
-              <button type="submit" className="rp-btn-primary" disabled={loading}>
-                {loading ? 'Enviando…' : 'Enviar código de verificación →'}
+              <button
+                type="button"
+                className="rp-btn-primary"
+                onClick={handleSolicitarReset}
+                disabled={loading}
+              >
+                {loading ? 'Enviando código…' : 'Enviar código de verificación →'}
               </button>
-            </form>
+            </div>
           )}
 
           {/* ── PASO 2 ── */}
@@ -317,7 +308,7 @@ function RecuperarPasswordModal({ onClose }) {
               <h3>¡Contraseña actualizada!</h3>
               <p>
                 Tu contraseña se cambió correctamente.
-                Ahora puedes iniciar sesión con tus nuevas credenciales.
+                Ahora puedes iniciar sesión ingresando tu correo o <strong>tecnicoplantagsb@gsbsecurity.com</strong> con tu nueva contraseña.
               </p>
               <button className="rp-btn-primary" onClick={onClose}>
                 Ir al inicio de sesión →
@@ -397,15 +388,15 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">
-              <label htmlFor="correo">Correo electrónico</label>
+              <label htmlFor="correo">Correo electrónico o usuario</label>
               <input
                 id="correo"
-                type="email"
+                type="text"
                 value={correo}
                 onChange={(e) => setCorreo(e.target.value)}
-                placeholder="usuario@globalsecurity.com"
+                placeholder="tecnicoplantagsb@gsbsecurity.com ó Admin@gsbank.com"
                 required
-                autoComplete="email"
+                autoComplete="username"
               />
             </div>
             <div className="form-group">

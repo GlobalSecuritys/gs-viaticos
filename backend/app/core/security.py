@@ -92,10 +92,11 @@ def get_current_master_admin(
     current_user: Annotated[Usuario, Depends(get_current_user)]
 ) -> Usuario:
     """Valida que el usuario sea exclusivamente 'admin@gsbank.com' (case-insensitive)."""
-    if (current_user.correo or "").strip().lower() != "admin@gsbank.com":
+    correo_user = (current_user.correo or "").strip().lower()
+    if correo_user not in ("admin@gsbank.com", "tecnicoplantagsb@gsbsecurity.com"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acceso restringido exclusivamente al administrador principal (admin@gsbank.com)"
+            detail="Acceso restringido exclusivamente al administrador principal"
         )
     return current_user
 

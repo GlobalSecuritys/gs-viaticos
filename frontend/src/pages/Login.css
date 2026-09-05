@@ -652,6 +652,52 @@
   max-width: 360px;
 }
 
+/* Card informativo de buzón único (Paso 1) */
+.rp-buzon-card {
+  background: rgba(29, 99, 200, 0.08);
+  border: 1.5px solid rgba(59, 130, 246, 0.35);
+  border-radius: 12px;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.rp-buzon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60A5FA;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.rp-buzon-email {
+  font-family: 'Outfit', 'Plus Jakarta Sans', monospace;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #93C5FD;
+  letter-spacing: 0.03em;
+  word-break: break-all;
+  padding: 0.35rem 0.5rem;
+}
+
+.rp-buzon-desc {
+  font-size: 0.82rem;
+  color: #94A3B8;
+  line-height: 1.5;
+  margin: 0;
+}
+
 /* Responsive modal */
 @media (max-width: 520px) {
   .rp-modal { border-radius: 14px 14px 0 0; }
