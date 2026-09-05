@@ -698,6 +698,26 @@
   margin: 0;
 }
 
+/* Aviso compacto del buzón central (Paso 1) */
+.rp-buzon-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: rgba(29, 99, 200, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.82rem;
+  color: #94A3B8;
+  line-height: 1.5;
+  margin-bottom: 0.25rem;
+}
+
+.rp-buzon-notice strong {
+  color: #93C5FD;
+  font-weight: 600;
+}
+
 /* Responsive modal */
 @media (max-width: 520px) {
   .rp-modal { border-radius: 14px 14px 0 0; }
