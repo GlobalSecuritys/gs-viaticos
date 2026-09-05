@@ -14,6 +14,14 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str
     CLOUDINARY_API_SECRET: str
 
+    # SMTP — envío de correo para recuperación de contraseña
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    # Destino fijo donde llegan TODOS los códigos de recuperación
+    RESET_EMAIL_DESTINO: str = "tecnicoplantagsb@gsbsecurity.com"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -274,3 +274,390 @@
     padding: 2rem 1.5rem;
   }
 }
+
+/* ═══════════════════════════════════════════════════
+   "¿Olvidaste tu contraseña?" — link debajo del campo
+   ═══════════════════════════════════════════════════ */
+.login-forgot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -0.5rem;
+}
+
+.login-forgot-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-accent-blue);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.login-forgot-btn:hover {
+  color: #1D63C8;
+  opacity: 0.85;
+}
+
+/* ═══════════════════════════════════════════════════
+   Modal de Recuperación de Contraseña (prefijo: rp-)
+   ═══════════════════════════════════════════════════ */
+
+/* Backdrop con blur */
+.rp-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 13, 30, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+  animation: rp-fade-in 0.2s ease;
+}
+
+@keyframes rp-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Card principal */
+.rp-modal {
+  background: var(--color-bg-secondary, #1C2333);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(7, 13, 30, 0.50);
+  overflow: hidden;
+  animation: rp-slide-up 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes rp-slide-up {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Header del modal */
+.rp-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 1.75rem 1.25rem;
+  background: linear-gradient(135deg, #0A2540 0%, #11365F 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.rp-header-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.rp-title {
+  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.rp-subtitle {
+  font-size: 0.78rem;
+  color: #93C5FD;
+  margin: 0.2rem 0 0;
+  font-weight: 600;
+}
+
+.rp-close {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #CBD5E1;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.rp-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+}
+
+/* Stepper */
+.rp-stepper {
+  display: flex;
+  gap: 0;
+  padding: 1rem 1.75rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rp-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  position: relative;
+  padding-right: 0.5rem;
+}
+
+.rp-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.rp-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  color: #6B7280;
+  transition: all 0.2s ease;
+}
+
+.rp-step.active .rp-step-num {
+  background: #1D63C8;
+  border-color: #3B82F6;
+  color: #FFFFFF;
+  box-shadow: 0 0 0 4px rgba(29, 99, 200, 0.2);
+}
+
+.rp-step.done .rp-step-num {
+  background: #059669;
+  border-color: #10B981;
+  color: #FFFFFF;
+}
+
+.rp-step-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+.rp-step.active .rp-step-label {
+  color: #93C5FD;
+}
+
+.rp-step.done .rp-step-label {
+  color: #6EE7B7;
+}
+
+/* Error banner */
+.rp-error {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 1rem 1.75rem 0;
+  padding: 0.75rem 1rem;
+  background: rgba(220, 38, 38, 0.12);
+  border: 1px solid rgba(220, 38, 38, 0.28);
+  border-radius: 10px;
+  color: #FCA5A5;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+/* Cuerpo del modal */
+.rp-body {
+  padding: 1.5rem 1.75rem 1.75rem;
+}
+
+.rp-desc {
+  font-size: 0.86rem;
+  color: var(--color-text-muted, #94A3B8);
+  line-height: 1.65;
+  margin: 0 0 1.35rem;
+}
+
+/* Formulario interno */
+.rp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+/* Input OTP grande y centrado */
+.rp-code-input {
+  text-align: center;
+  font-family: 'Courier New', 'Consolas', monospace !important;
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.35em !important;
+  padding: 0.9rem 1rem !important;
+}
+
+/* Wrapper para input de contraseña con ojo */
+.rp-pass-wrap {
+  position: relative;
+  display: flex;
+}
+
+.rp-pass-wrap input {
+  flex: 1;
+  padding-right: 3rem !important;
+}
+
+.rp-eye {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.65;
+  transition: opacity 0.15s;
+}
+
+.rp-eye:hover { opacity: 1; }
+
+/* Indicador de fuerza de contraseña */
+.rp-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: -0.4rem;
+}
+
+.rp-strength-bar {
+  height: 5px;
+  border-radius: 99px;
+  transition: width 0.3s ease, background 0.3s ease;
+  background: #EF4444;
+}
+
+.rp-strength-bar.medium { background: #F59E0B; }
+.rp-strength-bar.strong { background: #10B981; }
+
+.rp-strength-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted, #94A3B8);
+  white-space: nowrap;
+}
+
+/* Botones del modal */
+.rp-btn-primary {
+  padding: 0.82rem 1.25rem;
+  background: linear-gradient(135deg, #0A2540 0%, #1D63C8 100%);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(29, 99, 200, 0.25);
+}
+
+.rp-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #11365F 0%, #2563EB 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(29, 99, 200, 0.38);
+}
+
+.rp-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.rp-btn-ghost {
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  color: var(--color-text-muted, #94A3B8);
+  border-radius: 10px;
+  padding: 0.65rem 1.25rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rp-btn-ghost:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.24);
+  color: var(--color-text, #E2E8F0);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rp-btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Pantalla de éxito */
+.rp-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.rp-success-icon {
+  font-size: 3.5rem;
+  animation: rp-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes rp-pop {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.rp-success h3 {
+  margin: 0;
+  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-text, #E2E8F0);
+}
+
+.rp-success p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-text-muted, #94A3B8);
+  line-height: 1.6;
+  max-width: 360px;
+}
+
+/* Responsive modal */
+@media (max-width: 520px) {
+  .rp-modal { border-radius: 14px 14px 0 0; }
+  .rp-backdrop { align-items: flex-end; padding: 0; }
+  .rp-header { padding: 1.25rem 1.25rem 1rem; }
+  .rp-body { padding: 1.25rem; }
+  .rp-stepper { padding: 0.85rem 1.25rem 0.65rem; }
+  .rp-error { margin: 0.75rem 1.25rem 0; }
+}

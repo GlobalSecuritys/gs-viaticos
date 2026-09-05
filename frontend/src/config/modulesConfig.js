@@ -164,3 +164,76 @@ export function getModuleById(moduleId) {
 export function isAdminMaster(user) {
   return (user?.correo || '').trim().toLowerCase() === 'admin@gsbank.com';
 }
+
+/**
+ * Asignación de módulos operativos a procesos del Mapa SGC:
+ * - Operaciones (OP) → Viáticos & Operaciones
+ * - Mejora Continua (MC) → Backup & Evidencias
+ * - Administrativo (AD) → Talento Humano
+ * Los demás procesos (SS, GR, CO, CI, SA) no tienen módulo operativo asociado.
+ */
+export const MODULOS_SGC_ASOCIADOS = {
+  OP: {
+    codigo: 'OP',
+    moduloId: 'viaticos',
+    nombre: 'Viáticos & Operaciones',
+    badge: 'OPERATIVO',
+    colorTheme: 'blue',
+    colorHex: '#3B82F6',
+    descripcion: 'Control de gastos operativos, liquidaciones de campo, asignaciones técnicas, cuentas de cobro y reportes.',
+    ruta: '/admin',
+    botonTexto: 'Ingresar a Viáticos & Operaciones',
+    chips: [
+      { label: 'Liquidaciones', icon: '📋', path: '/admin' },
+      { label: 'Gastos & Facturas', icon: '💳', path: '/admin' },
+      { label: 'Técnicos & OT', icon: '👷', path: '/admin' },
+      { label: 'Cuentas de Cobro', icon: '💵', path: '/admin/cuentas-cobro' },
+      { label: 'Reportes Excel', icon: '📊', path: '/admin' },
+    ],
+    puedeAcceder: (user) => (user?.rol === 'admin' || user?.rol === 'superadmin') && user?.acceso_viaticos !== false,
+    lockReason: 'Tu cuenta no tiene habilitado el acceso a Viáticos & Operaciones. Por favor solicita al Administrador Master (admin@gsbank.com) que active tus permisos.',
+  },
+  MC: {
+    codigo: 'MC',
+    moduloId: 'backup',
+    nombre: 'Backup & Evidencias',
+    badge: 'BACKUP',
+    colorTheme: 'gold',
+    colorHex: '#F59E0B',
+    descripcion: 'Visor masivo de comprobantes, organización por oficinas y descarga comprimida en ZIP de soportes contables y operativos.',
+    ruta: '/admin/backup',
+    botonTexto: 'Ingresar a Backup & Evidencias',
+    chips: [
+      { label: 'Visor Comprobantes', icon: '🖼️', path: '/admin/backup' },
+      { label: 'Por Oficinas', icon: '🏢', path: '/admin/backup' },
+      { label: 'Descargas ZIP', icon: '📦', path: '/admin/backup' },
+    ],
+    puedeAcceder: (user) => user?.rol === 'admin' || user?.rol === 'superadmin',
+    lockReason: 'El módulo de Backup & Evidencias requiere privilegios de Administrador o Superadministrador.',
+  },
+  AD: {
+    codigo: 'AD',
+    moduloId: 'talento',
+    nombre: 'Talento Humano',
+    badge: 'TALENTO HUMANO',
+    colorTheme: 'green',
+    colorHex: '#10B981',
+    descripcion: 'Gestión integral de colaboradores, contratos laborales, dotaciones y expedientes de personal.',
+    ruta: '/talento-humano',
+    botonTexto: 'Ingresar a Talento Humano',
+    chips: [
+      { label: 'Directorio Personal', icon: '👤', path: '/talento-humano' },
+      { label: 'Contratos & Docs', icon: '📄', path: '/talento-humano' },
+      { label: 'Dotación & EPP', icon: '🦺', path: '/talento-humano' },
+      { label: 'Solicitudes', icon: '📝', path: '/talento-humano' },
+    ],
+    puedeAcceder: (user) => user?.rol === 'admin' || user?.rol === 'superadmin',
+    lockReason: 'El módulo de Talento Humano requiere privilegios de Administrador o Superadministrador.',
+  },
+};
+
+export function getModuloSGCAsociado(codigo) {
+  if (!codigo) return null;
+  const key = String(codigo).trim().toUpperCase();
+  return MODULOS_SGC_ASOCIADOS[key] || null;
+}

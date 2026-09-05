@@ -439,3 +439,328 @@
   align-items: center;
   gap: 0.5rem;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Sección y Tarjeta del Módulo Operativo Vinculado
+   ══════════════════════════════════════════════════════════════ */
+.sgc-det-modulo-section {
+  margin-bottom: 2.25rem;
+}
+
+.sgc-det-modulo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.sgc-det-modulo-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sgc-det-modulo-kicker {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.sgc-det-modulo-heading {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.sgc-det-modulo-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  color: #ffffff;
+}
+
+.sgc-det-modulo-badge--blue {
+  background: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.sgc-det-modulo-badge--gold {
+  background: #d97706;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.25);
+}
+
+.sgc-det-modulo-badge--green {
+  background: #059669;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
+}
+
+/* Tarjeta Principal */
+.sgc-det-modulo-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  border: 2px solid transparent;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.sgc-det-modulo-card:hover {
+  transform: translateY(-2px);
+}
+
+.sgc-det-modulo-card--blue {
+  border-color: #bfdbfe;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+}
+.sgc-det-modulo-card--blue:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.14);
+}
+
+.sgc-det-modulo-card--gold {
+  border-color: #fde68a;
+  background: linear-gradient(135deg, #ffffff 0%, #fffdf5 100%);
+}
+.sgc-det-modulo-card--gold:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.16);
+}
+
+.sgc-det-modulo-card--green {
+  border-color: #bbf7d0;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+.sgc-det-modulo-card--green:hover {
+  border-color: #10b981;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.14);
+}
+
+/* Parte superior de la tarjeta */
+.sgc-det-modulo-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.15rem;
+}
+
+.sgc-det-modulo-icon-box {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.sgc-det-modulo-card--blue .sgc-det-modulo-icon-box {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1.5px solid #bfdbfe;
+}
+
+.sgc-det-modulo-card--gold .sgc-det-modulo-icon-box {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1.5px solid #fde68a;
+}
+
+.sgc-det-modulo-card--green .sgc-det-modulo-icon-box {
+  background: #d1fae5;
+  color: #047857;
+  border: 1.5px solid #a7f3d0;
+}
+
+.sgc-det-modulo-card:hover .sgc-det-modulo-icon-box {
+  transform: scale(1.08) rotate(-2deg);
+}
+
+.sgc-det-modulo-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sgc-det-modulo-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.35rem;
+}
+
+.sgc-det-modulo-card-title {
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.sgc-det-modulo-desc {
+  font-size: 0.88rem;
+  color: #475569;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Chips de funciones */
+.sgc-det-modulo-chips-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed rgba(203, 213, 225, 0.9);
+}
+
+.sgc-det-chips-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sgc-det-modulo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sgc-det-modulo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 9px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+}
+
+.sgc-det-modulo-chip:hover {
+  background: #f8fafc;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+.sgc-det-chip-icon {
+  font-size: 0.9rem;
+}
+
+/* Botón CTA del Módulo */
+.sgc-det-modulo-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+}
+
+.sgc-btn-modulo-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 1.45rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+  transition: all 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+.sgc-btn-modulo-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+}
+
+.sgc-btn-modulo-cta--blue {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+}
+.sgc-btn-modulo-cta--blue:hover {
+  background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+}
+
+.sgc-btn-modulo-cta--gold {
+  background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
+}
+.sgc-btn-modulo-cta--gold:hover {
+  background: linear-gradient(135deg, #92400e 0%, #b45309 100%);
+}
+
+.sgc-btn-modulo-cta--green {
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+}
+.sgc-btn-modulo-cta--green:hover {
+  background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+}
+
+/* Estados Locked / Candado */
+.sgc-det-modulo-card--locked {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-color: #cbd5e1 !important;
+  opacity: 0.88;
+  cursor: not-allowed;
+}
+
+.sgc-det-modulo-card--locked:hover {
+  border-color: #f87171 !important;
+}
+
+.sgc-det-lock-icon {
+  font-size: 1.5rem;
+}
+
+.sgc-det-lock-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: #475569;
+  color: #ffffff;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.sgc-det-modulo-chip--locked {
+  cursor: not-allowed !important;
+  opacity: 0.75;
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+.sgc-det-modulo-chip--locked:hover {
+  transform: none !important;
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #b91c1c !important;
+}
+
+.sgc-btn-modulo-cta--locked {
+  background: #64748b !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+.sgc-btn-modulo-cta--locked:hover {
+  transform: none !important;
+  background: #475569 !important;
+}
+

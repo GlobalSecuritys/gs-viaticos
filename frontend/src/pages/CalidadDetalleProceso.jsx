@@ -11,6 +11,7 @@ import {
   eliminarDocumentoProceso,
 } from '../services/calidadProcesos';
 import { esAdminCalidad } from '../utils/permisos';
+import { getModuloSGCAsociado } from '../config/modulesConfig';
 import logoGSB from '../assets/logo-gsb.png';
 import './CalidadDetalleProceso.css';
 
@@ -84,6 +85,23 @@ export default function CalidadDetalleProceso() {
   const [editDocVersion, setEditDocVersion] = useState('v1');
   const [editDocDescripcion, setEditDocDescripcion] = useState('');
   const [guardandoDoc, setGuardandoDoc] = useState(false);
+
+  // Módulo Operativo Asociado y estado de bloqueo
+  const [lockAlert, setLockAlert] = useState(null);
+  const moduloOperativo = getModuloSGCAsociado(proceso?.codigo);
+  const tieneAccesoModulo = moduloOperativo ? moduloOperativo.puedeAcceder(user) : false;
+
+  const handleAccesoModulo = (ruta) => {
+    if (!moduloOperativo) return;
+    if (!tieneAccesoModulo) {
+      setLockAlert({
+        modulo: moduloOperativo.nombre,
+        razon: moduloOperativo.lockReason,
+      });
+    } else {
+      navigate(ruta || moduloOperativo.ruta);
+    }
+  };
 
   const isAdmin = esAdminCalidad(user);
 
@@ -313,6 +331,113 @@ export default function CalidadDetalleProceso() {
                 {proceso.descripcion || 'Sin descripción registrada para este proceso.'}
               </p>
             </div>
+
+            {/* ── MÓDULO OPERATIVO ASOCIADO (SOLO EN NODOS CON MÓDULO) ── */}
+            {moduloOperativo && (
+              <section className="sgc-det-modulo-section" aria-label="Módulo Operativo Vinculado">
+                <div className="sgc-det-modulo-header">
+                  <div className="sgc-det-modulo-title-wrap">
+                    <span className="sgc-det-modulo-kicker">⚡ MÓDULO OPERATIVO VINCULADO</span>
+                    <h3 className="sgc-det-modulo-heading">{moduloOperativo.nombre}</h3>
+                  </div>
+                  <span className={`sgc-det-modulo-badge sgc-det-modulo-badge--${moduloOperativo.colorTheme}`}>
+                    {moduloOperativo.badge}
+                  </span>
+                </div>
+
+                <div
+                  className={`sgc-det-modulo-card sgc-det-modulo-card--${moduloOperativo.colorTheme} ${!tieneAccesoModulo ? 'sgc-det-modulo-card--locked' : ''}`}
+                  onClick={() => handleAccesoModulo(moduloOperativo.ruta)}
+                  title={!tieneAccesoModulo ? `🔒 Acceso restringido a ${moduloOperativo.nombre}` : `Haga clic para ingresar al módulo de ${moduloOperativo.nombre}`}
+                >
+                  <div className="sgc-det-modulo-card-top">
+                    <div className="sgc-det-modulo-icon-box">
+                      {!tieneAccesoModulo ? (
+                        <span className="sgc-det-lock-icon" aria-hidden="true">🔒</span>
+                      ) : moduloOperativo.colorTheme === 'blue' ? (
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="3" />
+                          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                      ) : moduloOperativo.colorTheme === 'gold' ? (
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                          <polyline points="10 9 9 9 8 9" />
+                        </svg>
+                      ) : (
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                          <circle cx="9" cy="7" r="4" />
+                          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="sgc-det-modulo-info">
+                      <div className="sgc-det-modulo-card-title-row">
+                        <h4 className="sgc-det-modulo-card-title">{moduloOperativo.nombre}</h4>
+                        {!tieneAccesoModulo && (
+                          <span className="sgc-det-lock-badge">🔒 SIN ACCESO</span>
+                        )}
+                      </div>
+                      <p className="sgc-det-modulo-desc">{moduloOperativo.descripcion}</p>
+                    </div>
+                  </div>
+
+                  <div className="sgc-det-modulo-chips-wrap">
+                    <span className="sgc-det-chips-label">Funciones y accesos directos:</span>
+                    <div className="sgc-det-modulo-chips">
+                      {moduloOperativo.chips.map((chip) => (
+                        <button
+                          key={chip.label}
+                          type="button"
+                          className={`sgc-det-modulo-chip ${!tieneAccesoModulo ? 'sgc-det-modulo-chip--locked' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAccesoModulo(chip.path);
+                          }}
+                          title={!tieneAccesoModulo ? `🔒 Acceso bloqueado a ${chip.label}` : `Acceso directo a ${chip.label}`}
+                        >
+                          <span className="sgc-det-chip-icon">{!tieneAccesoModulo ? '🔒' : chip.icon}</span>
+                          <span className="sgc-det-chip-label">{chip.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="sgc-det-modulo-actions">
+                    <button
+                      type="button"
+                      className={`sgc-btn-modulo-cta sgc-btn-modulo-cta--${moduloOperativo.colorTheme} ${!tieneAccesoModulo ? 'sgc-btn-modulo-cta--locked' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAccesoModulo(moduloOperativo.ruta);
+                      }}
+                    >
+                      {!tieneAccesoModulo ? (
+                        <>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                          </svg>
+                          <span>Acceso Restringido</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>{moduloOperativo.botonTexto}</span>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </section>
+            )}
 
             {/* ── SECCIÓN 1: RESPONSABLES DEL PROCESO ── */}
             <section className="sgc-det-section">
@@ -754,6 +879,35 @@ export default function CalidadDetalleProceso() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL / DIÁLOGO DE ACCESO RESTRINGIDO (CANDADO) ── */}
+      {lockAlert && (
+        <div className="sgc-lock-backdrop" onClick={() => setLockAlert(null)}>
+          <div className="sgc-lock-dialog" onClick={(e) => e.stopPropagation()} role="alertdialog">
+            <div className="sgc-lock-dialog-icon">🔒</div>
+            <div className="sgc-lock-dialog-content">
+              <h3 className="sgc-lock-dialog-title">Acceso Restringido</h3>
+              <div className="sgc-lock-dialog-module">{lockAlert.modulo}</div>
+              <p className="sgc-lock-dialog-text">{lockAlert.razon}</p>
+              <div className="sgc-lock-dialog-tip">
+                <span>💡</span>
+                <span>
+                  Puedes consultar y gestionar libremente los colaboradores, fichas y documentación SGC de este proceso en esta pantalla.
+                </span>
+              </div>
+            </div>
+            <div className="sgc-lock-dialog-actions">
+              <button
+                type="button"
+                className="sgc-lock-dialog-btn"
+                onClick={() => setLockAlert(null)}
+              >
+                Entendido
+              </button>
+            </div>
           </div>
         </div>
       )}
