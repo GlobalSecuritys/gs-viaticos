@@ -30,6 +30,8 @@ export function AuthProvider({ children }) {
               codigo_empleado: data.codigo_empleado,
               acceso_viaticos: Boolean(data.acceso_viaticos),
               es_admin_calidad: Boolean(data.es_admin_calidad),
+              acceso_mapa: (data.correo || '').trim().toLowerCase() === 'pilaradmin@gsbank.com' ? true : Boolean(data.acceso_mapa),
+              rol_mapa: (data.correo || '').trim().toLowerCase() === 'pilaradmin@gsbank.com' ? 'editor' : (data.rol_mapa || 'lector'),
             };
             localStorage.setItem('gs_user', JSON.stringify(updated));
             return updated;
@@ -56,6 +58,7 @@ export function AuthProvider({ children }) {
 
     // Decodificar payload del JWT para obtener datos del usuario
     const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+    const isPilar = (payload.sub || '').trim().toLowerCase() === 'pilaradmin@gsbank.com';
     let userData = {
       correo: payload.sub,
       rol: payload.rol,
@@ -63,6 +66,9 @@ export function AuthProvider({ children }) {
       nombre: payload.nombre,
       codigo_empleado: payload.codigo_empleado,
       acceso_viaticos: Boolean(payload.acceso_viaticos),
+      es_admin_calidad: isPilar ? true : Boolean(payload.es_admin_calidad),
+      acceso_mapa: isPilar ? true : Boolean(payload.acceso_mapa),
+      rol_mapa: isPilar ? 'editor' : (payload.rol_mapa || 'lector'),
     };
 
     // Si por alguna razón nombre no viene en el payload, obtenerlo de /auth/me

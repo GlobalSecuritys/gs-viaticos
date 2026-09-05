@@ -615,3 +615,116 @@
     transform: rotate(90deg);
   }
 }
+
+/* ── Badges de modo en Topbar ── */
+.sgc-admin-mode-pill--pilar {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.2) 100%);
+  border-color: #f59e0b;
+  color: #b45309;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+}
+
+.sgc-admin-mode-pill--editor {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: #a855f7;
+  color: #7e22ce;
+}
+
+.sgc-admin-mode-pill--lector {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+/* ── Pantalla de Acceso Restringido al Mapa ── */
+.sgc-restricted-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 2rem;
+}
+
+.sgc-restricted-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 3rem 2.5rem;
+  max-width: 540px;
+  text-align: center;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sgc-restricted-icon-box {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: #fef2f2;
+  border: 2px solid #fecaca;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+.sgc-restricted-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 0.75rem 0;
+}
+
+.sgc-restricted-text {
+  font-size: 0.95rem;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0 0 1.5rem 0;
+}
+
+.sgc-restricted-authority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: #92400e;
+  margin-bottom: 1.25rem;
+}
+
+.sgc-restricted-authority-badge strong {
+  color: #78350f;
+}
+
+.sgc-restricted-note {
+  font-size: 0.84rem;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 2rem 0;
+}
+
+.sgc-restricted-btn {
+  padding: 0.85rem 1.8rem;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+}
+
+.sgc-restricted-btn:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.25);
+}

@@ -4,7 +4,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.cloudinary import eliminar_archivo_cloudinary, upload_documento_calidad_procesos
-from app.core.security import get_current_admin_calidad, get_current_user
+from app.core.security import (
+    get_current_admin_calidad,
+    get_current_pilar_admin,
+    get_current_user,
+    validar_acceso_mapa,
+)
 from app.database import get_db
 from app.models.calidad_procesos import (
     ProcesoCalidad,
@@ -13,6 +18,8 @@ from app.models.calidad_procesos import (
 )
 from app.models.usuario import Usuario
 from app.schemas.calidad_procesos import (
+    AdminPermisoMapaItem,
+    AdminPermisoMapaUpdate,
     ProcesoCalidadDetailResponse,
     ProcesoCalidadDocumentoResponse,
     ProcesoCalidadDocumentoUpdate,
@@ -118,12 +125,12 @@ def seed_procesos_calidad_si_vacio(db: Session) -> None:
 
 
 # -----------------------------------------------------------------------------
-# ENDPOINTS DE LECTURA (Cualquier usuario autenticado)
+# ENDPOINTS DE LECTURA (Requieren autorización de acceso al mapa)
 # -----------------------------------------------------------------------------
 @router.get("", response_model=List[ProcesoCalidadListResponse])
 def listar_procesos(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[Usuario, Depends(get_current_user)],
+    current_user: Annotated[Usuario, Depends(validar_acceso_mapa)],
 ):
     """Devuelve todos los procesos de calidad ordenados por categoría y orden, con sus responsables y total de documentos."""
     seed_procesos_calidad_si_vacio(db)
@@ -176,7 +183,7 @@ def listar_procesos(
 def listar_procesos_por_categoria(
     categoria: str,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[Usuario, Depends(get_current_user)],
+    current_user: Annotated[Usuario, Depends(validar_acceso_mapa)],
 ):
     """Devuelve los procesos filtrados por categoría ('direccion', 'misional', 'apoyo')."""
     cat_limpia = categoria.strip().lower()
@@ -228,7 +235,7 @@ def listar_procesos_por_categoria(
 @router.get("/usuarios-disponibles", response_model=List[ResponsableUsuarioSimple])
 def listar_usuarios_disponibles(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[Usuario, Depends(get_current_user)],
+    current_user: Annotated[Usuario, Depends(validar_acceso_mapa)],
 ):
     """Devuelve la lista de usuarios activos para asignar como responsables en Calidad de Procesos."""
     stmt = select(Usuario).where(Usuario.activo == True).order_by(Usuario.nombre)
@@ -244,11 +251,96 @@ def listar_usuarios_disponibles(
     ]
 
 
+# -----------------------------------------------------------------------------
+# CONTROL EXCLUSIVO DE ACCESOS Y ROLES DEL MAPA (Solo PilarAdmin@gsbank.com)
+# -----------------------------------------------------------------------------
+@router.get("/permisos-admins", response_model=List[AdminPermisoMapaItem])
+def listar_permisos_admins(
+    db: Annotated[Session, Depends(get_db)],
+    current_pilar: Annotated[Usuario, Depends(get_current_pilar_admin)],
+):
+    """[Exclusivo PilarAdmin] Devuelve la lista de todos los administradores del sistema con su estado de acceso y rol en el mapa."""
+    stmt = (
+        select(Usuario)
+        .where(Usuario.rol.in_(["admin", "superadmin"]))
+        .order_by(Usuario.nombre)
+    )
+    admins = db.scalars(stmt).all()
+
+    items = []
+    for a in admins:
+        correo_clean = (a.correo or "").strip().lower()
+        es_pilar = correo_clean == "pilaradmin@gsbank.com"
+        items.append(
+            AdminPermisoMapaItem(
+                id=a.id,
+                nombre=a.nombre,
+                correo=a.correo,
+                codigo_empleado=a.codigo_empleado,
+                rol=a.rol,
+                activo=a.activo,
+                acceso_mapa=True if es_pilar else getattr(a, "acceso_mapa", False),
+                rol_mapa="editor" if es_pilar else (getattr(a, "rol_mapa", None) or "lector"),
+                es_pilar=es_pilar,
+            )
+        )
+
+    items.sort(key=lambda x: (not x.es_pilar, x.nombre.lower()))
+    return items
+
+
+@router.put("/permisos-admins/{usuario_id}", response_model=AdminPermisoMapaItem)
+def actualizar_permiso_admin_mapa(
+    usuario_id: int,
+    payload: AdminPermisoMapaUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    current_pilar: Annotated[Usuario, Depends(get_current_pilar_admin)],
+):
+    """[Exclusivo PilarAdmin] Actualiza el acceso al mapa y el rol SGC de un administrador."""
+    target_user = db.get(Usuario, usuario_id)
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+
+    correo_target = (target_user.correo or "").strip().lower()
+    if correo_target == "pilaradmin@gsbank.com":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se pueden alterar los permisos de la Administradora Principal del Mapa (PilarAdmin).",
+        )
+
+    rol_limpio = payload.rol_mapa.strip().lower()
+    if rol_limpio not in ("lector", "editor"):
+        rol_limpio = "lector"
+
+    target_user.acceso_mapa = payload.acceso_mapa
+    target_user.rol_mapa = rol_limpio
+
+    if target_user.acceso_mapa and target_user.rol_mapa == "editor":
+        target_user.es_admin_calidad = True
+    else:
+        target_user.es_admin_calidad = False
+
+    db.commit()
+    db.refresh(target_user)
+
+    return AdminPermisoMapaItem(
+        id=target_user.id,
+        nombre=target_user.nombre,
+        correo=target_user.correo,
+        codigo_empleado=target_user.codigo_empleado,
+        rol=target_user.rol,
+        activo=target_user.activo,
+        acceso_mapa=target_user.acceso_mapa,
+        rol_mapa=target_user.rol_mapa,
+        es_pilar=False,
+    )
+
+
 @router.get("/{id}", response_model=ProcesoCalidadDetailResponse)
 def obtener_detalle_proceso(
     id: int,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[Usuario, Depends(get_current_user)],
+    current_user: Annotated[Usuario, Depends(validar_acceso_mapa)],
 ):
     """Devuelve la información completa de un proceso puntual: metadatos, responsables y documentos cargados."""
     stmt = (

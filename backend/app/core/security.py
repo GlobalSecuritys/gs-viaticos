@@ -117,15 +117,50 @@ def verificar_autoridad_sobre_usuario(
             detail="Un administrador no puede realizar acciones administrativas sobre un Super Administrador"
         )
 
+def get_current_pilar_admin(
+    current_user: Annotated[Usuario, Depends(get_current_user)]
+) -> Usuario:
+    """Exclusivo para PilarAdmin@gsbank.com para configurar accesos y roles del mapa."""
+    correo = (current_user.correo or "").strip().lower()
+    if correo != "pilaradmin@gsbank.com":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso restringido: Solo PilarAdmin@gsbank.com tiene la potestad de gestionar los accesos y roles del Mapa de Procesos SGC."
+        )
+    return current_user
+
+
+def validar_acceso_mapa(
+    current_user: Annotated[Usuario, Depends(get_current_user)]
+) -> Usuario:
+    """Valida que el usuario tenga permiso para ver o ingresar al mapa SGC."""
+    correo = (current_user.correo or "").strip().lower()
+    if correo == "pilaradmin@gsbank.com":
+        return current_user
+    if getattr(current_user, "acceso_mapa", False) is True:
+        return current_user
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Acceso restringido: No tienes autorización para ingresar al Mapa de Procesos SGC. Contacta a PilarAdmin@gsbank.com para solicitar acceso."
+    )
+
+
 def get_current_admin_calidad(
     current_user: Annotated[Usuario, Depends(get_current_user)]
 ) -> Usuario:
-    """Valida que el usuario tenga privilegios de administración en Calidad de Procesos (PilarAdmin o Superadmin o flag es_admin_calidad)."""
+    """Valida que el usuario tenga privilegios de edición en Calidad de Procesos (PilarAdmin o rol_mapa == 'editor' con acceso_mapa)."""
     correo = (current_user.correo or "").strip().lower()
-    es_admin_calidad = getattr(current_user, "es_admin_calidad", False)
-    if not (es_admin_calidad or correo == "pilaradmin@gsbank.com" or current_user.rol == "superadmin"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acceso restringido al Administrador de Calidad de Procesos (PilarAdmin@gsbank.com)"
-        )
-    return current_user
+    if correo == "pilaradmin@gsbank.com":
+        return current_user
+
+    acceso = getattr(current_user, "acceso_mapa", False)
+    rol_mapa = getattr(current_user, "rol_mapa", "lector")
+    es_admin = getattr(current_user, "es_admin_calidad", False)
+
+    if acceso and (rol_mapa == "editor" or es_admin):
+        return current_user
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Acceso restringido: Solo PilarAdmin@gsbank.com o administradores asignados como Editores SGC pueden modificar el mapa y la documentación."
+    )

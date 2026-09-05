@@ -20,6 +20,8 @@ class Usuario(Base):
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true", default=True)
     acceso_viaticos: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false", default=False)
     es_admin_calidad: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false", default=False)
+    acceso_mapa: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false", default=False)
+    rol_mapa: Mapped[str] = mapped_column(String(20), nullable=False, server_default="lector", default="lector")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         nullable=False,

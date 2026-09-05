@@ -65,3 +65,13 @@ export async function obtenerUsuariosDisponibles() {
   return res.data;
 }
 
+export async function listarPermisosAdminsMapa() {
+  const res = await api.get('/calidad-procesos/permisos-admins');
+  return res.data;
+}
+
+export async function actualizarPermisoAdminMapa(usuarioId, data) {
+  const res = await api.put(`/calidad-procesos/permisos-admins/${usuarioId}`, data);
+  return res.data;
+}
+

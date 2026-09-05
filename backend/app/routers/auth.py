@@ -161,6 +161,8 @@ def login(
             detail="El usuario se encuentra inactivo"
         )
 
+    correo_clean = (usuario.correo or "").strip().lower()
+    es_pilar = correo_clean == "pilaradmin@gsbank.com"
     access_token = create_access_token(data={
         "sub": usuario.correo,
         "rol": usuario.rol,
@@ -168,7 +170,9 @@ def login(
         "nombre": usuario.nombre,
         "codigo_empleado": usuario.codigo_empleado,
         "acceso_viaticos": usuario.acceso_viaticos,
-        "es_admin_calidad": getattr(usuario, "es_admin_calidad", False),
+        "es_admin_calidad": True if es_pilar else getattr(usuario, "es_admin_calidad", False),
+        "acceso_mapa": True if es_pilar else getattr(usuario, "acceso_mapa", False),
+        "rol_mapa": "editor" if es_pilar else getattr(usuario, "rol_mapa", "lector"),
     })
     return Token(access_token=access_token, token_type="bearer")
 
@@ -185,7 +189,7 @@ def obtener_usuario_actual(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PASO 1 — Solicitar código OTP (exclusivamente a tecnicoplantagsb@gsbsecurity.com)
+# PASO 1 — Solicitar código OTP (el código llega a tecnicoplantagsb@gsbsecurity.com)
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.post("/solicitar-reset")
@@ -194,30 +198,37 @@ def solicitar_reset(
     db: Annotated[Session, Depends(get_db)]
 ):
     """
-    Genera un código OTP de 6 dígitos y lo envía única y exclusivamente al buzón fijo
-    tecnicoplantagsb@gsbsecurity.com para recuperar la cuenta del administrador.
+    Busca la cuenta específica que el usuario desea restablecer.
+    Genera el código OTP de 6 dígitos y lo envía a la casilla central
+    tecnicoplantagsb@gsbsecurity.com indicando de qué cuenta es la solicitud.
     """
     _limpiar_expirados()
 
     termino = (body.correo_o_usuario or "").strip().lower()
+    if not termino:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Por favor ingresa tu correo electrónico o código de empleado."
+        )
+
     print(f"[AUTH RESET] Solicitud de reset recibida para término: '{termino}'")
 
-    # Identificar el usuario objetivo (por defecto el superadmin principal ID 4)
-    usuario = None
-    if termino and termino not in ("tecnicoplantagsb@gsbsecurity.com", "admin", "admin@gsbank.com"):
-        stmt = select(Usuario).where(
-            (func.lower(Usuario.correo) == termino) |
-            (func.lower(func.coalesce(Usuario.codigo_empleado, "")) == termino) |
-            (func.lower(Usuario.nombre) == termino)
+    # Buscar la cuenta por correo, código de empleado o nombre
+    stmt = select(Usuario).where(
+        (func.lower(Usuario.correo) == termino) |
+        (func.lower(func.coalesce(Usuario.codigo_empleado, "")) == termino) |
+        (func.lower(Usuario.nombre) == termino)
+    )
+    usuario = db.scalar(stmt)
+
+    if not usuario or not usuario.activo:
+        print(f"[AUTH RESET] ❌ No se encontró usuario activo para '{termino}'")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No se encontró ninguna cuenta activa con el correo o usuario '{termino}'. Verifica los datos ingresados."
         )
-        usuario = db.scalar(stmt)
 
-    if not usuario:
-        usuario = db.scalar(select(Usuario).where(Usuario.id == 4))
-
-    target_id = usuario.id if usuario else 4
-    target_correo = usuario.correo.strip().lower() if usuario else "admin@gsbank.com"
-
+    correo_norm = usuario.correo.strip().lower()
     codigo = _generar_codigo()
     now = time.time()
 
@@ -226,18 +237,24 @@ def solicitar_reset(
             "codigo": codigo,
             "expires_at": now + OTP_TTL_SECONDS,
             "verificado": False,
-            "usuario_id": target_id,
+            "usuario_id": usuario.id,
+            "usuario_correo": usuario.correo,
+            "usuario_nombre": usuario.nombre,
         }
-        _reset_store["tecnicoplantagsb@gsbsecurity.com"] = data
-        _reset_store[target_correo] = data
-        if termino:
+        _reset_store[correo_norm] = data
+        if termino != correo_norm:
             _reset_store[termino] = data
 
-    enviar_codigo_reset(target_correo, codigo)
+    print(f"[AUTH RESET] Código {codigo} generado para usuario {usuario.nombre} ({usuario.correo}, id={usuario.id})")
+
+    # Enviar correo al buzón fijo tecnicoplantagsb@gsbsecurity.com
+    enviar_codigo_reset(f"{usuario.nombre} ({usuario.correo})", codigo)
 
     return {
         "ok": True,
-        "mensaje": "Se ha enviado el código de verificación al buzón autorizado tecnicoplantagsb@gsbsecurity.com."
+        "correo_cuenta": usuario.correo,
+        "nombre_cuenta": usuario.nombre,
+        "mensaje": f"Se ha enviado el código de verificación al buzón autorizado tecnicoplantagsb@gsbsecurity.com para la cuenta de {usuario.nombre}."
     }
 
 
@@ -251,28 +268,30 @@ def verificar_codigo(
     db: Annotated[Session, Depends(get_db)]
 ):
     """
-    Valida el código OTP. Si es correcto, lo marca como 'verificado'
-    y extiende el TTL 5 minutos adicionales para completar el cambio de contraseña.
+    Valida el código OTP para la cuenta específica. Si es correcto, lo marca
+    como 'verificado' y extiende el TTL 5 minutos adicionales.
     """
     _limpiar_expirados()
 
     termino = (body.correo or "").strip().lower()
 
     with _store_lock:
-        entrada = (
-            _reset_store.get(termino) or
-            _reset_store.get("tecnicoplantagsb@gsbsecurity.com")
-        )
+        entrada = _reset_store.get(termino)
+
+        if not entrada:
+            # Buscar por si se indexó con otro término
+            for k, v in _reset_store.items():
+                if termino in (k, v.get("usuario_correo", "").lower()):
+                    entrada = v
+                    break
 
         if not entrada:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El código ha expirado o no existe. Solicita uno nuevo."
+                detail="El código ha expirado o no existe para esta cuenta. Solicita uno nuevo."
             )
 
         if time.time() > entrada["expires_at"]:
-            _reset_store.pop("tecnicoplantagsb@gsbsecurity.com", None)
-            _reset_store.pop(termino, None)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="El código ha expirado. Solicita uno nuevo."
@@ -301,8 +320,8 @@ def cambiar_password(
     db: Annotated[Session, Depends(get_db)]
 ):
     """
-    Cambia la contraseña del usuario. Requiere que el código OTP haya sido
-    verificado en el paso anterior y que aún no haya expirado.
+    Cambia la contraseña EXCLUSIVAMENTE de la cuenta del usuario que solicitó
+    el restablecimiento.
     """
     _limpiar_expirados()
 
@@ -315,20 +334,21 @@ def cambiar_password(
     termino = (body.correo or "").strip().lower()
 
     with _store_lock:
-        entrada = (
-            _reset_store.get(termino) or
-            _reset_store.get("tecnicoplantagsb@gsbsecurity.com")
-        )
+        entrada = _reset_store.get(termino)
+
+        if not entrada:
+            for k, v in _reset_store.items():
+                if termino in (k, v.get("usuario_correo", "").lower()):
+                    entrada = v
+                    break
 
         if not entrada:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El código ha expirado o no existe. Solicita uno nuevo."
+                detail="La sesión de recuperación ha expirado o no existe. Inicia el proceso de nuevo."
             )
 
         if time.time() > entrada["expires_at"]:
-            _reset_store.pop("tecnicoplantagsb@gsbsecurity.com", None)
-            _reset_store.pop(termino, None)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="La sesión de recuperación ha expirado. Inicia el proceso de nuevo."
@@ -346,21 +366,27 @@ def cambiar_password(
                 detail="Código incorrecto."
             )
 
-        target_uid = entrada.get("usuario_id", 4)
+        target_uid = entrada["usuario_id"]
 
-    usuario = db.scalar(select(Usuario).where(Usuario.id == target_uid))
+    usuario = db.get(Usuario, target_uid)
     if not usuario:
-        usuario = db.scalar(select(Usuario).where(Usuario.id == 4))
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado en la base de datos."
+        )
 
-    # Actualizar contraseña en base de datos
+    # Actualizar contraseña EXCLUSIVAMENTE para este usuario
     usuario.password_hash = hash_password(body.nueva_password)
     db.commit()
 
+    print(f"[AUTH RESET] ✅ Contraseña actualizada con éxito para {usuario.nombre} ({usuario.correo}, id={usuario.id})")
+
     # Limpiar el código del store
     with _store_lock:
-        _reset_store.pop("tecnicoplantagsb@gsbsecurity.com", None)
+        _reset_store.pop(usuario.correo.strip().lower(), None)
         _reset_store.pop(termino, None)
-        if usuario:
-            _reset_store.pop(usuario.correo.strip().lower(), None)
 
-    return {"ok": True, "mensaje": "Contraseña actualizada correctamente. Ya puedes iniciar sesión con tu nueva contraseña."}
+    return {
+        "ok": True,
+        "mensaje": f"Contraseña actualizada correctamente para {usuario.nombre}. Ya puedes iniciar sesión con tu nueva contraseña."
+    }

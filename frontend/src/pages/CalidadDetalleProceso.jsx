@@ -625,8 +625,8 @@ export default function CalidadDetalleProceso() {
                   <div className="sgc-notice-readonly">
                     <span className="sgc-notice-icon">ℹ️</span>
                     <span>
-                      Solo el administrador del SGC (PilarAdmin) puede subir, clasificar y eliminar documentos.
-                      Los demás usuarios tienen acceso de consulta y descarga.
+                      Solo PilarAdmin o administradores asignados como Editores SGC pueden subir, clasificar y eliminar documentos.
+                      Cuentas con acceso de consulta y descarga en modo lector.
                     </span>
                   </div>
                 )}

@@ -53,6 +53,8 @@ class UsuarioResponse(UsuarioBase):
     activo: bool
     acceso_viaticos: bool = False
     es_admin_calidad: bool = False
+    acceso_mapa: bool = False
+    rol_mapa: str = "lector"
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

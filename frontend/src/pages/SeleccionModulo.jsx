@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { isAdminMaster, GLOBAL_ADMIN_NAV } from '../config/modulesConfig';
 import { obtenerNombreUsuario, obtenerPrimerNombre } from '../utils/personal';
+import { puedeVerMapa, esPilarAdmin } from '../utils/permisos';
 import MapaProcesosSGC from '../components/MapaProcesosSGC';
+import PanelRolesAdminsMapa from '../components/PanelRolesAdminsMapa';
 import PanelContactoTecnicos from '../components/PanelContactoTecnicos';
 import logoGSB from '../assets/logo-gsb.png';
 import './SeleccionModulo.css';
@@ -112,7 +114,24 @@ export default function SeleccionModulo() {
 
           {/* ── 1. MAPA DE CALIDAD DE PROCESOS (CONTENIDO PRINCIPAL) ── */}
           <section className="sm-mapa-section" aria-label="Mapa de Procesos SGC">
-            <MapaProcesosSGC mostrarEncabezadoCategoria={true} />
+            {puedeVerMapa(user) ? (
+              <>
+                <MapaProcesosSGC mostrarEncabezadoCategoria={true} />
+                {esPilarAdmin(user) && <PanelRolesAdminsMapa />}
+              </>
+            ) : (
+              <div className="sm-mapa-locked-card">
+                <div className="sm-mapa-locked-icon">🔒</div>
+                <div className="sm-mapa-locked-content">
+                  <h3>Mapa de Procesos SGC · Acceso Restringido</h3>
+                  <p>
+                    Tu cuenta no cuenta con autorización para ingresar al Mapa de Procesos.
+                    El acceso y los roles en este módulo son definidos exclusivamente por{' '}
+                    <strong>Pilar Aristizábal (PilarAdmin@gsbank.com)</strong>.
+                  </p>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* ── 2. SECCIÓN DE ADMINISTRACIÓN GLOBAL (TRANSVERSAL) ── */}

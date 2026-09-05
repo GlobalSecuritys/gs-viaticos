@@ -92,3 +92,22 @@ class ProcesoCalidadDetailResponse(ProcesoCalidadBase):
     documentos: List[ProcesoCalidadDocumentoResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdminPermisoMapaItem(BaseModel):
+    id: int
+    nombre: str
+    correo: str
+    codigo_empleado: Optional[str] = None
+    rol: str
+    activo: bool
+    acceso_mapa: bool = False
+    rol_mapa: str = "lector"
+    es_pilar: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminPermisoMapaUpdate(BaseModel):
+    acceso_mapa: bool
+    rol_mapa: str = Field(default="lector")

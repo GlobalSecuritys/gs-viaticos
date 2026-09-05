@@ -80,9 +80,11 @@ export const MODULES_CONFIG = [
       { label: 'Apoyo', icon: '🛡️' },
       { label: 'Documentos', icon: '📁' },
     ],
-    canAccess: (_user) => {
-      // Cualquier usuario autenticado puede ver el mapa SGC (PilarAdmin administra)
-      return true;
+    canAccess: (user) => {
+      if (!user) return false;
+      const correo = (user.correo || '').trim().toLowerCase();
+      if (correo === 'pilaradmin@gsbank.com') return true;
+      return user.acceso_mapa === true;
     },
     sidebarNav: [
       { id: 'mapa', label: 'Mapa de Procesos SGC', icon: '🗺️', path: '/calidad-de-procesos' },

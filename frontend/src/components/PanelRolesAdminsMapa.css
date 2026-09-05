@@ -1,0 +1,729 @@
+/* ==========================================================================
+   PANEL EXCLUSIVO PILARADMIN: ROLES Y ACCESO AL MAPA SGC
+   Estética premium corporativa, coherente con el mapa de procesos SGC
+   ========================================================================== */
+
+.sgc-admin-panel-card {
+  margin-top: 2.5rem;
+  margin-bottom: 2.5rem;
+  background: linear-gradient(145deg, #111827 0%, #0f172a 100%);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.6),
+              0 0 35px -5px rgba(245, 158, 11, 0.12);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.sgc-admin-panel-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #f59e0b 0%, #ec4899 50%, #8b5cf6 100%);
+}
+
+/* ── Encabezado ── */
+.sgc-ap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sgc-ap-badge-exclusive {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fbbf24;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+}
+
+.sgc-ap-badge-crown {
+  font-size: 0.95rem;
+}
+
+.sgc-ap-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.4rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sgc-ap-desc {
+  font-size: 0.92rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 680px;
+}
+
+.sgc-ap-desc strong {
+  color: #fcd34d;
+}
+
+/* Avatar de Pilar en encabezado */
+.sgc-ap-header-avatar {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.6rem 1.1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+}
+
+.sgc-ap-avatar-halo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1rem;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+}
+
+.sgc-ap-avatar-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.sgc-ap-avatar-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.sgc-ap-avatar-role {
+  font-size: 0.72rem;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+/* ── Feedback Toast / Banner ── */
+.sgc-ap-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  animation: sgcToastFadeIn 0.3s ease-out;
+}
+
+@keyframes sgcToastFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sgc-ap-toast--success {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+.sgc-ap-toast--error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+.sgc-ap-toast-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+/* ── KPI Box Strip ── */
+.sgc-ap-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.sgc-ap-kpi-box {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.sgc-ap-kpi-val {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #f8fafc;
+  line-height: 1.1;
+}
+
+.sgc-ap-kpi-lbl {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sgc-ap-kpi-box--green .sgc-ap-kpi-val {
+  color: #34d399;
+}
+.sgc-ap-kpi-box--green {
+  border-color: rgba(52, 211, 153, 0.25);
+}
+
+.sgc-ap-kpi-box--purple .sgc-ap-kpi-val {
+  color: #c084fc;
+}
+.sgc-ap-kpi-box--purple {
+  border-color: rgba(192, 132, 252, 0.25);
+}
+
+.sgc-ap-kpi-box--red .sgc-ap-kpi-val {
+  color: #f87171;
+}
+.sgc-ap-kpi-box--red {
+  border-color: rgba(248, 113, 113, 0.25);
+}
+
+/* ── Toolbar: Búsqueda y Filtros ── */
+.sgc-ap-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.sgc-ap-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+  max-width: 420px;
+}
+
+.sgc-ap-search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+}
+
+.sgc-ap-search-input {
+  width: 100%;
+  padding: 0.65rem 2.2rem 0.65rem 2.5rem;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #f8fafc;
+  font-size: 0.88rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.sgc-ap-search-input:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.sgc-ap-search-clear {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.sgc-ap-filter-pills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sgc-ap-pill {
+  padding: 0.45rem 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sgc-ap-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+}
+
+.sgc-ap-pill--active {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+/* ── Tabla de Administradores ── */
+.sgc-ap-table-wrapper {
+  margin-top: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.sgc-ap-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.sgc-ap-table th {
+  padding: 0.9rem 1.25rem;
+  background: rgba(30, 41, 59, 0.7);
+  color: #94a3b8;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sgc-ap-table td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+}
+
+.sgc-ap-row {
+  transition: background 0.2s ease;
+}
+
+.sgc-ap-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sgc-ap-row--pilar {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.02) 100%);
+  border-left: 3px solid #f59e0b;
+}
+
+.sgc-ap-row--blocked {
+  opacity: 0.75;
+}
+
+/* Info del Admin */
+.sgc-ap-admin-info {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.sgc-ap-avatar-mini {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.sgc-ap-avatar-mini--pilar {
+  background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+  border-color: #f59e0b;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+}
+
+.sgc-ap-admin-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.sgc-ap-admin-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sgc-ap-admin-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.sgc-ap-badge-master {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.sgc-ap-badge-sysrole {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  text-transform: uppercase;
+}
+
+.sgc-ap-admin-email {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.sgc-ap-admin-code {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ── Switches iOS Style ── */
+.sgc-ap-switch-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sgc-ap-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.sgc-ap-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.sgc-ap-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #334155;
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sgc-ap-switch-slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #94a3b8;
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+}
+
+.sgc-ap-switch--on .sgc-ap-switch-slider {
+  background-color: #10b981;
+  border-color: #059669;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+}
+
+.sgc-ap-switch--on .sgc-ap-switch-slider::before {
+  transform: translateX(20px);
+  background-color: #ffffff;
+}
+
+.sgc-ap-switch--busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.sgc-ap-switch-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.sgc-ap-switch-label--on {
+  color: #34d399;
+}
+
+.sgc-ap-switch-label--off {
+  color: #f87171;
+}
+
+/* Locked status para Pilar */
+.sgc-ap-locked-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sgc-ap-lock-icon {
+  font-size: 0.9rem;
+}
+
+.sgc-ap-status-tag--master {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* ── Selector de Rol SGC (Pills) ── */
+.sgc-ap-role-selector {
+  display: inline-flex;
+  padding: 3px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.sgc-ap-role-btn {
+  padding: 0.35rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sgc-ap-role-btn:hover:not(:disabled) {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sgc-ap-role-btn--active {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.sgc-ap-role-btn--active-editor {
+  background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+}
+
+.sgc-ap-role-btn--disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sgc-ap-role-pilar-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fcd34d;
+}
+
+.sgc-ap-role-dot--gold {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+}
+
+/* ── Badges de Estado Visual ── */
+.sgc-ap-pill-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.sgc-ap-pill-status--gold {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.sgc-ap-pill-status--editor {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  color: #c084fc;
+}
+
+.sgc-ap-pill-status--lector {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.sgc-ap-pill-status--denied {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+.sgc-ap-saving-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.sgc-ap-spinner-mini {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(245, 158, 11, 0.3);
+  border-top-color: #f59e0b;
+  border-radius: 50%;
+  animation: sgcSpin 0.7s linear infinite;
+}
+
+@keyframes sgcSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Loading & Empty states */
+.sgc-ap-loading,
+.sgc-ap-empty {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sgc-ap-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(245, 158, 11, 0.2);
+  border-top-color: #f59e0b;
+  border-radius: 50%;
+  animation: sgcSpin 0.8s linear infinite;
+}
+
+/* ── Footer ── */
+.sgc-ap-footer {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sgc-ap-footer-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.sgc-ap-tip-icon {
+  font-size: 1.1rem;
+}
+
+.sgc-ap-footer-tip strong {
+  color: #f8fafc;
+}
+
+.sgc-ap-footer-tip em {
+  color: #fbbf24;
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* ── Responsive Mobile / Tablet ── */
+@media (max-width: 960px) {
+  .sgc-ap-header {
+    flex-direction: column;
+  }
+  .sgc-ap-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sgc-ap-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sgc-ap-search-wrap {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .sgc-admin-panel-card {
+    padding: 1.25rem;
+  }
+  .sgc-ap-kpis {
+    grid-template-columns: 1fr;
+  }
+  .sgc-ap-table-wrapper {
+    overflow-x: auto;
+  }
+  .sgc-ap-table {
+    min-width: 650px;
+  }
+}
