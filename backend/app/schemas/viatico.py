@@ -10,6 +10,7 @@ TipoGasto = Literal[
     "peajes",
     "parqueadero",
     "materiales",
+    "alquiler_escalera",
     "otros",
 ]
 

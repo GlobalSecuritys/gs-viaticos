@@ -62,6 +62,23 @@ def _formato_fecha_viaje(f: Optional[date]) -> str:
         return f"{f.day:02d}-{MESES_ABR[f.month]}"
     return str(f)
 
+MAPA_CONCEPTOS = {
+    "alimentacion": "Alimentación",
+    "transporte": "Transporte",
+    "hotel": "Hotel",
+    "peajes": "Peajes",
+    "parqueadero": "Parqueadero",
+    "materiales": "Materiales",
+    "alquiler_escalera": "Alquiler de escalera",
+    "otros": "Otros",
+}
+
+def _formatear_concepto(tipo_gasto: Optional[str]) -> str:
+    if not tipo_gasto:
+        return "—"
+    tg = str(tipo_gasto).strip().lower()
+    return MAPA_CONCEPTOS.get(tg, tg.replace("_", " ").capitalize())
+
 # ═══════════════════════════════════════════════════════════════════
 #  Paleta de colores — fiel a la foto de referencia
 # ═══════════════════════════════════════════════════════════════════
@@ -383,7 +400,7 @@ def generar_excel_viaticos_independientes(
             v.fecha.strftime("%d-%b") if isinstance(v.fecha, date) else str(v.fecha),
             v.nit_identificacion or "—",
             v.cliente or "—",
-            (v.tipo_gasto or "—").capitalize(),
+            _formatear_concepto(v.tipo_gasto),
             origen,
             destino,
             tiene_soporte,
@@ -540,7 +557,7 @@ def generar_excel_viaticos_asignacion(
 
         nit = v.nit_identificacion or meta.get("nit") or "—"
         razon = meta.get("razon_social") or v.cliente or asignacion.cliente or "—"
-        concepto = (v.tipo_gasto or "—").capitalize()
+        concepto = _formatear_concepto(v.tipo_gasto)
         oficina = asignacion.empresa or asignacion.ciudad or "—"
         origen = meta.get("origen") or "—"
         destino = meta.get("destino") or v.ciudad or asignacion.ciudad or "—"

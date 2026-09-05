@@ -22,6 +22,7 @@ const ICONO_GASTO = {
   peajes: '🛣',
   parqueadero: '🅿',
   materiales: '📦',
+  alquiler_escalera: '🪜',
   otros: '📎',
 };
 
@@ -32,6 +33,7 @@ const CONCEPTOS = [
   { id: 'peajes', label: 'Peajes' },
   { id: 'parqueadero', label: 'Parqueadero' },
   { id: 'materiales', label: 'Materiales' },
+  { id: 'alquiler_escalera', label: 'Alquiler de escalera' },
 ];
 
 const TIPOS_PERMITIDOS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];

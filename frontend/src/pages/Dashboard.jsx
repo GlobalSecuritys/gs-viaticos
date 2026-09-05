@@ -78,13 +78,14 @@ export default function Dashboard() {
 
     // 1. Distribución por concepto
     const distribucionConcepto = useMemo(() => {
-        const totales = { hospedaje: 0, transporte: 0, alimentacion: 0, materiales: 0, otros: 0 };
+        const totales = { hospedaje: 0, transporte: 0, alimentacion: 0, materiales: 0, alquiler_escalera: 0, otros: 0 };
         viaticos.forEach((v) => {
             const cat = (v.tipo_gasto || '').toLowerCase();
             const val = Number(v.valor) || 0;
             if (cat.includes('hospedaj') || cat.includes('hotel')) totales.hospedaje += val;
             else if (cat.includes('transport') || cat.includes('pasaj') || cat.includes('peaj')) totales.transporte += val;
             else if (cat.includes('aliment') || cat.includes('comida') || cat.includes('restauran')) totales.alimentacion += val;
+            else if (cat.includes('escalera')) totales.alquiler_escalera += val;
             else if (cat.includes('material')) totales.materiales += val;
             else totales.otros += val;
         });
@@ -95,9 +96,10 @@ export default function Dashboard() {
             { id: 'transporte', label: 'Transporte', color: '#F59E0B', val: totales.transporte, pct: Math.round((totales.transporte / sumaTotal) * 100) },
             { id: 'alimentacion', label: 'Alimentación', color: '#10B981', val: totales.alimentacion, pct: Math.round((totales.alimentacion / sumaTotal) * 100) },
             { id: 'materiales', label: 'Materiales', color: '#6366F1', val: totales.materiales, pct: Math.round((totales.materiales / sumaTotal) * 100) },
+            { id: 'alquiler_escalera', label: 'Alquiler de escalera', color: '#EC4899', val: totales.alquiler_escalera, pct: Math.round((totales.alquiler_escalera / sumaTotal) * 100) },
             { id: 'otros', label: 'Otros', color: '#8B5CF6', val: totales.otros, pct: Math.round((totales.otros / sumaTotal) * 100) },
         ];
-        return lista.filter((item) => item.val > 0 || ['hospedaje', 'transporte', 'alimentacion', 'materiales'].includes(item.id));
+        return lista.filter((item) => item.val > 0 || ['hospedaje', 'transporte', 'alimentacion', 'materiales', 'alquiler_escalera'].includes(item.id));
     }, [viaticos]);
 
     // 2. Gastos por mes (este año)

@@ -12,6 +12,7 @@ const LABEL_TIPO = {
     peajes: 'Peajes',
     parqueadero: 'Parqueadero',
     materiales: 'Materiales',
+    alquiler_escalera: 'Alquiler de escalera',
     otros: 'Otros',
 };
 

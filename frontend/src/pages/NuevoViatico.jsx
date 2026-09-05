@@ -17,6 +17,7 @@ const CONCEPTOS = [
     { value: 'peajes', label: 'Peajes' },
     { value: 'parqueadero', label: 'Parqueadero' },
     { value: 'materiales', label: 'Materiales' },
+    { value: 'alquiler_escalera', label: 'Alquiler de escalera' },
 ];
 
 function hoyISO() {

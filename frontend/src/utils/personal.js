@@ -10,6 +10,7 @@ export const LABEL_TIPO_GASTO = {
     peajes: 'Peajes',
     parqueadero: 'Parqueadero',
     materiales: 'Materiales',
+    alquiler_escalera: 'Alquiler de escalera',
     otros: 'Otros',
 };
 
@@ -258,6 +259,7 @@ export const ICONO_TIPO_GASTO = {
     peajes: '🎫',
     parqueadero: '🅿️',
     materiales: '📦',
+    alquiler_escalera: '🪜',
     otros: '📦',
 };
 
