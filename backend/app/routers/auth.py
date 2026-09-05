@@ -126,18 +126,29 @@ def login(
 ):
     termino = form_data.username.strip().lower()
 
-    # Buscar por correo o por código de empleado
+    # Buscar por correo, código de empleado o nombre
     stmt = select(Usuario).where(
         (func.lower(Usuario.correo) == termino) |
-        (func.lower(func.coalesce(Usuario.codigo_empleado, "")) == termino)
+        (func.lower(func.coalesce(Usuario.codigo_empleado, "")) == termino) |
+        (func.lower(Usuario.nombre) == termino)
     )
     usuario = db.scalar(stmt)
 
-    # Soporte para ingresar con tecnicoplantagsb@gsbsecurity.com o alias 'admin'
-    if not usuario and termino in ("tecnicoplantagsb@gsbsecurity.com", "admin", "admin@gsbank.com"):
+    # Soporte para ingresar con tecnicoplantagsb@gsbsecurity.com o alias administrativos
+    if not usuario and termino in (
+        "tecnicoplantagsb@gsbsecurity.com",
+        "tecnicoplantagsb",
+        "admin",
+        "admin@gsbank.com",
+        "admin gsb",
+    ):
         usuario = db.scalar(select(Usuario).where(Usuario.id == 4))
 
-    if not usuario or not verify_password(form_data.password, usuario.password_hash):
+    print(f"[LOGIN] Intento con '{termino}' -> Usuario asignado: {getattr(usuario, 'correo', None)} (id={getattr(usuario, 'id', None)})")
+    pwd_ok = verify_password(form_data.password, usuario.password_hash) if usuario else False
+    print(f"[LOGIN] Resultado validación contraseña: {pwd_ok}")
+
+    if not usuario or not pwd_ok:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Correo o contraseña incorrectos",
