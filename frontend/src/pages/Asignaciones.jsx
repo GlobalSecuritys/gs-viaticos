@@ -4,6 +4,7 @@ import api from '../services/api';
 import { listarAsignaciones, eliminarAsignacion } from '../services/asignaciones';
 import { TIPOS_ASIGNACION, LABEL_TIPO_ASIGNACION, ESTADOS_ASIGNACION, LABEL_ESTADO_ASIGNACION, filtrarAsignaciones } from '../utils/asignaciones';
 import { formatCOP } from '../utils/personal';
+import { irAtras } from '../utils/navigation';
 import AsignacionCard from '../components/AsignacionCard';
 import './Asignaciones.css';
 
@@ -83,7 +84,7 @@ export default function Asignaciones() {
                 {/* Header */}
                 <div className="admin-page-header">
                     <div>
-                        <button className="admin-back-btn" onClick={() => navigate('/admin')}>
+                        <button className="admin-back-btn" onClick={() => irAtras(navigate, '/admin')}>
                             ← Volver al Panel
                         </button>
                     </div>

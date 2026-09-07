@@ -7,7 +7,7 @@
 export const MODULES_CONFIG = [
   {
     id: 'viaticos',
-    name: 'Viáticos & Operaciones',
+    name: 'Viáticos',
     shortName: 'Viáticos',
     description: 'Control de gastos operativos, liquidaciones de campo, asignaciones técnicas y legalizaciones.',
     route: '/admin',
@@ -58,7 +58,7 @@ export const MODULES_CONFIG = [
     sidebarNav: [
       { id: 'personal', label: 'Directorio de Personal', icon: '👤', path: '/talento-humano' },
       { id: 'contratos', label: 'Contratos & Documentos', icon: '📄', path: '/talento-humano', tab: 'documentos' },
-      { id: 'dotacion', label: 'Dotación & Seguridad', icon: '🦺', path: '/talento-humano', tab: 'dotacion' },
+      { id: 'dotacion', label: 'Dotaciones', icon: '🦺', path: '/talento-humano', tab: 'dotacion' },
       { id: 'solicitudes', label: 'Historial & Solicitudes', icon: '📝', path: '/talento-humano', tab: 'historial' },
     ],
   },
@@ -166,73 +166,124 @@ export function isAdminMaster(user) {
 
 /**
  * Asignación de módulos operativos a procesos del Mapa SGC:
- * - Operaciones (OP) → Viáticos & Operaciones
- * - Mejora Continua (MC) → Backup & Evidencias
- * - Administrativo (AD) → Talento Humano
- * Los demás procesos (SS, GR, CO, CI, SA) no tienen módulo operativo asociado.
+ * - Operaciones (OP) → [Viáticos, Autoplaner ODS]
+ * - Mejora Continua (MC) → [Backup & Evidencias]
+ * - Administrativo (AD) → [Talento Humano, Escuela GSB]
  */
 export const MODULOS_SGC_ASOCIADOS = {
-  OP: {
-    codigo: 'OP',
-    moduloId: 'viaticos',
-    nombre: 'Viáticos & Operaciones',
-    badge: 'OPERATIVO',
-    colorTheme: 'blue',
-    colorHex: '#3B82F6',
-    descripcion: 'Control de gastos operativos, liquidaciones de campo, asignaciones técnicas, cuentas de cobro y reportes.',
-    ruta: '/admin',
-    botonTexto: 'Ingresar a Viáticos & Operaciones',
-    chips: [
-      { label: 'Liquidaciones', icon: '📋', path: '/admin' },
-      { label: 'Gastos & Facturas', icon: '💳', path: '/admin' },
-      { label: 'Técnicos & OT', icon: '👷', path: '/admin' },
-      { label: 'Cuentas de Cobro', icon: '💵', path: '/admin/cuentas-cobro' },
-      { label: 'Reportes Excel', icon: '📊', path: '/admin' },
-    ],
-    puedeAcceder: (user) => (user?.rol === 'admin' || user?.rol === 'superadmin') && user?.acceso_viaticos !== false,
-    lockReason: 'Tu cuenta no tiene habilitado el acceso a Viáticos & Operaciones. Por favor solicita a la Administradora Master (PilarAdmin@gsbank.com) que active tus permisos.',
-  },
-  MC: {
-    codigo: 'MC',
-    moduloId: 'backup',
-    nombre: 'Backup & Evidencias',
-    badge: 'BACKUP',
-    colorTheme: 'gold',
-    colorHex: '#F59E0B',
-    descripcion: 'Visor masivo de comprobantes, organización por oficinas y descarga comprimida en ZIP de soportes contables y operativos.',
-    ruta: '/admin/backup',
-    botonTexto: 'Ingresar a Backup & Evidencias',
-    chips: [
-      { label: 'Visor Comprobantes', icon: '🖼️', path: '/admin/backup' },
-      { label: 'Por Oficinas', icon: '🏢', path: '/admin/backup' },
-      { label: 'Descargas ZIP', icon: '📦', path: '/admin/backup' },
-    ],
-    puedeAcceder: (user) => user?.rol === 'admin' || user?.rol === 'superadmin',
-    lockReason: 'El módulo de Backup & Evidencias requiere privilegios de Administrador.',
-  },
-  AD: {
-    codigo: 'AD',
-    moduloId: 'talento',
-    nombre: 'Talento Humano',
-    badge: 'TALENTO HUMANO',
-    colorTheme: 'green',
-    colorHex: '#10B981',
-    descripcion: 'Gestión integral de colaboradores, contratos laborales, dotaciones y expedientes de personal.',
-    ruta: '/talento-humano',
-    botonTexto: 'Ingresar a Talento Humano',
-    chips: [
-      { label: 'Directorio Personal', icon: '👤', path: '/talento-humano' },
-      { label: 'Contratos & Docs', icon: '📄', path: '/talento-humano' },
-      { label: 'Dotación & EPP', icon: '🦺', path: '/talento-humano' },
-      { label: 'Solicitudes', icon: '📝', path: '/talento-humano' },
-    ],
-    puedeAcceder: (user) => user?.rol === 'admin' || user?.rol === 'superadmin',
-    lockReason: 'El módulo de Talento Humano requiere privilegios de Administrador.',
-  },
+  OP: [
+    {
+      codigo: 'OP',
+      moduloId: 'viaticos',
+      nombre: 'Viáticos',
+      badge: 'OPERATIVO',
+      colorTheme: 'blue',
+      colorHex: '#3B82F6',
+      descripcion: 'Control de gastos operativos, liquidaciones de campo, asignaciones técnicas, cuentas de cobro y reportes.',
+      ruta: '/admin',
+      botonTexto: 'Ingresar a Viáticos',
+      chips: [
+        { label: 'Liquidaciones', icon: '📋', path: '/admin' },
+        { label: 'Gastos & Facturas', icon: '💳', path: '/admin' },
+        { label: 'Técnicos & OT', icon: '👷', path: '/admin' },
+        { label: 'Cuentas de Cobro', icon: '💵', path: '/admin/cuentas-cobro' },
+        { label: 'Reportes Excel', icon: '📊', path: '/admin' },
+      ],
+      puedeAcceder: (user) => (user?.rol === 'admin' || user?.rol === 'superadmin') && user?.acceso_viaticos !== false,
+      lockReason: 'Tu cuenta no tiene habilitado el acceso a Viáticos. Por favor solicita a la Administradora Master (PilarAdmin@gsbank.com) que active tus permisos.',
+    },
+    {
+      codigo: 'OP',
+      moduloId: 'autoplaner-ods',
+      nombre: 'Autoplaner ODS',
+      badge: 'MUY PRONTO',
+      colorTheme: 'blue',
+      colorHex: '#3B82F6',
+      descripcion: 'Planificación inteligente, ruteo automático y despacho de órdenes de servicio en campo.',
+      ruta: '/autoplaner-ods',
+      botonTexto: 'Ingresar a Autoplaner ODS',
+      chips: [
+        { label: 'Planificación ODS', icon: '⚡', path: '/autoplaner-ods' },
+        { label: 'Ruteo de Técnicos', icon: '🗺️', path: '/autoplaner-ods' },
+        { label: 'Monitoreo en Tiempo Real', icon: '📡', path: '/autoplaner-ods' },
+        { label: 'Despacho Automático', icon: '📋', path: '/autoplaner-ods' },
+      ],
+      puedeAcceder: () => true,
+      lockReason: '',
+    },
+  ],
+  MC: [
+    {
+      codigo: 'MC',
+      moduloId: 'backup',
+      nombre: 'Backup & Evidencias',
+      badge: 'BACKUP',
+      colorTheme: 'gold',
+      colorHex: '#F59E0B',
+      descripcion: 'Visor masivo de comprobantes, organización por oficinas y descarga comprimida en ZIP de soportes contables y operativos.',
+      ruta: '/admin/backup',
+      botonTexto: 'Ingresar a Backup & Evidencias',
+      chips: [
+        { label: 'Visor Comprobantes', icon: '🖼️', path: '/admin/backup' },
+        { label: 'Por Oficinas', icon: '🏢', path: '/admin/backup' },
+        { label: 'Descargas ZIP', icon: '📦', path: '/admin/backup' },
+      ],
+      puedeAcceder: (user) => user?.rol === 'admin' || user?.rol === 'superadmin',
+      lockReason: 'El módulo de Backup & Evidencias requiere privilegios de Administrador.',
+    },
+  ],
+  AD: [
+    {
+      codigo: 'AD',
+      moduloId: 'talento',
+      nombre: 'Talento Humano',
+      badge: 'TALENTO HUMANO',
+      colorTheme: 'green',
+      colorHex: '#10B981',
+      descripcion: 'Gestión integral de colaboradores, contratos laborales, dotaciones y expedientes de personal.',
+      ruta: '/talento-humano',
+      botonTexto: 'Ingresar a Talento Humano',
+      chips: [
+        { label: 'Directorio Personal', icon: '👤', path: '/talento-humano' },
+        { label: 'Contratos & Docs', icon: '📄', path: '/talento-humano' },
+        { label: 'Dotación & EPP', icon: '🦺', path: '/talento-humano' },
+        { label: 'Solicitudes', icon: '📝', path: '/talento-humano' },
+      ],
+      puedeAcceder: (user) => user?.rol === 'admin' || user?.rol === 'superadmin',
+      lockReason: 'El módulo de Talento Humano requiere privilegios de Administrador.',
+    },
+    {
+      codigo: 'AD',
+      moduloId: 'escuela-gsb',
+      nombre: 'Escuela GSB',
+      badge: 'MUY PRONTO',
+      colorTheme: 'green',
+      colorHex: '#10B981',
+      descripcion: 'Campus virtual de capacitación técnica, inducción institucional, cursos normativos y certificación de competencias.',
+      ruta: '/escuela-gsb',
+      botonTexto: 'Ingresar a Escuela GSB',
+      chips: [
+        { label: 'Cursos Técnicos', icon: '🎓', path: '/escuela-gsb' },
+        { label: 'Inducción Institucional', icon: '📚', path: '/escuela-gsb' },
+        { label: 'Certificaciones', icon: '📜', path: '/escuela-gsb' },
+        { label: 'Evaluación Periódica', icon: '📝', path: '/escuela-gsb' },
+      ],
+      puedeAcceder: () => true,
+      lockReason: '',
+    },
+  ],
 };
 
-export function getModuloSGCAsociado(codigo) {
-  if (!codigo) return null;
+export function getModulosSGCAsociados(codigo) {
+  if (!codigo) return [];
   const key = String(codigo).trim().toUpperCase();
-  return MODULOS_SGC_ASOCIADOS[key] || null;
+  const res = MODULOS_SGC_ASOCIADOS[key];
+  if (!res) return [];
+  return Array.isArray(res) ? res : [res];
 }
+
+export function getModuloSGCAsociado(codigo) {
+  const list = getModulosSGCAsociados(codigo);
+  return list.length > 0 ? list[0] : null;
+}
+

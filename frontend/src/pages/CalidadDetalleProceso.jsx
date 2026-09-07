@@ -11,20 +11,123 @@ import {
   eliminarDocumentoProceso,
 } from '../services/calidadProcesos';
 import { esAdminCalidad } from '../utils/permisos';
-import { getModuloSGCAsociado } from '../config/modulesConfig';
+import { getModulosSGCAsociados } from '../config/modulesConfig';
+import { irAtras } from '../utils/navigation';
 import logoGSB from '../assets/logo-gsb.png';
 import './CalidadDetalleProceso.css';
 
+export const CATEGORIAS_BASE = [
+  {
+    id: 'caracterizacion',
+    nombre: 'Caracterización',
+    icono: '📑',
+    descripcion: 'Ficha de caracterización, alcance, entradas, salidas y líderes del proceso.',
+    tags: ['caracterización', 'caracterizacion', 'ficha'],
+    color: '#0284c7',
+    bgLight: '#f0f9ff',
+    borderLight: '#bae6fd',
+  },
+  {
+    id: 'formatos',
+    nombre: 'Formatos',
+    icono: '📋',
+    descripcion: 'Formatos oficiales, plantillas descargables, actas y registros del proceso.',
+    tags: ['formatos', 'formato', 'registro', 'registros', 'plantilla'],
+    color: '#16a34a',
+    bgLight: '#f0fdf4',
+    borderLight: '#bbf7d0',
+  },
+  {
+    id: 'indicadores',
+    nombre: 'Indicadores',
+    icono: '📊',
+    descripcion: 'Fichas técnicas de indicadores KPI, metas de gestión y reportes periódicos.',
+    tags: ['indicadores', 'indicador', 'kpi', 'metas', 'medicion'],
+    color: '#d97706',
+    bgLight: '#fffbeb',
+    borderLight: '#fde68a',
+  },
+  {
+    id: 'procesos',
+    nombre: 'Procesos',
+    icono: '⚙️',
+    descripcion: 'Procedimientos documentados, flujogramas, manuales operativos e instructivos.',
+    tags: ['procesos', 'proceso', 'procedimiento', 'procedimientos', 'instructivo', 'instructivos', 'guía', 'guia', 'matriz', 'evidencia sgc', 'evidencia'],
+    color: '#6366f1',
+    bgLight: '#eef2ff',
+    borderLight: '#c7d2fe',
+  },
+];
+
+export const CATEGORIAS_GERENCIA_EXTRA = [
+  {
+    id: 'politicas',
+    nombre: 'Políticas',
+    icono: '📜',
+    descripcion: 'Políticas institucionales, directrices corporativas y lineamientos estratégicos.',
+    tags: ['políticas', 'politicas', 'política', 'politica'],
+    color: '#8b5cf6',
+    bgLight: '#f5f3ff',
+    borderLight: '#ddd6fe',
+  },
+  {
+    id: 'planes',
+    nombre: 'Planes',
+    icono: '🗓️',
+    descripcion: 'Planes estratégicos de la dirección, plan de trabajo anual y asignación de recursos.',
+    tags: ['planes', 'plan', 'planeación', 'planeacion'],
+    color: '#ec4899',
+    bgLight: '#fdf2f8',
+    borderLight: '#fbcfe8',
+  },
+  {
+    id: 'manuales',
+    nombre: 'Manuales',
+    icono: '📚',
+    descripcion: 'Manual de calidad corporativo y manuales de organización de la empresa.',
+    tags: ['manuales', 'manual'],
+    color: '#0f766e',
+    bgLight: '#f0fdfa',
+    borderLight: '#99f6e4',
+  },
+];
+
+export function getDocumentosDeCategoria(documentos = [], catConfig, todasCategorias = []) {
+  if (!documentos || documentos.length === 0) return [];
+  const catNombreLower = catConfig.nombre.toLowerCase();
+  const tagsLower = (catConfig.tags || []).map((t) => t.toLowerCase());
+
+  return documentos.filter((doc) => {
+    const docCat = (doc.categoria_documento || '').trim().toLowerCase();
+    if (!docCat) {
+      return catConfig.id === 'procesos';
+    }
+    if (docCat === catNombreLower) return true;
+    if (tagsLower.includes(docCat)) return true;
+
+    const perteneceAOtra = todasCategorias.some((otra) => {
+      if (otra.id === catConfig.id) return false;
+      if (docCat === otra.nombre.toLowerCase() || (otra.tags || []).map((t) => t.toLowerCase()).includes(docCat)) {
+        return true;
+      }
+      return false;
+    });
+
+    if (!perteneceAOtra && catConfig.id === 'procesos') {
+      return true;
+    }
+    return false;
+  });
+}
+
 const CATEGORIAS_DOCUMENTO = [
-  'Política',
-  'Procedimiento',
-  'Formato',
-  'Registro',
-  'Instructivo',
-  'Manual',
-  'Guía',
-  'Matriz',
-  'Evidencia SGC',
+  'Caracterización',
+  'Formatos',
+  'Indicadores',
+  'Procesos',
+  'Políticas',
+  'Planes',
+  'Manuales',
   'Otro',
 ];
 
@@ -73,33 +176,44 @@ export default function CalidadDetalleProceso() {
   const [modalSubirDoc, setModalSubirDoc] = useState(false);
   const [docFile, setDocFile] = useState(null);
   const [docNombre, setDocNombre] = useState('');
-  const [docCategoria, setDocCategoria] = useState('Procedimiento');
+  const [docCategoria, setDocCategoria] = useState('Caracterización');
   const [docVersion, setDocVersion] = useState('v1');
   const [docDescripcion, setDocDescripcion] = useState('');
   const [subiendoDoc, setSubiendoDoc] = useState(false);
 
+  // Estados para Categorías Documentales (Caracterización, Formatos, Indicadores, Procesos, etc.)
+  const [categoriaModal, setCategoriaModal] = useState(null);
+  const [searchModalDoc, setSearchModalDoc] = useState('');
+  const [mostrarUploadInline, setMostrarUploadInline] = useState(false);
+  const [verTablaConsolidada, setVerTablaConsolidada] = useState(false);
+
   const [modalEditarDoc, setModalEditarDoc] = useState(false);
   const [docAEditar, setDocAEditar] = useState(null);
   const [editDocNombre, setEditDocNombre] = useState('');
-  const [editDocCategoria, setEditDocCategoria] = useState('Procedimiento');
+  const [editDocCategoria, setEditDocCategoria] = useState('Caracterización');
   const [editDocVersion, setEditDocVersion] = useState('v1');
   const [editDocDescripcion, setEditDocDescripcion] = useState('');
   const [guardandoDoc, setGuardandoDoc] = useState(false);
 
-  // Módulo Operativo Asociado y estado de bloqueo
+  // Módulos Operativos Asociados (puede ser más de uno por proceso)
   const [lockAlert, setLockAlert] = useState(null);
-  const moduloOperativo = getModuloSGCAsociado(proceso?.codigo);
-  const tieneAccesoModulo = moduloOperativo ? moduloOperativo.puedeAcceder(user) : false;
+  const modulosOperativos = getModulosSGCAsociados(proceso?.codigo);
 
-  const handleAccesoModulo = (ruta) => {
-    if (!moduloOperativo) return;
-    if (!tieneAccesoModulo) {
+  // Categorías documentales según el proceso (GR incluye extras)
+  const categoriasDelProceso = (proceso?.codigo === 'GR' || proceso?.codigo === 'GE')
+    ? [...CATEGORIAS_BASE, ...CATEGORIAS_GERENCIA_EXTRA]
+    : CATEGORIAS_BASE;
+
+  const handleAccesoModulo = (modulo, ruta) => {
+    if (!modulo) return;
+    const tieneAcceso = modulo.puedeAcceder(user);
+    if (!tieneAcceso) {
       setLockAlert({
-        modulo: moduloOperativo.nombre,
-        razon: moduloOperativo.lockReason,
+        modulo: modulo.nombre,
+        razon: modulo.lockReason,
       });
     } else {
-      navigate(ruta || moduloOperativo.ruta);
+      navigate(ruta || modulo.ruta);
     }
   };
 
@@ -169,7 +283,32 @@ export default function CalidadDetalleProceso() {
     }
   };
 
-  // Subir documento
+  // Abrir vista/modal de categoría documental
+  const handleAbrirCategoria = (cat) => {
+    setCategoriaModal(cat);
+    setSearchModalDoc('');
+    setDocCategoria(cat.nombre);
+    setDocFile(null);
+    setDocNombre('');
+    setDocDescripcion('');
+    setDocVersion('v1');
+    setMostrarUploadInline(false);
+  };
+
+  // Abrir modal de categoría con formulario de subida expandido directamente
+  const handleAbrirSubirEnCategoria = (cat, e) => {
+    if (e) e.stopPropagation();
+    setCategoriaModal(cat);
+    setSearchModalDoc('');
+    setDocCategoria(cat.nombre);
+    setDocFile(null);
+    setDocNombre('');
+    setDocDescripcion('');
+    setDocVersion('v1');
+    setMostrarUploadInline(true);
+  };
+
+  // Subir documento (desde modal genérico o desde la vista de categoría)
   const handleSubirDocumento = async (e) => {
     e.preventDefault();
     if (!docFile || !docNombre.trim()) {
@@ -178,18 +317,20 @@ export default function CalidadDetalleProceso() {
     }
     setSubiendoDoc(true);
     try {
+      const catFinal = categoriaModal ? categoriaModal.nombre : (docCategoria || 'Procesos');
       await subirDocumentoProceso(id, docFile, {
         nombreDocumento: docNombre.trim(),
-        categoriaDocumento: docCategoria,
+        categoriaDocumento: catFinal,
         version: docVersion.trim() || 'v1',
         descripcion: docDescripcion.trim(),
       });
-      showToast('Documento subido y registrado con éxito.', 'ok');
+      showToast(`Documento subido a "${catFinal}" exitosamente.`, 'ok');
       setModalSubirDoc(false);
       setDocFile(null);
       setDocNombre('');
       setDocDescripcion('');
       setDocVersion('v1');
+      setMostrarUploadInline(false);
       await cargarProceso();
     } catch (err) {
       showToast(err.response?.data?.detail || 'Error al subir el documento.', 'err');
@@ -266,7 +407,7 @@ export default function CalidadDetalleProceso() {
           <button
             type="button"
             className="sgc-btn-nav"
-            onClick={() => navigate('/calidad-de-procesos')}
+            onClick={() => irAtras(navigate, '/calidad-de-procesos')}
           >
             ← Mapa SGC
           </button>
@@ -332,110 +473,127 @@ export default function CalidadDetalleProceso() {
               </p>
             </div>
 
-            {/* ── MÓDULO OPERATIVO ASOCIADO (SOLO EN NODOS CON MÓDULO) ── */}
-            {moduloOperativo && (
-              <section className="sgc-det-modulo-section" aria-label="Módulo Operativo Vinculado">
+            {/* ── MÓDULOS OPERATIVOS ASOCIADOS (puede ser más de uno por proceso) ── */}
+            {modulosOperativos.length > 0 && (
+              <section className="sgc-det-modulo-section" aria-label="Módulos Operativos Vinculados">
                 <div className="sgc-det-modulo-header">
                   <div className="sgc-det-modulo-title-wrap">
-                    <span className="sgc-det-modulo-kicker">⚡ MÓDULO OPERATIVO VINCULADO</span>
-                    <h3 className="sgc-det-modulo-heading">{moduloOperativo.nombre}</h3>
+                    <span className="sgc-det-modulo-kicker">⚡ MÓDULOS OPERATIVOS VINCULADOS</span>
+                    <h3 className="sgc-det-modulo-heading">
+                      {modulosOperativos.length === 1
+                        ? modulosOperativos[0].nombre
+                        : `${modulosOperativos.length} módulos asociados a este proceso`}
+                    </h3>
                   </div>
-                  <span className={`sgc-det-modulo-badge sgc-det-modulo-badge--${moduloOperativo.colorTheme}`}>
-                    {moduloOperativo.badge}
-                  </span>
+                  {modulosOperativos.length === 1 && (
+                    <span className={`sgc-det-modulo-badge sgc-det-modulo-badge--${modulosOperativos[0].colorTheme}`}>
+                      {modulosOperativos[0].badge}
+                    </span>
+                  )}
                 </div>
 
-                <div
-                  className={`sgc-det-modulo-card sgc-det-modulo-card--${moduloOperativo.colorTheme} ${!tieneAccesoModulo ? 'sgc-det-modulo-card--locked' : ''}`}
-                  onClick={() => handleAccesoModulo(moduloOperativo.ruta)}
-                  title={!tieneAccesoModulo ? `🔒 Acceso restringido a ${moduloOperativo.nombre}` : `Haga clic para ingresar al módulo de ${moduloOperativo.nombre}`}
-                >
-                  <div className="sgc-det-modulo-card-top">
-                    <div className="sgc-det-modulo-icon-box">
-                      {!tieneAccesoModulo ? (
-                        <span className="sgc-det-lock-icon" aria-hidden="true">🔒</span>
-                      ) : moduloOperativo.colorTheme === 'blue' ? (
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="12" cy="12" r="3" />
-                          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                        </svg>
-                      ) : moduloOperativo.colorTheme === 'gold' ? (
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                          <polyline points="14 2 14 8 20 8" />
-                          <line x1="16" y1="13" x2="8" y2="13" />
-                          <line x1="16" y1="17" x2="8" y2="17" />
-                          <polyline points="10 9 9 9 8 9" />
-                        </svg>
-                      ) : (
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                          <circle cx="9" cy="7" r="4" />
-                          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="sgc-det-modulo-info">
-                      <div className="sgc-det-modulo-card-title-row">
-                        <h4 className="sgc-det-modulo-card-title">{moduloOperativo.nombre}</h4>
-                        {!tieneAccesoModulo && (
-                          <span className="sgc-det-lock-badge">🔒 SIN ACCESO</span>
-                        )}
+                {modulosOperativos.map((mod) => {
+                  const tieneAcceso = mod.puedeAcceder(user);
+                  return (
+                    <div
+                      key={mod.moduloId}
+                      className={`sgc-det-modulo-card sgc-det-modulo-card--${mod.colorTheme} ${!tieneAcceso ? 'sgc-det-modulo-card--locked' : ''}`}
+                      onClick={() => handleAccesoModulo(mod, mod.ruta)}
+                      title={!tieneAcceso ? `🔒 Acceso restringido a ${mod.nombre}` : `Haga clic para ingresar al módulo de ${mod.nombre}`}
+                    >
+                      <div className="sgc-det-modulo-card-top">
+                        <div className="sgc-det-modulo-icon-box">
+                          {!tieneAcceso ? (
+                            <span className="sgc-det-lock-icon" aria-hidden="true">🔒</span>
+                          ) : mod.colorTheme === 'blue' ? (
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="3" />
+                              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                            </svg>
+                          ) : mod.colorTheme === 'gold' ? (
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                              <polyline points="14 2 14 8 20 8" />
+                              <line x1="16" y1="13" x2="8" y2="13" />
+                              <line x1="16" y1="17" x2="8" y2="17" />
+                              <polyline points="10 9 9 9 8 9" />
+                            </svg>
+                          ) : (
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                              <circle cx="9" cy="7" r="4" />
+                              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="sgc-det-modulo-info">
+                          <div className="sgc-det-modulo-card-title-row">
+                            <h4 className="sgc-det-modulo-card-title">{mod.nombre}</h4>
+                            {mod.badge && (
+                              <span className={`sgc-det-modulo-badge sgc-det-modulo-badge--${mod.colorTheme}`}>
+                                {mod.badge}
+                              </span>
+                            )}
+                            {!tieneAcceso && (
+                              <span className="sgc-det-lock-badge">🔒 SIN ACCESO</span>
+                            )}
+                          </div>
+                          <p className="sgc-det-modulo-desc">{mod.descripcion}</p>
+                        </div>
                       </div>
-                      <p className="sgc-det-modulo-desc">{moduloOperativo.descripcion}</p>
-                    </div>
-                  </div>
 
-                  <div className="sgc-det-modulo-chips-wrap">
-                    <span className="sgc-det-chips-label">Funciones y accesos directos:</span>
-                    <div className="sgc-det-modulo-chips">
-                      {moduloOperativo.chips.map((chip) => (
+                      <div className="sgc-det-modulo-chips-wrap">
+                        <span className="sgc-det-chips-label">Funciones y accesos directos:</span>
+                        <div className="sgc-det-modulo-chips">
+                          {mod.chips.map((chip) => (
+                            <button
+                              key={chip.label}
+                              type="button"
+                              className={`sgc-det-modulo-chip ${!tieneAcceso ? 'sgc-det-modulo-chip--locked' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAccesoModulo(mod, chip.path);
+                              }}
+                              title={!tieneAcceso ? `🔒 Acceso bloqueado a ${chip.label}` : `Acceso directo a ${chip.label}`}
+                            >
+                              <span className="sgc-det-chip-icon">{!tieneAcceso ? '🔒' : chip.icon}</span>
+                              <span className="sgc-det-chip-label">{chip.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="sgc-det-modulo-actions">
                         <button
-                          key={chip.label}
                           type="button"
-                          className={`sgc-det-modulo-chip ${!tieneAccesoModulo ? 'sgc-det-modulo-chip--locked' : ''}`}
+                          className={`sgc-btn-modulo-cta sgc-btn-modulo-cta--${mod.colorTheme} ${!tieneAcceso ? 'sgc-btn-modulo-cta--locked' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleAccesoModulo(chip.path);
+                            handleAccesoModulo(mod, mod.ruta);
                           }}
-                          title={!tieneAccesoModulo ? `🔒 Acceso bloqueado a ${chip.label}` : `Acceso directo a ${chip.label}`}
                         >
-                          <span className="sgc-det-chip-icon">{!tieneAccesoModulo ? '🔒' : chip.icon}</span>
-                          <span className="sgc-det-chip-label">{chip.label}</span>
+                          {!tieneAcceso ? (
+                            <>
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                              </svg>
+                              <span>Acceso Restringido</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>{mod.botonTexto}</span>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                                <path d="M5 12h14M12 5l7 7-7 7" />
+                              </svg>
+                            </>
+                          )}
                         </button>
-                      ))}
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="sgc-det-modulo-actions">
-                    <button
-                      type="button"
-                      className={`sgc-btn-modulo-cta sgc-btn-modulo-cta--${moduloOperativo.colorTheme} ${!tieneAccesoModulo ? 'sgc-btn-modulo-cta--locked' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAccesoModulo(moduloOperativo.ruta);
-                      }}
-                    >
-                      {!tieneAccesoModulo ? (
-                        <>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                          </svg>
-                          <span>Acceso Restringido</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>{moduloOperativo.botonTexto}</span>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                            <path d="M5 12h14M12 5l7 7-7 7" />
-                          </svg>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
+                  );
+                })}
               </section>
             )}
 
@@ -506,131 +664,219 @@ export default function CalidadDetalleProceso() {
                 <div>
                   <h3 className="sgc-section-title">📂 Gestión de Documentos y Evidencias</h3>
                   <span className="sgc-section-subtitle">
-                    Procedimientos, políticas, formatos y registros asociados al proceso ({proceso.codigo})
+                    Documentación oficial organizada por categorías para el proceso de {proceso.nombre} ({proceso.codigo})
                   </span>
                 </div>
-                {isAdmin && (
-                  <button
-                    type="button"
-                    className="sgc-btn-primary"
-                    onClick={() => setModalSubirDoc(true)}
-                  >
-                    + Subir Documento
-                  </button>
-                )}
+                <div className="sgc-section-header-actions">
+                  {proceso.documentos && proceso.documentos.length > 0 && (
+                    <button
+                      type="button"
+                      className="sgc-btn-secondary sgc-btn-toggle-view"
+                      onClick={() => setVerTablaConsolidada(!verTablaConsolidada)}
+                    >
+                      {verTablaConsolidada ? '▲ Ocultar vista consolidada' : `📋 Vista general (${proceso.documentos.length})`}
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      className="sgc-btn-primary"
+                      onClick={() => {
+                        setDocCategoria('Caracterización');
+                        setModalSubirDoc(true);
+                      }}
+                    >
+                      + Subir Documento
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="sgc-table-card">
-                {proceso.documentos && proceso.documentos.length > 0 ? (
-                  <div className="sgc-table-responsive">
-                    <table className="sgc-table">
-                      <thead>
-                        <tr>
-                          <th>Documento</th>
-                          <th>Categoría</th>
-                          <th>Versión</th>
-                          <th>Descripción</th>
-                          <th>Subido Por</th>
-                          <th>Fecha</th>
-                          <th className="sgc-th-actions">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {proceso.documentos.map((doc) => (
-                          <tr key={doc.id}>
-                            <td>
-                              <div className="sgc-doc-name-cell">
-                                <span className="sgc-doc-icon">📄</span>
-                                <a
-                                  href={doc.cloudinary_secure_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="sgc-doc-link"
-                                  title="Clic para abrir en nueva pestaña"
-                                >
-                                  {doc.nombre_documento}
-                                </a>
-                              </div>
-                            </td>
-                            <td>
-                              <span className="sgc-doc-cat-pill">
-                                {doc.categoria_documento || 'Procedimiento'}
-                              </span>
-                            </td>
-                            <td>
-                              <span className="sgc-doc-version-pill">{doc.version || 'v1'}</span>
-                            </td>
-                            <td className="sgc-doc-desc-cell">
-                              {doc.descripcion || '—'}
-                            </td>
-                            <td className="sgc-doc-uploader-cell">
-                              {doc.usuario_subio?.nombre || 'PilarAdmin'}
-                            </td>
-                            <td className="sgc-doc-date-cell">
-                              {formatFecha(doc.created_at)}
-                            </td>
-                            <td className="sgc-td-actions">
-                              <a
-                                href={doc.cloudinary_secure_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="sgc-btn-tbl sgc-btn-tbl--view"
-                                title="Abrir / Descargar"
-                              >
-                                Abrir
-                              </a>
-                              {isAdmin && (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="sgc-btn-tbl sgc-btn-tbl--edit"
-                                    onClick={() => handleAbrirEditarDoc(doc)}
-                                    title="Editar clasificación o versión"
-                                  >
-                                    Editar
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="sgc-btn-tbl sgc-btn-tbl--delete"
-                                    onClick={() => handleEliminarDocumento(doc.id, doc.nombre_documento)}
-                                    title="Eliminar documento"
-                                  >
-                                    Eliminar
-                                  </button>
-                                </>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="sgc-empty-block">
-                    <p>No hay documentos cargados en este proceso todavía.</p>
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        className="sgc-btn-primary"
-                        onClick={() => setModalSubirDoc(true)}
-                      >
-                        Subir primer documento
-                      </button>
-                    )}
-                  </div>
-                )}
+              {/* ── GRID DE 4 TARJETAS DE CATEGORÍAS DOCUMENTALES (+ GERENCIA EXTRA SI APLICA) ── */}
+              <div className="sgc-cat-grid">
+                {categoriasDelProceso.map((cat) => {
+                  const docsCat = getDocumentosDeCategoria(proceso.documentos, cat, categoriasDelProceso);
+                  const totalDocs = docsCat.length;
+                  return (
+                    <div
+                      key={cat.id}
+                      className="sgc-cat-card"
+                      onClick={() => handleAbrirCategoria(cat)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleAbrirCategoria(cat);
+                        }
+                      }}
+                      style={{
+                        '--cat-accent': cat.color,
+                        '--cat-bg': cat.bgLight,
+                        '--cat-border': cat.borderLight,
+                      }}
+                    >
+                      <div className="sgc-cat-card-top">
+                        <div
+                          className="sgc-cat-icon-badge"
+                          style={{
+                            background: cat.bgLight,
+                            borderColor: cat.borderLight,
+                            color: cat.color,
+                          }}
+                        >
+                          <span className="sgc-cat-icon-emoji">{cat.icono}</span>
+                        </div>
+                        <span
+                          className={`sgc-cat-counter-pill ${
+                            totalDocs > 0 ? 'sgc-cat-counter-pill--has-files' : ''
+                          }`}
+                        >
+                          {totalDocs === 0
+                            ? '0 archivos'
+                            : `${totalDocs} ${totalDocs === 1 ? 'archivo' : 'archivos'}`}
+                        </span>
+                      </div>
 
-                {/* Nota de permisos informativa para no-admin */}
-                {!isAdmin && (
-                  <div className="sgc-notice-readonly">
-                    <span className="sgc-notice-icon">ℹ️</span>
-                    <span>
-                      Solo PilarAdmin o administradores asignados como Editores SGC pueden subir, clasificar y eliminar documentos.
-                      Cuentas con acceso de consulta y descarga en modo lector.
+                      <div className="sgc-cat-card-body">
+                        <h4 className="sgc-cat-card-title">{cat.nombre}</h4>
+                        <p className="sgc-cat-card-desc">{cat.descripcion}</p>
+                      </div>
+
+                      <div className="sgc-cat-card-bottom">
+                        <span className="sgc-cat-explore-link">
+                          Explorar carpeta <span className="sgc-cat-explore-arrow">→</span>
+                        </span>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            className="sgc-cat-btn-quick-add"
+                            title={`Subir archivo a ${cat.nombre}`}
+                            onClick={(e) => handleAbrirSubirEnCategoria(cat, e)}
+                          >
+                            + Subir
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── TABLA CONSOLIDADA OPCIONAL ── */}
+              {verTablaConsolidada && (
+                <div className="sgc-consolidated-wrap">
+                  <div className="sgc-consolidated-header">
+                    <h4>📋 Vista Consolidada de Todos los Documentos ({proceso.documentos?.length || 0})</h4>
+                    <span className="sgc-consolidated-subtitle">
+                      Listado general de todos los archivos cargados en cualquier categoría
                     </span>
                   </div>
-                )}
-              </div>
+
+                  <div className="sgc-table-card">
+                    {proceso.documentos && proceso.documentos.length > 0 ? (
+                      <div className="sgc-table-responsive">
+                        <table className="sgc-table">
+                          <thead>
+                            <tr>
+                              <th>Documento</th>
+                              <th>Categoría</th>
+                              <th>Versión</th>
+                              <th>Descripción</th>
+                              <th>Subido Por</th>
+                              <th>Fecha</th>
+                              <th className="sgc-th-actions">Acciones</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {proceso.documentos.map((doc) => (
+                              <tr key={doc.id}>
+                                <td>
+                                  <div className="sgc-doc-name-cell">
+                                    <span className="sgc-doc-icon">📄</span>
+                                    <a
+                                      href={doc.cloudinary_secure_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="sgc-doc-link"
+                                      title="Clic para abrir en nueva pestaña"
+                                    >
+                                      {doc.nombre_documento}
+                                    </a>
+                                  </div>
+                                </td>
+                                <td>
+                                  <span className="sgc-doc-cat-pill">
+                                    {doc.categoria_documento || 'Procedimiento'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className="sgc-doc-version-pill">{doc.version || 'v1'}</span>
+                                </td>
+                                <td className="sgc-doc-desc-cell">
+                                  {doc.descripcion || '—'}
+                                </td>
+                                <td className="sgc-doc-uploader-cell">
+                                  {doc.usuario_subio?.nombre || 'PilarAdmin'}
+                                </td>
+                                <td className="sgc-doc-date-cell">
+                                  {formatFecha(doc.created_at)}
+                                </td>
+                                <td className="sgc-td-actions">
+                                  <a
+                                    href={doc.cloudinary_secure_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="sgc-btn-tbl sgc-btn-tbl--view"
+                                    title="Abrir / Descargar"
+                                  >
+                                    Abrir
+                                  </a>
+                                  {isAdmin && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        className="sgc-btn-tbl sgc-btn-tbl--edit"
+                                        onClick={() => handleAbrirEditarDoc(doc)}
+                                        title="Editar clasificación o versión"
+                                      >
+                                        Editar
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="sgc-btn-tbl sgc-btn-tbl--delete"
+                                        onClick={() => handleEliminarDocumento(doc.id, doc.nombre_documento)}
+                                        title="Eliminar documento"
+                                      >
+                                        Eliminar
+                                      </button>
+                                    </>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="sgc-empty-block">
+                        <p>No hay documentos cargados en este proceso todavía.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Nota de permisos informativa para no-admin */}
+              {!isAdmin && (
+                <div className="sgc-notice-readonly">
+                  <span className="sgc-notice-icon">ℹ️</span>
+                  <span>
+                    Solo PilarAdmin o administradores asignados como Editores SGC pueden subir, clasificar y eliminar documentos.
+                    Cuentas con acceso de consulta y descarga en modo lector dentro de cada categoría.
+                  </span>
+                </div>
+              )}
             </section>
           </>
         ) : null}
@@ -911,6 +1157,316 @@ export default function CalidadDetalleProceso() {
           </div>
         </div>
       )}
+      {/* ── MODAL: VISTA DE CATEGORÍA DOCUMENTAL (CARACTERIZACIÓN / FORMATOS / INDICADORES / PROCESOS / ETC) ── */}
+      {categoriaModal && (() => {
+        const docsCategoria = getDocumentosDeCategoria(proceso?.documentos, categoriaModal, categoriasDelProceso);
+        const docsFiltrados = searchModalDoc.trim()
+          ? docsCategoria.filter((d) =>
+              (d.nombre_documento || '').toLowerCase().includes(searchModalDoc.toLowerCase()) ||
+              (d.descripcion || '').toLowerCase().includes(searchModalDoc.toLowerCase()) ||
+              (d.usuario_subio?.nombre || '').toLowerCase().includes(searchModalDoc.toLowerCase())
+            )
+          : docsCategoria;
+
+        return (
+          <div className="sgc-modal-overlay" onClick={() => setCategoriaModal(null)}>
+            <div className="sgc-modal-card sgc-cat-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="sgc-modal-header sgc-cat-modal-header">
+                <div className="sgc-cat-modal-title-wrap">
+                  <div
+                    className="sgc-cat-modal-icon-badge"
+                    style={{
+                      background: categoriaModal.bgLight,
+                      borderColor: categoriaModal.borderLight,
+                      color: categoriaModal.color,
+                    }}
+                  >
+                    <span>{categoriaModal.icono}</span>
+                  </div>
+                  <div>
+                    <div className="sgc-cat-modal-crumb">
+                      <span>{proceso?.nombre}</span>
+                      <span className="sgc-cat-modal-dot">•</span>
+                      <span className="sgc-cat-modal-proc-badge">{proceso?.codigo}</span>
+                    </div>
+                    <h3 className="sgc-cat-modal-title">{categoriaModal.nombre}</h3>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="sgc-modal-close"
+                  onClick={() => setCategoriaModal(null)}
+                  title="Cerrar ventana"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="sgc-cat-modal-desc-box">
+                <p className="sgc-cat-modal-desc">{categoriaModal.descripcion}</p>
+                <div className="sgc-cat-modal-stats">
+                  <span className="sgc-cat-modal-stat-pill">
+                    📁 <strong>{docsCategoria.length}</strong> {docsCategoria.length === 1 ? 'archivo disponible' : 'archivos disponibles'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Barra de control y búsqueda */}
+              <div className="sgc-cat-modal-toolbar">
+                <div className="sgc-cat-search-box">
+                  <span className="sgc-cat-search-icon">🔍</span>
+                  <input
+                    type="text"
+                    placeholder="Buscar documento en esta categoría..."
+                    value={searchModalDoc}
+                    onChange={(e) => setSearchModalDoc(e.target.value)}
+                    className="sgc-cat-search-input"
+                  />
+                  {searchModalDoc && (
+                    <button
+                      type="button"
+                      className="sgc-cat-search-clear"
+                      onClick={() => setSearchModalDoc('')}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {isAdmin && (
+                  <button
+                    type="button"
+                    className={`sgc-btn-cat-toggle ${mostrarUploadInline ? 'sgc-btn-cat-toggle--cancel' : 'sgc-btn-cat-toggle--add'}`}
+                    onClick={() => setMostrarUploadInline(!mostrarUploadInline)}
+                  >
+                    {mostrarUploadInline ? '✕ Cancelar subida' : '+ Subir archivo'}
+                  </button>
+                )}
+              </div>
+
+              {/* Panel de Subida Inline (Upload component) */}
+              {isAdmin && mostrarUploadInline && (
+                <div className="sgc-cat-upload-panel">
+                  <div className="sgc-cat-upload-header">
+                    <h4>📤 Subir archivo a {categoriaModal.nombre}</h4>
+                    <span className="sgc-cat-upload-hint">
+                      Formatos admitidos: PDF, Excel (.xlsx, .xls), Word (.docx), imágenes (.png, .jpg), etc.
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleSubirDocumento} className="sgc-cat-upload-form">
+                    <div className="sgc-form-group">
+                      <label className="sgc-dropzone-label">
+                        <div className="sgc-dropzone-content">
+                          <span className="sgc-dropzone-icon">📁</span>
+                          <span className="sgc-dropzone-text">
+                            {docFile ? (
+                              <strong>{docFile.name} ({(docFile.size / 1024).toFixed(1)} KB)</strong>
+                            ) : (
+                              'Haz clic para seleccionar o examinar archivo'
+                            )}
+                          </span>
+                        </div>
+                        <input
+                          type="file"
+                          required
+                          className="sgc-file-input-hidden"
+                          onChange={(e) => {
+                            const f = e.target.files[0];
+                            setDocFile(f);
+                            if (f && !docNombre) {
+                              const base = f.name.replace(/\.[^/.]+$/, '');
+                              setDocNombre(base);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    <div className="sgc-form-row">
+                      <div className="sgc-form-group" style={{ flex: 2 }}>
+                        <label>Nombre del Documento *</label>
+                        <input
+                          type="text"
+                          required
+                          value={docNombre}
+                          onChange={(e) => setDocNombre(e.target.value)}
+                          placeholder={`Ej. ${categoriaModal.nombre === 'Formatos' ? 'Formato de Inspección ODS' : categoriaModal.nombre === 'Indicadores' ? 'Ficha de Indicador de Eficiencia' : 'Documento oficial'}`}
+                        />
+                      </div>
+
+                      <div className="sgc-form-group" style={{ flex: 1 }}>
+                        <label>Versión</label>
+                        <input
+                          type="text"
+                          required
+                          value={docVersion}
+                          onChange={(e) => setDocVersion(e.target.value)}
+                          placeholder="Ej. v1, v2"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="sgc-form-group">
+                      <label>Descripción / Observaciones (Opcional)</label>
+                      <textarea
+                        rows={2}
+                        value={docDescripcion}
+                        onChange={(e) => setDocDescripcion(e.target.value)}
+                        placeholder="Breve explicación del objetivo, alcance o fecha de vigencia de este archivo..."
+                      />
+                    </div>
+
+                    <div className="sgc-cat-upload-actions">
+                      <button
+                        type="button"
+                        className="sgc-btn-secondary"
+                        onClick={() => {
+                          setMostrarUploadInline(false);
+                          setDocFile(null);
+                        }}
+                        disabled={subiendoDoc}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="sgc-btn-primary"
+                        disabled={subiendoDoc || !docFile}
+                      >
+                        {subiendoDoc ? 'Subiendo a Cloudinary…' : 'Subir Archivo'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Listado de Documentos de esta Categoría */}
+              <div className="sgc-cat-list-container">
+                {docsFiltrados.length > 0 ? (
+                  <div className="sgc-table-responsive">
+                    <table className="sgc-table">
+                      <thead>
+                        <tr>
+                          <th>Archivo / Documento</th>
+                          <th>Versión</th>
+                          <th>Descripción</th>
+                          <th>Subido Por</th>
+                          <th>Fecha</th>
+                          <th className="sgc-th-actions">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {docsFiltrados.map((doc) => (
+                          <tr key={doc.id}>
+                            <td>
+                              <div className="sgc-doc-name-cell">
+                                <span className="sgc-doc-icon">
+                                  {categoriaModal.icono || '📄'}
+                                </span>
+                                <a
+                                  href={doc.cloudinary_secure_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="sgc-doc-link"
+                                  title="Clic para abrir / descargar"
+                                >
+                                  {doc.nombre_documento}
+                                </a>
+                              </div>
+                            </td>
+                            <td>
+                              <span className="sgc-doc-version-pill">{doc.version || 'v1'}</span>
+                            </td>
+                            <td className="sgc-doc-desc-cell">
+                              {doc.descripcion || '—'}
+                            </td>
+                            <td className="sgc-doc-uploader-cell">
+                              {doc.usuario_subio?.nombre || 'PilarAdmin'}
+                            </td>
+                            <td className="sgc-doc-date-cell">
+                              {formatFecha(doc.created_at)}
+                            </td>
+                            <td className="sgc-td-actions">
+                              <a
+                                href={doc.cloudinary_secure_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="sgc-btn-tbl sgc-btn-tbl--view"
+                                title="Descargar / Abrir en pestaña nueva"
+                              >
+                                Abrir ↗
+                              </a>
+                              {isAdmin && (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="sgc-btn-tbl sgc-btn-tbl--edit"
+                                    onClick={() => handleAbrirEditarDoc(doc)}
+                                    title="Editar nombre, versión o descripción"
+                                  >
+                                    Editar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="sgc-btn-tbl sgc-btn-tbl--delete"
+                                    onClick={() => handleEliminarDocumento(doc.id, doc.nombre_documento)}
+                                    title="Eliminar este documento"
+                                  >
+                                    Eliminar
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="sgc-cat-empty-state">
+                    <div className="sgc-cat-empty-icon">{categoriaModal.icono}</div>
+                    <h4>No hay archivos en {categoriaModal.nombre}</h4>
+                    <p>
+                      {searchModalDoc
+                        ? `No se encontraron documentos que coincidan con "${searchModalDoc}".`
+                        : `Aún no se han cargado documentos en la categoría "${categoriaModal.nombre}" para este proceso.`}
+                    </p>
+                    {isAdmin && !mostrarUploadInline && (
+                      <button
+                        type="button"
+                        className="sgc-btn-primary"
+                        onClick={() => setMostrarUploadInline(true)}
+                      >
+                        + Subir primer archivo aquí
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {!isAdmin && (
+                <div className="sgc-notice-readonly" style={{ marginTop: '1.25rem' }}>
+                  <span className="sgc-notice-icon">ℹ️</span>
+                  <span>
+                    Acceso en modo consulta y descarga. Solo PilarAdmin o editores SGC autorizados pueden cargar o eliminar archivos en esta categoría.
+                  </span>
+                </div>
+              )}
+
+              <div className="sgc-modal-actions" style={{ marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  className="sgc-btn-secondary"
+                  onClick={() => setCategoriaModal(null)}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

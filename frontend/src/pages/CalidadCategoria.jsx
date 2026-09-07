@@ -6,6 +6,7 @@ import {
   actualizarProceso,
 } from '../services/calidadProcesos';
 import { esAdminCalidad } from '../utils/permisos';
+import { irAtras } from '../utils/navigation';
 import logoGSB from '../assets/logo-gsb.png';
 import './CalidadCategoria.css';
 
@@ -118,7 +119,7 @@ export default function CalidadCategoria() {
           <button
             type="button"
             className="sgc-btn-nav"
-            onClick={() => navigate('/calidad-de-procesos')}
+            onClick={() => irAtras(navigate, '/calidad-de-procesos')}
           >
             ← Volver al Mapa
           </button>

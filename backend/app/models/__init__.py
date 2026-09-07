@@ -8,7 +8,14 @@ from app.models.log_auditoria import LogAuditoria
 from app.models.proveedor import Proveedor
 from app.models.cuenta_cobro import CuentaCobro
 from app.models.cuenta_cobro_asignacion import CuentaCobroAsignacion
-from app.models.talento_humano import EmpleadoPerfil, EmpleadoDocumento, EmpleadoHistorial, EmpleadoSolicitud
+from app.models.talento_humano import (
+    EmpleadoPerfil,
+    EmpleadoDocumento,
+    EmpleadoHistorial,
+    EmpleadoSolicitud,
+    EmpleadoDotacion,
+    EmpleadoEvaluacion,
+)
 from app.models.calidad_procesos import ProcesoCalidad, ProcesoCalidadResponsable, ProcesoCalidadDocumento
 
 __all__ = [
@@ -26,6 +33,8 @@ __all__ = [
     "EmpleadoDocumento",
     "EmpleadoHistorial",
     "EmpleadoSolicitud",
+    "EmpleadoDotacion",
+    "EmpleadoEvaluacion",
     "ProcesoCalidad",
     "ProcesoCalidadResponsable",
     "ProcesoCalidadDocumento",

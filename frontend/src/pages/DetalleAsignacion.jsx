@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { obtenerAsignacion, actualizarAsignacion, finalizarAsignacion, eliminarAsignacion } from '../services/asignaciones';
+import { irAtras } from '../utils/navigation';
 import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION } from '../utils/asignaciones';
 import { formatFechaLarga, formatFechaCorta, formatCOP } from '../utils/personal';
 import { parseDescripcion } from '../utils/descripcion';
@@ -135,7 +136,7 @@ export default function DetalleAsignacion() {
         return (
             <div className="admin-root">
                 <div className="admin-container">
-                    <button className="admin-back-btn" onClick={() => navigate('/admin/asignaciones')}>← Volver a Asignaciones</button>
+                    <button className="admin-back-btn" onClick={() => irAtras(navigate, '/admin/asignaciones')}>← Volver a Asignaciones</button>
                     <div className="admin-error-banner">{error}</div>
                 </div>
             </div>
@@ -147,7 +148,7 @@ export default function DetalleAsignacion() {
             <div className="admin-container">
                 <div className="admin-page-header">
                     <div>
-                        <button className="admin-back-btn" onClick={() => navigate('/admin/asignaciones')}>← Volver a Asignaciones</button>
+                        <button className="admin-back-btn" onClick={() => irAtras(navigate, '/admin/asignaciones')}>← Volver a Asignaciones</button>
                     </div>
                 </div>
 

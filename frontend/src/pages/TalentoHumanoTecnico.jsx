@@ -5,6 +5,7 @@ import api from '../services/api';
 import TecnicoLayout from '../components/TecnicoLayout';
 import { formatFechaLarga, iniciales } from '../utils/personal';
 import { formatApiError } from '../utils/formatError';
+import { irAtras } from '../utils/navigation';
 import './TalentoHumanoTecnico.css';
 
 export default function TalentoHumanoTecnico() {
@@ -89,7 +90,7 @@ export default function TalentoHumanoTecnico() {
                 {/* ── HEADER SUPERIOR ── */}
                 <div className="tht-top-header">
                     <div className="tht-header-title-wrap">
-                        <button className="tht-back-btn" onClick={() => navigate('/dashboard')} title="Volver al inicio">
+                        <button className="tht-back-btn" onClick={() => irAtras(navigate, '/dashboard')} title="Volver al inicio">
                             ←
                         </button>
                         <div>

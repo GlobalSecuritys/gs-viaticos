@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { irAtras } from '../utils/navigation';
 import ModalEvidencia from '../components/ModalEvidencia';
 import './AdminDashboard.css';
 import './AdminUsuarios.css';
@@ -48,7 +49,7 @@ export default function AdminViaticos() {
     return (
         <div className="admin-root">
             <div className="admin-main">
-                <button className="admin-back-btn" onClick={() => navigate('/admin')}>← Volver</button>
+                <button className="admin-back-btn" onClick={() => irAtras(navigate, '/admin')}>← Volver</button>
                 <h1 className="admin-page-title">Gestionar Viáticos</h1>
 
                 {mensajeFeedback && (

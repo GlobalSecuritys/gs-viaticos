@@ -151,3 +151,57 @@ class EmpleadoSolicitud(Base):
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=False), nullable=True, onupdate=func.now()
     )
+
+
+class EmpleadoDotacion(Base):
+    """
+    Registro y trazabilidad de dotación y equipos entregados a un técnico o empleado.
+    """
+    __tablename__ = "empleados_dotaciones"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    usuario_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    item: Mapped[str] = mapped_column(String(150), nullable=False)
+    tipo: Mapped[str] = mapped_column(String(60), nullable=False, default="Dotación")  # Uniforme, Calzado, EPP, Equipos, Herramientas
+    talla: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    cantidad: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    fecha_entrega: Mapped[date] = mapped_column(Date, nullable=False, default=date.today)
+    fecha_reposicion: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    estado: Mapped[str] = mapped_column(
+        String(30), nullable=False, server_default="entregado", default="entregado"
+    )  # 'entregado', 'devuelto', 'deteriorado', 'reposicion'
+    observaciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    entregado_por_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    entregado_por_nombre: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), nullable=False, server_default=func.now()
+    )
+
+
+class EmpleadoEvaluacion(Base):
+    """
+    Evaluaciones periódicas de desempeño para técnicos y empleados (calificación 1 a 5 estrellas por factor).
+    """
+    __tablename__ = "empleados_evaluaciones"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    usuario_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    fecha_evaluacion: Mapped[date] = mapped_column(Date, nullable=False, default=date.today)
+    periodo: Mapped[str] = mapped_column(String(100), nullable=False, default="Evaluación de Desempeño")
+    puntualidad: Mapped[int] = mapped_column(Integer, nullable=False, default=5)  # 1-5 estrellas
+    desempeno: Mapped[int] = mapped_column(Integer, nullable=False, default=5)  # 1-5 estrellas
+    actitud: Mapped[int] = mapped_column(Integer, nullable=False, default=5)  # 1-5 estrellas
+    cumplimiento_protocolo: Mapped[int] = mapped_column(Integer, nullable=False, default=5)  # 1-5 estrellas
+    comunicacion_reporte: Mapped[int] = mapped_column(Integer, nullable=False, default=5)  # 1-5 estrellas
+    promedio: Mapped[Decimal] = mapped_column(Numeric(3, 2), nullable=False, default=Decimal("5.00"))
+    comentarios: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    evaluador_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    evaluador_nombre: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), nullable=False, server_default=func.now()
+    )
+

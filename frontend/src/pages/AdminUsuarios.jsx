@@ -6,6 +6,7 @@ import './AdminDashboard.css';
 import './AdminUsuarios.css';
 
 import { formatApiError } from '../utils/formatError';
+import { irAtras } from '../utils/navigation';
 
 export default function AdminUsuarios() {
     const navigate = useNavigate();
@@ -122,7 +123,7 @@ export default function AdminUsuarios() {
                     <div>
                         <button
                             className="admin-back-btn"
-                            onClick={() => navigate('/admin')}
+                            onClick={() => irAtras(navigate, '/admin')}
                         >
                             ← Volver
                         </button>

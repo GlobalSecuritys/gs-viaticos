@@ -22,6 +22,8 @@ from app.models.talento_humano import (
     EmpleadoHistorial,
     EmpleadoPerfil,
     EmpleadoSolicitud,
+    EmpleadoDotacion,
+    EmpleadoEvaluacion,
 )
 from app.models.usuario import Usuario
 from app.schemas.talento_humano import (
@@ -38,6 +40,11 @@ from app.schemas.talento_humano import (
     EmpleadoSolicitudCreate,
     EmpleadoSolicitudResponse,
     EmpleadoSolicitudRespuesta,
+    EmpleadoDotacionCreate,
+    EmpleadoDotacionUpdate,
+    EmpleadoDotacionResponse,
+    EmpleadoEvaluacionCreate,
+    EmpleadoEvaluacionResponse,
 )
 from app.services.auditoria import registrar_auditoria
 from app.services.excel_export import generar_excel_talento_humano
@@ -303,6 +310,8 @@ def crear_empleado(
         perfil=EmpleadoPerfilAdminResponse.model_validate(nuevo_perfil),
         documentos=[EmpleadoDocumentoResponse.model_validate(d) for d in documentos],
         historial=[EmpleadoHistorialResponse.model_validate(historial)],
+        dotaciones=[],
+        evaluaciones=[],
     )
 
 
@@ -313,7 +322,7 @@ def obtener_empleado_admin(
     db: Annotated[Session, Depends(get_db)],
 ):
     """
-    Retorna la ficha completa del empleado incluyendo salario, documentos e historial de cambios.
+    Retorna la ficha completa del empleado incluyendo salario, documentos, historial, dotaciones y evaluaciones.
     """
     stmt_user = select(Usuario).where(Usuario.id == usuario_id)
     usuario = db.scalar(stmt_user)
@@ -342,6 +351,22 @@ def obtener_empleado_admin(
     )
     historial = db.scalars(stmt_hist).all()
 
+    # Dotaciones
+    stmt_dot = (
+        select(EmpleadoDotacion)
+        .where(EmpleadoDotacion.usuario_id == usuario.id)
+        .order_by(EmpleadoDotacion.fecha_entrega.desc(), EmpleadoDotacion.id.desc())
+    )
+    dotaciones = db.scalars(stmt_dot).all()
+
+    # Evaluaciones
+    stmt_eval = (
+        select(EmpleadoEvaluacion)
+        .where(EmpleadoEvaluacion.usuario_id == usuario.id)
+        .order_by(EmpleadoEvaluacion.fecha_evaluacion.desc(), EmpleadoEvaluacion.id.desc())
+    )
+    evaluaciones = db.scalars(stmt_eval).all()
+
     return EmpleadoCompletoAdminResponse(
         id=usuario.id,
         nombre=usuario.nombre,
@@ -352,6 +377,8 @@ def obtener_empleado_admin(
         perfil=EmpleadoPerfilAdminResponse.model_validate(perfil),
         documentos=[EmpleadoDocumentoResponse.model_validate(d) for d in documentos],
         historial=[EmpleadoHistorialResponse.model_validate(h) for h in historial],
+        dotaciones=[EmpleadoDotacionResponse.model_validate(dot) for dot in dotaciones],
+        evaluaciones=[EmpleadoEvaluacionResponse.model_validate(ev) for ev in evaluaciones],
     )
 
 
@@ -930,3 +957,264 @@ def responder_solicitud(
     db.refresh(solicitud)
 
     return EmpleadoSolicitudResponse.model_validate(solicitud)
+
+
+# -----------------------------------------------------------------------------
+# GESTIÓN DE DOTACIONES POR EMPLEADO
+# -----------------------------------------------------------------------------
+@router.get("/empleados/{usuario_id}/dotaciones", response_model=List[EmpleadoDotacionResponse])
+def listar_dotaciones_empleado(
+    usuario_id: int,
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Lista la dotación asignada a un empleado.
+    Administradores pueden ver de cualquier empleado; técnicos solo la suya.
+    """
+    if current_user.rol not in ("admin", "superadmin") and current_user.id != usuario_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permiso para ver la dotación de este usuario.",
+        )
+    stmt = (
+        select(EmpleadoDotacion)
+        .where(EmpleadoDotacion.usuario_id == usuario_id)
+        .order_by(EmpleadoDotacion.fecha_entrega.desc(), EmpleadoDotacion.id.desc())
+    )
+    items = db.scalars(stmt).all()
+    return [EmpleadoDotacionResponse.model_validate(i) for i in items]
+
+
+@router.post("/empleados/{usuario_id}/dotaciones", response_model=EmpleadoDotacionResponse, status_code=status.HTTP_201_CREATED)
+def agregar_dotacion_empleado(
+    usuario_id: int,
+    datos: EmpleadoDotacionCreate,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Registra un nuevo ítem de dotación entregado a un técnico o empleado.
+    """
+    target_user = db.get(Usuario, usuario_id)
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Empleado no encontrado")
+
+    nueva_dotacion = EmpleadoDotacion(
+        usuario_id=usuario_id,
+        item=datos.item.strip(),
+        tipo=datos.tipo.strip() if datos.tipo else "Dotación",
+        talla=datos.talla.strip() if datos.talla else None,
+        cantidad=datos.cantidad if datos.cantidad and datos.cantidad > 0 else 1,
+        fecha_entrega=datos.fecha_entrega or date.today(),
+        fecha_reposicion=datos.fecha_reposicion,
+        estado=datos.estado or "entregado",
+        observaciones=datos.observaciones,
+        entregado_por_id=current_admin.id,
+        entregado_por_nombre=current_admin.nombre,
+    )
+    db.add(nueva_dotacion)
+
+    # Registrar en historial del empleado
+    historial = EmpleadoHistorial(
+        usuario_id=usuario_id,
+        actor_id=current_admin.id,
+        actor_nombre=current_admin.nombre,
+        actor_rol=current_admin.rol,
+        campo_modificado="Entrega de dotación",
+        valor_anterior="—",
+        valor_nuevo=f"Entregado: {nueva_dotacion.item} ({nueva_dotacion.cantidad} ud, Talla: {nueva_dotacion.talla or 'N/A'})",
+    )
+    db.add(historial)
+    db.commit()
+    db.refresh(nueva_dotacion)
+
+    registrar_auditoria(
+        db,
+        actor=current_admin,
+        usuario_objetivo=target_user,
+        accion="entrega_dotacion",
+        detalle=f"Dotación '{nueva_dotacion.item}' entregada a '{target_user.nombre}'",
+        resultado="exitoso",
+    )
+
+    return EmpleadoDotacionResponse.model_validate(nueva_dotacion)
+
+
+@router.put("/empleados/{usuario_id}/dotaciones/{dotacion_id}", response_model=EmpleadoDotacionResponse)
+def actualizar_dotacion_empleado(
+    usuario_id: int,
+    dotacion_id: int,
+    datos: EmpleadoDotacionUpdate,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Actualiza estado, reposición u observaciones de un ítem de dotación.
+    """
+    stmt = select(EmpleadoDotacion).where(
+        EmpleadoDotacion.id == dotacion_id,
+        EmpleadoDotacion.usuario_id == usuario_id
+    )
+    dotacion = db.scalar(stmt)
+    if not dotacion:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ítem de dotación no encontrado")
+
+    if datos.item is not None:
+        dotacion.item = datos.item.strip()
+    if datos.tipo is not None:
+        dotacion.tipo = datos.tipo.strip()
+    if datos.talla is not None:
+        dotacion.talla = datos.talla.strip()
+    if datos.cantidad is not None:
+        dotacion.cantidad = datos.cantidad
+    if datos.fecha_entrega is not None:
+        dotacion.fecha_entrega = datos.fecha_entrega
+    if datos.fecha_reposicion is not None:
+        dotacion.fecha_reposicion = datos.fecha_reposicion
+    if datos.estado is not None:
+        dotacion.estado = datos.estado
+    if datos.observaciones is not None:
+        dotacion.observaciones = datos.observaciones
+
+    db.commit()
+    db.refresh(dotacion)
+    return EmpleadoDotacionResponse.model_validate(dotacion)
+
+
+@router.delete("/empleados/{usuario_id}/dotaciones/{dotacion_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_dotacion_empleado(
+    usuario_id: int,
+    dotacion_id: int,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Elimina un registro de dotación.
+    """
+    stmt = select(EmpleadoDotacion).where(
+        EmpleadoDotacion.id == dotacion_id,
+        EmpleadoDotacion.usuario_id == usuario_id
+    )
+    dotacion = db.scalar(stmt)
+    if not dotacion:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ítem de dotación no encontrado")
+
+    db.delete(dotacion)
+    db.commit()
+    return None
+
+
+# -----------------------------------------------------------------------------
+# GESTIÓN DE EVALUACIONES DE DESEMPEÑO DEL TÉCNICO (1 A 5 ESTRELLAS)
+# -----------------------------------------------------------------------------
+@router.get("/empleados/{usuario_id}/evaluaciones", response_model=List[EmpleadoEvaluacionResponse])
+def listar_evaluaciones_empleado(
+    usuario_id: int,
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Lista las evaluaciones de desempeño de un empleado/técnico.
+    """
+    if current_user.rol not in ("admin", "superadmin") and current_user.id != usuario_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permiso para ver las evaluaciones de este usuario.",
+        )
+    stmt = (
+        select(EmpleadoEvaluacion)
+        .where(EmpleadoEvaluacion.usuario_id == usuario_id)
+        .order_by(EmpleadoEvaluacion.fecha_evaluacion.desc(), EmpleadoEvaluacion.id.desc())
+    )
+    items = db.scalars(stmt).all()
+    return [EmpleadoEvaluacionResponse.model_validate(i) for i in items]
+
+
+@router.post("/empleados/{usuario_id}/evaluaciones", response_model=EmpleadoEvaluacionResponse, status_code=status.HTTP_201_CREATED)
+def crear_evaluacion_empleado(
+    usuario_id: int,
+    datos: EmpleadoEvaluacionCreate,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Registra una nueva evaluación de desempeño para un técnico con 5 factores calificados de 1 a 5 estrellas.
+    Calcula automáticamente el promedio general.
+    """
+    target_user = db.get(Usuario, usuario_id)
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Empleado no encontrado")
+
+    # Clamping de notas entre 1 y 5
+    p = max(1, min(5, datos.puntualidad))
+    d = max(1, min(5, datos.desempeno))
+    a = max(1, min(5, datos.actitud))
+    c = max(1, min(5, datos.cumplimiento_protocolo))
+    cr = max(1, min(5, datos.comunicacion_reporte))
+    promedio_val = Decimal(str(round((p + d + a + c + cr) / 5.0, 2)))
+
+    evaluacion = EmpleadoEvaluacion(
+        usuario_id=usuario_id,
+        fecha_evaluacion=datos.fecha_evaluacion or date.today(),
+        periodo=datos.periodo or "Evaluación de Desempeño",
+        puntualidad=p,
+        desempeno=d,
+        actitud=a,
+        cumplimiento_protocolo=c,
+        comunicacion_reporte=cr,
+        promedio=promedio_val,
+        comentarios=datos.comentarios,
+        evaluador_id=current_admin.id,
+        evaluador_nombre=current_admin.nombre,
+    )
+    db.add(evaluacion)
+
+    # Registrar en historial del empleado
+    historial = EmpleadoHistorial(
+        usuario_id=usuario_id,
+        actor_id=current_admin.id,
+        actor_nombre=current_admin.nombre,
+        actor_rol=current_admin.rol,
+        campo_modificado="Evaluación de desempeño",
+        valor_anterior="—",
+        valor_nuevo=f"Calificación: {promedio_val}/5.0 estrellas ({evaluacion.periodo})",
+    )
+    db.add(historial)
+    db.commit()
+    db.refresh(evaluacion)
+
+    registrar_auditoria(
+        db,
+        actor=current_admin,
+        usuario_objetivo=target_user,
+        accion="evaluacion_desempeno",
+        detalle=f"Evaluación con promedio {promedio_val}/5.0 registrada para '{target_user.nombre}'",
+        resultado="exitoso",
+    )
+
+    return EmpleadoEvaluacionResponse.model_validate(evaluacion)
+
+
+@router.delete("/empleados/{usuario_id}/evaluaciones/{evaluacion_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_evaluacion_empleado(
+    usuario_id: int,
+    evaluacion_id: int,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Elimina una evaluación de desempeño registrada.
+    """
+    stmt = select(EmpleadoEvaluacion).where(
+        EmpleadoEvaluacion.id == evaluacion_id,
+        EmpleadoEvaluacion.usuario_id == usuario_id
+    )
+    evaluacion = db.scalar(stmt)
+    if not evaluacion:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluación no encontrada")
+
+    db.delete(evaluacion)
+    db.commit()
+    return None
+

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { crearAsignacion } from '../services/asignaciones';
+import { irAtras } from '../utils/navigation';
 import AsignacionForm from '../components/AsignacionForm';
 import './NuevaAsignacion.css';
 
@@ -56,7 +57,7 @@ export default function NuevaAsignacion() {
             <div className="nueva-asig-container">
                 {/* Header */}
                 <div className="nueva-asig-header">
-                    <button className="nueva-asig-back" onClick={() => navigate('/admin/asignaciones')}>
+                    <button className="nueva-asig-back" onClick={() => irAtras(navigate, '/admin/asignaciones')}>
                         ← Volver a Asignaciones
                     </button>
                     <div className="nueva-asig-title-wrap">

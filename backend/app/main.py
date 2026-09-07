@@ -20,6 +20,8 @@ from app.models.talento_humano import (
     EmpleadoDocumento,
     EmpleadoHistorial,
     EmpleadoSolicitud,
+    EmpleadoDotacion,
+    EmpleadoEvaluacion,
 )
 from app.models.calidad_procesos import (
     ProcesoCalidad,
@@ -54,6 +56,8 @@ def startup_db_check():
         EmpleadoDocumento.__table__.create(bind=engine, checkfirst=True)
         EmpleadoHistorial.__table__.create(bind=engine, checkfirst=True)
         EmpleadoSolicitud.__table__.create(bind=engine, checkfirst=True)
+        EmpleadoDotacion.__table__.create(bind=engine, checkfirst=True)
+        EmpleadoEvaluacion.__table__.create(bind=engine, checkfirst=True)
         ProcesoCalidad.__table__.create(bind=engine, checkfirst=True)
         ProcesoCalidadResponsable.__table__.create(bind=engine, checkfirst=True)
         ProcesoCalidadDocumento.__table__.create(bind=engine, checkfirst=True)

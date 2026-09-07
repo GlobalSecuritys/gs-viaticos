@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { irAtras } from '../utils/navigation';
 import ModalCuentaCobro from '../components/ModalCuentaCobro';
 import './AdminDashboard.css';
 import './CuentaCobro.css';
@@ -67,7 +68,7 @@ export default function AdminCuentasCobro() {
     return (
         <div className="admin-root">
             <div className="admin-main">
-                <button className="admin-back-btn" onClick={() => navigate('/admin')}>
+                <button className="admin-back-btn" onClick={() => irAtras(navigate, '/admin')}>
                     ← Volver al Panel
                 </button>
 

@@ -6,6 +6,7 @@ import TecnicoLayout from '../components/TecnicoLayout';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
 import { LABEL_TIPO_GASTO, formatCOP, formatFechaLarga, formatMiles, limpiarNumero } from '../utils/personal';
 import { LABEL_TIPO_ASIGNACION, calcularEstadoGraciaAsignacion } from '../utils/asignaciones';
+import { irAtras } from '../utils/navigation';
 import './Forms.css';
 import './MisViaticos.css';
 
@@ -565,7 +566,7 @@ export default function MisViaticos() {
     <TecnicoLayout>
       <div className="mv-root" style={{ padding: '2rem 1.5rem', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
         <header className="form-header">
-          <button className="btn-back" onClick={() => navigate('/dashboard')}>← Volver</button>
+          <button className="btn-back" onClick={() => irAtras(navigate, '/dashboard')}>← Volver</button>
           <div className="form-header-title">
             <h1>Mis Viáticos</h1>
             <p>Historial y estado de tus viáticos registrados</p>

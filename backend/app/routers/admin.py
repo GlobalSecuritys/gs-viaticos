@@ -111,7 +111,7 @@ def crear_usuario(
 
     registrar_auditoria(
         db,
-        actor=current_superadmin,
+        actor=current_admin,
         usuario_objetivo=nuevo_usuario,
         accion="crear_usuario",
         detalle=f"rol asignado: {nuevo_usuario.rol}",

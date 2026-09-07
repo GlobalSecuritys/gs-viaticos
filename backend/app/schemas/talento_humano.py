@@ -165,6 +165,68 @@ class EmpleadoListItemResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class EmpleadoDotacionBase(BaseModel):
+    item: str
+    tipo: str = "Dotación"
+    talla: Optional[str] = None
+    cantidad: int = 1
+    fecha_entrega: date
+    fecha_reposicion: Optional[date] = None
+    estado: str = "entregado"  # 'entregado', 'devuelto', 'deteriorado', 'reposicion'
+    observaciones: Optional[str] = None
+
+
+class EmpleadoDotacionCreate(EmpleadoDotacionBase):
+    pass
+
+
+class EmpleadoDotacionUpdate(BaseModel):
+    item: Optional[str] = None
+    tipo: Optional[str] = None
+    talla: Optional[str] = None
+    cantidad: Optional[int] = None
+    fecha_entrega: Optional[date] = None
+    fecha_reposicion: Optional[date] = None
+    estado: Optional[str] = None
+    observaciones: Optional[str] = None
+
+
+class EmpleadoDotacionResponse(EmpleadoDotacionBase):
+    id: int
+    usuario_id: int
+    entregado_por_id: Optional[int] = None
+    entregado_por_nombre: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EmpleadoEvaluacionBase(BaseModel):
+    fecha_evaluacion: date
+    periodo: str = "Evaluación de Desempeño"
+    puntualidad: int = 5  # 1-5
+    desempeno: int = 5  # 1-5
+    actitud: int = 5  # 1-5
+    cumplimiento_protocolo: int = 5  # 1-5
+    comunicacion_reporte: int = 5  # 1-5
+    comentarios: Optional[str] = None
+
+
+class EmpleadoEvaluacionCreate(EmpleadoEvaluacionBase):
+    pass
+
+
+class EmpleadoEvaluacionResponse(EmpleadoEvaluacionBase):
+    id: int
+    usuario_id: int
+    promedio: Decimal
+    evaluador_id: Optional[int] = None
+    evaluador_nombre: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class EmpleadoCompletoAdminResponse(BaseModel):
     id: int  # usuario_id
     nombre: str
@@ -175,6 +237,8 @@ class EmpleadoCompletoAdminResponse(BaseModel):
     perfil: Optional[EmpleadoPerfilAdminResponse] = None
     documentos: List[EmpleadoDocumentoResponse] = []
     historial: List[EmpleadoHistorialResponse] = []
+    dotaciones: List[EmpleadoDotacionResponse] = []
+    evaluaciones: List[EmpleadoEvaluacionResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 

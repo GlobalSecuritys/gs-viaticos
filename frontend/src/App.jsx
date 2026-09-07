@@ -23,6 +23,7 @@ import AdminBackup from './pages/AdminBackup';
 import CalidadProcesos from './pages/CalidadProcesos';
 import CalidadCategoria from './pages/CalidadCategoria';
 import CalidadDetalleProceso from './pages/CalidadDetalleProceso';
+import SeccionEnConstruccion from './pages/SeccionEnConstruccion';
 
 export default function App() {
   return (
@@ -220,7 +221,53 @@ export default function App() {
             }
           />
 
-          {/* Fallback global */}
+          {/* ── MÓDULOS EN DESARROLLO (AUTOPLANER ODS & ESCUELA GSB) ── */}
+          <Route
+            path="/autoplaner-ods"
+            element={
+              <PrivateRoute>
+                <SeccionEnConstruccion
+                  titulo="Autoplaner ODS"
+                  subtitulo="Planificación y Ruteo Automático de Órdenes de Servicio"
+                  icono="⚡"
+                  grupoPadre="Operaciones"
+                  descripcion="Módulo para la programación inteligente, seguimiento en tiempo real y despacho automatizado de órdenes de servicio en campo."
+                  colorTheme="blue"
+                />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/escuela-gsb"
+            element={
+              <PrivateRoute>
+                <SeccionEnConstruccion
+                  titulo="Escuela GSB"
+                  subtitulo="Campus de Formación y Certificación Continua"
+                  icono="🎓"
+                  grupoPadre="Administrativo"
+                  descripcion="Plataforma de capacitación técnica, inducción institucional, cursos normativos y evaluación periódica de competencias."
+                  colorTheme="green"
+                />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/inventario"
+            element={
+              <PrivateRoute>
+                <SeccionEnConstruccion
+                  titulo="Inventario"
+                  subtitulo="Gestión de Almacén, Stock y Materiales"
+                  icono="📦"
+                  grupoPadre="Procesos Misionales"
+                  descripcion="Módulo para el control de inventario de equipos, herramientas, stock de bodega y logística de suministros."
+                  colorTheme="blue"
+                />
+              </PrivateRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </AuthProvider>

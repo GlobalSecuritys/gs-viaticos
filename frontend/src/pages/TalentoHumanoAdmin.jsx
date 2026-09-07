@@ -31,6 +31,53 @@ export default function TalentoHumanoAdmin() {
     const [mensajeFeedback, setMensajeFeedback] = useState('');
     const [error, setError] = useState('');
 
+    // ── Sidebar colapsable persistido en localStorage ──
+    const [sidebarColapsado, setSidebarColapsado] = useState(() => {
+        try {
+            return localStorage.getItem('tha_sidebar_colapsado') === 'true';
+        } catch {
+            return false;
+        }
+    });
+
+    const toggleSidebar = () => {
+        setSidebarColapsado((prev) => {
+            const next = !prev;
+            try {
+                localStorage.setItem('tha_sidebar_colapsado', String(next));
+            } catch {}
+            return next;
+        });
+    };
+
+    // ── Estados para Dotaciones ──
+    const [mostrarModalDotacion, setMostrarModalDotacion] = useState(false);
+    const [guardandoDotacion, setGuardandoDotacion] = useState(false);
+    const [formDotacion, setFormDotacion] = useState({
+        item: '',
+        tipo: 'Uniforme',
+        talla: 'M',
+        cantidad: 1,
+        fecha_entrega: new Date().toISOString().slice(0, 10),
+        fecha_reposicion: '',
+        estado: 'entregado',
+        observaciones: '',
+    });
+
+    // ── Estados para Evaluaciones de Desempeño ──
+    const [mostrarModalEvaluacion, setMostrarModalEvaluacion] = useState(false);
+    const [guardandoEvaluacion, setGuardandoEvaluacion] = useState(false);
+    const [formEvaluacion, setFormEvaluacion] = useState({
+        periodo: '2026 - Trimestre 1',
+        fecha_evaluacion: new Date().toISOString().slice(0, 10),
+        puntualidad: 5,
+        desempeno: 5,
+        actitud: 5,
+        cumplimiento_protocolo: 5,
+        comunicacion_reporte: 5,
+        comentarios: '',
+    });
+
     // Modales
     const [mostrarNuevoModal, setMostrarNuevoModal] = useState(false);
     const [mostrarEditarModal, setMostrarEditarModal] = useState(false);
@@ -305,10 +352,101 @@ export default function TalentoHumanoAdmin() {
         }
     }
 
+    // ── Handlers: Dotaciones ──
+    async function handleCrearDotacion(e) {
+        e.preventDefault();
+        if (!empleadoSeleccionado) return;
+        setGuardandoDotacion(true);
+        setError('');
+        try {
+            await api.post(`/talento-humano/empleados/${empleadoSeleccionado.id}/dotaciones`, formDotacion);
+            setMostrarModalDotacion(false);
+            setMensajeFeedback(`✅ Dotación "${formDotacion.item}" asignada exitosamente.`);
+            setFormDotacion({
+                item: '',
+                tipo: 'Uniforme',
+                talla: 'M',
+                cantidad: 1,
+                fecha_entrega: new Date().toISOString().slice(0, 10),
+                fecha_reposicion: '',
+                estado: 'entregado',
+                observaciones: '',
+            });
+            cargarFichaEmpleado(empleadoSeleccionado.id);
+        } catch (err) {
+            setError(formatApiError(err, 'No se pudo registrar la dotación.'));
+        } finally {
+            setGuardandoDotacion(false);
+        }
+    }
+
+    async function handleCambiarEstadoDotacion(dotacionId, nuevoEstado) {
+        if (!empleadoSeleccionado) return;
+        try {
+            await api.put(`/talento-humano/empleados/${empleadoSeleccionado.id}/dotaciones/${dotacionId}`, { estado: nuevoEstado });
+            setMensajeFeedback(`✅ Estado de dotación actualizado a "${nuevoEstado}".`);
+            cargarFichaEmpleado(empleadoSeleccionado.id);
+        } catch (err) {
+            setError(formatApiError(err, 'No se pudo actualizar el estado de la dotación.'));
+        }
+    }
+
+    async function handleEliminarDotacion(dotacionId, itemName) {
+        if (!empleadoSeleccionado) return;
+        if (!window.confirm(`¿Seguro que deseas eliminar el registro de dotación "${itemName}"?`)) return;
+        try {
+            await api.delete(`/talento-humano/empleados/${empleadoSeleccionado.id}/dotaciones/${dotacionId}`);
+            setMensajeFeedback(`✅ Registro de dotación "${itemName}" eliminado.`);
+            cargarFichaEmpleado(empleadoSeleccionado.id);
+        } catch (err) {
+            setError(formatApiError(err, 'No se pudo eliminar el registro de dotación.'));
+        }
+    }
+
+    // ── Handlers: Evaluaciones de Desempeño ──
+    async function handleCrearEvaluacion(e) {
+        e.preventDefault();
+        if (!empleadoSeleccionado) return;
+        setGuardandoEvaluacion(true);
+        setError('');
+        try {
+            const { data } = await api.post(`/talento-humano/empleados/${empleadoSeleccionado.id}/evaluaciones`, formEvaluacion);
+            setMostrarModalEvaluacion(false);
+            setMensajeFeedback(`✅ Evaluación de desempeño guardada (Promedio: ${data.promedio}/5.0 estrellas).`);
+            setFormEvaluacion({
+                periodo: '2026 - Trimestre 1',
+                fecha_evaluacion: new Date().toISOString().slice(0, 10),
+                puntualidad: 5,
+                desempeno: 5,
+                actitud: 5,
+                cumplimiento_protocolo: 5,
+                comunicacion_reporte: 5,
+                comentarios: '',
+            });
+            cargarFichaEmpleado(empleadoSeleccionado.id);
+        } catch (err) {
+            setError(formatApiError(err, 'No se pudo guardar la evaluación.'));
+        } finally {
+            setGuardandoEvaluacion(false);
+        }
+    }
+
+    async function handleEliminarEvaluacion(evaluacionId) {
+        if (!empleadoSeleccionado) return;
+        if (!window.confirm('¿Seguro que deseas eliminar esta evaluación de desempeño?')) return;
+        try {
+            await api.delete(`/talento-humano/empleados/${empleadoSeleccionado.id}/evaluaciones/${evaluacionId}`);
+            setMensajeFeedback('✅ Evaluación eliminada.');
+            cargarFichaEmpleado(empleadoSeleccionado.id);
+        } catch (err) {
+            setError(formatApiError(err, 'No se pudo eliminar la evaluación.'));
+        }
+    }
+
     const NAV_ITEMS_ADMIN = [
         { id: 'general', label: 'Directorio & Ficha', icon: '👤', action: () => setTabActiva('general'), active: tabActiva === 'general' },
         { id: 'documentos', label: 'Contratos & Documentos', icon: '📄', action: () => setTabActiva('documentos'), active: tabActiva === 'documentos' },
-        { id: 'adicional', label: 'Dotación & Seguridad', icon: '🦺', action: () => setTabActiva('adicional'), active: tabActiva === 'adicional' },
+        { id: 'adicional', label: 'Dotaciones', icon: '🦺', action: () => setTabActiva('adicional'), active: tabActiva === 'adicional' },
         { id: 'historial', label: 'Historial & Solicitudes', icon: '📝', action: () => setTabActiva('historial'), active: tabActiva === 'historial' },
     ];
 
@@ -318,25 +456,40 @@ export default function TalentoHumanoAdmin() {
     return (
         <div className="tha-root">
             {/* ── SIDEBAR CORPORATIVO (MÓDULO TALENTO HUMANO) ── */}
-            <aside className="tha-sidebar">
+            <aside className={`tha-sidebar ${sidebarColapsado ? 'tha-sidebar--collapsed' : ''}`}>
+                {/* Botón para colapsar/expandir el sidebar */}
+                <button
+                    type="button"
+                    className="tha-sidebar-toggle-btn"
+                    onClick={toggleSidebar}
+                    title={sidebarColapsado ? 'Expandir menú lateral' : 'Plegar menú lateral'}
+                    aria-label={sidebarColapsado ? 'Expandir menú lateral' : 'Plegar menú lateral'}
+                >
+                    {sidebarColapsado ? '›' : '‹'}
+                </button>
+
                 <div className="tha-sidebar-brand" onClick={() => navigate('/seleccion-modulo')} style={{ cursor: 'pointer' }} title="Regresar al Hub de Módulos">
                     <img src={logoGSB} alt="Global Security Bank" className="tha-sidebar-logo" />
-                    <div className="tha-brand-text">
-                        <span className="tha-brand-title">TALENTO HUMANO</span>
-                        <span className="tha-brand-sub" style={{ color: '#94a3b8' }}>‹ Hub de Módulos</span>
-                    </div>
+                    {!sidebarColapsado && (
+                        <div className="tha-brand-text">
+                            <span className="tha-brand-title">TALENTO HUMANO</span>
+                            <span className="tha-brand-sub" style={{ color: '#94a3b8' }}>‹ Hub de Módulos</span>
+                        </div>
+                    )}
                 </div>
 
-                <div className="tha-sidebar-user">
+                <div className="tha-sidebar-user" title={`${user?.nombre || 'Administrador'} (Administrador)`}>
                     <div className="tha-user-avatar">
                         {iniciales(user?.nombre || user?.correo || 'AD')}
                     </div>
-                    <div>
-                        <div className="tha-user-name">{user?.nombre || 'Administrador'}</div>
-                        <div className="tha-user-role">
-                            Administrador
+                    {!sidebarColapsado && (
+                        <div>
+                            <div className="tha-user-name">{user?.nombre || 'Administrador'}</div>
+                            <div className="tha-user-role">
+                                Administrador
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 <nav className="tha-sidebar-nav">
@@ -345,9 +498,10 @@ export default function TalentoHumanoAdmin() {
                             key={item.id}
                             className={`tha-nav-item ${item.active ? 'tha-nav-item--active' : ''}`}
                             onClick={item.action}
+                            title={sidebarColapsado ? item.label : undefined}
                         >
                             <span style={{ fontSize: '1.1rem' }}>{item.icon}</span>
-                            <span className="tha-nav-label">{item.label}</span>
+                            {!sidebarColapsado && <span className="tha-nav-label">{item.label}</span>}
                         </button>
                     ))}
                 </nav>
@@ -356,6 +510,7 @@ export default function TalentoHumanoAdmin() {
                     <button
                         type="button"
                         onClick={() => navigate('/seleccion-modulo')}
+                        title={sidebarColapsado ? 'Regresar al Hub de Módulos' : undefined}
                         style={{
                             width: '100%',
                             display: 'flex',
@@ -375,24 +530,25 @@ export default function TalentoHumanoAdmin() {
                         }}
                     >
                         <span>🔲</span>
-                        <span>Hub de Módulos</span>
+                        {!sidebarColapsado && <span>Hub de Módulos</span>}
                     </button>
 
                     <button
                         className="tha-logout-btn"
+                        title={sidebarColapsado ? 'Cerrar sesión' : undefined}
                         onClick={() => {
                             logout();
                             navigate('/login');
                         }}
                     >
                         <span>🚪</span>
-                        <span>Cerrar sesión</span>
+                        {!sidebarColapsado && <span>Cerrar sesión</span>}
                     </button>
                 </div>
             </aside>
 
             {/* ── CONTENIDO PRINCIPAL ── */}
-            <main className="tha-content-wrapper">
+            <main className={`tha-content-wrapper ${sidebarColapsado ? 'tha-content-wrapper--collapsed' : ''}`}>
                 {/* ── TOP ACTIONS / HEADER ── */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '0.5rem', gap: '0.85rem' }}>
                     <InstallPwaPrompt />
@@ -692,7 +848,7 @@ export default function TalentoHumanoAdmin() {
                                         className={`tha-tab-btn ${tabActiva === 'adicional' ? 'tha-tab-btn--active' : ''}`}
                                         onClick={() => setTabActiva('adicional')}
                                     >
-                                        Información adicional
+                                        Dotaciones ({empleadoSeleccionado.dotaciones?.length || 0})
                                     </button>
                                     <button
                                         className={`tha-tab-btn ${tabActiva === 'historial' ? 'tha-tab-btn--active' : ''}`}
@@ -936,6 +1092,154 @@ export default function TalentoHumanoAdmin() {
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* Card F: Evaluación de Desempeño (1-5 estrellas) */}
+                                        <div className="tha-info-block tha-info-block--full" style={{ marginTop: '1rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                                                <div className="tha-block-title" style={{ borderBottom: 'none', paddingBottom: 0, margin: 0 }}>
+                                                    <span>⭐</span>
+                                                    <span>Evaluación de Desempeño del Técnico</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="tha-btn-nuevo"
+                                                    style={{ padding: '0.42rem 0.95rem', fontSize: '0.8rem', background: '#D97706', borderColor: '#B45309' }}
+                                                    onClick={() => setMostrarModalEvaluacion(true)}
+                                                >
+                                                    ⭐ Calificar Desempeño
+                                                </button>
+                                            </div>
+
+                                            {/* Resumen & Métricas */}
+                                            {(!empleadoSeleccionado.evaluaciones || empleadoSeleccionado.evaluaciones.length === 0) ? (
+                                                <div style={{ textAlign: 'center', padding: '2rem 1rem', background: 'var(--color-bg-subtle)', borderRadius: '8px', border: '1px dashed var(--color-border)' }}>
+                                                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🌟</div>
+                                                    <p style={{ fontWeight: 600, color: 'var(--color-navy-dark)', margin: 0 }}>Sin evaluaciones de desempeño registradas</p>
+                                                    <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.35rem' }}>
+                                                        Evalúa la puntualidad, desempeño técnico, actitud, protocolo SST y comunicación de este técnico (1 a 5 estrellas).
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        className="tha-btn-nuevo"
+                                                        style={{ marginTop: '0.75rem', padding: '0.4rem 1rem', fontSize: '0.8rem' }}
+                                                        onClick={() => setMostrarModalEvaluacion(true)}
+                                                    >
+                                                        Registrar primera evaluación
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {(() => {
+                                                        const evals = empleadoSeleccionado.evaluaciones;
+                                                        const avgPuntualidad = (evals.reduce((a, b) => a + b.puntualidad, 0) / evals.length).toFixed(1);
+                                                        const avgDesempeno = (evals.reduce((a, b) => a + b.desempeno, 0) / evals.length).toFixed(1);
+                                                        const avgActitud = (evals.reduce((a, b) => a + b.actitud, 0) / evals.length).toFixed(1);
+                                                        const avgProtocolo = (evals.reduce((a, b) => a + b.cumplimiento_protocolo, 0) / evals.length).toFixed(1);
+                                                        const avgComunicacion = (evals.reduce((a, b) => a + b.comunicacion_reporte, 0) / evals.length).toFixed(1);
+                                                        const avgGlobal = (evals.reduce((a, b) => a + b.promedio, 0) / evals.length).toFixed(1);
+
+                                                        return (
+                                                            <div className="tha-eval-summary-card">
+                                                                <div className="tha-eval-global-score">
+                                                                    <div className="tha-eval-score-num">{avgGlobal}</div>
+                                                                    <div className="tha-eval-stars">
+                                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                                            <span key={star} style={{ color: star <= Math.round(Number(avgGlobal)) ? '#F59E0B' : '#CBD5E1' }}>★</span>
+                                                                        ))}
+                                                                    </div>
+                                                                    <div className="tha-eval-count-badge">
+                                                                        {evals.length} {evals.length === 1 ? 'evaluación registrada' : 'evaluaciones registradas'}
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="tha-eval-factors-grid">
+                                                                    <div className="tha-eval-factor-item">
+                                                                        <div className="tha-factor-label">⏰ Puntualidad</div>
+                                                                        <div className="tha-factor-val">{avgPuntualidad} / 5.0</div>
+                                                                        <div className="tha-factor-bar"><div className="tha-factor-fill" style={{ width: `${(Number(avgPuntualidad) / 5) * 100}%` }} /></div>
+                                                                    </div>
+                                                                    <div className="tha-eval-factor-item">
+                                                                        <div className="tha-factor-label">⚡ Desempeño Técnico</div>
+                                                                        <div className="tha-factor-val">{avgDesempeno} / 5.0</div>
+                                                                        <div className="tha-factor-bar"><div className="tha-factor-fill" style={{ width: `${(Number(avgDesempeno) / 5) * 100}%` }} /></div>
+                                                                    </div>
+                                                                    <div className="tha-eval-factor-item">
+                                                                        <div className="tha-factor-label">🤝 Actitud y Servicio</div>
+                                                                        <div className="tha-factor-val">{avgActitud} / 5.0</div>
+                                                                        <div className="tha-factor-bar"><div className="tha-factor-fill" style={{ width: `${(Number(avgActitud) / 5) * 100}%` }} /></div>
+                                                                    </div>
+                                                                    <div className="tha-eval-factor-item">
+                                                                        <div className="tha-factor-label">🦺 SST / Protocolo</div>
+                                                                        <div className="tha-factor-val">{avgProtocolo} / 5.0</div>
+                                                                        <div className="tha-factor-bar"><div className="tha-factor-fill" style={{ width: `${(Number(avgProtocolo) / 5) * 100}%` }} /></div>
+                                                                    </div>
+                                                                    <div className="tha-eval-factor-item">
+                                                                        <div className="tha-factor-label">📱 Comunicación</div>
+                                                                        <div className="tha-factor-val">{avgComunicacion} / 5.0</div>
+                                                                        <div className="tha-factor-bar"><div className="tha-factor-fill" style={{ width: `${(Number(avgComunicacion) / 5) * 100}%` }} /></div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
+
+                                                    {/* Historial de Evaluaciones */}
+                                                    <div style={{ marginTop: '1.25rem' }}>
+                                                        <h4 style={{ fontSize: '0.88rem', color: 'var(--color-navy-dark)', fontWeight: 700, marginBottom: '0.75rem' }}>
+                                                            Histórico de Evaluaciones
+                                                        </h4>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                            {empleadoSeleccionado.evaluaciones.map((ev) => (
+                                                                <div key={ev.id} className="tha-eval-history-item">
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                                                        <div>
+                                                                            <span style={{ fontWeight: 700, color: 'var(--color-navy-dark)', fontSize: '0.9rem' }}>
+                                                                                {ev.periodo || 'Evaluación Periódica'}
+                                                                            </span>
+                                                                            <span style={{ color: '#64748B', fontSize: '0.78rem', marginLeft: '0.5rem' }}>
+                                                                                · {ev.fecha_evaluacion ? new Date(ev.fecha_evaluacion).toLocaleDateString('es-CO') : ''}
+                                                                            </span>
+                                                                            <span style={{ color: '#94A3B8', fontSize: '0.75rem', display: 'block', marginTop: '0.15rem' }}>
+                                                                                Evaluado por: {ev.evaluador_nombre || 'Administrador'}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#FEF3C7', padding: '0.2rem 0.6rem', borderRadius: '6px' }}>
+                                                                                <span style={{ color: '#D97706', fontWeight: 800, fontSize: '0.9rem' }}>{ev.promedio}</span>
+                                                                                <span style={{ color: '#F59E0B' }}>★</span>
+                                                                            </div>
+                                                                            <button
+                                                                                type="button"
+                                                                                className="tha-doc-action-btn tha-doc-action-btn--delete"
+                                                                                title="Eliminar evaluación"
+                                                                                onClick={() => handleEliminarEvaluacion(ev.id)}
+                                                                            >
+                                                                                🗑
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Factores individuales */}
+                                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.5rem', fontSize: '0.78rem', color: '#475569' }}>
+                                                                        <span>Puntualidad: <strong style={{ color: '#F59E0B' }}>{'★'.repeat(ev.puntualidad)}</strong> ({ev.puntualidad}/5)</span>
+                                                                        <span>· Desempeño: <strong style={{ color: '#F59E0B' }}>{'★'.repeat(ev.desempeno)}</strong> ({ev.desempeno}/5)</span>
+                                                                        <span>· Actitud: <strong style={{ color: '#F59E0B' }}>{'★'.repeat(ev.actitud)}</strong> ({ev.actitud}/5)</span>
+                                                                        <span>· Protocolo SST: <strong style={{ color: '#F59E0B' }}>{'★'.repeat(ev.cumplimiento_protocolo)}</strong> ({ev.cumplimiento_protocolo}/5)</span>
+                                                                        <span>· Comunicación: <strong style={{ color: '#F59E0B' }}>{'★'.repeat(ev.comunicacion_reporte)}</strong> ({ev.comunicacion_reporte}/5)</span>
+                                                                    </div>
+
+                                                                    {ev.comentarios && (
+                                                                        <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.82rem', color: '#334155', fontStyle: 'italic', background: 'rgba(0,0,0,0.02)', padding: '0.4rem 0.6rem', borderRadius: '4px' }}>
+                                                                            "{ev.comentarios}"
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                     </>
                                 )}
 
@@ -1023,32 +1327,195 @@ export default function TalentoHumanoAdmin() {
                                     </div>
                                 )}
 
-                                {/* TAB 3: INFORMACIÓN ADICIONAL */}
+                                {/* TAB 3: DOTACIONES Y EQUIPOS ASIGNADOS */}
                                 {tabActiva === 'adicional' && (
                                     <div className="tha-info-block tha-info-block--full">
-                                        <div className="tha-block-title">
-                                            <span>📝</span>
-                                            <span>Notas y Observaciones de Gestión Humana</span>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                                            <div>
+                                                <div className="tha-block-title" style={{ borderBottom: 'none', paddingBottom: 0, margin: 0 }}>
+                                                    <span>🦺</span>
+                                                    <span>Dotaciones y Equipos de Seguridad Asignados</span>
+                                                </div>
+                                                <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '0.25rem 0 0 0' }}>
+                                                    Registro de dotación, indumentaria, EPP y equipos entregados al colaborador.
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="tha-btn-nuevo"
+                                                style={{ padding: '0.45rem 1rem', fontSize: '0.82rem' }}
+                                                onClick={() => setMostrarModalDotacion(true)}
+                                            >
+                                                ➕ Registrar Entrega de Dotación
+                                            </button>
                                         </div>
 
-                                        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                            <p style={{ background: 'var(--color-bg-subtle)', padding: '1rem', borderRadius: '8px', fontSize: '0.9rem', lineHeight: 1.6 }}>
-                                                {p.observaciones || 'Sin observaciones registradas para este colaborador.'}
-                                            </p>
+                                        {/* Summary Stats of Dotaciones */}
+                                        {empleadoSeleccionado.dotaciones && empleadoSeleccionado.dotaciones.length > 0 && (
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>
+                                                <div style={{ background: '#F8FAFC', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Total Ítems Asignados</span>
+                                                    <strong style={{ fontSize: '1.2rem', color: '#1D63C8' }}>{empleadoSeleccionado.dotaciones.length}</strong>
+                                                </div>
+                                                <div style={{ background: '#F0FDF4', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #BBF7D0' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: '#166534', display: 'block' }}>En Uso / Entregados</span>
+                                                    <strong style={{ fontSize: '1.2rem', color: '#059669' }}>
+                                                        {empleadoSeleccionado.dotaciones.filter(d => ['entregado', 'en_uso'].includes(d.estado)).length}
+                                                    </strong>
+                                                </div>
+                                                <div style={{ background: '#FFFBEB', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #FDE68A' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: '#92400E', display: 'block' }}>Pendiente Reposición</span>
+                                                    <strong style={{ fontSize: '1.2rem', color: '#D97706' }}>
+                                                        {empleadoSeleccionado.dotaciones.filter(d => ['reposicion', 'deterioro'].includes(d.estado)).length}
+                                                    </strong>
+                                                </div>
+                                                <div style={{ background: '#FEF2F2', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #FECACA' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: '#991B1B', display: 'block' }}>Devueltos / Baja</span>
+                                                    <strong style={{ fontSize: '1.2rem', color: '#DC2626' }}>
+                                                        {empleadoSeleccionado.dotaciones.filter(d => ['devolucion', 'baja'].includes(d.estado)).length}
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                        )}
 
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-                                                <div style={{ background: '#F8FAFC', padding: '0.85rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
-                                                    <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Días de vacaciones disponibles</span>
-                                                    <strong style={{ fontSize: '1.2rem', color: '#1D63C8' }}>{p.dias_vacaciones_disponibles ?? 12} días</strong>
+                                        {/* Table of Dotaciones */}
+                                        {(!empleadoSeleccionado.dotaciones || empleadoSeleccionado.dotaciones.length === 0) ? (
+                                            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', background: 'var(--color-bg-subtle)', borderRadius: '8px', border: '1px dashed var(--color-border)' }}>
+                                                <div style={{ fontSize: '2.2rem', marginBottom: '0.5rem' }}>🦺</div>
+                                                <p style={{ fontWeight: 600, color: 'var(--color-navy-dark)', margin: 0 }}>No hay dotación registrada para este técnico</p>
+                                                <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.35rem' }}>
+                                                    Registra uniformes, calzado de seguridad, radios de comunicación, cascos o herramientas entregadas.
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    className="tha-btn-nuevo"
+                                                    style={{ marginTop: '0.85rem', padding: '0.45rem 1.1rem', fontSize: '0.82rem' }}
+                                                    onClick={() => setMostrarModalDotacion(true)}
+                                                >
+                                                    ➕ Asignar Dotación Inicial
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="tha-docs-table-wrap" style={{ marginTop: '0.5rem' }}>
+                                                <table className="tha-docs-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Ítem / Elemento</th>
+                                                            <th>Tipo</th>
+                                                            <th>Talla / Ref</th>
+                                                            <th>Cant.</th>
+                                                            <th>Fecha Entrega</th>
+                                                            <th>Fecha Reposición</th>
+                                                            <th>Estado</th>
+                                                            <th>Entregado Por</th>
+                                                            <th style={{ textAlign: 'center' }}>Acciones</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {empleadoSeleccionado.dotaciones.map((dot) => {
+                                                            const badgeClass =
+                                                                dot.estado === 'entregado' || dot.estado === 'en_uso'
+                                                                    ? 'tha-status-badge--activo'
+                                                                    : dot.estado === 'reposicion' || dot.estado === 'deterioro'
+                                                                    ? 'tha-status-badge--capacitacion'
+                                                                    : 'tha-status-badge--inactivo';
+
+                                                            const iconItem =
+                                                                dot.tipo_item === 'calzado' ? '🥾' :
+                                                                dot.tipo_item === 'uniforme' ? '👕' :
+                                                                dot.tipo_item === 'seguridad_epp' ? '🦺' :
+                                                                dot.tipo_item === 'comunicacion' ? '📻' :
+                                                                dot.tipo_item === 'herramientas' ? '🧰' : '📦';
+
+                                                            return (
+                                                                <tr key={dot.id}>
+                                                                    <td>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                            <span style={{ fontSize: '1.2rem' }}>{iconItem}</span>
+                                                                            <div>
+                                                                                <div style={{ fontWeight: 600, color: 'var(--color-navy-dark)' }}>{dot.item_nombre}</div>
+                                                                                {dot.observaciones && (
+                                                                                    <div style={{ fontSize: '0.73rem', color: '#64748B' }}>{dot.observaciones}</div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td>
+                                                                        <span style={{ textTransform: 'capitalize', fontSize: '0.8rem', color: '#475569' }}>
+                                                                            {dot.tipo_item?.replace('_', ' ') || 'General'}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td style={{ fontWeight: 500 }}>{dot.talla || 'Única / N/A'}</td>
+                                                                    <td><strong>{dot.cantidad || 1}</strong></td>
+                                                                    <td>{dot.fecha_entrega ? new Date(dot.fecha_entrega).toLocaleDateString('es-CO') : '—'}</td>
+                                                                    <td>
+                                                                        {dot.fecha_reposicion ? (
+                                                                            <span style={{ color: new Date(dot.fecha_reposicion) < new Date() ? '#DC2626' : '#2563EB', fontWeight: 500 }}>
+                                                                                {new Date(dot.fecha_reposicion).toLocaleDateString('es-CO')}
+                                                                            </span>
+                                                                        ) : '—'}
+                                                                    </td>
+                                                                    <td>
+                                                                        <select
+                                                                            className={`tha-status-badge ${badgeClass}`}
+                                                                            value={dot.estado}
+                                                                            onChange={(e) => handleCambiarEstadoDotacion(dot.id, e.target.value)}
+                                                                            style={{ border: 'none', cursor: 'pointer', fontWeight: 600, outline: 'none' }}
+                                                                            title="Cambiar estado de dotación"
+                                                                        >
+                                                                            <option value="entregado">Entregado</option>
+                                                                            <option value="en_uso">En Uso</option>
+                                                                            <option value="deterioro">Deterioro</option>
+                                                                            <option value="reposicion">Reposición</option>
+                                                                            <option value="devolucion">Devolución</option>
+                                                                            <option value="baja">Baja</option>
+                                                                        </select>
+                                                                    </td>
+                                                                    <td style={{ fontSize: '0.78rem', color: '#64748B' }}>
+                                                                        {dot.entregado_por_nombre || 'Administrador'}
+                                                                    </td>
+                                                                    <td style={{ textAlign: 'center' }}>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="tha-doc-action-btn tha-doc-action-btn--delete"
+                                                                            title="Eliminar registro"
+                                                                            onClick={() => handleEliminarDotacion(dot.id, dot.item_nombre)}
+                                                                        >
+                                                                            🗑
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+
+                                        {/* Vacaciones & Notas complementarias */}
+                                        <div style={{ marginTop: '2rem', borderTop: '1px solid var(--color-border)', paddingTop: '1.25rem' }}>
+                                            <div className="tha-block-title">
+                                                <span>🏖️</span>
+                                                <span>Control de Vacaciones y Observaciones Generales</span>
+                                            </div>
+                                            <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                                                    <div style={{ background: '#F8FAFC', padding: '0.85rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                                                        <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Días de vacaciones disponibles</span>
+                                                        <strong style={{ fontSize: '1.2rem', color: '#1D63C8' }}>{p.dias_vacaciones_disponibles ?? 12} días</strong>
+                                                    </div>
+                                                    <div style={{ background: '#F8FAFC', padding: '0.85rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                                                        <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Días de vacaciones tomados</span>
+                                                        <strong style={{ fontSize: '1.2rem', color: '#059669' }}>{p.dias_vacaciones_tomados ?? 3} días</strong>
+                                                    </div>
+                                                    <div style={{ background: '#F8FAFC', padding: '0.85rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                                                        <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Días de vacaciones programados</span>
+                                                        <strong style={{ fontSize: '1.2rem', color: '#D97706' }}>{p.dias_vacaciones_programados ?? 0} días</strong>
+                                                    </div>
                                                 </div>
-                                                <div style={{ background: '#F8FAFC', padding: '0.85rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
-                                                    <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Días de vacaciones tomados</span>
-                                                    <strong style={{ fontSize: '1.2rem', color: '#059669' }}>{p.dias_vacaciones_tomados ?? 3} días</strong>
-                                                </div>
-                                                <div style={{ background: '#F8FAFC', padding: '0.85rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
-                                                    <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Días de vacaciones programados</span>
-                                                    <strong style={{ fontSize: '1.2rem', color: '#D97706' }}>{p.dias_vacaciones_programados ?? 0} días</strong>
-                                                </div>
+                                                <p style={{ background: 'var(--color-bg-subtle)', padding: '0.85rem 1rem', borderRadius: '8px', fontSize: '0.85rem', lineHeight: 1.5, margin: 0 }}>
+                                                    <strong>Notas generales:</strong> {p.observaciones || 'Sin observaciones adicionales registradas.'}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -1555,6 +2022,241 @@ export default function TalentoHumanoAdmin() {
                                     disabled={!archivoSubir || !docSeleccionadoParaCarga.nombre_documento?.trim() || subiendoDoc}
                                 >
                                     {subiendoDoc ? 'Subiendo...' : 'Subir Documento'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ── MODAL REGISTRAR ENTREGA DE DOTACIÓN ── */}
+            {mostrarModalDotacion && (
+                <div className="tha-modal-overlay">
+                    <div className="tha-modal-card">
+                        <div className="tha-modal-header">
+                            <h3 className="tha-modal-title">🦺 Registrar Entrega de Dotación</h3>
+                            <button className="tha-modal-close" onClick={() => setMostrarModalDotacion(false)}>×</button>
+                        </div>
+                        <form onSubmit={handleCrearDotacion}>
+                            <div className="tha-modal-body">
+                                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
+                                    Asigna un nuevo ítem de dotación o equipo a <strong>{empleadoSeleccionado?.nombre}</strong>.
+                                </p>
+
+                                <div className="tha-form-group">
+                                    <label>Nombre del Ítem / Elemento <span style={{ color: '#DC2626' }}>*</span></label>
+                                    <input
+                                        type="text"
+                                        className="tha-form-input"
+                                        placeholder="Ej. Botas Dieléctricas, Chaleco Reflectivo, Radio Motorola, Arnés..."
+                                        value={formDotacion.item_nombre}
+                                        onChange={(e) => setFormDotacion({ ...formDotacion, item_nombre: e.target.value })}
+                                        required
+                                        autoFocus
+                                    />
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div className="tha-form-group">
+                                        <label>Tipo de Elemento</label>
+                                        <select
+                                            className="tha-form-select"
+                                            value={formDotacion.tipo_item}
+                                            onChange={(e) => setFormDotacion({ ...formDotacion, tipo_item: e.target.value })}
+                                        >
+                                            <option value="uniforme">👕 Uniforme</option>
+                                            <option value="calzado">🥾 Calzado / Botas</option>
+                                            <option value="seguridad_epp">🦺 EPP / Seguridad</option>
+                                            <option value="comunicacion">📻 Comunicación</option>
+                                            <option value="herramientas">🧰 Herramientas</option>
+                                            <option value="otro">📦 Otro</option>
+                                        </select>
+                                    </div>
+                                    <div className="tha-form-group">
+                                        <label>Talla o Referencia</label>
+                                        <input
+                                            type="text"
+                                            className="tha-form-input"
+                                            placeholder="Ej. Talla 40, L, XL, SN: 84920..."
+                                            value={formDotacion.talla}
+                                            onChange={(e) => setFormDotacion({ ...formDotacion, talla: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div className="tha-form-group">
+                                        <label>Cantidad <span style={{ color: '#DC2626' }}>*</span></label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            className="tha-form-input"
+                                            value={formDotacion.cantidad}
+                                            onChange={(e) => setFormDotacion({ ...formDotacion, cantidad: parseInt(e.target.value) || 1 })}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="tha-form-group">
+                                        <label>Estado Inicial</label>
+                                        <select
+                                            className="tha-form-select"
+                                            value={formDotacion.estado}
+                                            onChange={(e) => setFormDotacion({ ...formDotacion, estado: e.target.value })}
+                                        >
+                                            <option value="entregado">Entregado</option>
+                                            <option value="en_uso">En Uso</option>
+                                            <option value="reposicion">Reposición</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div className="tha-form-group">
+                                        <label>Fecha de Entrega <span style={{ color: '#DC2626' }}>*</span></label>
+                                        <input
+                                            type="date"
+                                            className="tha-form-input"
+                                            value={formDotacion.fecha_entrega}
+                                            onChange={(e) => setFormDotacion({ ...formDotacion, fecha_entrega: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="tha-form-group">
+                                        <label>Fecha Estimada Reposición</label>
+                                        <input
+                                            type="date"
+                                            className="tha-form-input"
+                                            value={formDotacion.fecha_reposicion}
+                                            onChange={(e) => setFormDotacion({ ...formDotacion, fecha_reposicion: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="tha-form-group">
+                                    <label>Observaciones / Detalles</label>
+                                    <textarea
+                                        className="tha-form-input"
+                                        rows="2"
+                                        placeholder="Detalles sobre marca, estado de recepción, observaciones..."
+                                        value={formDotacion.observaciones}
+                                        onChange={(e) => setFormDotacion({ ...formDotacion, observaciones: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="tha-modal-footer">
+                                <button type="button" className="tha-btn-cancel" onClick={() => setMostrarModalDotacion(false)}>
+                                    Cancelar
+                                </button>
+                                <button type="submit" className="tha-btn-submit" disabled={guardandoDotacion || !formDotacion.item_nombre.trim()}>
+                                    {guardandoDotacion ? 'Guardando...' : 'Registrar Dotación'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ── MODAL EVALUACIÓN DE DESEMPEÑO (1-5 ESTRELLAS) ── */}
+            {mostrarModalEvaluacion && (
+                <div className="tha-modal-overlay">
+                    <div className="tha-modal-card tha-modal-card--eval">
+                        <div className="tha-modal-header">
+                            <h3 className="tha-modal-title">⭐ Evaluar Desempeño del Técnico</h3>
+                            <button className="tha-modal-close" onClick={() => setMostrarModalEvaluacion(false)}>×</button>
+                        </div>
+                        <form onSubmit={handleCrearEvaluacion}>
+                            <div className="tha-modal-body">
+                                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
+                                    Califica a <strong>{empleadoSeleccionado?.nombre}</strong> en cada uno de los factores evaluables (de 1 a 5 estrellas).
+                                </p>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                    <div className="tha-form-group">
+                                        <label>Periodo de Evaluación</label>
+                                        <input
+                                            type="text"
+                                            className="tha-form-input"
+                                            placeholder="Ej. 2026 - Trimestre 1, Evaluación Mensual..."
+                                            value={formEvaluacion.periodo}
+                                            onChange={(e) => setFormEvaluacion({ ...formEvaluacion, periodo: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="tha-form-group">
+                                        <label>Fecha de Evaluación</label>
+                                        <input
+                                            type="date"
+                                            className="tha-form-input"
+                                            value={formEvaluacion.fecha_evaluacion}
+                                            onChange={(e) => setFormEvaluacion({ ...formEvaluacion, fecha_evaluacion: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Calificación interactiva de 5 factores */}
+                                <div className="tha-star-factors-list">
+                                    {[
+                                        { key: 'puntualidad', label: '⏰ Puntualidad y Asistencia', desc: 'Llegada a tiempo a servicios, cumplimiento de horarios.' },
+                                        { key: 'desempeno', label: '⚡ Desempeño y Calidad Técnica', desc: 'Calidad en instalaciones, resolución efectiva de fallas.' },
+                                        { key: 'actitud', label: '🤝 Actitud y Servicio al Cliente', desc: 'Trato respetuoso, proactividad y disposición con el cliente.' },
+                                        { key: 'cumplimiento_protocolo', label: '🦺 Protocolo de Seguridad & SST', desc: 'Uso de EPPs, seguimiento de normas de seguridad.' },
+                                        { key: 'comunicacion_reporte', label: '📱 Comunicación y Reporte', desc: 'Envío oportuno de informes, soporte fotográfico y bitácora.' },
+                                    ].map((factor) => (
+                                        <div key={factor.key} className="tha-star-factor-row">
+                                            <div>
+                                                <strong style={{ fontSize: '0.88rem', color: 'var(--color-navy-dark)', display: 'block' }}>{factor.label}</strong>
+                                                <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{factor.desc}</span>
+                                            </div>
+                                            <div className="tha-star-picker">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        key={star}
+                                                        type="button"
+                                                        className={`tha-star-btn ${star <= formEvaluacion[factor.key] ? 'tha-star-btn--active' : ''}`}
+                                                        onClick={() => setFormEvaluacion({ ...formEvaluacion, [factor.key]: star })}
+                                                        title={`${star} estrellas`}
+                                                    >
+                                                        ★
+                                                    </button>
+                                                ))}
+                                                <span className="tha-star-score-val">{formEvaluacion[factor.key]} / 5</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Promedio en tiempo real */}
+                                {(() => {
+                                    const sum = formEvaluacion.puntualidad + formEvaluacion.desempeno + formEvaluacion.actitud + formEvaluacion.cumplimiento_protocolo + formEvaluacion.comunicacion_reporte;
+                                    const prom = (sum / 5).toFixed(1);
+                                    return (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FEF3C7', padding: '0.75rem 1rem', borderRadius: '8px', marginTop: '1rem' }}>
+                                            <span style={{ fontWeight: 600, color: '#92400E', fontSize: '0.88rem' }}>Calificación Promedio Calculada:</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#B45309' }}>{prom}</span>
+                                                <span style={{ color: '#F59E0B', fontSize: '1.2rem' }}>★</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                <div className="tha-form-group" style={{ marginTop: '1rem' }}>
+                                    <label>Observaciones y Retroalimentación</label>
+                                    <textarea
+                                        className="tha-form-input"
+                                        rows="3"
+                                        placeholder="Aspectos positivos, recomendaciones de mejora para el técnico..."
+                                        value={formEvaluacion.comentarios}
+                                        onChange={(e) => setFormEvaluacion({ ...formEvaluacion, comentarios: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="tha-modal-footer">
+                                <button type="button" className="tha-btn-cancel" onClick={() => setMostrarModalEvaluacion(false)}>
+                                    Cancelar
+                                </button>
+                                <button type="submit" className="tha-btn-submit" disabled={guardandoEvaluacion}>
+                                    {guardandoEvaluacion ? 'Guardando...' : 'Guardar Evaluación'}
                                 </button>
                             </div>
                         </form>

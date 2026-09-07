@@ -22,6 +22,71 @@
     z-index: 200;
     color: #FFFFFF;
     box-shadow: 3px 0 16px rgba(0, 0, 0, 0.18);
+    transition: width 0.24s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tha-sidebar--collapsed {
+    width: 72px;
+    min-width: 72px;
+}
+
+.tha-sidebar-toggle-btn {
+    position: absolute;
+    top: 1.25rem;
+    right: -13px;
+    width: 26px;
+    height: 26px;
+    background: #0B172D;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    color: #F4F1EC;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 210;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.tha-sidebar-toggle-btn:hover {
+    background: #1D63C8;
+    color: #FFFFFF;
+    transform: scale(1.12);
+}
+
+.tha-sidebar--collapsed .tha-brand-text,
+.tha-sidebar--collapsed .tha-user-name,
+.tha-sidebar--collapsed .tha-user-role,
+.tha-sidebar--collapsed .tha-nav-label,
+.tha-sidebar--collapsed .tha-sidebar-footer button span:last-child {
+    display: none;
+}
+
+.tha-sidebar--collapsed .tha-sidebar-brand {
+    justify-content: center;
+    padding: 1.35rem 0.5rem;
+}
+
+.tha-sidebar--collapsed .tha-sidebar-user {
+    justify-content: center;
+    padding: 1rem 0.5rem;
+}
+
+.tha-sidebar--collapsed .tha-nav-item {
+    justify-content: center;
+    padding: 0.75rem 0;
+}
+
+.tha-sidebar--collapsed .tha-sidebar-footer {
+    padding: 0.8rem 0.4rem;
+}
+
+.tha-sidebar--collapsed .tha-sidebar-footer button {
+    justify-content: center;
+    padding: 0.65rem 0;
 }
 
 .tha-sidebar-brand {
@@ -159,6 +224,11 @@
     flex-direction: column;
     padding: 1.5rem 2rem 2.5rem;
     box-sizing: border-box;
+    transition: margin-left 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tha-content-wrapper--collapsed {
+    margin-left: 72px;
 }
 
 /* ── ENCABEZADO ── */
@@ -956,6 +1026,322 @@
     font-size: 0.85rem;
     font-weight: 700;
     cursor: pointer;
+}
+
+/* ── MÓDULO DE DOTACIONES ── */
+.tha-dot-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.tha-dot-stats-pills {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.tha-dot-pill {
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--color-bg-subtle);
+    color: var(--color-navy-dark);
+    border: 1px solid var(--color-border);
+}
+
+.tha-dot-pill--active {
+    background: #DCFCE7;
+    color: #166534;
+    border-color: #86EFAC;
+}
+
+.tha-dot-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background: #FFFFFF;
+    margin-bottom: 1.5rem;
+}
+
+.tha-dot-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    text-align: left;
+}
+
+.tha-dot-table th {
+    background: #F8FAFC;
+    padding: 0.75rem 0.85rem;
+    font-weight: 700;
+    color: #475569;
+    border-bottom: 2px solid var(--color-border);
+    white-space: nowrap;
+}
+
+.tha-dot-table td {
+    padding: 0.8rem 0.85rem;
+    border-bottom: 1px solid #F1F5F9;
+    color: var(--color-navy-dark);
+    vertical-align: middle;
+}
+
+.tha-dot-badge {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.tha-dot-badge--entregado {
+    background: #DCFCE7;
+    color: #15803D;
+}
+
+.tha-dot-badge--devuelto {
+    background: #DBEAFE;
+    color: #1D4ED8;
+}
+
+.tha-dot-badge--deteriorado {
+    background: #FEF3C7;
+    color: #B45309;
+}
+
+.tha-dot-badge--reposicion {
+    background: #FEE2E2;
+    color: #B91C1C;
+}
+
+.tha-dot-empty {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    color: #64748B;
+}
+
+.tha-dot-empty-icon {
+    font-size: 2.4rem;
+    margin-bottom: 0.5rem;
+}
+
+/* ── MÓDULO DE EVALUACIÓN DE DESEMPEÑO (1-5 ESTRELLAS) ── */
+.tha-eval-summary-card {
+    background: linear-gradient(135deg, #070D1E 0%, #0F172A 100%);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    color: #FFFFFF;
+    margin-top: 1.25rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.tha-eval-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1rem;
+}
+
+.tha-eval-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #F8FAFC;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tha-eval-main-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 1.75rem;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .tha-eval-main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.tha-eval-score-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+.tha-eval-big-val {
+    font-size: 2.8rem;
+    font-weight: 900;
+    color: #FBBF24;
+    line-height: 1;
+    text-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+}
+
+.tha-eval-stars {
+    color: #FBBF24;
+    font-size: 1.25rem;
+    margin: 0.4rem 0;
+    letter-spacing: 2px;
+}
+
+.tha-eval-level-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: #10B981;
+    color: #FFFFFF;
+}
+
+.tha-eval-factors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.85rem;
+}
+
+.tha-eval-factor-item {
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0.75rem 0.9rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tha-eval-factor-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+.tha-eval-factor-score {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #F8FAFC;
+}
+
+.tha-eval-history-list {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.tha-eval-history-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    transition: all 0.2s ease;
+}
+
+.tha-eval-history-card:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.tha-eval-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tha-eval-history-period {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #FFFFFF;
+}
+
+.tha-eval-history-date {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.tha-eval-history-comment {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.65rem 0.85rem;
+    border-radius: 6px;
+    margin-top: 0.6rem;
+    line-height: 1.4;
+    font-style: italic;
+}
+
+/* Selector interactivo de estrellas en modal */
+.tha-star-rating-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #F1F5F9;
+}
+
+.tha-stars-picker {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.tha-star-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    color: #CBD5E1;
+    transition: transform 0.15s ease, color 0.15s ease;
+    padding: 0 0.1rem;
+}
+
+.tha-star-btn:hover,
+.tha-star-btn--filled {
+    color: #F59E0B;
+    transform: scale(1.15);
+}
+
+.tha-quick-pill-btn {
+    background: #F1F5F9;
+    border: 1px solid #CBD5E1;
+    border-radius: 16px;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-weight: 600;
+    color: #334155;
+}
+
+.tha-quick-pill-btn:hover {
+    background: #1D63C8;
+    color: #FFFFFF;
+    border-color: #1D63C8;
 }
 
 /* ── RESPONSIVE ── */

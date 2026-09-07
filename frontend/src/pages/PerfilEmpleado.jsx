@@ -21,6 +21,7 @@ import ModalCuentaCobro from '../components/ModalCuentaCobro';
 import ModalAsignacionesTecnico from '../components/ModalAsignacionesTecnico';
 import ModalCuentasCobroTecnico from '../components/ModalCuentasCobroTecnico';
 import { formatApiError } from '../utils/formatError';
+import { irAtras } from '../utils/navigation';
 import {
     ICONO_TIPO_GASTO,
     LABEL_CARGO,
@@ -290,7 +291,7 @@ export default function PerfilEmpleado() {
         return (
             <div className="admin-root">
                 <div className="admin-main pf-main">
-                    <button className="pf-back-pill-btn" onClick={() => navigate('/admin')}>
+                    <button className="pf-back-pill-btn" onClick={() => irAtras(navigate, '/admin')}>
                         ← Volver
                     </button>
                     <p style={{ color: '#DC2626', marginTop: '1rem', fontWeight: 600 }}>
@@ -312,7 +313,7 @@ export default function PerfilEmpleado() {
 
                 {/* ── TOP NAVIGATION & BRAND BAR ── */}
                 <div className="pf-top-nav-bar">
-                    <button className="pf-back-pill-btn" onClick={() => navigate('/admin')}>
+                    <button className="pf-back-pill-btn" onClick={() => irAtras(navigate, '/admin')}>
                         ← Volver
                     </button>
 
