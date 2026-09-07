@@ -145,7 +145,7 @@ export default function SuperAdminDashboard() {
         activo: true,
         fecha_registro: null,
     };
-    const nombrePerfil = obtenerNombreUsuario(perfil.nombre ? perfil : user, 'Super Administrador');
+    const nombrePerfil = obtenerNombreUsuario(perfil.nombre ? perfil : user, 'Administrador');
 
     return (
         <div className="sa-root">
@@ -236,7 +236,7 @@ export default function SuperAdminDashboard() {
                                 {nombrePerfil}
                             </h2>
                             <div className="sa-profile-badges">
-                                <span className="sa-badge sa-badge--role">SUPERADMIN</span>
+                                <span className="sa-badge sa-badge--role">ADMINISTRADOR</span>
                                 <span className={`sa-badge ${perfil.activo ? 'sa-badge--active' : 'sa-badge--inactive'}`}>
                                     {perfil.activo ? 'Activo' : 'Inactivo'}
                                 </span>
@@ -266,11 +266,11 @@ export default function SuperAdminDashboard() {
                                 <div className="sa-detail-row">
                                     <div>
                                         <span className="sa-detail-label">Nombre completo</span>
-                                        <span className="sa-detail-value">{perfil.nombre || 'Super Administrador'}</span>
+                                        <span className="sa-detail-value">{perfil.nombre || 'Administrador'}</span>
                                     </div>
                                     <div>
                                         <span className="sa-detail-label">Rol</span>
-                                        <span className="sa-detail-value">Super Administrador</span>
+                                        <span className="sa-detail-value">Administrador</span>
                                     </div>
                                 </div>
                                 <div className="sa-detail-row">

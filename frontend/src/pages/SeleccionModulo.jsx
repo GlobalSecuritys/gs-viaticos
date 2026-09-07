@@ -11,7 +11,7 @@ import logoGSB from '../assets/logo-gsb.png';
 import './SeleccionModulo.css';
 
 const LABEL_ROL = {
-  superadmin: 'Super Administrador',
+  superadmin: 'Administrador',
   admin: 'Administrador',
   tecnico: 'Técnico',
 };
@@ -101,7 +101,7 @@ export default function SeleccionModulo() {
             <div className="sm-role-strip">
               {isMaster ? (
                 <span className="sm-role-badge sm-role-badge--master">
-                  ⭐ Admin Master — <a href={`mailto:${user?.correo}`} className="sm-master-link">{user?.correo}</a>
+                  👑 Master — <a href={`mailto:${user?.correo}`} className="sm-master-link">{user?.correo}</a>
                 </span>
               ) : (
                 <>
@@ -158,18 +158,18 @@ export default function SeleccionModulo() {
                         if (isLocked) {
                           setGlobalLockAlert({
                             modulo: nav.label,
-                            razon: 'Esta sección está reservada exclusivamente para usuarios con perfil de Superadministrador.',
+                            razon: 'Esta sección está reservada exclusivamente para usuarios con perfil de Administrador.',
                           });
                         } else {
                           navigate(targetPath);
                         }
                       }}
-                      title={isLocked ? `🔒 Acceso restringido (Solo Superadministradores)` : `Ir a ${nav.label}`}
+                      title={isLocked ? `🔒 Acceso restringido (Solo Administradores)` : `Ir a ${nav.label}`}
                     >
                       <span>{isLocked ? '🔒' : nav.icon}</span>
                       <span>{nav.label}</span>
                       {isLocked ? (
-                        <span className="sm-global-lock-pill">Solo Superadmin</span>
+                        <span className="sm-global-lock-pill">Solo Administrador</span>
                       ) : (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                           <path d="M5 12h14M12 5l7 7-7 7" />

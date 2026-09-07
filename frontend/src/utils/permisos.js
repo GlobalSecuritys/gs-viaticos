@@ -55,4 +55,51 @@ export function puedeEditarMapa(user) {
  */
 export function esAdminCalidad(user) {
     return puedeEditarMapa(user);
-}
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * GESTIÓN DE ACCESOS POR PROCESO (SGC & MÓDULOS OPERATIVOS)
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Diferenciación de Niveles de Acceso:
+ * 1. Lector SGC (Mapa): Visualiza el Mapa SGC y SÍ puede abrir fichas de detalle
+ *    documental de cada proceso.
+ * 2. Lector de Sección (Módulos Operativos, ej. Operaciones/Viáticos): Entra a la
+ *    pantalla general del módulo y ve KPIs/gráficas/listados resumen, pero NO puede
+ *    subir comprobantes, ni editar, ni eliminar, ni abrir/manipular tarjetas
+ *    internas de detalle de viáticos/técnicos.
+ * 3. Administrador de Sección (Módulos Operativos): Control total de gestión del
+ *    módulo operativo.
+ */
+
+export function esAdministradorSeccion(user, codigoProceso) {
+    if (!user) return false;
+    if (esPilarAdmin(user)) return true;
+    const codigo = String(codigoProceso || '').toUpperCase();
+    if (codigo === 'OP') {
+        return user.permiso_operaciones === 'admin' || (!user.permiso_operaciones && (user.rol === 'superadmin' || user.rol === 'admin'));
+    }
+    return user.accesos_procesos?.[codigo] === 'admin';
+}
+
+export function esLectorSeccion(user, codigoProceso) {
+    if (!user) return false;
+    if (esPilarAdmin(user)) return false;
+    const codigo = String(codigoProceso || '').toUpperCase();
+    if (codigo === 'OP') {
+        return user.permiso_operaciones === 'lector';
+    }
+    return user.accesos_procesos?.[codigo] === 'lector';
+}
+
+export function tieneAccesoSeccion(user, codigoProceso) {
+    if (!user) return false;
+    if (esPilarAdmin(user)) return true;
+    const codigo = String(codigoProceso || '').toUpperCase();
+    if (codigo === 'OP') {
+        return user.acceso_viaticos !== false && (user.permiso_operaciones === 'admin' || user.permiso_operaciones === 'lector' || !user.permiso_operaciones);
+    }
+    const nivel = user.accesos_procesos?.[codigo];
+    return nivel === 'admin' || nivel === 'lector';
+}
+

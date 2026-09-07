@@ -164,7 +164,7 @@ export function getModuleById(moduleId) {
 }
 
 export function isAdminMaster(user) {
-  return (user?.correo || '').trim().toLowerCase() === 'admin@gsbank.com';
+  return (user?.correo || '').trim().toLowerCase() === 'pilaradmin@gsbank.com';
 }
 
 /**
@@ -193,7 +193,7 @@ export const MODULOS_SGC_ASOCIADOS = {
       { label: 'Reportes Excel', icon: '📊', path: '/admin' },
     ],
     puedeAcceder: (user) => (user?.rol === 'admin' || user?.rol === 'superadmin') && user?.acceso_viaticos !== false,
-    lockReason: 'Tu cuenta no tiene habilitado el acceso a Viáticos & Operaciones. Por favor solicita al Administrador Master (admin@gsbank.com) que active tus permisos.',
+    lockReason: 'Tu cuenta no tiene habilitado el acceso a Viáticos & Operaciones. Por favor solicita a la Administradora Master (PilarAdmin@gsbank.com) que active tus permisos.',
   },
   MC: {
     codigo: 'MC',
@@ -211,7 +211,7 @@ export const MODULOS_SGC_ASOCIADOS = {
       { label: 'Descargas ZIP', icon: '📦', path: '/admin/backup' },
     ],
     puedeAcceder: (user) => user?.rol === 'admin' || user?.rol === 'superadmin',
-    lockReason: 'El módulo de Backup & Evidencias requiere privilegios de Administrador o Superadministrador.',
+    lockReason: 'El módulo de Backup & Evidencias requiere privilegios de Administrador.',
   },
   AD: {
     codigo: 'AD',
@@ -230,7 +230,7 @@ export const MODULOS_SGC_ASOCIADOS = {
       { label: 'Solicitudes', icon: '📝', path: '/talento-humano' },
     ],
     puedeAcceder: (user) => user?.rol === 'admin' || user?.rol === 'superadmin',
-    lockReason: 'El módulo de Talento Humano requiere privilegios de Administrador o Superadministrador.',
+    lockReason: 'El módulo de Talento Humano requiere privilegios de Administrador.',
   },
 };
 

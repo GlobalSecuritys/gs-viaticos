@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -107,3 +107,41 @@ class ProcesoCalidadDocumento(Base):
         back_populates="documentos"
     )
     usuario_subio = relationship("Usuario", foreign_keys=[subido_por])
+
+
+class ProcesoCalidadAccesoAdmin(Base):
+    """
+    Gestión de Accesos Administrativos a los Procesos del Mapa SGC (Módulos Operativos).
+    Exclusivo para asignación por la cuenta Master (PilarAdmin@gsbank.com).
+    
+    Niveles de acceso:
+    - 'admin': Administrador de Sección (acceso total: entrar, ver, subir, clasificar, editar, eliminar y manipular tarjetas internas).
+    - 'lector': Lector de Sección (puede entrar y ver la pantalla general, pero NO puede subir archivos, editar, eliminar ni abrir tarjetas de detalle).
+      * NOTA DE ARQUITECTURA: Existe una diferencia clave frente al 'Lector SGC' del Mapa:
+        El Lector SGC sí puede abrir fichas de detalle documental del SGC.
+        El Lector de Sección en módulos operativos (ej. Viáticos/Operaciones) tiene restringida la apertura de tarjetas internas de detalle.
+    - 'ninguno': Sin acceso (valor por defecto).
+    """
+    __tablename__ = "procesos_calidad_accesos_admin"
+    __table_args__ = (
+        UniqueConstraint("usuario_id", "proceso_codigo", name="uq_usuario_proceso_acceso"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    usuario_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("usuarios.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    proceso_codigo: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    nivel_acceso: Mapped[str] = mapped_column(String(20), nullable=False, server_default="ninguno", default="ninguno")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now()
+    )
+
+    usuario = relationship("Usuario", foreign_keys=[usuario_id])
+

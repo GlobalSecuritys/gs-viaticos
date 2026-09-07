@@ -66,6 +66,29 @@ def get_current_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Usuario inactivo"
         )
+
+    # Enriquecer el objeto usuario con accesos por proceso (para UsuarioResponse)
+    # Esto permite que /me siempre devuelva el estado real de la BD.
+    try:
+        from app.models.calidad_procesos import ProcesoCalidadAccesoAdmin
+        correo_clean = (usuario.correo or "").strip().lower()
+        TODOS_PROCESOS = ["GR", "MC", "CO", "CI", "OP", "SA", "AD", "SS"]
+        if correo_clean == "pilaradmin@gsbank.com":
+            accesos = {p: "admin" for p in TODOS_PROCESOS}
+        else:
+            stmt_acc = select(ProcesoCalidadAccesoAdmin).where(
+                ProcesoCalidadAccesoAdmin.usuario_id == usuario.id
+            )
+            rows = db.scalars(stmt_acc).all()
+            accesos = {r.proceso_codigo: r.nivel_acceso for r in rows}
+        # Setear como atributos Python directos en la instancia ORM
+        # (Pydantic con from_attributes=True los lee via getattr)
+        usuario.__dict__["_accesos_procesos"] = accesos
+        usuario.__dict__["_permiso_operaciones"] = accesos.get("OP", "ninguno")
+    except Exception:
+        usuario.__dict__["_accesos_procesos"] = {}
+        usuario.__dict__["_permiso_operaciones"] = "ninguno"
+
     return usuario
 
 def get_current_admin(
@@ -91,12 +114,12 @@ def get_current_superadmin(
 def get_current_master_admin(
     current_user: Annotated[Usuario, Depends(get_current_user)]
 ) -> Usuario:
-    """Valida que el usuario sea exclusivamente 'admin@gsbank.com' (case-insensitive)."""
+    """Valida que el usuario sea exclusivamente 'pilaradmin@gsbank.com' (case-insensitive)."""
     correo_user = (current_user.correo or "").strip().lower()
-    if correo_user not in ("admin@gsbank.com", "tecnicoplantagsb@gsbsecurity.com"):
+    if correo_user != "pilaradmin@gsbank.com":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acceso restringido exclusivamente al administrador principal"
+            detail="Acceso restringido exclusivamente a la Administradora Master (PilarAdmin@gsbank.com)"
         )
     return current_user
 
@@ -104,17 +127,15 @@ def verificar_autoridad_sobre_usuario(
     current_admin: Usuario,
     usuario_objetivo: Usuario,
 ) -> None:
-    """Blindaje ADMIN -> SUPER ADMIN.
-
-    Se usa como chequeo adicional DENTRO de endpoints que ya requieren
-    get_current_admin (que acepta admin o superadmin), para bloquear que un
-    ADMIN NORMAL ejecute una acción administrativa sobre un usuario cuyo rol
-    sea 'superadmin'. Un Super Admin nunca es restringido por esta función.
+    """Blindaje sobre la cuenta Master.
+    Ningún administrador puede modificar o alterar la cuenta de PilarAdmin@gsbank.com.
     """
-    if current_admin.rol == "admin" and usuario_objetivo.rol == "superadmin":
+    correo_target = (usuario_objetivo.correo or "").strip().lower()
+    correo_admin = (current_admin.correo or "").strip().lower()
+    if correo_target == "pilaradmin@gsbank.com" and correo_admin != "pilaradmin@gsbank.com":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Un administrador no puede realizar acciones administrativas sobre un Super Administrador"
+            detail="No se pueden realizar acciones administrativas sobre la cuenta Master (PilarAdmin@gsbank.com)"
         )
 
 def get_current_pilar_admin(

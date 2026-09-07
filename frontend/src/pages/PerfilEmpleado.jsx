@@ -564,8 +564,7 @@ export default function PerfilEmpleado() {
                                                     title={esPropiaTarjeta ? 'No puedes modificar tu propio rol' : `Cambiar rol de ${usuario.nombre}`}
                                                 >
                                                     <option value="tecnico">Técnico</option>
-                                                    <option value="admin">Admin</option>
-                                                    <option value="superadmin">Super Admin</option>
+                                                    <option value="superadmin">Administrador</option>
                                                 </select>
                                             ) : (
                                                 <span className="pf-role-readonly-pill">

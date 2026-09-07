@@ -41,7 +41,7 @@ const ICONO_ACCION = {
 };
 
 const LABEL_ROL = {
-    superadmin: 'Super Admin',
+    superadmin: 'Administrador',
     admin: 'Administrador',
     tecnico: 'Técnico',
 };
@@ -432,7 +432,7 @@ export default function Auditoria() {
                                     <span className="gsb-user-email">
                                         {user?.correo || 'Admin@gsbank.com'}
                                     </span>
-                                    <span className="gsb-user-role">Super Administrador</span>
+                                    <span className="gsb-user-role">Administrador</span>
                                 </div>
                                 <span className="gsb-user-chevron">▾</span>
                             </button>

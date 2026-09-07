@@ -89,7 +89,7 @@ export default function ModalCrearUsuario({ onClose, onCreado }) {
                         Rol
                         <select value={rol} onChange={(e) => setRol(e.target.value)}>
                             <option value="tecnico">Técnico</option>
-                            <option value="admin">Admin</option>
+                            <option value="superadmin">Administrador</option>
                         </select>
                     </label>
 

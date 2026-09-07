@@ -75,3 +75,27 @@ export async function actualizarPermisoAdminMapa(usuarioId, data) {
   return res.data;
 }
 
+/**
+ * [Exclusivo PilarAdmin] Obtiene todos los administradores con sus niveles de acceso
+ * asignados para cada proceso del Mapa SGC (Dirección, Misionales, Apoyo).
+ * Retorna: { procesos: ProcesoInfoSimple[], administradores: AdminProcesoAccesoItem[] }
+ */
+export async function listarAccesosProcesos() {
+  const res = await api.get('/calidad-procesos/accesos-proceso');
+  return res.data;
+}
+
+/**
+ * [Exclusivo PilarAdmin] Actualiza el nivel de acceso de un administrador a un proceso.
+ * @param {number} usuarioId - ID del administrador objetivo
+ * @param {string} procesoCodigo - Código del proceso (GR, MC, CO, CI, OP, SA, AD, SS)
+ * @param {string} nivelAcceso - 'admin' | 'lector' | 'ninguno'
+ */
+export async function actualizarAccesoProceso(usuarioId, procesoCodigo, nivelAcceso) {
+  const res = await api.put('/calidad-procesos/accesos-proceso', {
+    usuario_id: usuarioId,
+    proceso_codigo: procesoCodigo,
+    nivel_acceso: nivelAcceso,
+  });
+  return res.data;
+}

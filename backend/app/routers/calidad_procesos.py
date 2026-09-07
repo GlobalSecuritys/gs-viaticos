@@ -15,11 +15,16 @@ from app.models.calidad_procesos import (
     ProcesoCalidad,
     ProcesoCalidadDocumento,
     ProcesoCalidadResponsable,
+    ProcesoCalidadAccesoAdmin,
 )
 from app.models.usuario import Usuario
 from app.schemas.calidad_procesos import (
     AdminPermisoMapaItem,
     AdminPermisoMapaUpdate,
+    AdminProcesoAccesoItem,
+    ProcesosAccesosOverviewResponse,
+    ProcesoInfoSimple,
+    UsuarioProcesoAccesoUpdate,
     ProcesoCalidadDetailResponse,
     ProcesoCalidadDocumentoResponse,
     ProcesoCalidadDocumentoUpdate,
@@ -262,7 +267,7 @@ def listar_permisos_admins(
     """[Exclusivo PilarAdmin] Devuelve la lista de todos los administradores del sistema con su estado de acceso y rol en el mapa."""
     stmt = (
         select(Usuario)
-        .where(Usuario.rol.in_(["admin", "superadmin"]))
+        .where(Usuario.rol == "superadmin")  # Solo 'superadmin' (rol 'admin' fue eliminado)
         .order_by(Usuario.nombre)
     )
     admins = db.scalars(stmt).all()
@@ -333,6 +338,209 @@ def actualizar_permiso_admin_mapa(
         acceso_mapa=target_user.acceso_mapa,
         rol_mapa=target_user.rol_mapa,
         es_pilar=False,
+    )
+
+
+# -----------------------------------------------------------------------------
+# GESTIÓN DE ACCESOS OPERATIVOS POR PROCESO (Solo PilarAdmin@gsbank.com)
+# Tabla: procesos_calidad_accesos_admin
+# Niveles: 'admin' = Administrador de Sección, 'lector' = Lector de Sección, 'ninguno' = Sin acceso
+# Nota de arquitectura: INDEPENDIENTE del acceso al mapa SGC.
+# -----------------------------------------------------------------------------
+
+# Mapa de procesos del SGC (código, nombre, categoría, módulo operativo activo)
+PROCESOS_ACCESO_MAP = [
+    # PROCESOS DE DIRECCIÓN
+    {"codigo": "GR", "nombre": "Gerencia",            "categoria": "direccion", "tiene_modulo": False, "modulo_nombre": None},
+    {"codigo": "MC", "nombre": "Mejora Continua",      "categoria": "direccion", "tiene_modulo": False, "modulo_nombre": None},
+    # PROCESOS MISIONALES
+    {"codigo": "CO", "nombre": "Comercial",            "categoria": "misional",  "tiene_modulo": False, "modulo_nombre": None},
+    {"codigo": "CI", "nombre": "Compras e Inventario", "categoria": "misional",  "tiene_modulo": False, "modulo_nombre": None},
+    {"codigo": "OP", "nombre": "Operaciones",          "categoria": "misional",  "tiene_modulo": True,  "modulo_nombre": "Viáticos"},
+    # PROCESOS DE APOYO
+    {"codigo": "SA", "nombre": "Ambiental",            "categoria": "apoyo",     "tiene_modulo": False, "modulo_nombre": None},
+    {"codigo": "AD", "nombre": "Administrativo",       "categoria": "apoyo",     "tiene_modulo": False, "modulo_nombre": None},
+    {"codigo": "SS", "nombre": "SG - SST",             "categoria": "apoyo",     "tiene_modulo": False, "modulo_nombre": None},
+]
+
+NIVELES_VALIDOS = {"admin", "lector", "ninguno"}
+
+
+@router.get("/accesos-proceso", response_model=ProcesosAccesosOverviewResponse)
+def listar_accesos_proceso(
+    db: Annotated[Session, Depends(get_db)],
+    current_pilar: Annotated[Usuario, Depends(get_current_pilar_admin)],
+):
+    """
+    [Exclusivo PilarAdmin] Devuelve la lista de todos los administradores (superadmin) con sus
+    niveles de acceso asignados por proceso del Mapa SGC (tabla procesos_calidad_accesos_admin).
+    Agrupa los procesos en: Dirección (GR, MC), Misionales (CO, CI, OP) y Apoyo (SA, AD, SS).
+    Operaciones (OP) es el único proceso con módulo operativo activo actualmente (Viáticos).
+    """
+    # Obtener todos los administradores (superadmin)
+    stmt_admins = (
+        select(Usuario)
+        .where(Usuario.rol == "superadmin", Usuario.activo == True)
+        .order_by(Usuario.nombre)
+    )
+    admins = db.scalars(stmt_admins).all()
+
+    # Obtener todos los accesos existentes para estos admins
+    admin_ids = [a.id for a in admins]
+    stmt_accesos = select(ProcesoCalidadAccesoAdmin).where(
+        ProcesoCalidadAccesoAdmin.usuario_id.in_(admin_ids)
+    )
+    accesos_raw = db.scalars(stmt_accesos).all()
+
+    # Construir mapa: usuario_id -> {proceso_codigo: nivel_acceso}
+    accesos_map: dict[int, dict[str, str]] = {a.id: {} for a in admins}
+    for acc in accesos_raw:
+        if acc.usuario_id in accesos_map:
+            accesos_map[acc.usuario_id][acc.proceso_codigo] = acc.nivel_acceso
+
+    # Construir lista de administradores con sus accesos
+    administradores = []
+    for a in admins:
+        correo_clean = (a.correo or "").strip().lower()
+        es_pilar = correo_clean == "pilaradmin@gsbank.com"
+        accesos_admin = accesos_map.get(a.id, {})
+        # Para PilarAdmin, nivel_acceso = 'admin' en todos los procesos
+        if es_pilar:
+            accesos_admin = {p["codigo"]: "admin" for p in PROCESOS_ACCESO_MAP}
+        administradores.append(
+            AdminProcesoAccesoItem(
+                id=a.id,
+                nombre=a.nombre,
+                correo=a.correo,
+                codigo_empleado=a.codigo_empleado,
+                rol=a.rol,
+                es_pilar=es_pilar,
+                accesos=accesos_admin,
+            )
+        )
+    # Ordenar: Pilar primero
+    administradores.sort(key=lambda x: (not x.es_pilar, x.nombre.lower()))
+
+    # Construir lista de info de procesos
+    procesos = [
+        ProcesoInfoSimple(
+            codigo=p["codigo"],
+            nombre=p["nombre"],
+            categoria=p["categoria"],
+            tiene_modulo_operativo=p["tiene_modulo"],
+            modulo_nombre=p["modulo_nombre"],
+        )
+        for p in PROCESOS_ACCESO_MAP
+    ]
+
+    return ProcesosAccesosOverviewResponse(procesos=procesos, administradores=administradores)
+
+
+@router.put("/accesos-proceso", response_model=AdminProcesoAccesoItem)
+def actualizar_acceso_proceso(
+    payload: UsuarioProcesoAccesoUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    current_pilar: Annotated[Usuario, Depends(get_current_pilar_admin)],
+):
+    """
+    [Exclusivo PilarAdmin] Actualiza el nivel de acceso de un administrador a un proceso operativo.
+    - nivel_acceso 'admin'  -> Administrador de Sección (acceso total al módulo operativo).
+    - nivel_acceso 'lector' -> Lector de Sección (solo vista general, sin edición ni tarjetas).
+    - nivel_acceso 'ninguno'-> Sin acceso (bloquea entrada al módulo).
+    Si el proceso es 'OP' (Operaciones), sincroniza automáticamente usuario.acceso_viaticos.
+    Registra el cambio en log_auditoria.
+    """
+    from sqlalchemy import text as sql_text
+
+    # Validaciones
+    codigo = (payload.proceso_codigo or "").strip().upper()
+    nivel = (payload.nivel_acceso or "ninguno").strip().lower()
+    if codigo not in {p["codigo"] for p in PROCESOS_ACCESO_MAP}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Código de proceso inválido: '{codigo}'. Valores permitidos: {', '.join(p['codigo'] for p in PROCESOS_ACCESO_MAP)}"
+        )
+    if nivel not in NIVELES_VALIDOS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Nivel de acceso inválido: '{nivel}'. Valores permitidos: admin, lector, ninguno"
+        )
+
+    # Bloquear modificación de la propia Pilar
+    target_user = db.get(Usuario, payload.usuario_id)
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+    correo_target = (target_user.correo or "").strip().lower()
+    if correo_target == "pilaradmin@gsbank.com":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se pueden modificar los accesos de la Administradora Master (PilarAdmin)."
+        )
+    if target_user.rol != "superadmin":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se pueden asignar accesos a usuarios con rol de Administrador."
+        )
+
+    # Upsert del acceso
+    stmt_exist = select(ProcesoCalidadAccesoAdmin).where(
+        ProcesoCalidadAccesoAdmin.usuario_id == payload.usuario_id,
+        ProcesoCalidadAccesoAdmin.proceso_codigo == codigo,
+    )
+    acceso_row = db.scalar(stmt_exist)
+    if acceso_row:
+        acceso_row.nivel_acceso = nivel
+    else:
+        acceso_row = ProcesoCalidadAccesoAdmin(
+            usuario_id=payload.usuario_id,
+            proceso_codigo=codigo,
+            nivel_acceso=nivel,
+        )
+        db.add(acceso_row)
+
+    # Sincronizar acceso_viaticos si es proceso OP
+    if codigo == "OP":
+        target_user.acceso_viaticos = nivel in ("admin", "lector")
+
+    db.commit()
+
+    # Registro en log_auditoria
+    nombre_nivel = {"admin": "Administrador de Sección", "lector": "Lector de Sección", "ninguno": "Sin acceso"}.get(nivel, nivel)
+    nombre_proceso = next((p["nombre"] for p in PROCESOS_ACCESO_MAP if p["codigo"] == codigo), codigo)
+    try:
+        db.execute(
+            sql_text(
+                "INSERT INTO log_auditoria (usuario_id, accion, detalle, created_at) "
+                "VALUES (:uid, 'CAMBIO_ACCESO_PROCESO', :detalle, NOW())"
+            ),
+            {
+                "uid": current_pilar.id,
+                "detalle": (
+                    f"PilarAdmin asignó acceso '{nombre_nivel}' a '{target_user.nombre}' "
+                    f"({target_user.correo}) en proceso '{nombre_proceso}' ({codigo})."
+                    + (f" [Sincronizado: acceso_viaticos={'True' if target_user.acceso_viaticos else 'False'}]" if codigo == "OP" else "")
+                ),
+            }
+        )
+        db.commit()
+    except Exception:
+        pass  # No bloquear si log falla
+
+    # Construir respuesta con todos los accesos del usuario
+    stmt_all = select(ProcesoCalidadAccesoAdmin).where(
+        ProcesoCalidadAccesoAdmin.usuario_id == payload.usuario_id
+    )
+    all_accesos = db.scalars(stmt_all).all()
+    accesos_dict = {a.proceso_codigo: a.nivel_acceso for a in all_accesos}
+
+    return AdminProcesoAccesoItem(
+        id=target_user.id,
+        nombre=target_user.nombre,
+        correo=target_user.correo,
+        codigo_empleado=target_user.codigo_empleado,
+        rol=target_user.rol,
+        es_pilar=False,
+        accesos=accesos_dict,
     )
 
 

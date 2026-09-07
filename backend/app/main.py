@@ -25,6 +25,7 @@ from app.models.calidad_procesos import (
     ProcesoCalidad,
     ProcesoCalidadResponsable,
     ProcesoCalidadDocumento,
+    ProcesoCalidadAccesoAdmin,
 )
 
 app = FastAPI(
@@ -54,11 +55,52 @@ def startup_db_check():
         ProcesoCalidad.__table__.create(bind=engine, checkfirst=True)
         ProcesoCalidadResponsable.__table__.create(bind=engine, checkfirst=True)
         ProcesoCalidadDocumento.__table__.create(bind=engine, checkfirst=True)
+        ProcesoCalidadAccesoAdmin.__table__.create(bind=engine, checkfirst=True)
 
         with SessionLocal() as db:
             seed_procesos_calidad_si_vacio(db)
+            _migrar_rol_admin_a_superadmin(db)
     except Exception as e:
         print(f"Startup DB check warning: {e}")
+
+def _migrar_rol_admin_a_superadmin(db) -> None:
+    """
+    Migración automática de seguridad: eleva cualquier usuario con rol='admin' (rol intermedio
+    eliminado) a 'superadmin' (Administrador). Registra cada elevación en log_auditoria.
+    Se ejecuta en cada inicio del servidor; es idempotente (no afecta a usuarios ya migrados).
+    """
+    from sqlalchemy import select, update
+    from app.models.usuario import Usuario
+    try:
+        stmt = select(Usuario).where(Usuario.rol == 'admin')
+        usuarios_admin = db.scalars(stmt).all()
+        for u in usuarios_admin:
+            u.rol = 'superadmin'
+            # Registro en log_auditoria
+            try:
+                db.execute(
+                    text(
+                        "INSERT INTO log_auditoria (usuario_id, accion, detalle, created_at) "
+                        "VALUES (:uid, 'CAMBIO_ROL', :detalle, NOW())"
+                    ),
+                    {
+                        "uid": u.id,
+                        "detalle": (
+                            f"Elevación de privilegios automática: Usuario '{u.nombre}' ({u.correo}) "
+                            f"migrado de rol intermedio 'admin' a 'Administrador' (superadmin) "
+                            f"durante startup del servidor."
+                        ),
+                    }
+                )
+            except Exception:
+                pass  # No bloquear si la tabla de auditoria no existe aún
+            print(f"[STARTUP] ✅ Migrado {u.correo}: admin -> superadmin")
+        if usuarios_admin:
+            db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"[STARTUP] Advertencia al migrar roles: {e}")
+
 
 # Configuración de CORS para el frontend (React + Vite)
 origins = [

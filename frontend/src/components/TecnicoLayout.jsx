@@ -33,7 +33,7 @@ export default function TecnicoLayout({ children }) {
 
     const nombreMostrado = obtenerNombreUsuario(user, 'Técnico');
     const init = iniciales(nombreMostrado);
-    const cargoMostrado = user?.rol === 'superadmin' ? 'SuperAdmin' : user?.rol === 'admin' ? 'Administrador' : 'Técnico Instalador';
+    const cargoMostrado = (user?.rol === 'superadmin' || user?.rol === 'admin') ? 'Administrador' : 'Técnico Instalador';
 
     return (
         <div className="tec-root">

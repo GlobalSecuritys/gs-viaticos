@@ -163,6 +163,21 @@ def login(
 
     correo_clean = (usuario.correo or "").strip().lower()
     es_pilar = correo_clean == "pilaradmin@gsbank.com"
+
+    # Obtener accesos por proceso de la BD
+    from app.models.calidad_procesos import ProcesoCalidadAccesoAdmin
+    from sqlalchemy import select as sa_select
+    TODOS_PROCESOS = ["GR", "MC", "CO", "CI", "OP", "SA", "AD", "SS"]
+    if es_pilar:
+        accesos_procesos = {p: "admin" for p in TODOS_PROCESOS}
+    else:
+        stmt_acc = sa_select(ProcesoCalidadAccesoAdmin).where(
+            ProcesoCalidadAccesoAdmin.usuario_id == usuario.id
+        )
+        rows = db.scalars(stmt_acc).all()
+        accesos_procesos = {r.proceso_codigo: r.nivel_acceso for r in rows}
+    permiso_operaciones = accesos_procesos.get("OP", "ninguno")
+
     access_token = create_access_token(data={
         "sub": usuario.correo,
         "rol": usuario.rol,
@@ -173,6 +188,8 @@ def login(
         "es_admin_calidad": True if es_pilar else getattr(usuario, "es_admin_calidad", False),
         "acceso_mapa": True if es_pilar else getattr(usuario, "acceso_mapa", False),
         "rol_mapa": "editor" if es_pilar else getattr(usuario, "rol_mapa", "lector"),
+        "accesos_procesos": accesos_procesos,
+        "permiso_operaciones": permiso_operaciones,
     })
     return Token(access_token=access_token, token_type="bearer")
 

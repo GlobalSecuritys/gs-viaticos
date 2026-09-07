@@ -334,7 +334,7 @@ export default function TalentoHumanoAdmin() {
                     <div>
                         <div className="tha-user-name">{user?.nombre || 'Administrador'}</div>
                         <div className="tha-user-role">
-                            {user?.rol === 'superadmin' ? 'Super Admin' : 'Administrador'}
+                            Administrador
                         </div>
                     </div>
                 </div>

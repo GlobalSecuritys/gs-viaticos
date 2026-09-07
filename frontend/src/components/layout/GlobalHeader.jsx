@@ -185,9 +185,9 @@ export default function GlobalHeader({ currentModuleId, onToggleSidebar, sidebar
           <div className="gh-user-details">
             <span className="gh-user-name">{nombreUsuario.split(' ')[0]}</span>
             {isMaster ? (
-              <span className="gh-master-tag">⭐ Master</span>
+              <span className="gh-master-tag">👑 Master</span>
             ) : (
-              <span className="gh-role-tag">{user?.rol || 'Admin'}</span>
+              <span className="gh-role-tag">{(user?.rol === 'superadmin' || user?.rol === 'admin') ? 'Administrador' : (user?.rol === 'tecnico' ? 'Técnico' : (user?.rol || 'Administrador'))}</span>
             )}
           </div>
         </div>

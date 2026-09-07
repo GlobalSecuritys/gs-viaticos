@@ -288,8 +288,8 @@ def cambiar_acceso_viaticos_usuario(
     db: Annotated[Session, Depends(get_db)]
 ):
     """Permite otorgar o quitar acceso a viáticos a un usuario.
-    Exclusivo para el usuario cuyo correo es 'admin@gsbank.com'.
-    Cualquier otro usuario (incluidos otros superadmins) recibe un 403.
+    Exclusivo para la Administradora Master cuyo correo es 'PilarAdmin@gsbank.com'.
+    Cualquier otro usuario (incluidos otros administradores) recibe un 403.
     """
     stmt = select(Usuario).where(Usuario.id == id)
     usuario = db.scalar(stmt)

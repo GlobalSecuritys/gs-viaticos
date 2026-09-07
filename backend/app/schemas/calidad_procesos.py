@@ -111,3 +111,35 @@ class AdminPermisoMapaItem(BaseModel):
 class AdminPermisoMapaUpdate(BaseModel):
     acceso_mapa: bool
     rol_mapa: str = Field(default="lector")
+
+
+class UsuarioProcesoAccesoUpdate(BaseModel):
+    usuario_id: int
+    proceso_codigo: str
+    nivel_acceso: str = Field(default="ninguno")  # 'admin' | 'lector' | 'ninguno'
+
+
+class AdminProcesoAccesoItem(BaseModel):
+    id: int
+    nombre: str
+    correo: str
+    codigo_empleado: Optional[str] = None
+    rol: str
+    es_pilar: bool = False
+    accesos: dict[str, str] = {}
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProcesoInfoSimple(BaseModel):
+    codigo: str
+    nombre: str
+    categoria: str
+    tiene_modulo_operativo: bool = False
+    modulo_nombre: Optional[str] = None
+
+
+class ProcesosAccesosOverviewResponse(BaseModel):
+    procesos: List[ProcesoInfoSimple] = []
+    administradores: List[AdminProcesoAccesoItem] = []
+

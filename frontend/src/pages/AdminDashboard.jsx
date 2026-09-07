@@ -13,6 +13,7 @@ import ModalAsignacionesTecnico from '../components/ModalAsignacionesTecnico';
 import ModalCuentasCobroTecnico from '../components/ModalCuentasCobroTecnico';
 import ModalCrearUsuario from '../components/ModalCrearUsuario';
 import { obtenerNombreUsuario } from '../utils/personal';
+import { esLectorSeccion } from '../utils/permisos';
 import './AdminDashboard.css';
 
 function formatCOP(value) {
@@ -48,8 +49,7 @@ function formatFechaHoraISO(iso) {
 }
 
 function labelRol(rol) {
-    if (rol === 'superadmin') return 'Super Administrador';
-    if (rol === 'admin') return 'Administrador';
+    if (rol === 'superadmin' || rol === 'admin') return 'Administrador';
     return 'Técnico';
 }
 
@@ -90,6 +90,7 @@ const FILTROS_PERIODO = [
 export default function AdminDashboard() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const esLector = esLectorSeccion(user, 'OP');
 
     const [perfilData, setPerfilData] = useState(null);
     const [usuarios, setUsuarios] = useState([]);
@@ -436,7 +437,7 @@ export default function AdminDashboard() {
                                     >
                                         👤 Ver mi perfil
                                     </button>
-                                    {user?.rol === 'superadmin' && (
+                                    {(user?.rol === 'superadmin' || user?.rol === 'admin') && (
                                         <button
                                             className="gsb-dropdown-item"
                                             onClick={() => navigate('/admin/usuarios')}
@@ -475,6 +476,15 @@ export default function AdminDashboard() {
                     )}
 
                     {error && <div className="gsb-alert-banner gsb-alert-banner--error">{error}</div>}
+
+                    {esLector && (
+                        <div className="gsb-alert-banner" style={{ background: '#EFF6FF', borderLeft: '4px solid #3B82F6', color: '#1E3A8A', padding: '0.85rem 1.25rem', marginBottom: '1.25rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 500 }}>
+                            <span style={{ fontSize: '1.25rem' }}>👁️</span>
+                            <div>
+                                <strong>Modo Lector de Sección (Operaciones)</strong>: Acceso de visualización general. No puedes subir soportes, aprobar/rechazar gastos ni abrir modales de gestión técnica.
+                            </div>
+                        </div>
+                    )}
 
                     {/* ── FILA SUPERIOR: Perfil Admin + 4 KPIs ── */}
                     <section className="gsb-top-section">
@@ -875,24 +885,26 @@ export default function AdminDashboard() {
                                                     </div>
 
                                                     {/* Botones de Asignaciones y Cuenta de Cobro */}
-                                                    <div className="gsb-tech-action-row">
-                                                        <button
-                                                            type="button"
-                                                            className="gsb-tech-btn-asig"
-                                                            onClick={() => setTecnicoParaAsignaciones(t)}
-                                                            title={`Ver asignaciones de ${t.nombre}`}
-                                                        >
-                                                            📋 Asignaciones
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="gsb-tech-btn-cc"
-                                                            onClick={() => setTecnicoParaCuentasCobro(t)}
-                                                            title={`Ver cuentas de cobro de ${t.nombre}`}
-                                                        >
-                                                            💵 Cuenta de Cobro
-                                                        </button>
-                                                    </div>
+                                                    {!esLector && (
+                                                        <div className="gsb-tech-action-row">
+                                                            <button
+                                                                type="button"
+                                                                className="gsb-tech-btn-asig"
+                                                                onClick={() => setTecnicoParaAsignaciones(t)}
+                                                                title={`Ver asignaciones de ${t.nombre}`}
+                                                            >
+                                                                📋 Asignaciones
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="gsb-tech-btn-cc"
+                                                                onClick={() => setTecnicoParaCuentasCobro(t)}
+                                                                title={`Ver cuentas de cobro de ${t.nombre}`}
+                                                            >
+                                                                💵 Cuenta de Cobro
+                                                            </button>
+                                                        </div>
+                                                    )}
 
                                                     <button
                                                         type="button"
@@ -908,26 +920,28 @@ export default function AdminDashboard() {
                                 })}
 
                                 {/* Tarjeta Agregar Técnico */}
-                                <div className="gsb-add-tech-card" onClick={() => setMostrarCrearUsuario(true)}>
-                                    <div className="gsb-add-tech-icon-wrap">
-                                        <svg viewBox="0 0 24 24" fill="none" className="gsb-add-tech-icon">
-                                            <circle cx="10" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
-                                            <path d="M2 20C2 16 6 14 10 14C14 14 18 16 18 20" stroke="currentColor" strokeWidth="1.8" />
-                                            <path d="M19 8V14M16 11H22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                                        </svg>
+                                {!esLector && (
+                                    <div className="gsb-add-tech-card" onClick={() => setMostrarCrearUsuario(true)}>
+                                        <div className="gsb-add-tech-icon-wrap">
+                                            <svg viewBox="0 0 24 24" fill="none" className="gsb-add-tech-icon">
+                                                <circle cx="10" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+                                                <path d="M2 20C2 16 6 14 10 14C14 14 18 16 18 20" stroke="currentColor" strokeWidth="1.8" />
+                                                <path d="M19 8V14M16 11H22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                                            </svg>
+                                        </div>
+                                        <span className="gsb-add-tech-title">Agregar Técnico</span>
+                                        <button
+                                            type="button"
+                                            className="gsb-add-tech-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setMostrarCrearUsuario(true);
+                                            }}
+                                        >
+                                            Nuevo Técnico
+                                        </button>
                                     </div>
-                                    <span className="gsb-add-tech-title">Agregar Técnico</span>
-                                    <button
-                                        type="button"
-                                        className="gsb-add-tech-btn"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setMostrarCrearUsuario(true);
-                                        }}
-                                    >
-                                        Nuevo Técnico
-                                    </button>
-                                </div>
+                                )}
                             </div>
                         </section>
 
@@ -1096,17 +1110,17 @@ export default function AdminDashboard() {
                 <ModalEvidencia
                     viatico={evidenciaPreview}
                     onClose={() => setEvidenciaPreview(null)}
-                    onAprobar={(id, cText) => {
+                    onAprobar={esLector ? null : (id, cText) => {
                         setEvidenciaPreview(null);
                         setMensajeFeedback(`✅ Viático aprobado correctamente${cText ? ` — Comentario: "${cText}"` : ''}`);
                         cargar();
                     }}
-                    onRechazar={(id, cText) => {
+                    onRechazar={esLector ? null : (id, cText) => {
                         setEvidenciaPreview(null);
                         setMensajeFeedback(`❌ Viático rechazado correctamente${cText ? ` — Motivo enviado: "${cText}"` : ''}`);
                         cargar();
                     }}
-                    onPresupuestoActualizado={(v) => {
+                    onPresupuestoActualizado={esLector ? null : (v) => {
                         setViaticos((prev) => prev.map((x) => (x.id === v.id ? v : x)));
                         setEvidenciaPreview(v);
                     }}

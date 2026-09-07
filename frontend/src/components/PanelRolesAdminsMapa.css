@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PANEL EXCLUSIVO PILARADMIN: ROLES Y ACCESO AL MAPA SGC
+   PANEL EXCLUSIVO PILARADMIN: ROLES Y ACCESO UNIFICADO SGC
    Estética premium corporativa, coherente con el mapa de procesos SGC
    ========================================================================== */
 
@@ -138,35 +138,42 @@
 }
 
 @keyframes sgcToastFadeIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .sgc-ap-toast--success {
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
   color: #34d399;
 }
 
 .sgc-ap-toast--error {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
   color: #f87171;
+  justify-content: space-between;
 }
 
 .sgc-ap-toast-close {
-  margin-left: auto;
   background: transparent;
   border: none;
-  color: inherit;
-  cursor: pointer;
+  color: #f87171;
   font-size: 1rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
 }
 
-/* ── KPI Box Strip ── */
+/* ── Indicadores Superiores (5 Tarjetas KPI) ── */
 .sgc-ap-kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 1rem;
   margin-top: 1.5rem;
 }
@@ -181,6 +188,12 @@
   gap: 0.25rem;
   position: relative;
   overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.sgc-ap-kpi-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .sgc-ap-kpi-val {
@@ -191,11 +204,12 @@
 }
 
 .sgc-ap-kpi-lbl {
-  font-size: 0.76rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  line-height: 1.3;
 }
 
 .sgc-ap-kpi-box--green .sgc-ap-kpi-val {
@@ -212,11 +226,18 @@
   border-color: rgba(192, 132, 252, 0.25);
 }
 
-.sgc-ap-kpi-box--red .sgc-ap-kpi-val {
-  color: #f87171;
+.sgc-ap-kpi-box--blue .sgc-ap-kpi-val {
+  color: #38bdf8;
 }
-.sgc-ap-kpi-box--red {
-  border-color: rgba(248, 113, 113, 0.25);
+.sgc-ap-kpi-box--blue {
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+.sgc-ap-kpi-box--amber .sgc-ap-kpi-val {
+  color: #fbbf24;
+}
+.sgc-ap-kpi-box--amber {
+  border-color: rgba(251, 191, 36, 0.25);
 }
 
 /* ── Toolbar: Búsqueda y Filtros ── */
@@ -303,7 +324,7 @@
   color: #fbbf24;
 }
 
-/* ── Tabla de Administradores ── */
+/* ── Contenedor de la Tabla Acordeón Unificada ── */
 .sgc-ap-table-wrapper {
   margin-top: 1.25rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -312,44 +333,69 @@
   background: rgba(15, 23, 42, 0.5);
 }
 
-.sgc-ap-table {
+.sgc-ap-accordion-list {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  border-collapse: collapse;
-  text-align: left;
 }
 
-.sgc-ap-table th {
-  padding: 0.9rem 1.25rem;
+.sgc-ap-table-head {
+  display: flex;
+  align-items: center;
+  padding: 0.85rem 1.25rem;
   background: rgba(30, 41, 59, 0.7);
-  color: #94a3b8;
-  font-size: 0.76rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.sgc-ap-table td {
-  padding: 1rem 1.25rem;
+.sgc-ap-th {
+  color: #94a3b8;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sgc-ap-th--admin, .sgc-ap-td--admin { width: 32%; }
+.sgc-ap-th--email, .sgc-ap-td--email { width: 26%; }
+.sgc-ap-th--code, .sgc-ap-td--code { width: 12%; }
+.sgc-ap-th--summary, .sgc-ap-td--summary { width: 22%; }
+.sgc-ap-th--arrow, .sgc-ap-td--arrow { width: 8%; text-align: center; }
+
+.sgc-ap-accordion-item {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  vertical-align: middle;
+  transition: all 0.25s ease;
 }
 
-.sgc-ap-row {
-  transition: background 0.2s ease;
+.sgc-ap-accordion-item:last-child {
+  border-bottom: none;
 }
 
-.sgc-ap-row:hover {
-  background: rgba(255, 255, 255, 0.02);
+.sgc-ap-accordion-item--expanded {
+  background: rgba(15, 23, 42, 0.95);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
-.sgc-ap-row--pilar {
-  background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.02) 100%);
+.sgc-ap-accordion-item--pilar {
   border-left: 3px solid #f59e0b;
 }
 
-.sgc-ap-row--blocked {
-  opacity: 0.75;
+/* ── Fila Colapsada ── */
+.sgc-ap-row-collapsed {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease;
+}
+
+.sgc-ap-row-collapsed:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sgc-ap-td {
+  display: flex;
+  align-items: center;
 }
 
 /* Info del Admin */
@@ -381,6 +427,12 @@
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
 }
 
+.sgc-ap-avatar-mini--tecnico {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
 .sgc-ap-admin-text {
   display: flex;
   flex-direction: column;
@@ -390,6 +442,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .sgc-ap-admin-name {
@@ -398,6 +451,7 @@
   color: #f8fafc;
 }
 
+/* Badges de Rol */
 .sgc-ap-badge-master {
   font-size: 0.65rem;
   font-weight: 800;
@@ -413,20 +467,267 @@
   font-weight: 700;
   padding: 0.15rem 0.45rem;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #cbd5e1;
-  text-transform: uppercase;
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.sgc-ap-badge-tecnico {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .sgc-ap-admin-email {
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   color: #94a3b8;
 }
 
-.sgc-ap-admin-code {
+.sgc-ap-admin-code-badge {
   font-size: 0.72rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+}
+
+.sgc-ap-admin-code-none {
+  color: #475569;
+  font-size: 0.85rem;
+}
+
+/* Resumen visual de permisos en fila colapsada */
+.sgc-ap-summary-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.sgc-ap-mini-status {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.sgc-ap-mini-status--gold {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.sgc-ap-mini-status--editor {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.sgc-ap-mini-status--lector {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.sgc-ap-mini-status--blocked {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.sgc-ap-mini-status--blue {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.sgc-ap-mini-status--muted {
+  background: rgba(255, 255, 255, 0.04);
   color: #64748b;
-  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Botón flecha expandir */
+.sgc-ap-expand-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.sgc-ap-expand-circle:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+.sgc-ap-expand-circle--open {
+  transform: rotate(180deg);
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+/* ── Panel Expandido (Acordeón) ── */
+.sgc-ap-accordion-panel {
+  padding: 1.25rem 1.5rem 1.5rem;
+  background: rgba(10, 15, 29, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  animation: sgcPanelSlideDown 0.25s ease-out;
+}
+
+@keyframes sgcPanelSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sgc-ap-blocks-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 1.25rem;
+}
+
+.sgc-ap-block {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.sgc-ap-block--full {
+  grid-column: 1 / -1;
+}
+
+.sgc-ap-block--mapa {
+  border-top: 3px solid #f59e0b;
+}
+
+.sgc-ap-block--procesos {
+  border-top: 3px solid #38bdf8;
+}
+
+.sgc-ap-block-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sgc-ap-block-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.sgc-ap-block-title {
+  margin: 0 0 0.2rem;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  letter-spacing: 0.02em;
+}
+
+.sgc-ap-block-desc {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.sgc-ap-block-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sgc-ap-block-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.sgc-ap-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.sgc-ap-control-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Tarjetas Informativas para Master y Técnico ── */
+.sgc-ap-role-info-card {
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sgc-ap-role-info-card--gold {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.sgc-ap-role-info-card--blue {
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.sgc-ap-role-info-card--tecnico {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.sgc-ap-role-info-badge {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #fbbf24;
+}
+
+.sgc-ap-role-info-badge--blue {
+  color: #38bdf8;
+}
+
+.sgc-ap-role-info-subtitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.sgc-ap-role-info-desc {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  line-height: 1.45;
 }
 
 /* ── Switches iOS Style ── */
@@ -504,27 +805,6 @@
   color: #f87171;
 }
 
-/* Locked status para Pilar */
-.sgc-ap-locked-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.sgc-ap-lock-icon {
-  font-size: 0.9rem;
-}
-
-.sgc-ap-status-tag--master {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: #fbbf24;
-  background: rgba(245, 158, 11, 0.12);
-  padding: 0.25rem 0.65rem;
-  border-radius: 8px;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
 /* ── Selector de Rol SGC (Pills) ── */
 .sgc-ap-role-selector {
   display: inline-flex;
@@ -532,6 +812,7 @@
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
+  width: fit-content;
 }
 
 .sgc-ap-role-btn {
@@ -571,65 +852,212 @@
   cursor: not-allowed;
 }
 
-.sgc-ap-role-pilar-box {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
+/* ── Bloque B: Chips de Selección de Proceso ── */
+.sgc-ap-proc-pills-row {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.sgc-ap-proc-chip {
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  font-size: 0.78rem;
   font-weight: 700;
-  color: #fcd34d;
-}
-
-.sgc-ap-role-dot--gold {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #f59e0b;
-  box-shadow: 0 0 8px #f59e0b;
-}
-
-/* ── Badges de Estado Visual ── */
-.sgc-ap-pill-status {
+  cursor: pointer;
+  transition: all 0.18s ease;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.3rem 0.75rem;
-  border-radius: 9999px;
+}
+
+.sgc-ap-proc-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.sgc-ap-proc-chip--selected {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #e0f2fe;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+
+.sgc-ap-proc-chip--admin {
+  border-color: rgba(139, 92, 246, 0.45);
+}
+
+.sgc-ap-proc-chip--lector {
+  border-color: rgba(59, 130, 246, 0.45);
+}
+
+.sgc-ap-proc-chip--live {
+  border-bottom: 2px solid #10b981;
+}
+
+.sgc-ap-chip-indicator {
+  font-size: 0.72rem;
+}
+
+/* Detalle del proceso seleccionado */
+.sgc-ap-proc-detail-box {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.sgc-ap-proc-detail-box--live {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(6, 78, 59, 0.15);
+}
+
+.sgc-ap-proc-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.sgc-ap-proc-detail-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.sgc-ap-proc-tag {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  font-weight: 800;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sgc-ap-proc-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f8fafc;
+  display: block;
+}
+
+.sgc-ap-live-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #34d399;
+  display: inline-block;
+}
+
+.sgc-ap-pending-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
+  display: inline-block;
+}
+
+.sgc-ap-proc-current-status {
   font-size: 0.74rem;
   font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
 }
 
-.sgc-ap-pill-status--gold {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: #fbbf24;
+.sgc-ap-proc-current-status--admin {
+  background: rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
 }
 
-.sgc-ap-pill-status--editor {
-  background: rgba(168, 85, 247, 0.15);
-  border: 1px solid rgba(168, 85, 247, 0.35);
-  color: #c084fc;
+.sgc-ap-proc-current-status--lector {
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
 }
 
-.sgc-ap-pill-status--lector {
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.35);
-  color: #60a5fa;
+.sgc-ap-proc-current-status--ninguno {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
 }
 
-.sgc-ap-pill-status--denied {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: #f87171;
+.sgc-ap-nivel-selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 
-.sgc-ap-saving-badge {
-  display: inline-flex;
+.sgc-ap-nivel-prompt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sgc-ap-nivel-buttons {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.sgc-ap-nivel-opt-btn {
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.sgc-ap-nivel-opt-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.sgc-ap-nivel-opt-btn--active.sgc-ap-nivel-opt-btn--admin {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: #8b5cf6;
+  color: #c4b5fd;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+}
+
+.sgc-ap-nivel-opt-btn--active.sgc-ap-nivel-opt-btn--lector {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #3b82f6;
+  color: #93c5fd;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+.sgc-ap-nivel-opt-btn--active.sgc-ap-nivel-opt-btn--ninguno {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fca5a5;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.sgc-ap-saving-indicator {
+  display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   color: #f59e0b;
   font-weight: 600;
+  margin-top: 0.25rem;
 }
 
 .sgc-ap-spinner-mini {
@@ -666,34 +1094,112 @@
   animation: sgcSpin 0.8s linear infinite;
 }
 
-/* ── Footer ── */
-.sgc-ap-footer {
-  margin-top: 1.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+/* ── Cuadro Informativo Único de los 5 Niveles ── */
+.sgc-ap-unified-info-card {
+  margin-top: 2rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-.sgc-ap-footer-tip {
+.sgc-ap-unified-info-header {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 0.85rem;
+}
+
+.sgc-ap-unified-info-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.sgc-ap-unified-info-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.sgc-ap-unified-info-desc {
+  margin: 0;
   font-size: 0.82rem;
   color: #94a3b8;
   line-height: 1.5;
 }
 
-.sgc-ap-tip-icon {
-  font-size: 1.1rem;
+.sgc-ap-unified-info-desc strong {
+  color: #fcd34d;
 }
 
-.sgc-ap-footer-tip strong {
-  color: #f8fafc;
+.sgc-ap-unified-levels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
 }
 
-.sgc-ap-footer-tip em {
-  color: #fbbf24;
-  font-style: normal;
-  font-weight: 700;
+.sgc-ap-level-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sgc-ap-level-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 7px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  width: fit-content;
+}
+
+.sgc-ap-level-badge--lector-sgc {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.sgc-ap-level-badge--editor-sgc {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  color: #c084fc;
+}
+
+.sgc-ap-level-badge--admin-sec {
+  background: rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+}
+
+.sgc-ap-level-badge--lector-sec {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+
+.sgc-ap-level-badge--sin-acceso {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+.sgc-ap-level-text {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.sgc-ap-level-text strong {
+  color: #f1f5f9;
 }
 
 /* ── Responsive Mobile / Tablet ── */
@@ -711,6 +1217,9 @@
   .sgc-ap-search-wrap {
     max-width: 100%;
   }
+  .sgc-ap-blocks-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -720,10 +1229,22 @@
   .sgc-ap-kpis {
     grid-template-columns: 1fr;
   }
-  .sgc-ap-table-wrapper {
-    overflow-x: auto;
+  .sgc-ap-table-head {
+    display: none;
   }
-  .sgc-ap-table {
-    min-width: 650px;
+  .sgc-ap-row-collapsed {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .sgc-ap-th--admin, .sgc-ap-td--admin,
+  .sgc-ap-th--email, .sgc-ap-td--email,
+  .sgc-ap-th--code, .sgc-ap-td--code,
+  .sgc-ap-th--summary, .sgc-ap-td--summary,
+  .sgc-ap-th--arrow, .sgc-ap-td--arrow {
+    width: 100% !important;
+  }
+  .sgc-ap-unified-levels-grid {
+    grid-template-columns: 1fr;
   }
 }

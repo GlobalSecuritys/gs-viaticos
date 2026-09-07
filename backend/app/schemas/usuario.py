@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator, model_validator
 
 
 class UsuarioBase(BaseModel):
@@ -24,11 +24,9 @@ class UsuarioCreate(UsuarioBase):
         return v
 
 class UsuarioCreateAdmin(UsuarioCreate):
-    """Creación de usuarios desde el panel de Super Admin.
-
-    Reutiliza nombre/correo/codigo_empleado/password de UsuarioCreate (mismo
-    validador de codigo_empleado, heredado). Solo agrega 'rol', restringido a
-    'tecnico' o 'admin' — NO permite crear 'superadmin' mediante este schema.
+    """Creación de usuarios desde el panel de Administración.
+    Solo permite crear 'tecnico' o 'administrador' (guardado internamente como 'superadmin').
+    El rol intermedio 'admin' ha sido eliminado del sistema.
     """
 
     rol: str
@@ -37,9 +35,11 @@ class UsuarioCreateAdmin(UsuarioCreate):
     @classmethod
     def validar_rol_creacion(cls, v: str) -> str:
         v = v.strip().lower()
-        if v not in ("tecnico", "admin"):
-            raise ValueError("El rol debe ser 'tecnico' o 'admin'")
-        return v
+        if v in ("administrador", "admin", "superadmin"):
+            return "superadmin"
+        if v == "tecnico":
+            return "tecnico"
+        raise ValueError("El rol debe ser 'tecnico' o 'administrador'")
 
 
 class UsuarioLogin(BaseModel):
@@ -55,9 +55,32 @@ class UsuarioResponse(UsuarioBase):
     es_admin_calidad: bool = False
     acceso_mapa: bool = False
     rol_mapa: str = "lector"
+    accesos_procesos: dict[str, str] = {}
+    permiso_operaciones: str = "ninguno"
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _extract_accesos_virtuales(cls, values):
+        """
+        Los campos accesos_procesos y permiso_operaciones no son columnas de la tabla 'usuarios'.
+        get_current_user los setea como atributos instancia virtuales (_accesos_procesos,
+        _permiso_operaciones) en el objeto Usuario de SQLAlchemy antes de que Pydantic serialice.
+        Este validador los transfiere a los campos públicos del schema.
+        """
+        # Cuando viene desde ORM (object con __dict__), extraer atributos privados
+        if hasattr(values, "__dict__"):
+            obj_dict = vars(values)
+            priv_accesos = obj_dict.get("_accesos_procesos")
+            priv_permiso = obj_dict.get("_permiso_operaciones")
+            if priv_accesos is not None:
+                # Convertir a dict mutable para que Pydantic pueda asignarlo
+                values.__dict__["accesos_procesos"] = dict(priv_accesos)
+            if priv_permiso is not None:
+                values.__dict__["permiso_operaciones"] = str(priv_permiso)
+        return values
 
 
 class Token(BaseModel):
@@ -81,9 +104,11 @@ class UsuarioRolUpdate(BaseModel):
     @classmethod
     def validar_rol(cls, v: str) -> str:
         v = v.strip().lower()
-        if v not in ("superadmin", "admin", "tecnico"):
-            raise ValueError("El rol debe ser 'superadmin', 'admin' o 'tecnico'")
-        return v
+        if v in ("administrador", "admin", "superadmin"):
+            return "superadmin"
+        if v == "tecnico":
+            return "tecnico"
+        raise ValueError("El rol debe ser 'administrador' o 'tecnico'")
 
 
 class UsuarioEstadoUpdate(BaseModel):

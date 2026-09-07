@@ -18,8 +18,8 @@ export default function AdminUsuarios() {
     const [mensajeExito, setMensajeExito] = useState('');
     const [eliminandoId, setEliminandoId] = useState(null);
 
-    // true solo si quien está logueado es el master admin
-    const isMasterAdmin = (user?.correo || '').trim().toLowerCase() === 'admin@gsbank.com';
+    // true solo si quien está logueado es PilarAdmin (Master)
+    const isPilar = (user?.correo || '').trim().toLowerCase() === 'pilaradmin@gsbank.com';
 
     async function cargarUsuarios() {
         try {
@@ -179,8 +179,6 @@ export default function AdminUsuarios() {
                                         <th>Rol</th>
                                         <th>Cambiar rol</th>
                                         <th>Estado</th>
-                                        {/* Columna visible solo para master admin */}
-                                        {isMasterAdmin && <th>Acceso viáticos</th>}
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -198,19 +196,26 @@ export default function AdminUsuarios() {
 
                                             <td>
                                                 <span
-                                                    className={`rol-badge ${u.rol === 'superadmin'
-                                                        ? 'rol-badge--superadmin'
-                                                        : `rol-badge--${u.rol}`
-                                                        }`}
+                                                    className={`rol-badge ${
+                                                        (u.correo || '').trim().toLowerCase() === 'pilaradmin@gsbank.com'
+                                                            ? 'rol-badge--master'
+                                                            : u.rol === 'superadmin'
+                                                            ? 'rol-badge--superadmin'
+                                                            : `rol-badge--${u.rol}`
+                                                    }`}
                                                 >
-                                                    {u.rol.toUpperCase()}
+                                                    {(u.correo || '').trim().toLowerCase() === 'pilaradmin@gsbank.com'
+                                                        ? '👑 MASTER'
+                                                        : u.rol === 'superadmin'
+                                                        ? 'ADMINISTRADOR'
+                                                        : u.rol.toUpperCase()}
                                                 </span>
                                             </td>
 
                                             <td>
                                                 <select
                                                     className="admin-select"
-                                                    value={u.rol}
+                                                    value={u.rol === 'superadmin' ? 'superadmin' : u.rol}
                                                     disabled={user && user.id === u.id}
                                                     onChange={(e) =>
                                                         cambiarRol(u.id, e.target.value)
@@ -218,8 +223,7 @@ export default function AdminUsuarios() {
                                                     title={user && user.id === u.id ? 'No puedes modificar tu propio rol' : `Cambiar rol de ${u.nombre}`}
                                                 >
                                                     <option value="tecnico">Técnico</option>
-                                                    <option value="admin">Admin</option>
-                                                    <option value="superadmin">SuperAdmin</option>
+                                                    <option value="superadmin">Administrador</option>
                                                 </select>
                                             </td>
 
@@ -240,22 +244,6 @@ export default function AdminUsuarios() {
                                                     </button>
                                                 )}
                                             </td>
-
-                                            {/* ── CAMBIO 3: switch acceso_viaticos, solo visible para master admin ── */}
-                                            {isMasterAdmin && (
-                                                <td style={{ textAlign: 'center' }}>
-                                                    <label className="au-switch" title={`Acceso a viáticos: ${u.acceso_viaticos ? 'activado' : 'desactivado'}`}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={!!u.acceso_viaticos}
-                                                            onChange={(e) =>
-                                                                cambiarAccesoViaticos(u.id, e.target.checked)
-                                                            }
-                                                        />
-                                                        <span className="au-switch-track" />
-                                                    </label>
-                                                </td>
-                                            )}
 
                                             <td>
                                                 {user && user.id === u.id ? (
