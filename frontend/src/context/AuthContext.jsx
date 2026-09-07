@@ -30,8 +30,8 @@ export function AuthProvider({ children }) {
               codigo_empleado: data.codigo_empleado,
               acceso_viaticos: Boolean(data.acceso_viaticos),
               es_admin_calidad: Boolean(data.es_admin_calidad),
-              acceso_mapa: (data.correo || '').trim().toLowerCase() === 'pilaradmin@gsbank.com' ? true : Boolean(data.acceso_mapa),
-              rol_mapa: (data.correo || '').trim().toLowerCase() === 'pilaradmin@gsbank.com' ? 'editor' : (data.rol_mapa || 'lector'),
+              acceso_mapa: true,
+              rol_mapa: (data.correo || '').trim().toLowerCase() === 'pilaradmin@gsbank.com' ? 'editor' : 'lector',
             };
             localStorage.setItem('gs_user', JSON.stringify(updated));
             return updated;
@@ -67,8 +67,8 @@ export function AuthProvider({ children }) {
       codigo_empleado: payload.codigo_empleado,
       acceso_viaticos: Boolean(payload.acceso_viaticos),
       es_admin_calidad: isPilar ? true : Boolean(payload.es_admin_calidad),
-      acceso_mapa: isPilar ? true : Boolean(payload.acceso_mapa),
-      rol_mapa: isPilar ? 'editor' : (payload.rol_mapa || 'lector'),
+      acceso_mapa: true,
+      rol_mapa: isPilar ? 'editor' : 'lector',
     };
 
     // Si por alguna razón nombre no viene en el payload, obtenerlo de /auth/me

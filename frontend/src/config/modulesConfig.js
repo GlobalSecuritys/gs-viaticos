@@ -81,10 +81,7 @@ export const MODULES_CONFIG = [
       { label: 'Documentos', icon: '📁' },
     ],
     canAccess: (user) => {
-      if (!user) return false;
-      const correo = (user.correo || '').trim().toLowerCase();
-      if (correo === 'pilaradmin@gsbank.com') return true;
-      return user.acceso_mapa === true;
+      return Boolean(user);
     },
     sidebarNav: [
       { id: 'mapa', label: 'Mapa de Procesos SGC', icon: '🗺️', path: '/calidad-de-procesos' },

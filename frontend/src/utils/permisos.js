@@ -32,22 +32,20 @@ export function esPilarAdmin(user) {
 
 /**
  * Verifica si el usuario tiene autorización para ingresar y visualizar el Mapa de Procesos SGC.
- * PilarAdmin siempre puede; los demás administradores dependen de la autorización de Pilar (acceso_mapa = true).
+ * Todos los administradores (y Master) y personal técnico tienen acceso de forma automática y permanente.
  */
 export function puedeVerMapa(user) {
-    if (!user) return false;
-    if (esPilarAdmin(user)) return true;
-    return user.acceso_mapa === true;
+    return Boolean(user);
 }
 
 /**
  * Verifica si el usuario tiene permisos de edición sobre el mapa (actualizar fichas, responsables y documentos).
- * PilarAdmin siempre puede; los demás usuarios requieren haber sido asignados con el rol 'editor' por Pilar.
+ * PilarAdmin es la Administradora Master y editora titular del SGC.
  */
 export function puedeEditarMapa(user) {
     if (!user) return false;
     if (esPilarAdmin(user)) return true;
-    return user.acceso_mapa === true && (user.rol_mapa === 'editor' || user.es_admin_calidad === true);
+    return user.rol_mapa === 'editor' || user.es_admin_calidad === true;
 }
 
 /**

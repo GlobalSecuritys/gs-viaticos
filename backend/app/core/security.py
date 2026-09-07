@@ -154,31 +154,24 @@ def get_current_pilar_admin(
 def validar_acceso_mapa(
     current_user: Annotated[Usuario, Depends(get_current_user)]
 ) -> Usuario:
-    """Valida que el usuario tenga permiso para ver o ingresar al mapa SGC."""
-    correo = (current_user.correo or "").strip().lower()
-    if correo == "pilaradmin@gsbank.com":
-        return current_user
-    if getattr(current_user, "acceso_mapa", False) is True:
-        return current_user
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Acceso restringido: No tienes autorización para ingresar al Mapa de Procesos SGC. Contacta a PilarAdmin@gsbank.com para solicitar acceso."
-    )
+    """Valida que el usuario tenga permiso para ver o ingresar al mapa SGC.
+    Todos los administradores (y Master) y técnicos tienen acceso automático y permanente al Mapa SGC.
+    """
+    return current_user
 
 
 def get_current_admin_calidad(
     current_user: Annotated[Usuario, Depends(get_current_user)]
 ) -> Usuario:
-    """Valida que el usuario tenga privilegios de edición en Calidad de Procesos (PilarAdmin o rol_mapa == 'editor' con acceso_mapa)."""
+    """Valida que el usuario tenga privilegios de edición en Calidad de Procesos (PilarAdmin o rol_mapa == 'editor')."""
     correo = (current_user.correo or "").strip().lower()
     if correo == "pilaradmin@gsbank.com":
         return current_user
 
-    acceso = getattr(current_user, "acceso_mapa", False)
     rol_mapa = getattr(current_user, "rol_mapa", "lector")
     es_admin = getattr(current_user, "es_admin_calidad", False)
 
-    if acceso and (rol_mapa == "editor" or es_admin):
+    if rol_mapa == "editor" or es_admin:
         return current_user
 
     raise HTTPException(

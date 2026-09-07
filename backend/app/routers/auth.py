@@ -186,8 +186,8 @@ def login(
         "codigo_empleado": usuario.codigo_empleado,
         "acceso_viaticos": usuario.acceso_viaticos,
         "es_admin_calidad": True if es_pilar else getattr(usuario, "es_admin_calidad", False),
-        "acceso_mapa": True if es_pilar else getattr(usuario, "acceso_mapa", False),
-        "rol_mapa": "editor" if es_pilar else getattr(usuario, "rol_mapa", "lector"),
+        "acceso_mapa": True,
+        "rol_mapa": "editor" if es_pilar else "lector",
         "accesos_procesos": accesos_procesos,
         "permiso_operaciones": permiso_operaciones,
     })

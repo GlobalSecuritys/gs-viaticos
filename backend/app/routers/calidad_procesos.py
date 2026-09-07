@@ -284,8 +284,8 @@ def listar_permisos_admins(
                 codigo_empleado=a.codigo_empleado,
                 rol=a.rol,
                 activo=a.activo,
-                acceso_mapa=True if es_pilar else getattr(a, "acceso_mapa", False),
-                rol_mapa="editor" if es_pilar else (getattr(a, "rol_mapa", None) or "lector"),
+                acceso_mapa=True,
+                rol_mapa="editor" if es_pilar else "lector",
                 es_pilar=es_pilar,
             )
         )
@@ -476,7 +476,7 @@ def actualizar_acceso_proceso(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No se pueden modificar los accesos de la Administradora Master (PilarAdmin)."
         )
-    if target_user.rol != "superadmin":
+    if target_user.rol not in ("superadmin", "admin"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Solo se pueden asignar accesos a usuarios con rol de Administrador."
@@ -504,34 +504,33 @@ def actualizar_acceso_proceso(
 
     db.commit()
 
-    # Registro en log_auditoria
-    nombre_nivel = {"admin": "Administrador de Sección", "lector": "Lector de Sección", "ninguno": "Sin acceso"}.get(nivel, nivel)
-    nombre_proceso = next((p["nombre"] for p in PROCESOS_ACCESO_MAP if p["codigo"] == codigo), codigo)
-    try:
-        db.execute(
-            sql_text(
-                "INSERT INTO log_auditoria (usuario_id, accion, detalle, created_at) "
-                "VALUES (:uid, 'CAMBIO_ACCESO_PROCESO', :detalle, NOW())"
-            ),
-            {
-                "uid": current_pilar.id,
-                "detalle": (
-                    f"PilarAdmin asignó acceso '{nombre_nivel}' a '{target_user.nombre}' "
-                    f"({target_user.correo}) en proceso '{nombre_proceso}' ({codigo})."
-                    + (f" [Sincronizado: acceso_viaticos={'True' if target_user.acceso_viaticos else 'False'}]" if codigo == "OP" else "")
-                ),
-            }
-        )
-        db.commit()
-    except Exception:
-        pass  # No bloquear si log falla
-
     # Construir respuesta con todos los accesos del usuario
     stmt_all = select(ProcesoCalidadAccesoAdmin).where(
         ProcesoCalidadAccesoAdmin.usuario_id == payload.usuario_id
     )
     all_accesos = db.scalars(stmt_all).all()
     accesos_dict = {a.proceso_codigo: a.nivel_acceso for a in all_accesos}
+
+    # Registro en auditoría (usando el servicio oficial logs_auditoria)
+    nombre_nivel = {"admin": "Administrador de Sección", "lector": "Lector de Sección", "ninguno": "Sin acceso"}.get(nivel, nivel)
+    nombre_proceso = next((p["nombre"] for p in PROCESOS_ACCESO_MAP if p["codigo"] == codigo), codigo)
+    try:
+        from app.services.auditoria import registrar_auditoria
+        detalle = (
+            f"PilarAdmin asignó acceso '{nombre_nivel}' a '{target_user.nombre}' "
+            f"({target_user.correo}) en proceso '{nombre_proceso}' ({codigo})."
+            + (f" [Sincronizado: acceso_viaticos={'True' if target_user.acceso_viaticos else 'False'}]" if codigo == "OP" else "")
+        )
+        registrar_auditoria(
+            db,
+            actor=current_pilar,
+            usuario_objetivo=target_user,
+            accion="CAMBIO_ACCESO_PROCESO",
+            detalle=detalle,
+            resultado="exitoso",
+        )
+    except Exception:
+        db.rollback()  # No romper respuesta si auditoría falla
 
     return AdminProcesoAccesoItem(
         id=target_user.id,

@@ -42,8 +42,10 @@ def startup_db_check():
             conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS eliminado_en TIMESTAMP WITHOUT TIME ZONE;"))
             conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS cerrada_en TIMESTAMP WITHOUT TIME ZONE;"))
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_admin_calidad BOOLEAN DEFAULT FALSE;"))
-            conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS acceso_mapa BOOLEAN DEFAULT FALSE;"))
+            conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS acceso_mapa BOOLEAN DEFAULT TRUE;"))
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol_mapa VARCHAR(20) DEFAULT 'lector';"))
+            conn.execute(text("UPDATE usuarios SET acceso_mapa = TRUE;"))
+            conn.execute(text("UPDATE usuarios SET rol_mapa = 'lector' WHERE rol_mapa IS NULL OR rol_mapa = '';"))
             conn.execute(text("UPDATE usuarios SET es_admin_calidad = TRUE, acceso_mapa = TRUE, rol_mapa = 'editor' WHERE LOWER(TRIM(correo)) = 'pilaradmin@gsbank.com';"))
             conn.commit()
         CuentaCobro.__table__.create(bind=engine, checkfirst=True)
@@ -76,21 +78,20 @@ def _migrar_rol_admin_a_superadmin(db) -> None:
         usuarios_admin = db.scalars(stmt).all()
         for u in usuarios_admin:
             u.rol = 'superadmin'
-            # Registro en log_auditoria
+            # Registro en logs_auditoria
             try:
-                db.execute(
-                    text(
-                        "INSERT INTO log_auditoria (usuario_id, accion, detalle, created_at) "
-                        "VALUES (:uid, 'CAMBIO_ROL', :detalle, NOW())"
+                from app.services.auditoria import registrar_auditoria
+                registrar_auditoria(
+                    db,
+                    actor=u,
+                    usuario_objetivo=u,
+                    accion="CAMBIO_ROL",
+                    detalle=(
+                        f"Elevación de privilegios automática: Usuario '{u.nombre}' ({u.correo}) "
+                        f"migrado de rol intermedio 'admin' a 'Administrador' (superadmin) "
+                        f"durante startup del servidor."
                     ),
-                    {
-                        "uid": u.id,
-                        "detalle": (
-                            f"Elevación de privilegios automática: Usuario '{u.nombre}' ({u.correo}) "
-                            f"migrado de rol intermedio 'admin' a 'Administrador' (superadmin) "
-                            f"durante startup del servidor."
-                        ),
-                    }
+                    resultado="exitoso",
                 )
             except Exception:
                 pass  # No bloquear si la tabla de auditoria no existe aún
