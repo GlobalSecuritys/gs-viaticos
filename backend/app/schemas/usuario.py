@@ -56,7 +56,6 @@ class UsuarioResponse(UsuarioBase):
     acceso_mapa: bool = False
     rol_mapa: str = "lector"
     accesos_procesos: dict[str, str] = {}
-    permiso_operaciones: str = "ninguno"
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -65,21 +64,18 @@ class UsuarioResponse(UsuarioBase):
     @classmethod
     def _extract_accesos_virtuales(cls, values):
         """
-        Los campos accesos_procesos y permiso_operaciones no son columnas de la tabla 'usuarios'.
-        get_current_user los setea como atributos instancia virtuales (_accesos_procesos,
-        _permiso_operaciones) en el objeto Usuario de SQLAlchemy antes de que Pydantic serialice.
-        Este validador los transfiere a los campos públicos del schema.
+        El campo accesos_procesos no es una columna de la tabla 'usuarios'.
+        get_current_user lo setea como atributo instancia virtual (_accesos_procesos)
+        en el objeto Usuario de SQLAlchemy antes de que Pydantic serialice.
+        Este validador lo transfiere al campo público del schema.
         """
-        # Cuando viene desde ORM (object con __dict__), extraer atributos privados
+        # Cuando viene desde ORM (object con __dict__), extraer el atributo privado
         if hasattr(values, "__dict__"):
             obj_dict = vars(values)
             priv_accesos = obj_dict.get("_accesos_procesos")
-            priv_permiso = obj_dict.get("_permiso_operaciones")
             if priv_accesos is not None:
                 # Convertir a dict mutable para que Pydantic pueda asignarlo
                 values.__dict__["accesos_procesos"] = dict(priv_accesos)
-            if priv_permiso is not None:
-                values.__dict__["permiso_operaciones"] = str(priv_permiso)
         return values
 
 

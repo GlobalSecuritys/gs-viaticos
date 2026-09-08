@@ -8,7 +8,6 @@ from app.core.security import (
     get_current_admin_calidad,
     get_current_pilar_admin,
     get_current_user,
-    validar_acceso_mapa,
 )
 from app.database import get_db
 from app.models.calidad_procesos import (
@@ -135,7 +134,7 @@ def seed_procesos_calidad_si_vacio(db: Session) -> None:
 @router.get("", response_model=List[ProcesoCalidadListResponse])
 def listar_procesos(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[Usuario, Depends(validar_acceso_mapa)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
 ):
     """Devuelve todos los procesos de calidad ordenados por categoría y orden, con sus responsables y total de documentos."""
     seed_procesos_calidad_si_vacio(db)
@@ -188,7 +187,7 @@ def listar_procesos(
 def listar_procesos_por_categoria(
     categoria: str,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[Usuario, Depends(validar_acceso_mapa)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
 ):
     """Devuelve los procesos filtrados por categoría ('direccion', 'misional', 'apoyo')."""
     cat_limpia = categoria.strip().lower()
@@ -240,7 +239,7 @@ def listar_procesos_por_categoria(
 @router.get("/usuarios-disponibles", response_model=List[ResponsableUsuarioSimple])
 def listar_usuarios_disponibles(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[Usuario, Depends(validar_acceso_mapa)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
 ):
     """Devuelve la lista de usuarios activos para asignar como responsables en Calidad de Procesos."""
     stmt = select(Usuario).where(Usuario.activo == True).order_by(Usuario.nombre)
@@ -476,7 +475,7 @@ def actualizar_acceso_proceso(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No se pueden modificar los accesos de la Administradora Master (PilarAdmin)."
         )
-    if target_user.rol not in ("superadmin", "admin"):
+    if target_user.rol != "superadmin":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Solo se pueden asignar accesos a usuarios con rol de Administrador."
@@ -547,7 +546,7 @@ def actualizar_acceso_proceso(
 def obtener_detalle_proceso(
     id: int,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[Usuario, Depends(validar_acceso_mapa)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
 ):
     """Devuelve la información completa de un proceso puntual: metadatos, responsables y documentos cargados."""
     stmt = (

@@ -13,7 +13,7 @@
 
 export function puedeGestionarUsuario(viewerRol, _targetRol) {
     if (!viewerRol) return false;
-    return viewerRol === 'admin' || viewerRol === 'superadmin';
+    return viewerRol === 'superadmin';
 }
 
 export function esSoloLectura(viewerRol, targetRol) {
@@ -45,7 +45,7 @@ export function puedeVerMapa(user) {
 export function puedeEditarMapa(user) {
     if (!user) return false;
     if (esPilarAdmin(user)) return true;
-    return user.rol_mapa === 'editor' || user.es_admin_calidad === true;
+    return user.rol === 'superadmin';
 }
 
 /**
@@ -74,9 +74,6 @@ export function esAdministradorSeccion(user, codigoProceso) {
     if (!user) return false;
     if (esPilarAdmin(user)) return true;
     const codigo = String(codigoProceso || '').toUpperCase();
-    if (codigo === 'OP') {
-        return user.permiso_operaciones === 'admin' || (!user.permiso_operaciones && (user.rol === 'superadmin' || user.rol === 'admin'));
-    }
     return user.accesos_procesos?.[codigo] === 'admin';
 }
 
@@ -84,9 +81,6 @@ export function esLectorSeccion(user, codigoProceso) {
     if (!user) return false;
     if (esPilarAdmin(user)) return false;
     const codigo = String(codigoProceso || '').toUpperCase();
-    if (codigo === 'OP') {
-        return user.permiso_operaciones === 'lector';
-    }
     return user.accesos_procesos?.[codigo] === 'lector';
 }
 
@@ -94,9 +88,6 @@ export function tieneAccesoSeccion(user, codigoProceso) {
     if (!user) return false;
     if (esPilarAdmin(user)) return true;
     const codigo = String(codigoProceso || '').toUpperCase();
-    if (codigo === 'OP') {
-        return user.acceso_viaticos !== false && (user.permiso_operaciones === 'admin' || user.permiso_operaciones === 'lector' || !user.permiso_operaciones);
-    }
     const nivel = user.accesos_procesos?.[codigo];
     return nivel === 'admin' || nivel === 'lector';
 }

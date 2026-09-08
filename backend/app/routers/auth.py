@@ -176,7 +176,6 @@ def login(
         )
         rows = db.scalars(stmt_acc).all()
         accesos_procesos = {r.proceso_codigo: r.nivel_acceso for r in rows}
-    permiso_operaciones = accesos_procesos.get("OP", "ninguno")
 
     access_token = create_access_token(data={
         "sub": usuario.correo,
@@ -186,10 +185,8 @@ def login(
         "codigo_empleado": usuario.codigo_empleado,
         "acceso_viaticos": usuario.acceso_viaticos,
         "es_admin_calidad": True if es_pilar else getattr(usuario, "es_admin_calidad", False),
-        "acceso_mapa": True,
         "rol_mapa": "editor" if es_pilar else "lector",
         "accesos_procesos": accesos_procesos,
-        "permiso_operaciones": permiso_operaciones,
     })
     return Token(access_token=access_token, token_type="bearer")
 

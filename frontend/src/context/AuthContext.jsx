@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
               codigo_empleado: data.codigo_empleado,
               acceso_viaticos: Boolean(data.acceso_viaticos),
               es_admin_calidad: Boolean(data.es_admin_calidad),
-              acceso_mapa: true,
+              accesos_procesos: data.accesos_procesos || {},
               rol_mapa: (data.correo || '').trim().toLowerCase() === 'pilaradmin@gsbank.com' ? 'editor' : 'lector',
             };
             localStorage.setItem('gs_user', JSON.stringify(updated));
@@ -67,7 +67,7 @@ export function AuthProvider({ children }) {
       codigo_empleado: payload.codigo_empleado,
       acceso_viaticos: Boolean(payload.acceso_viaticos),
       es_admin_calidad: isPilar ? true : Boolean(payload.es_admin_calidad),
-      acceso_mapa: true,
+      accesos_procesos: payload.accesos_procesos || {},
       rol_mapa: isPilar ? 'editor' : 'lector',
     };
 

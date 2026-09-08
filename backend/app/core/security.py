@@ -84,17 +84,15 @@ def get_current_user(
         # Setear como atributos Python directos en la instancia ORM
         # (Pydantic con from_attributes=True los lee via getattr)
         usuario.__dict__["_accesos_procesos"] = accesos
-        usuario.__dict__["_permiso_operaciones"] = accesos.get("OP", "ninguno")
     except Exception:
         usuario.__dict__["_accesos_procesos"] = {}
-        usuario.__dict__["_permiso_operaciones"] = "ninguno"
 
     return usuario
 
 def get_current_admin(
     current_user: Annotated[Usuario, Depends(get_current_user)]
 ) -> Usuario:
-    if current_user.rol not in ["admin", "superadmin"]:
+    if current_user.rol != "superadmin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Se requiere rol de administrador para esta acción"
@@ -151,30 +149,17 @@ def get_current_pilar_admin(
     return current_user
 
 
-def validar_acceso_mapa(
-    current_user: Annotated[Usuario, Depends(get_current_user)]
-) -> Usuario:
-    """Valida que el usuario tenga permiso para ver o ingresar al mapa SGC.
-    Todos los administradores (y Master) y técnicos tienen acceso automático y permanente al Mapa SGC.
-    """
-    return current_user
-
-
 def get_current_admin_calidad(
     current_user: Annotated[Usuario, Depends(get_current_user)]
 ) -> Usuario:
-    """Valida que el usuario tenga privilegios de edición en Calidad de Procesos (PilarAdmin o rol_mapa == 'editor')."""
+    """Valida privilegios de edición en Calidad de Procesos (Administrador/Master, acceso permanente)."""
     correo = (current_user.correo or "").strip().lower()
     if correo == "pilaradmin@gsbank.com":
         return current_user
-
-    rol_mapa = getattr(current_user, "rol_mapa", "lector")
-    es_admin = getattr(current_user, "es_admin_calidad", False)
-
-    if rol_mapa == "editor" or es_admin:
+    if current_user.rol == "superadmin":
         return current_user
 
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail="Acceso restringido: Solo PilarAdmin@gsbank.com o administradores asignados como Editores SGC pueden modificar el mapa y la documentación."
+        detail="Acceso restringido: Solo Administradores/Master con acceso al Mapa de Procesos SGC pueden modificar el mapa y la documentación."
     )

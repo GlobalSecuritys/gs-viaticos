@@ -12,7 +12,6 @@ import './SeleccionModulo.css';
 
 const LABEL_ROL = {
   superadmin: 'Administrador',
-  admin: 'Administrador',
   tecnico: 'Técnico',
 };
 
