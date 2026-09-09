@@ -2,7 +2,7 @@
 
 > Documento de contexto generado **exclusivamente a partir de la lectura del código** del repositorio (frontend React + Vite y backend FastAPI). No refleja planes, historial de conversación ni supuestos; cualquier afirmación aquí es verificable en el código (referencias `archivo:línea`).
 >
-> Fecha de revisión: basada en el estado del working tree (rama `main`). Cambios posteriores pueden desactualizar este documento.
+> Fecha de revisión: `commit 47e641ec` — rama `main`, working tree limpio. Cambios posteriores (commits, migraciones) pueden desactualizar este documento.
 
 ---
 
@@ -10,338 +10,289 @@
 
 ### 1.1 Modelo de base de datos
 
-El modelo `Usuario` (`backend/app/models/usuario.py`) guarda el rol como **string** en la columna `rol VARCHAR(20)` con `server_default="tecnico"` (`usuario.py:19`). **No existe un enum** en BD; el rol es texto libre validado en las capas de schema/backend.
+El modelo `Usuario` (`backend/app/models/usuario.py`) guarda el rol como **string** en la columna `rol VARCHAR(20)` con `server_default="tecnico"` (`usuario.py:19`). **No existe un enum en BD**; el rol es texto libre validado en las capas de schema/backend.
 
 Columnas relevantes de `usuarios`:
+
 | Columna | Tipo / default | Línea | Nota |
 |---|---|---|---|
+| `codigo_empleado` | `String(15)`, unique | `usuario.py:17` | Código de empleado; usado en login y recuperación |
 | `rol` | `String(20)`, default `tecnico` | `usuario.py:19` | Valor de rol |
 | `activo` | `Boolean`, default `true` | `usuario.py:20` | Estado de cuenta |
 | `acceso_viaticos` | `Boolean`, default `false` | `usuario.py:21` | Acceso al módulo Viáticos |
-| `es_admin_calidad` | `Boolean`, default `false` | `usuario.py:22` | Residuo del sistema antiguo de edición SGC |
-| `acceso_mapa` | `Boolean`, default `false` | `usuario.py:23` | **Flag obsoleto/legacy** (ver 2.8) |
-| `rol_mapa` | `String(20)`, default `lector` | `usuario.py:24` | Residuo del sistema antiguo; seteados pero sin efecto real |
+| `es_admin_calidad` | `Boolean`, default `false` | `usuario.py:22` | Residuo del sistema antiguo de edición SGC (ver §6) |
+| `acceso_mapa` | `Boolean`, default `false` | `usuario.py:23` | **Flag legacy**: se lee pero ya no se gestiona |
+| `rol_mapa` | `String(20)`, default `lector` | `usuario.py:24` | Residuo del sistema antiguo; se setea pero sin efecto real |
+| `created_at` | `DateTime` | `usuario.py:25-29` | Fecha de creación |
+
+> El rol `'admin'` fue **eliminado** y migrado a `superadmin`. La migración es idempotente y corre en cada startup: `main.py:81-116` (`_migrar_rol_admin_a_superadmin`) y `backend/alembic/versiones/0012_add_acceso_viaticos_y_migrar_admins.py`.
 
 ### 1.2 Roles que existen realmente
 
-El rol `'admin'` fue **eliminado** y migrado a `superadmin` (ver `backend/app/main.py:71-106` `_migrar_rol_admin_a_superadmin` y `backend/alembic/versiones/0012_add_acceso_viaticos_y_migrar_admins.py`). Los roles válidos actuales:
-
 | Rol en BD | UI muestra | Creado/validado en | Qué puede hacer (verificado) |
 |---|---|---|---|
-| **`tecnico`** | "Técnico" | Creación: `admin.py:105`; `auth.py registro` usa `rol="tecnico"`. Validación en schemas (`usuario.py:40-41`) | Solo lectura de su dashboard de viáticos, crear sus propios viáticos y evidencias (`viaticos.py` exige `get_current_user`), consultar sus asignaciones activas (`asignaciones.py` router_tecnico), acceder al Hub y al Mapa SGC. **No** puede: entrar a rutas admin (`AdminRoute.jsx:9`), ver KPIs de administración, gestionar usuarios. |
-| **`superadmin`** | "Administrador" (y "👑 Master" si es PilarAdmin) | Es el único rol que `get_current_admin` acepta (`security.py:95`). Validación en `usuario.py:38-39,103-104` | Acceso a paneles admin/dashboard de viáticos y demás módulos aptos, gestión de usuarios, ver auditoría, respaldos, calidad de procesos. Es el objetivo de los "Accesos por Proceso" (ver 2.3). |
-| **`admin`** | (no debería existir) | **Ya no se crea ni valida.** Solo referencias residuales (ver §6). | Eliminado del sistema. `main.py:71-106` y `schemas/usuario.py:38,103` lo convierten en `superadmin` al detectarlo. |
+| **`tecnico`** | "Técnico" | Creación: `admin.py:77` (panel) y `auth.py` `/auth/registro` (autoregistro, `rol="tecnico"`). Validación: `schemas/usuario.py:40-41` | Ver su dashboard de viáticos, crear sus propios viáticos y evidencias (`viaticos.py` usa `get_current_user`), consultar sus asignaciones activas (`asignaciones.py` → `router_tecnico`), registrar movimientos de inventario (`inventario.py`), ver su perfil en Talento Humano (`talento_humano.py` `/me`), acceder al Hub y al Mapa SGC en modo lector. **No** puede: entrar a rutas admin (`AdminRoute.jsx`), ver KPIs de administración, gestionar usuarios. |
+| **`superadmin`** | "Administrador" | Es el único rol que `get_current_admin` acepta (`security.py:95`). Validación: `schemas/usuario.py:38-39,103-104` | Paneles admin/dashboard de viáticos y demás módulos aptos, gestión de usuarios, ver auditoría, respaldos, calidad de procesos, supervisión de inventario, talento humano. Es el objetivo de los "Accesos por Proceso" (ver §5). |
+| **`admin`** | (no debería existir) | **Ya no se crea ni valida** salvo referencias residuales (ver §6). | Eliminado del sistema. `main.py:81-116` y `schemas/usuario.py:28,38,103` lo convierten en `superadmin` al detectarlo. |
 
-> **Master**: no es un rol de BD. "Master" es el usuario `pilaradmin@gsbank.com`, detectado por correo (`security.py:117,144`, `esPilarAdmin` en `permisos.js:27-31`, `isAdminMaster` en `modulesConfig.js:265-267`). Tiene privilegios exclusivos sobre Accesos por Proceso y sobre el acceso a Viáticos.
+> **Master / PilarAdmin**: no es un rol de BD. Es el usuario `pilaradmin@gsbank.com`, detectado por correo. Dependencias exclusivas: `get_current_master_admin` (`security.py:112-122`) y `get_current_pilar_admin` (`security.py:139-149`). En UI: `esPilarAdmin` (`frontend/src/utils/permisos.js:27-31`) e `isAdminMaster` (`modulesConfig.js`). Tiene privilegios exclusivos sobre "Accesos por Proceso" y sobre `acceso_viaticos`.
 
 ### 1.3 Inconsistencias de roles encontradas
 
-- **`LABEL_CARGO`** (`frontend/src/utils/personal.js:20-24`) aún lista `admin: 'Administrador'` y `superadmin: 'Super Administrador'`. El rol `admin` ya no existe, y "Super Administrador" contradice la convención UI de mostrar "Administrador" para `superadmin` (p.ej. `AdminUsuarios.jsx:211`).
-- **`AdminRoute.jsx:9`**, **`GlobalHeader.jsx:190`**, **`modulesConfig.js:58,110,213,324,405,450`**: comprobaciones `user?.rol === 'admin' || ...` → referencia residual al rol `admin` eliminado.
-- **`admin.py:72`** (`bootstrap_admin`): asigna `usuario.rol = "admin"` → escribe un valor de rol ya no válido (quedará `'admin'` hasta que el startup lo migre de nuevo).
+- **`LABEL_CARGO`** (`frontend/src/utils/personal.js:17-24`) aún lista `admin: 'Administrador'` y `superadmin: 'Super Administrador'`. El rol `admin` ya no existe, y "Super Administrador" contradice la convención UI de mostrar "Administrador" para `superadmin`.
+- **`GlobalHeader.jsx:190`**, **`AdminRoute.jsx`**, **`modulesConfig.js`** (varias líneas) y **`PanelRolesAdminsMapa.jsx:61-69`** aún comprueban `rol === 'admin'` como caso residual (cae en la misma rama que `superadmin`). No rompe, pero mantiene el rol fantasma vivo en la UI.
+- `UsuarioCreateAdmin` (`schemas/usuario.py:26-30`) documenta que el rol intermedio `admin` fue eliminado; la UI de `AdminUsuarios.jsx` ofrece "Administrador" (→ `superadmin`) y "Técnico".
 
 ---
 
-## 2. SISTEMAS DE PERMISOS
+## 2. AUTENTICACIÓN Y TOKENS
 
-Existen **varios mecanismos de control de acceso** superpuestos. Se enumeran todos.
+### 2.1 Endpoints de autenticación (`backend/app/routers/auth.py`, prefix `/auth`)
 
-### 2.1 Acceso genérico autenticado (PrivateRoute / get_current_user)
-- **Qué controla:** que exista usuario autenticado.
-- **Frontend:** `PrivateRoute.jsx` (redirige a `/login` si no hay `user`).
-- **Backend:** `get_current_user` (`security.py:41-90`) — decodifica el JWT y carga el `Usuario` activo.
-- **Estado:** **Activo** (mecanismo base de todo el sistema).
+| Endpoint | Línea | Descripción |
+|---|---|---|
+| `POST /auth/registro` | `auth.py:87` | Autoregistro público de técnico (`rol="tecnico"`); correo y código de empleado únicos. |
+| `POST /auth/login` | `auth.py` | Login OAuth2 password (acepta correo o código de empleado). |
+| `GET /auth/me` | `auth.py` | Datos del usuario autenticado (incluye `accesos_procesos`). |
+| `POST /auth/solicitar-reset` | `auth.py` | Solicita código OTP de 6 dígitos (acepta correo o código de empleado). |
+| `POST /auth/verificar-codigo` | `auth.py` | Verifica que el código es válido. |
+| `POST /auth/cambiar-password` | `auth.py:331` | Cambia la contraseña (mín. 8 caracteres) con el código ya verificado. |
 
-### 2.2 Acceso al Mapa de Procesos SGC
-- **Qué controla:** ver el Mapa SGC y sus fichas de detalle (información general de los procesos).
-- **Regla real (verificada):** `puedeVerMapa` (`permisos.js:37-39`) retorna `Boolean(user)` → **todo usuario autenticado** puede ver el mapa. En backend, `listar_procesos`, `listar_procesos_por_categoria`, `listar_usuarios_disponibles` y `obtener_detalle_proceso` usan `Depends(get_current_user)` (`calidad_procesos.py:137,190,242,549`). La antigua dependencia `validar_acceso_mapa` fue **eliminada** (ya no existe en `security.py`).
-- **Quién puede modificar el mapa (editar procesos, responsables, documentos):** `get_current_admin_calidad` (`security.py:152-164`) → solo PilarAdmin (por correo) o `superadmin`. En frontend, `puedeEditarMapa`/`esAdminCalidad` (`permisos.js:45-56`) = `esPilarAdmin || user.rol === 'superadmin'`.
-- **Dónde se define:** `security.py`, `permisos.js`, `admin.py`.
-- **Estado:** **Activo** (lectura automática; edición requiere superadmin/Pilar).
-### 2.3 Accesos por Proceso (módulos operativos dentro de cada ficha SGC)
-- **Qué controla:** el acceso a los **módulos operativos / tarjetas internas** asociados a cada proceso (ej. Viáticos en Operaciones, Talento Humano/Backup). Niveles: `admin` (Administrador de Sección), `lector` (Lector de Sección), `ninguno` (sin acceso).
-- **Quién puede modificarlo:** **exclusivamente PilarAdmin** (`get_current_pilar_admin`, `security.py:139-149`), vía el panel `PanelRolesAdminsMapa.jsx` (solo se renderiza para `esPilarAdmin`, `:97-99`).
-- **Dónde se define (backend):** tabla `procesos_calidad_accesos_admin` (modelo `calidad_procesos.py:112-147`), endpoints `GET/PUT /calidad-procesos/accesos-proceso` (`calidad_procesos.py:368,438`). El listado de procesos está en `PROCESOS_ACCESO_MAP` (`calidad_procesos.py:351-363`). Niveles válidos: `{admin, lector, ninguno}` (`:365`).
-- **Dónde se usa (frontend):** `esAdministradorSeccion`, `esLectorSeccion`, `tieneAccesoSeccion` (`permisos.js:73-93`) leen **exclusivamente** `user.accesos_procesos[codigo]`.
-- **Sincronización OP→Viáticos:** al cambiar el acceso a `OP`, el backend sincroniza `target_user.acceso_viaticos = (nivel in ('admin','lector'))` (`calidad_procesos.py:500-502`). La UI de viáticos gatea con `acceso_viaticos` (`AdminRoute.jsx:15`, `modulesConfig.js:58,324`), pero este flag **NO se valida en los endpoints backend de viáticos** (ver §6.4).
-- **Estado:** **Activo** (es el mecanismo operativo principal para módulos).
-- **Nota de arquitectura (documentada en código):** el "Lector SGC" del mapa sí puede abrir fichas de detalle documental; el "Lector de Sección" de un módulo operativo NO puede abrir las tarjetas internas de detalle.
+### 2.2 Flujo de recuperación de contraseña (OTP)
 
-### 2.4 Acceso administrativo global (get_current_admin / AdminRoute)
-- **Qué controla:** rutas `/admin/*`, `/superadmin`, `/admin/usuarios`, `/admin/auditoria`, `/admin/backup`, asignaciones admin.
-- **Backend:** `get_current_admin` (`security.py:92-100`) exige `rol == 'superadmin'`.
-- **Frontend:** `AdminRoute.jsx` exige `user.rol` en {`admin`, `superadmin`} (pero `admin` está eliminado → efectivamente `superadmin`).
-- **Estado:** **Activo**.
+- Códigos numéricos de 6 dígitos guardados **en memoria** (`_reset_store`, `auth.py:43`). TTL: `OTP_TTL_SECONDS = 600` (10 min) `auth.py:46`; `OTP_VERIFICADO_TTL_SECONDS = 300` (5 min extra) `auth.py:47`.
+- `correo_o_usuario` acepta correo o código de empleado (`auth.py:68-69`).
+- La contraseña se cambia **solo** para la cuenta que solicitó el reset (`auth.py:331-406`), nunca para otra.
+- **Destino fijo del correo**: `RESET_EMAIL_DESTINO = "tecnicoplantagsb@gsbsecurity.com"` (`config.py:23`). SMTP Gmail en `config.py:18-21`.
 
-### 2.5 Exclusivo Superadmin (get_current_superadmin)
-- **Qué controla:** auditoría (`GET /admin/auditoria`) y `AdminRoute requireSuperadmin`.
-- **Backend:** `get_current_superadmin` (`security.py:102-110`).
-- **Frontend:** `AdminRoute.jsx:12-14`.
-- **Estado:** **Activo**.
+### 2.3 Token JWT
 
-### 2.6 Exclusivo Master/Pilar (get_current_master_admin, get_current_pilar_admin)
-- **Qué controla:** solo `pilaradmin@gsbank.com`. `get_current_master_admin` (`security.py:112-122`) se usa en `PUT /admin/usuarios/{id}/acceso-viaticos` (`admin.py:283-316`). `get_current_pilar_admin` (`security.py:139-149`) protege los endpoints de accesos-proceso y permisos-admins del mapa.
-- **Estado:** **Activo**.
-- **Duplicación de mecanismos:** `get_current_master_admin` y `get_current_pilar_admin` son lógicamente idénticos (validar `pilaradmin@gsbank.com`) separados solo por el mensaje de error. Ver §6.
+- Generado en login/`me` (`security.py:29-38`); expiración `ACCESS_TOKEN_EXPIRE_MINUTES = 60*24*7` (7 días) `config.py:9`.
+- `get_current_user` (`security.py:41-90`) descifra el token, busca el `Usuario` por `sub` (correo), rechaza si está inactivo, y **enriquece** la instancia con `_accesos_procesos` leído de `ProcesoCalidadAccesoAdmin` (`security.py:70-88`). Si es la cuenta Master, recibe `{proceso: "admin"}` para los 8 procesos (`security.py:76-77`, lista en `security.py:75`).
+- El JWT contiene `sub` (email), `rol`, `nombre`, `cargo`, `activo`, `acceso_viaticos`, `accesos_procesos`.
 
-### 2.7 Blindaje sobre la cuenta Master (verificar_autoridad_sobre_usuario)
-- **Qué controla:** ningún administrador puede modificar/desactivar/eliminar la cuenta `pilaradmin@gsbank.com`.
-- **Dónde:** `security.py:124-137`, invocado en varias rutas admin.
-- **Estado:** **Activo**.
+### 2.4 Dependencias de protección (`backend/app/core/security.py`)
 
-### 2.8 Sistema "legacy" de acceso al mapa (acceso_mapa / rol_mapa / es_admin_calidad)
-- **Qué controla:** era el mecanismo antiguo para autorizar acceso/edición del SGC.
-- **Estado:** **Obsoleto / parcialmente activo**. Los campos `acceso_mapa` y `rol_mapa` aún se setean como columnas y se leen/emiten en schemas, pero ya **no** se usan para autorizar el acceso al mapa (que hoy es automático). `es_admin_calidad`/`rol_mapa` ya no se leen en `puedeEditarMapa`/`get_current_admin_calidad` (sustituidos por `user.rol === 'superadmin'`). Columnas en `usuario.py:22-24` y `main.py:46-50`.
-
-### 2.9 Mecanismo "Bloque Antiguo" de permisos de operaciones (permiso_operaciones)
-- **Qué controlaba:** el acceso a Operaciones como campo separado en el JWT/`/me`.
-- **Estado:** **Eliminado**. Ya no existe `permiso_operaciones` en el JWT (`auth.py`), en `get_current_user` (`security.py`, sin `_permiso_operaciones`), ni en `schemas/usuario.py`. Las funciones de sección leen solo `accesos_procesos`. No queda referencia en `frontend/src` ni en `backend/app` (grep sin coincidencias).
+| Dependencia | Línea | Regla |
+|---|---|---|
+| `get_current_user` | `41` | Cualquier usuario activo autenticado. |
+| `get_current_admin` | `92` | **Solo** `rol == "superadmin"`. |
+| `get_current_superadmin` | `102` | **Solo** `rol == "superadmin"`. |
+| `get_current_master_admin` | `112` | **Solo** `pilaradmin@gsbank.com` (usada en `acceso-viaticos`). |
+| `verificar_autoridad_sobre_usuario` | `124` | Blindaje: nadie puede tocar la cuenta Master salvo Master. |
+| `get_current_pilar_admin` | `139` | Solo `pilaradmin@gsbank.com` (Accesos por Proceso). |
+| `get_current_admin_calidad` | `152` | Master o `superadmin` (editar Mapa SGC). |
+| `require_seccion(codigo, nivel)` | `176` | Exige al menos un nivel en `accesos_procesos[codigo]`; `superadmin` y Master pasan siempre. Niveles: `ninguno=0, lector=1, admin=2` (`security.py:173`). |
 
 ---
 
-## 3. MÓDULOS Y PROCESOS
+## 3. MODELOS DE DATOS
 
-### 3.1 Procesos del Mapa SGC
+En cada startup (`main.py:45-77`) se crean por `checkfirst` las tablas de CuentaCobro, CuentaCobroAsignación, Talento Humano (6), Calidad de Procesos (4) e Inventario (3); se siembran los procesos SGC y las planillas de inventario; y se migra `admin`→`superadmin` (`main.py:74-77`).
 
-El seed siembra **8 procesos** (`PROCESOS_INICIALES`, `calidad_procesos.py:44-113`), la tabla `procesos_calidad`. `PROCESOS_ACCESO_MAP` define esos mismos 8 (`calidad_procesos.py:351-363`):
-
-| Código | Nombre | Categoría | ¿Tiene módulo funcional? | Módulo operativo asociado |
-|---|---|---|---|---|
-| `GR` | Gerencia | Dirección | No (placeholder) | — |
-| `MC` | Mejora Continua | Dirección | **Sí (parcial)** | Backup & Evidencias (`MODULOS_SGC_ASOCIADOS.MC`, `modulesConfig.js:371-407`) |
-| `CO` | Comercial | Misional | No | — |
-| `CI` | Compras e Inventario | Misional | No (hay card "Inventario" hardcodeada en UI) | — |
-| `OP` | Operaciones | Misional | **Sí** | Viáticos (`/admin`) y Autoplaner ODS (`/autoplaner-ods`, placeholder) |
-| `SA` | Ambiental | Apoyo | No | — |
-| `AD` | Administrativo | Apoyo | **Sí (parcial)** | Talento Humano (`/talento-humano`) y Escuela GSB (`/escuela-gsb`, placeholder) |
-| `SS` | SG - SST | Apoyo | No | — |
-
-### 3.2 Módulos funcionales reales (con rutas y componentes existentes)
-
-| Módulo | Ruta(s) | Componentes/páginas | Backend | ¿Funcional real o placeholder? |
-|---|---|---|---|---|
-| **Viáticos (panel admin)** | `/admin`, `/superadmin`, `/admin/asignaciones*`, `/admin/cuentas-cobro` | `AdminDashboard.jsx`, `SuperAdminDashboard.jsx`, `Asignaciones.jsx`, `NuevaAsignacion.jsx`, `DetalleAsignacion.jsx`, `AdminCuentasCobro.jsx` | `viaticos.py`, `admin.py`, `asignaciones.py`, `cuentas_cobro.py` | **Funcional** |
-| **Viáticos (técnico)** | `/dashboard`, `/nuevo-viatico`, `/mis-viaticos`, `/mis-asignaciones`, `/cuenta-cobro` | `Dashboard.jsx`, `NuevoViatico.jsx`, `MisViaticos.jsx`, `MisAsignaciones.jsx`, `CuentaCobro.jsx`, `TecnicoLayout.jsx` | `viaticos.py`, `asignaciones.py` (router_tecnico) | **Funcional** |
-| **Talento Humano** | `/talento-humano`, `/talento-humano/empleados` | `TalentoHumano.jsx`, `TalentoHumanoAdmin.jsx`, `TalentoHumanoTecnico.jsx`, `PerfilEmpleado.jsx` | `talento_humano.py` | **Funcional** |
-| **Backup & Evidencias** | `/admin/backup`, `/backup` | `AdminBackup.jsx` | `admin.py` (evidencias, exportar) | **Funcional** |
-| **Calidad de Procesos (SGC)** | `/calidad-de-procesos*` | `CalidadProcesos.jsx`, `CalidadCategoria.jsx`, `CalidadDetalleProceso.jsx`, `MapaProcesosSGC.jsx`, `PanelRolesAdminsMapa.jsx` | `calidad_procesos.py` | **Funcional** |
-| **Administración global** | `/admin/usuarios`, `/admin/auditoria`, `/admin/personal/:id` | `AdminUsuarios.jsx`, `Auditoria.jsx`, `PerfilEmpleado.jsx` | `admin.py` | **Funcional** |
-| **Autoplaner ODS** | `/autoplaner-ods` | `SeccionEnConstruccion.jsx` | — | **Placeholder (en desarrollo)** |
-| **Escuela GSB** | `/escuela-gsb` | `SeccionEnConstruccion.jsx` | — | **Placeholder (en desarrollo)** |
-| **Inventario** | `/inventario` | `SeccionEnConstruccion.jsx` | — | **Placeholder (en desarrollo)** |
-
-### 3.3 Quién accede a cada módulo (según código)
-
-| Módulo | Condición de acceso (frontend) |
-|---|---|
-| Viáticos admin | `AdminRoute requireViaticos` → `rol` en {`superadmin`} (efectivo) **y** `acceso_viaticos !== false` (`AdminRoute.jsx:15`). El `acceso_viaticos` lo asigna Pilar (por proceso OP o por `PUT /admin/usuarios/{id}/acceso-viaticos`). |
-| Viáticos técnico | Cualquier usuario autenticado (`PrivateRoute`); el backend valida que el viático/asignación pertenezca al propio usuario. |
-| Talento Humano | `canAccess` → `rol admin/superadmin` (`modulesConfig.js:110`); rutas con `PrivateRoute`. Vistas diferenciadas admin/técnico. |
-| Backup & Evidencias | `AdminRoute` + `canAccess` → `rol superadmin` (`modulesConfig.js:213`, `App.jsx:186`). |
-| Calidad SGC (ver) | Cualquier usuario autenticado (`PrivateRoute`, `modulesConfig.js:167-169`). |
-| Calidad SGC (editar) | `superadmin` o Pilar (`puedeEditarMapa`). |
-| Panel Roles/Accesos por Proceso | **Solo PilarAdmin** (`PanelRolesAdminsMapa.jsx:96-99`). |
-| Autoplaner/Escuela/Inventario | Cualquier usuario autenticado (placeholder). |
+| Tabla | Modelo (`backend/app/models/`) | Notas |
+|---|---|---|
+| `usuarios` | `usuario.py` | Ver §1.1. |
+| `viaticos` | `viatico.py` | Viáticos independientes y ligados a asignación (`asignacion_id`). `monto_presupuesto` (mig. 0008); `comentario_admin` añadido vía `ALTER` en startup (`main.py:49`). |
+| `evidencias_viatico` | `evidencia_viatico.py` | Fotos/soportes en Cloudinary; columna `origen` (`tecnico`/`admin`) (mig. 0013). Máx. 5 por viático (`viaticos.py:28-29`). |
+| `asignaciones` | `asignacion.py` | OT de campo. `eliminado_en` (soft delete, mig. 0014) y `cerrada_en` (mig. 0014 / `main.py:51`). Regla de 24 h de gracia (`asignaciones.py:36-87`). |
+| `cuentas_cobro` | `cuenta_cobro.py` | Cuenta de cobro independiente; `items` como string JSON. |
+| `cuentas_cobro_asignacion` | `cuenta_cobro_asignacion.py` | Cuenta de cobro ligada a una asignación (mig. 0011). |
+| `proveedores` | `proveedor.py` | Importados desde Excel (`scripts/importar_proveedores.py`). |
+| `notificaciones` | `notificacion.py` | Alertas (mig. 0005). |
+| `log_auditoria` | `log_auditoria.py` | Auditoría transversal (mig. 0006). |
+| `inventario_planillas` | `inventario.py:18` | Grupo de ítems (hojas MANTENIMIENTO, RTC). Seed inicial `inventario.py:57,60-72`. |
+| `inventario_items` | `inventario.py:41` | Ficha de elemento; `stock_actual` derivado; soft delete `eliminado_en`; foto Cloudinary. |
+| `inventario_movimientos` | `inventario.py:83` | Kardex inmutable; tipos `ajuste_inicial/compra/devolucion` (entrada) y `salida` (`inventario.py:13-15`); `origen` reserva `foto_ia` (mig. 0015). |
+| `procesos_calidad` (+ responsables, documentos, accesos_admin) | `calidad_procesos.py` | Mapa SGC + responsable + documentos + niveles de acceso por proceso. |
+| `empleados_perfil`, `empleados_documentos`, `empleados_historial`, `empleados_solicitudes`, `empleados_dotaciones`, `empleados_evaluaciones` | `talento_humano.py` | Módulo Talento Humano (perfil, documentos, historial, solicitudes, dotación/EPP, evaluaciones 1-5⭐). |
 
 ---
 
-## 4. FLUJOS CRÍTICOS
-### 4.1 Autenticación y generación de sesión/token
+## 4. ENDPOINTS POR MÓDULO
 
-**Flujo de login** (`backend/app/routers/auth.py:login` y `frontend/src/context/AuthContext.jsx:login`):
-1. `POST /auth/login` usa `OAuth2PasswordRequestForm` (`auth.py`). El campo `username` admite **correo, código de empleado o nombre en minúsculas** (query con `func.lower`).
-2. Existen "alias administrativos" reservados: `tecnicoplantagsb@gsbsecurity.com`, `tecnicoplantagsb`, `admin`, `admin@gsbank.com`, `admin gsb` → mapean al usuario con `id == 4` (hardcoded en `auth.py`).
-3. Se valida contraseña (`verify_password`), se verifica `usuario.activo`.
-4. Se cargan los accesos por proceso desde `procesos_calidad_accesos_admin` (Pilar recibe `admin` en los 8 procesos).
-5. Se genera JWT (`create_access_token`, `security.py:29-38`) con claims: `sub` (correo), `rol`, `id`, `nombre`, `codigo_empleado`, `acceso_viaticos`, `es_admin_calidad`, `rol_mapa`, `accesos_procesos`, `exp`. Algoritmo `HS256` (`config.py:8`), `SECRET_KEY`, default expiración 7 días (`ACCESS_TOKEN_EXPIRE_MINUTES=10080`, `config.py:9`).
+Routers registrados en `main.py:138-147`. Prefixes confirmados (`routers/*.py`).
 
-**Frontend:**
-- `AuthContext.jsx` guarda `gs_token` y `gs_user` en `localStorage`.
-- En `login`, decodifica el JWT (`atob`) y construye `userData` con: `correo, rol, id, nombre, codigo_empleado, acceso_viaticos, es_admin_calidad, accesos_procesos, rol_mapa` (`AuthContext.jsx:61-70`).
-- En `/auth/me`, refresca datos (`AuthContext.jsx:20-38`), incluido `accesos_procesos`.
-- Redirige: `superadmin/admin` → `/seleccion-modulo`; resto → `/dashboard` (`AuthContext.jsx:85-89`).
+### 4.1 Viáticos (técnico) — `/viaticos` (`viaticos.py`)
 
-**Dependencias backend que leen el token:**
-- `get_current_user` (`security.py:41-90`): decodifica JWT, carga usuario, verifica `activo`, adjunta `_accesos_procesos` (atributo virtual).
-- Derivadas: `get_current_admin`, `get_current_superadmin`, `get_current_master_admin`, `get_current_pilar_admin`, `get_current_admin_calidad`.
+| Endpoint | Línea | Protección / notas |
+|---|---|---|
+| `POST /viaticos` | `55` | Técnico autenticado. Valida asignación propia + gracia 24 h (`asignaciones.calcular_limite_subida_asignacion`). |
+| `GET /viaticos` | `108` | Técnico: solo sus viáticos. |
+| `GET /viaticos/{id}` | `130` | Técnico: solo los suyos. |
+| `PUT /viaticos/{id}` | `155` | Actualizar su viático (en estados válidos). |
+| `DELETE /viaticos/{id}` | `209` | Eliminar su viático. |
+| `POST /viaticos/{id}/evidencias` | `256` | Adjunta fotos (Cloudinary) hasta MAX 5 (`viaticos.py:28-29`). |
+| `DELETE /viaticos/{id}/evidencias/{evidencia_id}` | `334` | Solo pendiente/rechazado y dentro de gracia. |
 
-### 4.2 Recuperación de contraseña
+### 4.2 Asignaciones (admin) — `/admin/asignaciones` (`asignaciones.py`)
 
-**Flujo de 3 pasos** (backend `auth.py`; UI `Login.jsx` → `RecuperarPasswordModal`):
-1. **Solicitar código** — `POST /auth/solicitar-reset`: acepta correo, código de empleado o nombre. Genera OTP de 6 dígitos (`_generar_codigo`) con TTL 10 min (`OTP_TTL_SECONDS=600`). Lo almacena **en memoria** (`_reset_store`), y envía correo vía `email_reset.enviar_codigo_reset`.
-   - **El código SIEMPRE llega a un buzón fijo** `RESET_EMAIL_DESTINO` (default `tecnicoplantagsb@gsbsecurity.com`, `config.py:23`), no al correo del solicitante; el correo indica de qué cuenta es la solicitud.
-   - Si no hay SMTP, imprime el código en logs (dev mode) y devuelve True (`email_reset.py:39-44`).
-   - La respuesta incluye `correo_cuenta` (correo real), usado en pasos 2 y 3 (`Login.jsx:48`).
-2. **Verificar código** — `POST /auth/verificar-codigo`: valida OTP, marca verificado, extiende TTL a 5 min (`OTP_VERIFICADO_TTL_SECONDS=300`).
-3. **Cambiar contraseña** — `POST /auth/cambiar-password`: exige ≥8 caracteres y código verificado/no expirado; actualiza SOLO la cuenta vinculada al OTP. Limpia el código al terminar.
+| Endpoint | Línea | Protección |
+|---|---|---|
+| `GET /admin/asignaciones` | `233` | `get_current_admin`. |
+| `GET /admin/asignaciones/{id}` | `254` | `get_current_admin`. |
+| `GET /admin/asignaciones/{id}/exportar` | `264` | Exporta Excel de viáticos de la asignación. |
+| `POST /admin/asignaciones` | `305` | `get_current_admin`. |
+| `PUT /admin/asignaciones/{id}` | `344` | `get_current_admin`. |
+| `PUT /admin/asignaciones/{id}/finalizar` | `384` | Marca finalizada; activa ventana de gracia. |
+| `PATCH /admin/asignaciones/{id}/extender-fecha` | `405` | Extiende `fecha_fin` (para volver a subir viáticos). |
+| `DELETE /admin/asignaciones/{id}` | `434` | Soft delete (`eliminado_en`). |
 
-**Limitaciones (verificadas):**
-- El store OTP es **en memoria** (`auth.py:43-44`): se pierde al reiniciar y no funciona multi-instancia.
-- El destino del correo es **fijo** (no llega al correo real), residuo del "buzón único".
+### 4.3 Asignaciones técnicas (router_tecnico) — `/asignaciones` (`asignaciones.py`)
 
-### 4.3 Otro flujo transversal: registro de usuario
-- `POST /auth/registro` (`auth.py`): crea usuario con `rol="tecnico"`, correo y código de empleado únicos (autoregistro público).
-- Creación desde panel: `POST /admin/usuarios` (schema `UsuarioCreateAdmin`, `admin.py:77`) permite rol `superadmin` o `tecnico`; la UI permite elegir "Administrador" (se mapea a `superadmin`).
+| Endpoint | Línea | Protección / notas |
+|---|---|---|
+| `GET /asignaciones/activas` | `448` | `get_current_user`; solo las del técnico activo (pendiente/en_curso o finalizada con gracia vigente). |
+| `POST /asignaciones/{id}/cuenta-cobro` | `482` | Sube el documento PDF/imagen de cuenta de cobro ligada a la asignación del técnico. |
 
-### 4.4 Auditoría (transversal)
-- `LogAuditoria` (`models/log_auditoria.py`) + `service auditoria.registrar_auditoria`. Lectura exclusiva `superadmin` (`GET /admin/auditoria`, `admin.py:797`).
-## 5. ENDPOINTS Y MODELOS DE DATOS
+### 4.4 Administración — `/admin` (`admin.py`)
 
-### 5.1 Mapa de endpoints backend (agrupados por router)
+| Endpoint | Línea | Protección / notas |
+|---|---|---|
+| `POST /admin/bootstrap` | `53` | Clave maestra (`MASTER_KEY`); coloca rol `admin` (luego migrado). |
+| `POST /admin/usuarios` | `77` | `get_current_admin`. Crea técnico/superadmin (schema `UsuarioCreateAdmin`). |
+| `PUT /admin/usuarios/{id}` | `123` | Edita datos; protege a Master (`verificar_autoridad_sobre_usuario`). |
+| `PUT /admin/usuarios/{id}/rol` | `191` | Cambia rol (schema restringe a `superadmin`/`tecnico`). |
+| `PUT /admin/usuarios/{id}/estado` | `228` | Activar/desactivar; no auto-desactivación. |
+| `PUT /admin/usuarios/{id}/acceso-viaticos` | `283` | **Exclusivo Master** (`get_current_master_admin`). |
+| `DELETE /admin/usuarios/{id}` | `319` | Eliminación definitiva (borra cascada Talento Humano, etc.). |
+| `GET /admin/viaticos` | `470` | Lista admin de viáticos (pendientes primero). |
+| `GET /admin/viaticos/exportar` | `493` | Exporta Excel de viáticos independientes por usuario. |
+| `PUT /admin/viaticos/{id}/presupuesto` | `546` | Define `monto_presupuesto`. |
+| `PUT /admin/viaticos/{id}/aprobar` | `585` | Aprueba (solo desde `pendiente`). |
+| `PUT /admin/viaticos/{id}/rechazar` | `631` | Rechazar. |
+| `POST /admin/viaticos/{id}/evidencias` | `677` | Sube evidencia admin (origen `admin`). |
+| `DELETE /admin/viaticos/{id}/evidencias/{evidencia_id}` | `732` | Elimina evidencia si tiene autoridad. |
+| `GET /admin/usuarios` | `787` | Lista todos los usuarios. |
+| `GET /admin/auditoria` | `797` | **Exclusivo SuperAdmin** (`get_current_superadmin`); filtros + paginación. |
+| `GET /admin/notificaciones` | `828` | `get_current_admin`. |
 
-**Auth (`/auth`, `routers/auth.py`)**
-| Método y ruta | Qué hace |
-|---|---|
-| `POST /auth/registro` | Crea usuario (rol técnico). |
-| `POST /auth/login` | Login OAuth2 password, devuelve JWT. |
-| `GET /auth/me` | Datos del usuario autenticado (incluye `accesos_procesos`). |
-| `POST /auth/solicitar-reset` | Genera OTP y lo envía al buzón fijo. |
-| `POST /auth/verificar-codigo` | Valida OTP. |
-| `POST /auth/cambiar-password` | Cambia la contraseña con OTP verificado. |
+### 4.5 Cuentas de Cobro — `/cuentas-cobro` (`cuentas_cobro.py`)
 
-**Admin (`/admin`, `routers/admin.py`)** — la mayoría exige `get_current_admin` (superadmin):
-| Método y ruta | Qué hace / protección |
-|---|---|
-| `POST /admin/bootstrap` | Configura la cuenta Master (usa `MASTER_KEY`); **asigna `rol="admin"` residual**. |
-| `POST /admin/usuarios` | Crea usuario (técnico/superadmin por schema). |
-| `PUT /admin/usuarios/{id}` | Edita nombre/correo/cédula. Protege a Master. |
-| `PUT /admin/usuarios/{id}/rol` | Cambia rol (schema restringe a `superadmin`/`tecnico`). |
-| `PUT /admin/usuarios/{id}/estado` | Activar/desactivar; no permite auto-desactivación. |
-| `PUT /admin/usuarios/{id}/acceso-viaticos` | **Exclusivo Master** (`get_current_master_admin`). |
-| `DELETE /admin/usuarios/{id}` | Eliminación permanente con cascade lógico. |
-| `GET /admin/viaticos` | Lista todos los viáticos (admin). |
-| `GET /admin/viaticos/exportar` | Exporta Excel de viáticos. |
-| `PUT /admin/viaticos/{id}/presupuesto` | Define presupuesto del viático. |
-| `PUT /admin/viaticos/{id}/aprobar` / `rechazar` | Aprueba/rechaza viático. |
-| `POST /admin/viaticos/{id}/evidencias` | Sube evidencia (admin). |
-| `DELETE /admin/viaticos/{id}/evidencias/{evidencia_id}` | Elimina evidencia (admin). |
-| `GET /admin/usuarios` | Lista usuarios. |
-| `GET /admin/auditoria` | **Exclusivo superadmin** (`get_current_superadmin`), con filtros/paginación. |
-| `GET /admin/notificaciones` | Lista notificaciones. |
-**Viáticos técnico (`/viaticos`, `routers/viaticos.py`)** — todas `get_current_user`, validan propiedad:
-| Método y ruta | Qué hace |
-|---|---|
-| `POST /viaticos` (y `/`) | Crea viático (propio o de su asignación). |
-| `GET /viaticos` (y `/`) | Lista viáticos del usuario. |
-| `GET /viaticos/{id}` | Detalle de un viático propio. |
-| `PUT /viaticos/{id}` | Actualiza viático propio (con límites de estado/plazo). |
-| `DELETE /viaticos/{id}` | Elimina viático propio (si estado lo permite). |
-| `POST /viaticos/{id}/evidencias` | Sube evidencias (máx. 5, ventana de gracia 24h tras cierre). |
-| `DELETE /viaticos/{id}/evidencias/{evidencia_id}` | Elimina evidencia propia (solo pendiente/rechazado y dentro de plazo). |
+| Endpoint | Línea | Protección / notas |
+|---|---|---|
+| `POST /cuentas-cobro` | `19` | Técnico autenticado; exige `autorizacion_datos`. |
+| `GET /cuentas-cobro` | `61` | Admin ve todas; técnico solo las suyas. |
+| `GET /cuentas-cobro/{id}` | `79` | Idem (admin todas; técnico solo las suyas). |
 
-**Asignaciones admin (`/admin/asignaciones`, `routers/asignaciones.py`)** — `get_current_admin` salvo router_tecnico:
-| Método y ruta | Qué hace |
-|---|---|
-| `GET /admin/asignaciones` | Lista asignaciones. |
-| `GET /admin/asignaciones/{id}` | Detalle. |
-| `GET /admin/asignaciones/{id}/exportar` | Exporta Excel de viáticos de la asignación. |
-| `POST /admin/asignaciones` | Crea asignación. |
-| `PUT /admin/asignaciones/{id}` | Actualiza. |
-| `PUT /admin/asignaciones/{id}/finalizar` | Finaliza. |
-| `PATCH /admin/asignaciones/{id}/extender-fecha` | Extiende fecha de fin. |
-| `DELETE /admin/asignaciones/{id}` | Soft-delete (`eliminado_en`). |
-| `GET /asignaciones/activas` (router_tecnico, `get_current_user`) | Asignaciones activas del técnico autenticado. |
-| `POST /asignaciones/{id}/cuenta-cobro` (router_tecnico) | Sube cuenta de cobro de una asignación. |
+### 4.6 Proveedores — `/proveedores` (`proveedores.py`)
 
-**Cuentas de cobro (`/cuentas-cobro`, `routers/cuentas_cobro.py`)**
-| Método y ruta | Qué hace |
-|---|---|
-| `POST /cuentas-cobro` (y `/`) | Crea cuenta de cobro. |
-| `GET /cuentas-cobro` (y `/`) | Lista cuentas de cobro. |
-| `GET /cuentas-cobro/{id}` | Detalle. |
+| Endpoint | Línea | Protección |
+|---|---|---|
+| `GET /proveedores/buscar` | `22` | `get_current_user`; busca NIT/nombre (mín. 3 caracteres, máx. 15). |
 
-**Proveedores (`/proveedores`, `routers/proveedores.py`)** — `get_current_user`:
-| Método y ruta | Qué hace |
-|---|---|
-| `GET /proveedores/buscar` | Busca por NIT/nombre (mín. 3 caracteres, máx. 15). |
+### 4.7 Calidad de Procesos (SGC) — `/calidad-procesos` (`calidad_procesos.py`)
 
-**Talento Humano (`/talento-humano`, `routers/talento_humano.py`)** — mixto admin/técnico:
-| Método y ruta | Qué hace / protección |
-|---|---|
-| `GET /talento-humano/empleados` | Lista empleados (admin). |
-| `POST /talento-humano/empleados` | Crea perfil de empleado (admin). |
-| `GET /talento-humano/empleados/{usuario_id}` | Detalle empleado (admin). |
-| `PUT /talento-humano/empleados/{usuario_id}` | Edita perfil (admin). |
-| `PUT /talento-humano/empleados/{usuario_id}/estado` | Cambia estado laboral (admin/superadmin). |
-| `POST/DELETE .../documentos` | Gestiona documentos del empleado (admin). |
-| `GET /talento-humano/exportar-excel` | Exporta (admin). |
-| `GET /talento-humano/me` | Perfil del técnico autenticado. |
-| `GET /talento-humano/me/documentos` | Sus documentos. |
-| `POST /talento-humano/solicitudes` | Crea solicitud (técnico). |
-| `GET /talento-humano/solicitudes` | Lista solicitudes. |
-| `PUT /talento-humano/solicitudes/{id}/responder` | Respuesta (admin). |
-| `GET/POST/PUT/DELETE .../dotaciones` | Gestión de dotaciones (admin). |
-| `GET/POST/DELETE .../evaluaciones` | Gestión de evaluaciones (admin). |
-| `POST /talento-humano/empleados` (docstring) | También setea `acceso_viaticos=True` en ciertos casos (ver `talento_humano.py:233`). |
+| Endpoint | Línea | Protección / notas |
+|---|---|---|
+| `GET /calidad-procesos` | `227` | Lista procesos. |
+| `GET /calidad-procesos/categoria/{categoria}` | `279` | Filtra por categoría. |
+| `GET /calidad-procesos/usuarios-disponibles` | `332` | Usuarios para asignar responsable. |
+| `GET /calidad-procesos/permisos-admins` | `354` | Lista roles admin del mapa. |
+| `PUT /calidad-procesos/permisos-admins/{usuario_id}` | `389` | Actualiza permiso admin del mapa. |
+| `GET /calidad-procesos/accesos-proceso` | `462` | `get_current_pilar_admin`; overview de accesos por proceso. |
+| `PUT /calidad-procesos/accesos-proceso` | `532` | `get_current_pilar_admin`; establece nivel; **sincroniza** `accesos_procesos` ↔ `acceso_viaticos` para `OP`. |
+| `GET /calidad-procesos/{id}` | `639` | Detalle de proceso. |
+| `PUT /calidad-procesos/{id}` | `706` | Edita proceso (admin_calidad). |
+| `POST /calidad-procesos/{id}/asignaciones` | `741` | Asigna responsable. |
+| `DELETE /calidad-procesos/{id}/asignaciones/{asignacion_id}` | `795` | Quita responsable. |
+| `POST /calidad-procesos/{id}/documentos` | `817` | Sube documento del proceso. |
+| `PUT /calidad-procesos/documentos/{doc_id}` | `872` | Actualiza documento. |
+| `DELETE /calidad-procesos/documentos/{doc_id}` | `918` | Elimina documento. |
 
-**Calidad de Procesos (`/calidad-procesos`, `routers/calidad_procesos.py`)**
-| Método y ruta | Qué hace / protección |
-|---|---|
-| `GET /calidad-procesos` | Lista procesos (cualquier autenticado). |
-| `GET /calidad-procesos/categoria/{categoria}` | Lista por categoría (autenticado). |
-| `GET /calidad-procesos/usuarios-disponibles` | Usuarios para asignar responsable (autenticado). |
-| `GET /calidad-procesos/permisos-admins` | **Exclusivo PilarAdmin.** Lista admins con acceso/rol mapa (Bloque Antiguo). |
-| `PUT /calidad-procesos/permisos-admins/{usuario_id}` | **Exclusivo PilarAdmin.** Actualiza acceso/rol mapa (Bloque Antiguo; huérfano en UI). |
-| `GET /calidad-procesos/accesos-proceso` | **Exclusivo PilarAdmin.** Overview de accesos por proceso. |
-| `PUT /calidad-procesos/accesos-proceso` | **Exclusivo PilarAdmin.** Asigna nivel por proceso (sincroniza OP→acceso_viaticos). |
-| `GET /calidad-procesos/{id}` | Detalle de proceso (autenticado). |
-| `PUT /calidad-procesos/{id}` | Edita proceso (`get_current_admin_calidad`). |
-| `POST /calidad-procesos/{id}/asignaciones` | Asigna responsable (`get_current_admin_calidad`). |
-| `DELETE /calidad-procesos/{id}/asignaciones/{asignacion_id}` | Remueve responsable (`get_current_admin_calidad`). |
-| `POST /calidad-procesos/{id}/documentos` | Sube documento (`get_current_admin_calidad`). |
-| `PUT /calidad-procesos/documentos/{doc_id}` | Edita documento (`get_current_admin_calidad`). |
-| `DELETE /calidad-procesos/documentos/{doc_id}` | Elimina documento (`get_current_admin_calidad`). |
-> **"9 nodos":** el mapa de la UI (`MapaProcesosSGC.jsx`) renderiza las 8 fichas de proceso **más** una card **"Inventario" hardcodeada** (`:322-339`) que NO es un proceso de BD (placeholder que navega a `/inventario`, `App.jsx:256-270`). La aclaración de "9 nodos" corresponde a **8 procesos + 1 card Inventario hardcodeada**.
+### 4.8 Inventario (SGC `IN`) — `/inventario` (`inventario.py`)
+
+Control de acceso declarado en el docstring (`inventario.py:1-10`): captura/consulta con `get_current_user`; supervisión con `require_seccion("IN", "admin")`; reportes con `require_seccion("IN", "lector")`. Alias locales: `CurrentUser`, `AdminIN`, `LectorIN` (`inventario.py:52-54`).
+
+| Endpoint | Línea | Protección |
+|---|---|---|
+| `GET /inventario/planillas` | `233` | `CurrentUser`. |
+| `POST /inventario/planillas` | `270` | `AdminIN`. |
+| `PUT /inventario/planillas/{planilla_id}` | `310` | `AdminIN`. |
+| `GET /inventario/items` | `356` | `CurrentUser`. |
+| `GET /inventario/duplicados` | `393` | `AdminIN` (detección de duplicados). |
+| `GET /inventario/siguiente-codigo` | `418` | Sugiere código (`CodigoSugeridoResponse`). |
+| `POST /inventario/items` | `430` | `CurrentUser` (captura). |
+| `PUT /inventario/items/{item_id}` | `480` | `AdminIN`. |
+| `DELETE /inventario/items/{item_id}` | `517` | `AdminIN` (soft delete `eliminado_en`). |
+| `POST /inventario/items/{item_id}/foto` | `536` | Sube foto referencia (Cloudinary). |
+| `POST /inventario/items/{item_id}/movimientos` | `557` | Registra entrada/salida (kardex). |
+| `GET /inventario/items/{item_id}/kardex` | `580` | Lista historial de movimientos. |
+| `GET /inventario/reportes/global` | `600` | `LectorIN` (reporte consolidado). |
+
+### 4.9 Talento Humano (`AD`) — `/talento-humano` (`talento_humano.py`)
+
+| Endpoint | Línea | Protección / notas |
+|---|---|---|
+| `GET /talento-humano/empleados` | `136` | `get_current_admin`. |
+| `POST /talento-humano/empleados` | `197` | `get_current_admin` (crea perfil + usuario). |
+| `GET /talento-humano/empleados/{usuario_id}` | `318` | `get_current_admin`. |
+| `PUT /talento-humano/empleados/{usuario_id}` | `385` | `get_current_admin`. |
+| `PUT /talento-humano/empleados/{usuario_id}/estado` | `553` | `get_current_admin`. |
+| `POST /talento-humano/empleados/{usuario_id}/documentos` | `633` | Sube documento (Cloudinary). |
+| `DELETE /talento-humano/empleados/{usuario_id}/documentos/{documento_id}` | `717` | Elimina documento. |
+| `GET /talento-humano/exportar-excel` | `777` | Exporta Excel de talento humano. |
+| `GET /talento-humano/me` | `828` | `get_current_user` (perfil del propio técnico). |
+| `GET /talento-humano/me/documentos` | `868` | Documentos del propio técnico. |
+| `POST /talento-humano/solicitudes` | `891` | Técnico crea solicitud (permisos, licencias…). |
+| `GET /talento-humano/solicitudes` | `915` | Colección de solicitudes. |
+| `PUT /talento-humano/solicitudes/{solicitud_id}/responder` | `935` | Responde/actualiza estado. |
+| `GET /talento-humano/empleados/{usuario_id}/dotaciones` | `965` | `get_current_admin`. |
+| `POST /talento-humano/empleados/{usuario_id}/dotaciones` | `989` | Registra entrega de dotación/EPP. |
+| `PUT /talento-humano/empleados/{usuario_id}/dotaciones/{dotacion_id}` | `1044` | Actualiza dotación. |
+| `DELETE /talento-humano/empleados/{usuario_id}/dotaciones/{dotacion_id}` | `1085` | Elimina dotación. |
+| `GET /talento-humano/empleados/{usuario_id}/evaluaciones` | `1111` | Lista evaluaciones. |
+| `POST /talento-humano/empleados/{usuario_id}/evaluaciones` | `1134` | Crea evaluación (1-5⭐). |
+| `DELETE /talento-humano/empleados/{usuario_id}/evaluaciones/{evaluacion_id}` | `1199` | Elimina evaluación. |
 
 ---
 
-## 6. INCONSISTENCIAS Y DEUDA CONOCIDA
+## 5. ACCESOS POR PROCESO (MAPA SGC)
 
-### 6.1 Código muerto / no usado
+### 5.1 Modelo de acceso
 
-| Hallazgo | Ubicación | Nota |
-|---|---|---|
-| `esSoloLectura` definida pero nunca invocada | `frontend/src/utils/permisos.js:19-21` | Función exportada sin consumidor. |
-| `actualizarPermisoAdminMapa` (cliente API) | `frontend/src/services/calidadProcesos.js:73-76` | Conecta con `PUT /permisos-admins/{id}` que ya no se consume desde ninguna vista. |
-| `PUT /calidad-procesos/permisos-admins/{id}` (endpoint) | `backend/.../calidad_procesos.py:297-341` | Huérfano: ningún componente lo invoca. Solo el `GET /permisos-admins` sigue usándose (para listar). |
-| `acceso_mapa` hardcodeado a `TRUE` | `backend/app/main.py:49`, `AuthContext.jsx:33,70` | Flag sin efecto real (siempre true). |
-| `permiso_operaciones` como campo separado | `auth.py:179`, `security.py:87` | Duplica `accesos_procesos['OP']`; fuente de verdad duplicada. |
-| `esAdministradorSeccion` / `esLectorSeccion` / `tieneAccesoSeccion` con reglas divergentes | `frontend/src/utils/permisos.js:73-102` | Tres funciones con combinaciones distintas de fallback (rol, `acceso_viaticos`, `permiso_operaciones`) → riesgo de comportamiento inconsistente. |
-| Clases CSS huérfanas | `CalidadDetalleProceso.css:789,795` `.sgc-btn-modulo-cta--locked`; `MapaProcesosSGC.css` `.sgc-proc-card--locked`, `.sgc-operativo-badge--locked`, `.sgc-operativo-chip--locked`, `.sgc-btn-primary-operativo--locked`, `.sgc-subgroup-icon`; `PanelRolesAdminsMapa.css` `.sgc-ap-role-info-card--blue`, `.sgc-ap-role-info-badge--blue` | Residuos de estados "locked" que ya no se renderizan o variantes no usadas. |
+- Tabla `procesos_calidad_accesos_admin` (`calidad_procesos.py`), modelo `ProcesoCalidadAccesoAdmin`: fila por (usuario, proceso) con `nivel_acceso`.
+- Niveles: `ninguno`/`lector`/`admin` (`NIVELES_SECCION`, `security.py:173`; labels UI en `PanelRolesAdminsMapa.jsx:46-50`).
+- `get_current_user` carga `_accesos_procesos` al autenticar (`security.py:70-88`).
+- `require_seccion(codigo, nivel)` (fabrica de dependencias, `security.py:176-207`) lo valida por proceso.
+- **Master** (`pilaradmin@gsbank.com`) siempre obtiene `admin` en los 8 procesos (`security.py:76-77`). `superadmin` y Master pasan cualquier `require_seccion` (`security.py:192`).
 
-### 6.2 Duplicados / redundantes
+### 5.2 Procesos del mapa
 
-| Hallazgo | Ubicación | Nota |
-|---|---|---|
-| KPIs vs filtros rápidos repiten los mismos 3 contadores | `PanelRolesAdminsMapa.jsx:310-324` (tarjetas) vs `:352-361` (pills) | Misma métrica mostrada dos veces contiguas. |
-| Guía de niveles vs panel expandido | `PanelRolesAdminsMapa.jsx:638-675` vs fila expandida de cada admin | El concepto de niveles (Sin Acceso / Lector / Administrador) se explica tres veces en la misma pantalla. |
-| Lista de 8 procesos duplicada en 4 fuentes | `PanelRolesAdminsMapa.jsx:14-41`, `security.py:75`, `auth.py:170`, `calidad_procesos.py:352` | Riesgo de divergencia. |
-| `get_current_master_admin` ≈ `get_current_pilar_admin` | `security.py:114` vs `:144` | Misma lógica (validar `pilaradmin@gsbank.com`) con distinto mensaje. |
-| Derivación de `accesos_procesos` duplicada | `security.py:70-90` (get_current_user) y `auth.py:167-193` (/auth/me) | Misma construcción en dos sitios. |
+Definición de grupos (códigos) en `PanelRolesAdminsMapa.jsx:14-44` y `modulesConfig.js`:
 
-### 6.3 Nomenclatura inconsistente
-
-| Hallazgo | Ubicación |
+| Grupo | Procesos (código) |
 |---|---|
-| `LABEL_CARGO` lista `admin: 'Administrador'` y `superadmin: 'Super Administrador'` | `frontend/src/utils/personal.js:20-24` |
-| `AdminRoute.jsx:9`, `GlobalHeader.jsx:190`, `modulesConfig.js:58,110,213,324,405,450` | Comprobaciones `user?.rol === 'admin' ||` (residual) |
-| Mensaje backend "superadministrador" vs UI "Administrador" | `security.py:110` |
-| Tres nombres para la misma cuenta Pilar | `PanelRolesAdminsMapa.jsx:278` "Administradora Master SGC", `CalidadProcesos.jsx:34` "Master Calidad SGC", badge "👑 Master" (`:431`) |
+| **Dirección** | `GR` Gerencia, `MC` Mejora Continua |
+| **Misionales** | `CO` Comercial, `CI` Compras, `IN` Inventario, `OP` Operaciones |
+| **Apoyo** | `SA` Ambiental, `AD` Administrativo, `SS` SG-SST |
 
-### 6.4 Lógica de permisos contradictoria
+### 5.3 Módulos operativos ligados a procesos SGC
+
+| Proceso | Módulo asociado | `moduloId` | Acceso |
+|---|---|---|---|
+| `OP` | Viáticos | `viaticos` (`modulesConfig.js:281`) + `Autoplaner ODS` (próximamente, `modulesConfig.js:331`) | `canAccess`: rol admin/superadmin y `acceso_viaticos` (`modulesConfig.js:56-59`). |
+| `IN` | Inventario | `inventario` (`modulesConfig.js:379`) | Módulo real activo (`PanelRolesAdminsMapa.jsx:29`). |
+| `MC` | Backup & Evidencias | `backup` (`modulesConfig.js:427`) | Solo aparece como card; requiere módulo. |
+| `AD` | Talento Humano + Escuela GSB (próximamente) | `talento` (`modulesConfig.js:465`), `escuela-gsb` (`modulesConfig.js:508`) | `puedeAcceder`: rol admin/superadmin (`modulesConfig.js:503`). |
+
+### 5.4 Sincronización `acceso_viaticos` ↔ `OP`
+
+El campo `usuarios.acceso_viaticos` es **espejo** del nivel `admin` del proceso `OP` en `accesos_procesos`. `PUT /calidad-procesos/accesos-proceso` sincroniza el primero cuando cambia `OP` (`calidad_procesos.py:489-496`), y `get_current_user` siempre devuelve el estado real de BD (`security.py:70-72`).
+
+---
+
+## 6. HALLAZGOS / DEUDA TÉCNICA
 
 | Hallazgo | Ubicación | Nota |
 |---|---|---|
-| Dos mecanismos de acceso superpuestos | (a) `acceso_mapa`/`rol_mapa`/`es_admin_calidad` vs (b) `procesos_calidad_accesos_admin` (admin/lector/ninguno) | El panel nuevo solo gestiona (b), pero la edición del mapa sigue dependiendo de (a). |
-| `permiso_operaciones` es espejo de `accesos_procesos['OP']` | `auth.py:179`, `security.py:87` | Se expone como campo distinto en el mismo token/usuario. |
-| `acceso_viaticos` es espejo sincronizado de `accesos_procesos['OP']` | `calidad_procesos.py:489-496` (PUT accesos-proceso sincroniza) | Dos fuentes de verdad para el mismo permiso; el PUT las mantiene coherentes. |
-
-### 6.5 Endpoints huérfanos / parcialmente activos
-
-| Hallazgo | Ubicación | Nota |
-|---|---|---|
-| `PUT /permisos-admins/{id}` sin consumidor UI | `calidad_procesos.py:297-341` | El cliente `actualizarPermisoAdminMapa` nunca se invoca. |
-| Columnas `acceso_mapa`, `rol_mapa`, `es_admin_calidad` se leen pero ya no se escriben desde UI | `main.py:46-52`, `AuthContext.jsx:32-34` | Sistema viejo a medio camino: lectura sin gestión. |
+| Rol `admin` fantasma en UI | `personal.js:17-24`, `GlobalHeader.jsx:190`, `AdminRoute.jsx`, `modulesConfig.js`, `PanelRolesAdminsMapa.jsx:61-69`, `cuentas_cobro.py:67,85` | Se comprueba `rol === 'admin'` como caso residual; el backend lo migra a `superadmin` en startup. |
+| `LABEL_CARGO` inconsistente | `personal.js:17-24` | "Super Administrador" en vez de "Administrador"; lista `admin`. |
+| Columnas legacy del mapa sin efecto | `main.py:52-56`, `usuario.py:22-24` | `acceso_mapa`, `rol_mapa`, `es_admin_calidad` se leen/setean pero ya no gobiernan accesos (el sistema real es "Accesos por Proceso"). |
+| `PUT /permisos-admins/{id}` sin consumidor UI claro | `calidad_procesos.py:389` | Endpoint presente; la gestión moderna pasa por `accesos-proceso`. |
+| Duplicidad de fuente de verdad en `acceso_viaticos` | `calidad_procesos.py:489-496` | Campo espejo de `OP`; mantenido por el PUT. |
+| Reset OTP en memoria (no persistente) | `auth.py:43` | Los códigos se pierden al reiniciar el servidor; single-process. |
+| Inventario `origen='foto_ia'` reservado | `inventario.py:99-101` | Fase 2 de captura por foto planificada sin migración de columna. |
 
 ---
 
@@ -349,22 +300,22 @@ El seed siembra **8 procesos** (`PROCESOS_INICIALES`, `calidad_procesos.py:44-11
 
 | Término | Definición según el código |
 |---|---|
-| **SGC** | "Sistema de Gestión de Calidad". Nombre del mapa de procesos (`MapaProcesosSGC.jsx`) y del módulo de calidad. |
-| **Master** | No es un rol de BD. Es el usuario `pilaradmin@gsbank.com`, detectado por correo (`security.py:117,144`, `permisos.js:27-31`, `modulesConfig.js:265-267`). Tiene privilegios exclusivos: gestionar "Accesos por Proceso" y el acceso a Viáticos. En UI se muestra como "👑 Master" o "Administradora Master SGC". |
-| **Administrador** | Rol `superadmin` en BD. En UI se muestra como "Administrador" (no "Super Administrador", aunque `LABEL_CARGO` aún diga lo contrario). Acceso a paneles admin, gestión de usuarios, auditoría, calidad. |
-| **Técnico** | Rol `tecnico` en BD (default). Usuario operativo que crea y gestiona sus propios viáticos, sube evidencias, consulta asignaciones. |
-| **Lector de Sección** | Nivel dentro de "Accesos por Proceso" (`accesos_procesos[codigo] === 'lector'`). Acceso de solo lectura a la ficha de un proceso. |
-| **Administrador de Sección** | Nivel dentro de "Accesos por Proceso" (`accesos_procesos[codigo] === 'admin'`). Acceso completo a la ficha de un proceso (editar, asignar responsable, subir documentos). |
-| **Acceso al Mapa SGC** | Ver los 9 nodos (8 procesos + Inventario) y entrar a la ficha de detalle de cada proceso. Automático para todo Administrador/Master. No incluye acceso a tarjetas/módulos operativos internos. |
-| **Accesos por Proceso** | Sistema de niveles (Sin acceso / Lector / Administrador) por cada proceso, gestionado exclusivamente por PilarAdmin. Tabla `procesos_calidad_accesos_admin`. |
-| **Bloque A / Bloque Antiguo** | Sistema anterior de permisos (`acceso_mapa`, `rol_mapa`, `es_admin_calidad`). Parcialmente obsoleto: se lee pero ya no se gestiona desde UI. |
-| **PilarAdmin** | Sinónimo de "Master". Usuario `pilaradmin@gsbank.com`. |
-| **Placeholder** | Ficha de proceso sin módulo operativo desarrollado (ej. Gestión Documental, Compras, Infraestructura, Talento Humano, SST, Auditoría Interna, Servicios Administrativos, Sistemas de Información). Muestra "Próximamente" o panel informativo. |
-| **Módulo operativo** | Ficha de proceso con funcionalidad real desarrollada (ej. Viáticos en Operaciones). Acceso gobernado por "Accesos por Proceso" + `acceso_viaticos`. |
-| **JWT** | Token de sesión generado en `/auth/login` y `/auth/me`. Contiene `sub` (email), `rol`, `nombre`, `cargo`, `activo`, `acceso_viaticos`, `accesos_procesos`. No contiene `permiso_operaciones` (eliminado). |
-| **Hub** | Panel central al hacer login (`SeleccionModulo.jsx`). Muestra accesos directos a módulos según rol. |
-| **Inventario** | Card hardcodeada en `MapaProcesosSGC.jsx:322-339` que NO es un proceso de BD. Placeholder que navega a `/inventario`. |
+| **SGC** | "Sistema de Gestión de Calidad". Nombre del mapa de procesos y módulos de calidad/inventario. |
+| **Master / PilarAdmin** | No es un rol de BD. Usuario `pilaradmin@gsbank.com`, detectado por correo (`security.py:76,112,139`). Gestiona "Accesos por Proceso", el acceso a Viáticos y Blindaje anti-modificación. |
+| **Administrador** | Rol `superadmin` en BD. UI lo muestra como "Administrador"; acceso a paneles admin, usuarios, auditoría, calidad, inventario, talento humano. |
+| **Técnico** | Rol `tecnico` en BD (default). Usuario operativo: crea sus viáticos, sube evidencias, consulta asignaciones, registra movimientos de inventario, ve su perfil y crea solicitudes. |
+| **Lector de Sección** | Nivel `accesos_procesos[codigo] === 'lector'`. Solo lectura de la ficha de un proceso. |
+| **Administrador de Sección** | Nivel `accesos_procesos[codigo] === 'admin'`. Edición completa de la ficha del proceso. |
+| **Accesos por Proceso** | Sistema de niveles (Ninguno/Lector/Administrador) por proceso SGC, gestionado por PilarAdmin. Tabla `procesos_calidad_accesos_admin`. |
+| **Bloque Antiguo (legacy)** | `acceso_mapa`, `rol_mapa`, `es_admin_calidad`. Se leen/setean pero ya no gobiernan accesos. |
+| **Módulo operativo** | Ficha de proceso con funcionalidad real (Inventario en `IN`, Viáticos en `OP`, Talento Humano en `AD`). |
+| **Placeholder** | Ficha de proceso sin módulo desarrollado (Autoplaner ODS, Escuela GSB y demás procesos). |
+| **OTP** | Código de 6 dígitos para recuperar contraseña, guardado en memoria (`auth.py`). |
+| **Kardex** | Registro inmutable de movimientos de inventario (`inventario_movimientos`). |
+| **Hub** | Panel central al hacer login (`SeleccionModulo.jsx`); muestra accesos a módulos según rol. |
+| **Inventario** | Proceso `IN` del mapa SGC, con módulo operativo real (`Inventario.jsx`, `inventario.py`). Planillas MANTENIMIENTO y RTC. |
+| **JWT** | Token de sesión. Contiene `sub`, `rol`, `nombre`, `cargo`, `activo`, `acceso_viaticos`, `accesos_procesos`. |
 
 ---
 
-> **Nota final:** Este documento refleja el estado del código al momento de la revisión. Los cambios posteriores (commits, migraciones) pueden desactualizar las referencias. Se recomienda regenerar este contexto tras cambios significativos en roles, permisos o estructura de módulos.
+> **Nota final:** Este documento refleja el estado del código al momento de la revisión (`commit 47e641ec`, rama `main`). Los cambios posteriores (commits, migraciones) pueden desactualizar las referencias. Se recomienda regenerar este contexto tras cambios significativos en roles, permisos o estructura de módulos.

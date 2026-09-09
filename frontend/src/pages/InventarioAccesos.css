@@ -1,0 +1,113 @@
+/* ---------------------------------------------------------------------------
+   Accesos por entidad del inventario (pantalla Master).
+   Reutiliza inputs y alertas de Inventario.css y el botón volver de
+   InventarioNavegacion.css. Namespacing propio: sgc-invacc-*
+--------------------------------------------------------------------------- */
+
+.sgc-invacc {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 24px 20px 48px;
+}
+
+.sgc-invacc-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.sgc-invacc-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: -0.01em;
+}
+
+.sgc-invacc-subtitle {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.sgc-invacc-nota {
+    margin: 0 0 16px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--color-accent-blue-subtle);
+    background: var(--color-accent-blue-light);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+.sgc-invacc-buscador {
+    max-width: 340px;
+    margin-bottom: 16px;
+}
+
+.sgc-invacc-vacio {
+    padding: 30px 4px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
+/* La tabla crece con el número de entidades: scroll propio, sin desbordar. */
+.sgc-invacc-tabla-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--color-border, rgba(15, 23, 42, 0.10));
+    background: var(--color-bg-secondary);
+}
+
+.sgc-invacc-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.sgc-invacc-tabla th,
+.sgc-invacc-tabla td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border, rgba(15, 23, 42, 0.07));
+    white-space: nowrap;
+}
+
+.sgc-invacc-tabla th {
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-text-muted);
+    background: var(--color-bg-subtle);
+}
+
+.sgc-invacc-usuario {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sgc-invacc-usuario span {
+    font-size: 11.5px;
+    color: var(--color-text-muted);
+}
+
+.sgc-invacc-badge {
+    align-self: flex-start;
+    margin-top: 2px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--color-gold-badge-bg);
+    color: var(--color-gold-badge-text) !important;
+    font-size: 10.5px !important;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.sgc-invacc-select {
+    min-width: 140px;
+}

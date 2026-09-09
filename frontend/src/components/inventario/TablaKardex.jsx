@@ -42,7 +42,7 @@ export default function TablaKardex({ movimientos, cargando }) {
                 <tbody>
                     {movimientos.map((mov) => {
                         const meta = etiquetaTipoMovimiento(mov.tipo);
-                        const esSalida = mov.tipo === 'salida';
+                        const esSalida = mov.tipo === 'salida' || mov.tipo === 'traspaso_salida';
                         return (
                             <tr key={mov.id}>
                                 <td className="sgc-inv-kardex-fecha">{formatFecha(mov.fecha)}</td>
@@ -56,7 +56,16 @@ export default function TablaKardex({ movimientos, cargando }) {
                                 </td>
                                 <td className="sgc-inv-num">{mov.stock_resultante}</td>
                                 <td>{mov.usuario_nombre || '—'}</td>
-                                <td className="sgc-inv-kardex-obs">{mov.observacion || '—'}</td>
+                                <td className="sgc-inv-kardex-obs">
+                                    {/* Los movimientos nacidos de un traspaso dicen de qué
+                                        entidad vinieron o hacia cuál se fueron. */}
+                                    {mov.traspaso_contraparte && (
+                                        <span className="sgc-inv-kardex-entidad">
+                                            {mov.traspaso_contraparte}
+                                        </span>
+                                    )}
+                                    {mov.observacion || (mov.traspaso_contraparte ? '' : '—')}
+                                </td>
                             </tr>
                         );
                     })}

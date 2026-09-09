@@ -4,7 +4,12 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+# Los tipos de traspaso quedan fuera de este Literal a propósito: solo los emite
+# el motor de traspasos, nunca la captura manual de movimientos.
 TipoMovimiento = Literal["ajuste_inicial", "compra", "devolucion", "salida"]
+TipoEmpresa = Literal["global", "union_temporal"]
+EstadoTraspaso = Literal["pendiente", "completado", "rechazado"]
+NivelEntidad = Literal["ninguno", "lector", "admin"]
 
 
 class UsuarioSimple(BaseModel):
@@ -21,6 +26,10 @@ class UsuarioSimple(BaseModel):
 class PlanillaCreate(BaseModel):
     nombre: str = Field(min_length=1, max_length=50)
     descripcion: Optional[str] = Field(default=None, max_length=255)
+    # Entidad a la que pertenece la planilla. `cliente_id` solo aplica a las
+    # tarjetas de Global; en las uniones temporales va siempre en None.
+    empresa_id: int
+    cliente_id: Optional[int] = None
 
     @field_validator("nombre")
     @classmethod
@@ -45,6 +54,10 @@ class PlanillaResponse(BaseModel):
     descripcion: Optional[str] = None
     activa: bool
     creado_en: datetime
+    empresa_id: Optional[int] = None
+    empresa_nombre: Optional[str] = None
+    cliente_id: Optional[int] = None
+    cliente_nombre: Optional[str] = None
     total_items: int = 0
     total_unidades: int = 0
 
@@ -110,6 +123,12 @@ class ItemResponse(BaseModel):
     marca: str
     planilla_id: int
     planilla_nombre: Optional[str] = None
+    # Scope heredado de la planilla, para que la UI sepa de qué entidad es el
+    # ítem sin tener que resolver la planilla por su cuenta.
+    empresa_id: Optional[int] = None
+    empresa_nombre: Optional[str] = None
+    cliente_id: Optional[int] = None
+    cliente_nombre: Optional[str] = None
     stock_actual: int
     foto_referencia_url: Optional[str] = None
     creado_en: datetime
@@ -143,6 +162,10 @@ class MovimientoResponse(BaseModel):
     origen: str
     stock_resultante: int
     fecha: datetime
+    # Presentes solo en los movimientos generados por un traspaso: permiten que
+    # el kardex diga "vino de / fue a [entidad]".
+    traspaso_id: Optional[int] = None
+    traspaso_contraparte: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -182,3 +205,131 @@ class ReporteGlobalResponse(BaseModel):
     items_en_cero: int
     total_movimientos: int
     por_planilla: List[PlanillaResumen]
+
+
+# -----------------------------------------------------------------------------
+# JERARQUÍA EMPRESARIAL
+# -----------------------------------------------------------------------------
+class ClienteResponse(BaseModel):
+    """Tarjeta de segundo nivel (solo bajo la empresa tipo `global`)."""
+
+    id: int
+    empresa_id: int
+    nombre: str
+    orden: int
+    total_items: int = 0
+    total_unidades: int = 0
+    # Nivel del usuario que consulta sobre esta tarjeta, y si puede entrar.
+    nivel: NivelEntidad = "ninguno"
+    accesible: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EmpresaResponse(BaseModel):
+    id: int
+    nombre: str
+    tipo: TipoEmpresa
+    orden: int
+    # Las uniones temporales llevan lista vacía: su inventario es directo.
+    clientes: List[ClienteResponse] = []
+    # Totales de toda la caja (lo directo más el de sus tarjetas).
+    total_items: int = 0
+    total_unidades: int = 0
+    # Solo lo que cuelga de la empresa sin tarjeta. En las uniones temporales es
+    # todo su inventario; en Global son las planillas generales heredadas
+    # (MANTENIMIENTO, RTC), que no pertenecen a ninguna tarjeta.
+    total_items_directo: int = 0
+    total_unidades_directo: int = 0
+    # Nivel sobre el inventario DIRECTO de la caja (cliente_id NULL). Las
+    # tarjetas llevan el suyo propio en `clientes[].nivel`.
+    nivel: NivelEntidad = "ninguno"
+    accesible: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# -----------------------------------------------------------------------------
+# TRASPASOS ENTRE ENTIDADES
+# -----------------------------------------------------------------------------
+class TraspasoCreate(BaseModel):
+    item_origen_id: int
+    cantidad: int = Field(gt=0)
+    empresa_destino_id: int
+    cliente_destino_id: Optional[int] = None
+    notas: Optional[str] = None
+
+
+class TraspasoResolucion(BaseModel):
+    """Cuerpo opcional al aprobar o rechazar: solo agrega una nota al traspaso."""
+
+    notas: Optional[str] = None
+
+
+class TraspasoResponse(BaseModel):
+    id: int
+    estado: EstadoTraspaso
+    cantidad: int
+
+    item_origen_id: int
+    item_destino_id: Optional[int] = None
+    item_descripcion: Optional[str] = None
+    item_codigo: Optional[str] = None
+
+    empresa_origen_id: int
+    empresa_origen_nombre: Optional[str] = None
+    cliente_origen_id: Optional[int] = None
+    cliente_origen_nombre: Optional[str] = None
+
+    empresa_destino_id: int
+    empresa_destino_nombre: Optional[str] = None
+    cliente_destino_id: Optional[int] = None
+    cliente_destino_nombre: Optional[str] = None
+
+    solicitado_por_id: int
+    solicitado_por_nombre: Optional[str] = None
+    fecha_solicitud: datetime
+    aprobado_por_id: Optional[int] = None
+    aprobado_por_nombre: Optional[str] = None
+    fecha_completado: Optional[datetime] = None
+    notas: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# -----------------------------------------------------------------------------
+# ACCESOS POR ENTIDAD DE INVENTARIO
+# -----------------------------------------------------------------------------
+# Quién puede ver y operar cada empresa/tarjeta. Es independiente del Mapa de
+# Procesos SGC: require_seccion("IN", ...) sigue siendo la puerta al módulo y
+# esto decide qué entidades ve el usuario una vez dentro.
+class AccesoInventarioSet(BaseModel):
+    """Establece (o quita, con nivel='ninguno') el acceso de un usuario a una entidad."""
+
+    usuario_id: int
+    empresa_id: int
+    cliente_id: Optional[int] = None
+    nivel: NivelEntidad
+
+
+class AccesoInventarioResponse(BaseModel):
+    usuario_id: int
+    empresa_id: int
+    empresa_nombre: Optional[str] = None
+    cliente_id: Optional[int] = None
+    cliente_nombre: Optional[str] = None
+    nivel: NivelEntidad
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UsuarioAccesosInventario(BaseModel):
+    """Un usuario y todas sus entidades asignadas, para el panel de gestión."""
+
+    usuario_id: int
+    nombre: str
+    correo: str
+    rol: str
+    # superadmin y la cuenta Master no necesitan asignaciones: entran a todo.
+    acceso_total: bool = False
+    accesos: List[AccesoInventarioResponse] = []

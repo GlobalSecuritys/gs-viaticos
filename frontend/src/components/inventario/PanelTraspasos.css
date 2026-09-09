@@ -1,0 +1,97 @@
+/* ---------------------------------------------------------------------------
+   Traspasos de stock entre entidades del inventario.
+   Reutiliza los botones y alertas de Inventario.css (sgc-inv-*).
+   Namespacing propio: sgc-trasp-*
+--------------------------------------------------------------------------- */
+
+.sgc-trasp-vacio {
+    padding: 28px 4px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
+.sgc-trasp-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sgc-trasp-fila {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 13px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--color-border, rgba(15, 23, 42, 0.10));
+    background: var(--color-bg-tertiary);
+}
+
+.sgc-trasp-main {
+    flex: 1 1 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.sgc-trasp-desc {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.sgc-trasp-flecha {
+    color: var(--color-accent-blue);
+}
+
+.sgc-trasp-meta,
+.sgc-trasp-notas {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.sgc-trasp-notas {
+    font-style: italic;
+}
+
+.sgc-trasp-estado {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.sgc-trasp-estado--pendiente {
+    background: var(--color-pendiente-bg);
+    color: var(--color-pendiente);
+}
+
+.sgc-trasp-estado--completado {
+    background: var(--color-aprobado-bg);
+    color: var(--color-aprobado);
+}
+
+.sgc-trasp-estado--rechazado {
+    background: var(--color-rechazado-bg, #FEE2E2);
+    color: var(--color-rechazado, #DC2626);
+}
+
+.sgc-trasp-acciones {
+    display: flex;
+    gap: 8px;
+}
+
+.sgc-trasp-espera {
+    font-size: 12px;
+    color: var(--color-text-light);
+}

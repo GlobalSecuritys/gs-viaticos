@@ -687,3 +687,34 @@
         padding: 18px;
     }
 }
+
+/* ── Pestañas Inventario / Traspasos ── */
+.sgc-inv-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--color-border, rgba(15, 23, 42, 0.10));
+}
+
+.sgc-inv-tab {
+    padding: 9px 16px;
+    border: none;
+    background: none;
+    /* El borde transparente reserva el sitio del indicador para que la pestaña
+       no salte de posición al activarse. */
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.sgc-inv-tab:hover {
+    color: var(--color-text-secondary);
+}
+
+.sgc-inv-tab--activa {
+    color: var(--color-accent-blue);
+    border-bottom-color: var(--color-accent-blue);
+}

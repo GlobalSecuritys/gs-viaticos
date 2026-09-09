@@ -12,17 +12,22 @@ import InventarioPanel from './InventarioPanel';
  *   CI: lector  → el mismo panel, en solo lectura
  *   sin acceso  → vista de captura: cualquier técnico registra sus propios
  *                 movimientos, como pasa con sus propios viáticos.
+ *
+ * `scope` ({ empresaId, clienteId, ... }) llega desde InventarioNavegacion y
+ * acota todo lo que ambas vistas consultan a una sola entidad de la jerarquía.
+ * Sin scope no hay vista de inventario: la navegación siempre entra por una
+ * empresa o una tarjeta.
  */
-export default function Inventario() {
+export default function Inventario({ scope, empresas = [] }) {
     const { user } = useAuth();
 
     if (esAdministradorSeccion(user, 'CI')) {
-        return <InventarioPanel />;
+        return <InventarioPanel scope={scope} empresas={empresas} />;
     }
 
     if (esLectorSeccion(user, 'CI')) {
-        return <InventarioPanel soloLectura />;
+        return <InventarioPanel scope={scope} empresas={empresas} soloLectura />;
     }
 
-    return <InventarioCaptura />;
+    return <InventarioCaptura scope={scope} />;
 }

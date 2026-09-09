@@ -10,7 +10,11 @@ from app.routers.proveedores import router as proveedores_router
 from app.routers.cuentas_cobro import router as cuentas_cobro_router
 from app.routers.talento_humano import router as talento_humano_router
 from app.routers.calidad_procesos import router as calidad_procesos_router, seed_procesos_calidad_si_vacio
-from app.routers.inventario import router as inventario_router, seed_planillas_inventario_si_vacio
+from app.routers.inventario import (
+    router as inventario_router,
+    seed_estructura_inventario,
+    seed_planillas_inventario_si_vacio,
+)
 
 from sqlalchemy import text
 from app.database import engine, SessionLocal
@@ -25,9 +29,13 @@ from app.models.talento_humano import (
     EmpleadoEvaluacion,
 )
 from app.models.inventario import (
+    InventarioEmpresa,
+    InventarioCliente,
     InventarioPlanilla,
     InventarioItem,
     InventarioMovimiento,
+    InventarioTraspaso,
+    InventarioUsuarioAsignado,
 )
 from app.models.calidad_procesos import (
     ProcesoCalidad,
@@ -67,16 +75,91 @@ def startup_db_check():
         ProcesoCalidadResponsable.__table__.create(bind=engine, checkfirst=True)
         ProcesoCalidadDocumento.__table__.create(bind=engine, checkfirst=True)
         ProcesoCalidadAccesoAdmin.__table__.create(bind=engine, checkfirst=True)
+        # Orden importante: las planillas referencian empresas y clientes.
+        InventarioEmpresa.__table__.create(bind=engine, checkfirst=True)
+        InventarioCliente.__table__.create(bind=engine, checkfirst=True)
         InventarioPlanilla.__table__.create(bind=engine, checkfirst=True)
         InventarioItem.__table__.create(bind=engine, checkfirst=True)
+        InventarioTraspaso.__table__.create(bind=engine, checkfirst=True)
         InventarioMovimiento.__table__.create(bind=engine, checkfirst=True)
+        InventarioUsuarioAsignado.__table__.create(bind=engine, checkfirst=True)
+        _alterar_inventario_jerarquia()
 
         with SessionLocal() as db:
             seed_procesos_calidad_si_vacio(db)
+            # La estructura va primero: las planillas nacen colgadas de Global.
+            seed_estructura_inventario(db)
             seed_planillas_inventario_si_vacio(db)
             _migrar_rol_admin_a_superadmin(db)
     except Exception as e:
         print(f"Startup DB check warning: {e}")
+
+
+def _alterar_inventario_jerarquia() -> None:
+    """Agrega a las tablas de inventario ya existentes las columnas de la
+    jerarquía empresarial (migración 0016).
+
+    Va aparte y después de los create(checkfirst=True) porque checkfirst no
+    toca una tabla que ya existe, y en su propio try para que un fallo aquí no
+    impida el resto del arranque.
+    """
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE inventario_planillas ADD COLUMN IF NOT EXISTS empresa_id INTEGER;"))
+            conn.execute(text("ALTER TABLE inventario_planillas ADD COLUMN IF NOT EXISTS cliente_id INTEGER;"))
+            conn.execute(text("ALTER TABLE inventario_movimientos ADD COLUMN IF NOT EXISTS traspaso_id INTEGER;"))
+
+            # Las FK y el índice se crean solo si faltan: ADD CONSTRAINT no
+            # admite IF NOT EXISTS en Postgres.
+            conn.execute(text("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_inventario_planillas_empresa') THEN
+                        ALTER TABLE inventario_planillas
+                          ADD CONSTRAINT fk_inventario_planillas_empresa
+                          FOREIGN KEY (empresa_id) REFERENCES inventario_empresas(id) ON DELETE RESTRICT;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_inventario_planillas_cliente') THEN
+                        ALTER TABLE inventario_planillas
+                          ADD CONSTRAINT fk_inventario_planillas_cliente
+                          FOREIGN KEY (cliente_id) REFERENCES inventario_clientes(id) ON DELETE RESTRICT;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_inventario_movimientos_traspaso') THEN
+                        ALTER TABLE inventario_movimientos
+                          ADD CONSTRAINT fk_inventario_movimientos_traspaso
+                          FOREIGN KEY (traspaso_id) REFERENCES inventario_traspasos(id) ON DELETE SET NULL;
+                    END IF;
+                END $$;
+            """))
+
+            # El nombre de planilla deja de ser único a nivel global: cada entidad
+            # lleva su propio juego y dos pueden tener una "GENERAL" cada una. El
+            # nombre del UNIQUE lo puso Postgres, así que se busca por catálogo.
+            conn.execute(text("""
+                DO $$
+                DECLARE cname text;
+                BEGIN
+                    SELECT con.conname INTO cname
+                      FROM pg_constraint con
+                      JOIN pg_class rel ON rel.oid = con.conrelid
+                     WHERE rel.relname = 'inventario_planillas'
+                       AND con.contype = 'u'
+                       AND con.conkey = ARRAY[(
+                             SELECT attnum FROM pg_attribute
+                              WHERE attrelid = rel.oid AND attname = 'nombre'
+                           )]::smallint[];
+                    IF cname IS NOT NULL THEN
+                        EXECUTE format('ALTER TABLE inventario_planillas DROP CONSTRAINT %I', cname);
+                    END IF;
+                END $$;
+            """))
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_inventario_planilla_scope_nombre "
+                "ON inventario_planillas (empresa_id, COALESCE(cliente_id, 0), nombre);"
+            ))
+            conn.commit()
+    except Exception as e:
+        print(f"[STARTUP] Advertencia al alterar el inventario para la jerarquía: {e}")
 
 def _migrar_rol_admin_a_superadmin(db) -> None:
     """

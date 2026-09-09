@@ -1,15 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CapturaFoto from '../components/inventario/CapturaFoto';
+import PanelTraspasos from '../components/inventario/PanelTraspasos';
 import TablaKardex from '../components/inventario/TablaKardex';
 import { formatApiError } from '../utils/formatError';
-import { irAtras } from '../utils/navigation';
 import {
     actualizarItem,
     actualizarPlanilla,
     crearItem,
     crearPlanilla,
+    crearTraspaso,
     eliminarItem,
+    etiquetaEntidad,
     listarItems,
     listarPlanillas,
     obtenerKardex,
@@ -26,9 +28,14 @@ const NUEVO_VACIO = { codigo: '', descripcion: '', marca: '', planillaId: '', st
  * Panel de supervisión de Inventario (proceso CI del Mapa SGC).
  * `soloLectura` corresponde al nivel "lector" de accesos_procesos['CI']:
  * ve todo el consolidado, pero no edita, no elimina y no crea planillas.
+ *
+ * `scope` acota el panel a una entidad de la jerarquía (una tarjeta de Global o
+ * una unión temporal); `empresas` es la estructura completa, y solo se usa para
+ * ofrecer los destinos posibles de un traspaso.
  */
-export default function InventarioPanel({ soloLectura = false }) {
+export default function InventarioPanel({ scope, empresas = [], soloLectura = false }) {
     const navigate = useNavigate();
+    const [pestana, setPestana] = useState('inventario');
 
     const [reporte, setReporte] = useState(null);
     const [planillas, setPlanillas] = useState([]);
@@ -61,6 +68,50 @@ export default function InventarioPanel({ soloLectura = false }) {
     const [creando, setCreando] = useState(false);
     const [errorNuevo, setErrorNuevo] = useState('');
 
+    // Traspaso de stock hacia otra entidad
+    const [itemTraspaso, setItemTraspaso] = useState(null);
+    const [formTraspaso, setFormTraspaso] = useState({ destino: '', cantidad: 1, notas: '' });
+    const [traspasando, setTraspasando] = useState(false);
+    const [errorTraspaso, setErrorTraspaso] = useState('');
+    // Sube en cada traspaso creado para que la pestaña se vuelva a leer.
+    const [versionTraspasos, setVersionTraspasos] = useState(0);
+
+    // Destinos posibles: todas las entidades de la jerarquía menos esta.
+    // La clave "empresaId:clienteId" es lo que viaja en el <select>.
+    const destinos = useMemo(() => {
+        const lista = [];
+        for (const empresa of empresas) {
+            if (empresa.tipo === 'global') {
+                for (const cliente of empresa.clientes || []) {
+                    lista.push({
+                        clave: `${empresa.id}:${cliente.id}`,
+                        empresaId: empresa.id,
+                        clienteId: cliente.id,
+                        label: etiquetaEntidad(empresa.nombre, cliente.nombre),
+                    });
+                }
+                // El inventario general de Global solo se ofrece si ya existe.
+                if (empresa.total_items_directo > 0) {
+                    lista.push({
+                        clave: `${empresa.id}:`,
+                        empresaId: empresa.id,
+                        clienteId: null,
+                        label: `${empresa.nombre} · Inventario general`,
+                    });
+                }
+            } else {
+                lista.push({
+                    clave: `${empresa.id}:`,
+                    empresaId: empresa.id,
+                    clienteId: null,
+                    label: empresa.nombre,
+                });
+            }
+        }
+        const propia = `${scope?.empresaId}:${scope?.clienteId || ''}`;
+        return lista.filter((d) => d.clave !== propia);
+    }, [empresas, scope]);
+
     const mostrarFeedback = useCallback((mensaje) => {
         setFeedback(mensaje);
         setTimeout(() => setFeedback(''), 4500);
@@ -68,13 +119,16 @@ export default function InventarioPanel({ soloLectura = false }) {
 
     const cargarResumen = useCallback(async () => {
         try {
-            const [rep, pls] = await Promise.all([obtenerReporteGlobal(), listarPlanillas(true)]);
+            const [rep, pls] = await Promise.all([
+                obtenerReporteGlobal(scope),
+                listarPlanillas(true, scope),
+            ]);
             setReporte(rep);
             setPlanillas(pls);
         } catch (err) {
             setError(formatApiError(err, 'No se pudo cargar el consolidado de inventario.'));
         }
-    }, []);
+    }, [scope]);
 
     const cargarItems = useCallback(async () => {
         setCargando(true);
@@ -83,6 +137,7 @@ export default function InventarioPanel({ soloLectura = false }) {
                 q: busqueda.trim() || undefined,
                 planillaId: planillaFiltro || undefined,
                 limit: 500,
+                scope,
             });
             const listado = soloAgotados ? data.items.filter((i) => i.stock_actual === 0) : data.items;
             setItems(listado);
@@ -92,7 +147,7 @@ export default function InventarioPanel({ soloLectura = false }) {
         } finally {
             setCargando(false);
         }
-    }, [busqueda, planillaFiltro, soloAgotados]);
+    }, [busqueda, planillaFiltro, soloAgotados, scope]);
 
     useEffect(() => {
         cargarResumen();
@@ -227,6 +282,54 @@ export default function InventarioPanel({ soloLectura = false }) {
         }
     }
 
+    function abrirTraspaso(item) {
+        setItemTraspaso(item);
+        setFormTraspaso({ destino: destinos[0]?.clave || '', cantidad: 1, notas: '' });
+        setErrorTraspaso('');
+    }
+
+    async function handleCrearTraspaso(e) {
+        e.preventDefault();
+        if (!itemTraspaso) return;
+
+        const destino = destinos.find((d) => d.clave === formTraspaso.destino);
+        const cantidad = Number(formTraspaso.cantidad);
+        if (!destino) {
+            setErrorTraspaso('Selecciona la entidad de destino.');
+            return;
+        }
+        if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > itemTraspaso.stock_actual) {
+            setErrorTraspaso(
+                `La cantidad debe estar entre 1 y ${itemTraspaso.stock_actual} unidades disponibles.`
+            );
+            return;
+        }
+
+        setTraspasando(true);
+        setErrorTraspaso('');
+        try {
+            await crearTraspaso({
+                itemOrigenId: itemTraspaso.id,
+                cantidad,
+                empresaDestinoId: destino.empresaId,
+                clienteDestinoId: destino.clienteId,
+                notas: formTraspaso.notas || null,
+            });
+            setItemTraspaso(null);
+            // El stock sale del origen ya: el destino solo confirma la recepción.
+            mostrarFeedback(
+                `Traspaso enviado a ${destino.label}. Las ${cantidad} und. ya salieron de este ` +
+                    'inventario y quedan pendientes de que el destino confirme la recepción.'
+            );
+            setVersionTraspasos((v) => v + 1);
+            await Promise.all([cargarItems(), cargarResumen()]);
+        } catch (err) {
+            setErrorTraspaso(formatApiError(err, 'No se pudo crear el traspaso.'));
+        } finally {
+            setTraspasando(false);
+        }
+    }
+
     async function abrirKardex(item) {
         setKardex({ item, movimientos: [] });
         setCargandoKardex(true);
@@ -246,7 +349,11 @@ export default function InventarioPanel({ soloLectura = false }) {
         setGuardandoPlanilla(true);
         setError('');
         try {
-            await crearPlanilla({ nombre: nuevaPlanilla });
+            await crearPlanilla({
+                nombre: nuevaPlanilla,
+                empresaId: scope.empresaId,
+                clienteId: scope.clienteId,
+            });
             setNuevaPlanilla('');
             mostrarFeedback('Planilla creada.');
             await cargarResumen();
@@ -274,19 +381,21 @@ export default function InventarioPanel({ soloLectura = false }) {
                     <button
                         type="button"
                         className="sgc-inv-btn sgc-inv-btn--ghost sgc-inv-btn--sm"
-                        onClick={() => irAtras(navigate, '/calidad-procesos')}
+                        onClick={() => navigate('/inventario')}
                     >
-                        ← Volver
+                        ← Entidades
                     </button>
                     <div>
-                        <h1 className="sgc-inv-title">Inventario</h1>
+                        <h1 className="sgc-inv-title">
+                            {etiquetaEntidad(scope?.empresaNombre, scope?.clienteNombre)}
+                        </h1>
                         <p className="sgc-inv-subtitle">
                             Inventario (IN) · Panel de supervisión
                             {soloLectura && ' · solo lectura'}
                         </p>
                     </div>
                 </div>
-                {!soloLectura && (
+                {!soloLectura && pestana === 'inventario' && (
                     <button
                         type="button"
                         className="sgc-inv-btn sgc-inv-btn--primary"
@@ -297,9 +406,40 @@ export default function InventarioPanel({ soloLectura = false }) {
                 )}
             </header>
 
+            <nav className="sgc-inv-tabs">
+                <button
+                    type="button"
+                    className={`sgc-inv-tab ${pestana === 'inventario' ? 'sgc-inv-tab--activa' : ''}`}
+                    onClick={() => setPestana('inventario')}
+                >
+                    Inventario
+                </button>
+                <button
+                    type="button"
+                    className={`sgc-inv-tab ${pestana === 'traspasos' ? 'sgc-inv-tab--activa' : ''}`}
+                    onClick={() => setPestana('traspasos')}
+                >
+                    Traspasos
+                </button>
+            </nav>
+
             {feedback && <div className="sgc-inv-alerta sgc-inv-alerta--ok">{feedback}</div>}
             {error && <div className="sgc-inv-alerta sgc-inv-alerta--err">{error}</div>}
 
+            {pestana === 'traspasos' && (
+                <PanelTraspasos
+                    key={versionTraspasos}
+                    scope={scope}
+                    puedeGestionar={!soloLectura}
+                    onCambio={() => {
+                        cargarItems();
+                        cargarResumen();
+                    }}
+                />
+            )}
+
+            {pestana === 'inventario' && (
+              <>
             {reporte && (
                 <section className="sgc-inv-kpis">
                     <article className="sgc-inv-kpi">
@@ -429,6 +569,19 @@ export default function InventarioPanel({ soloLectura = false }) {
                                                 </button>
                                                 <button
                                                     type="button"
+                                                    className="sgc-inv-btn sgc-inv-btn--sm sgc-inv-btn--ghost"
+                                                    onClick={() => abrirTraspaso(item)}
+                                                    disabled={item.stock_actual === 0 || destinos.length === 0}
+                                                    title={
+                                                        item.stock_actual === 0
+                                                            ? 'Sin unidades para traspasar'
+                                                            : 'Traspasar unidades a otra entidad'
+                                                    }
+                                                >
+                                                    Traspasar
+                                                </button>
+                                                <button
+                                                    type="button"
                                                     className="sgc-inv-btn sgc-inv-btn--sm sgc-inv-btn--peligro"
                                                     onClick={() => setConfirmarBorrado(item)}
                                                 >
@@ -449,9 +602,11 @@ export default function InventarioPanel({ soloLectura = false }) {
                     Mostrando {items.length} de {total} elementos registrados.
                 </p>
             )}
+              </>
+            )}
 
             {/* Alta rápida: siempre alcanzable sin volver al tope de la tabla. */}
-            {!soloLectura && (
+            {!soloLectura && pestana === 'inventario' && (
                 <button
                     type="button"
                     className="sgc-inv-fab"
@@ -659,6 +814,100 @@ export default function InventarioPanel({ soloLectura = false }) {
                                 </button>
                                 <button type="submit" className="sgc-inv-btn sgc-inv-btn--primary" disabled={guardando}>
                                     {guardando ? 'Guardando…' : 'Guardar cambios'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Modal: traspaso a otra entidad ── */}
+            {itemTraspaso && (
+                <div
+                    className="sgc-inv-modal-overlay"
+                    onClick={() => !traspasando && setItemTraspaso(null)}
+                >
+                    <div className="sgc-inv-modal" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="sgc-inv-modal-title">Traspasar a otra entidad</h2>
+                        <p className="sgc-inv-modal-sub">
+                            <strong>{itemTraspaso.descripcion}</strong> · disponible:{' '}
+                            <strong>{itemTraspaso.stock_actual}</strong> und. en{' '}
+                            {etiquetaEntidad(scope?.empresaNombre, scope?.clienteNombre)}.
+                        </p>
+
+                        {errorTraspaso && (
+                            <div className="sgc-inv-alerta sgc-inv-alerta--err">{errorTraspaso}</div>
+                        )}
+
+                        <form onSubmit={handleCrearTraspaso} className="sgc-inv-form">
+                            <label className="sgc-inv-label">
+                                Entidad de destino *
+                                <select
+                                    className="sgc-inv-input sgc-inv-input--select"
+                                    value={formTraspaso.destino}
+                                    onChange={(e) =>
+                                        setFormTraspaso({ ...formTraspaso, destino: e.target.value })
+                                    }
+                                    required
+                                >
+                                    <option value="">Selecciona…</option>
+                                    {destinos.map((d) => (
+                                        <option key={d.clave} value={d.clave}>
+                                            {d.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label className="sgc-inv-label">
+                                Cantidad *
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max={itemTraspaso.stock_actual}
+                                    step="1"
+                                    className="sgc-inv-input"
+                                    value={formTraspaso.cantidad}
+                                    onChange={(e) =>
+                                        setFormTraspaso({ ...formTraspaso, cantidad: e.target.value })
+                                    }
+                                    required
+                                />
+                                <span className="sgc-inv-hint">
+                                    Las unidades salen de este inventario apenas envías el traspaso; el
+                                    destino solo confirma que las recibió. Si lo rechaza, vuelven aquí
+                                    automáticamente.
+                                </span>
+                            </label>
+
+                            <label className="sgc-inv-label">
+                                Notas <span className="sgc-inv-opcional">(opcional)</span>
+                                <textarea
+                                    className="sgc-inv-input sgc-inv-textarea"
+                                    rows={2}
+                                    placeholder="Ej: préstamo para la OT 4521"
+                                    value={formTraspaso.notas}
+                                    onChange={(e) =>
+                                        setFormTraspaso({ ...formTraspaso, notas: e.target.value })
+                                    }
+                                />
+                            </label>
+
+                            <div className="sgc-inv-modal-acciones">
+                                <button
+                                    type="button"
+                                    className="sgc-inv-btn sgc-inv-btn--ghost"
+                                    onClick={() => setItemTraspaso(null)}
+                                    disabled={traspasando}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="sgc-inv-btn sgc-inv-btn--primary"
+                                    disabled={traspasando}
+                                >
+                                    {traspasando ? 'Enviando…' : 'Enviar traspaso'}
                                 </button>
                             </div>
                         </form>

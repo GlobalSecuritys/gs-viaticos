@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import TecnicoLayout from '../components/TecnicoLayout';
 import BannerDuplicado from '../components/inventario/BannerDuplicado';
 import CapturaFoto from '../components/inventario/CapturaFoto';
+import PanelTraspasos from '../components/inventario/PanelTraspasos';
 import TablaKardex from '../components/inventario/TablaKardex';
 import { formatApiError } from '../utils/formatError';
 import {
     crearItem,
+    etiquetaEntidad,
     listarItems,
     listarPlanillas,
     obtenerKardex,
@@ -30,7 +33,9 @@ const FORM_VACIO = {
     observacion: '',
 };
 
-export default function InventarioCaptura() {
+export default function InventarioCaptura({ scope }) {
+    const navigate = useNavigate();
+    const [pestana, setPestana] = useState('inventario');
     const [planillas, setPlanillas] = useState([]);
     const [items, setItems] = useState([]);
     const [total, setTotal] = useState(0);
@@ -71,6 +76,7 @@ export default function InventarioCaptura() {
             const data = await listarItems({
                 q: busqueda.trim() || undefined,
                 planillaId: planillaFiltro || undefined,
+                scope,
             });
             setItems(data.items);
             setTotal(data.total);
@@ -79,13 +85,13 @@ export default function InventarioCaptura() {
         } finally {
             setCargando(false);
         }
-    }, [busqueda, planillaFiltro]);
+    }, [busqueda, planillaFiltro, scope]);
 
     useEffect(() => {
-        listarPlanillas()
+        listarPlanillas(false, scope)
             .then(setPlanillas)
             .catch((err) => setError(formatApiError(err, 'No se pudieron cargar las planillas.')));
-    }, []);
+    }, [scope]);
 
     // Búsqueda con debounce para no disparar una petición por tecla.
     useEffect(() => {
@@ -107,6 +113,7 @@ export default function InventarioCaptura() {
                     descripcion,
                     codigo: form.codigo.trim() || undefined,
                     marca: form.marca.trim() || undefined,
+                    scope,
                 });
                 setDuplicados(res);
                 setDuplicadosIgnorados(false);
@@ -115,7 +122,7 @@ export default function InventarioCaptura() {
             }
         }, 500);
         return () => clearTimeout(t);
-    }, [modoAlta, form.descripcion, form.codigo, form.marca]);
+    }, [modoAlta, form.descripcion, form.codigo, form.marca, scope]);
 
     const planillaPorDefecto = useMemo(
         () => (planillas.length ? String(planillas[0].id) : ''),
@@ -225,20 +232,56 @@ export default function InventarioCaptura() {
         <TecnicoLayout>
             <div className="sgc-inv-page">
                 <header className="sgc-inv-header">
-                    <div>
-                        <h1 className="sgc-inv-title">Inventario</h1>
-                        <p className="sgc-inv-subtitle">
-                            Inventario (IN) · Registra salidas, devoluciones e ingresos de material.
-                        </p>
+                    <div className="sgc-inv-panel-head-left">
+                        <button
+                            type="button"
+                            className="sgc-inv-btn sgc-inv-btn--ghost sgc-inv-btn--sm"
+                            onClick={() => navigate('/inventario')}
+                        >
+                            ← Entidades
+                        </button>
+                        <div>
+                            <h1 className="sgc-inv-title">
+                                {etiquetaEntidad(scope?.empresaNombre, scope?.clienteNombre)}
+                            </h1>
+                            <p className="sgc-inv-subtitle">
+                                Inventario (IN) · Registra salidas, devoluciones e ingresos de material.
+                            </p>
+                        </div>
                     </div>
-                    <button type="button" className="sgc-inv-btn sgc-inv-btn--primary" onClick={abrirAlta}>
-                        + Registrar elemento
-                    </button>
+                    {pestana === 'inventario' && (
+                        <button type="button" className="sgc-inv-btn sgc-inv-btn--primary" onClick={abrirAlta}>
+                            + Registrar elemento
+                        </button>
+                    )}
                 </header>
+
+                <nav className="sgc-inv-tabs">
+                    <button
+                        type="button"
+                        className={`sgc-inv-tab ${pestana === 'inventario' ? 'sgc-inv-tab--activa' : ''}`}
+                        onClick={() => setPestana('inventario')}
+                    >
+                        Inventario
+                    </button>
+                    <button
+                        type="button"
+                        className={`sgc-inv-tab ${pestana === 'traspasos' ? 'sgc-inv-tab--activa' : ''}`}
+                        onClick={() => setPestana('traspasos')}
+                    >
+                        Traspasos
+                    </button>
+                </nav>
 
                 {feedback && <div className="sgc-inv-alerta sgc-inv-alerta--ok">{feedback}</div>}
                 {error && <div className="sgc-inv-alerta sgc-inv-alerta--err">{error}</div>}
 
+                {pestana === 'traspasos' ? (
+                    /* El técnico ve el estado de los traspasos de su entidad; solicitarlos
+                       y resolverlos requiere nivel admin del proceso IN. */
+                    <PanelTraspasos scope={scope} />
+                ) : (
+                  <>
                 <div className="sgc-inv-filtros">
                     <input
                         type="search"
@@ -318,6 +361,8 @@ export default function InventarioCaptura() {
                             ))}
                         </ul>
                     </>
+                )}
+                  </>
                 )}
             </div>
 

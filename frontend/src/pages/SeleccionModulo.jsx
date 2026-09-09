@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { isAdminMaster, GLOBAL_ADMIN_NAV } from '../config/modulesConfig';
 import { obtenerNombreUsuario, obtenerPrimerNombre } from '../utils/personal';
+import { obtenerFotoAdmin, obtenerIniciales } from '../config/fotosAdmin';
 import { puedeVerMapa, esPilarAdmin } from '../utils/permisos';
 import MapaProcesosSGC from '../components/MapaProcesosSGC';
 import PanelRolesAdminsMapa from '../components/PanelRolesAdminsMapa';
@@ -25,6 +26,14 @@ export default function SeleccionModulo() {
   const primerNombre = obtenerPrimerNombre(user, 'Admin');
   const inicial = nombreMostrado[0].toUpperCase();
   const rolLabel = LABEL_ROL[user?.rol] || user?.rol || 'Administrador';
+
+  const fotoAdmin = obtenerFotoAdmin(user?.correo);
+  const iniciales = obtenerIniciales(nombreMostrado);
+  // Si el archivo existe en el mapa pero falta en disco, la <img> falla al
+  // cargar: se marca y la tarjeta cae al avatar de iniciales igual que si no
+  // hubiera foto, en vez de dejar el icono roto del navegador.
+  const [fotoFallida, setFotoFallida] = useState(false);
+  const esAdminGlobal = user?.rol === 'admin' || user?.rol === 'superadmin';
 
   const now = new Date();
   const hora = now.getHours();
@@ -111,7 +120,84 @@ export default function SeleccionModulo() {
             </div>
           </div>
 
-          {/* ── 1. MAPA DE CALIDAD DE PROCESOS (CONTENIDO PRINCIPAL) ── */}
+          {/* ── 1. ADMINISTRACIÓN GLOBAL DEL ECOSISTEMA ──
+              Va pegada al saludo, antes del mapa y del panel de accesos por
+              proceso: es la identidad de quien entró y sus accesos personales. */}
+          {esAdminGlobal && (
+            <section className="sm-admin-card" aria-label="Administración Global del Ecosistema">
+              <div className="sm-admin-card-foto">
+                {fotoAdmin && !fotoFallida ? (
+                  <img
+                    src={fotoAdmin}
+                    alt={`Foto de ${nombreMostrado}`}
+                    className="sm-admin-card-img"
+                    onError={() => setFotoFallida(true)}
+                  />
+                ) : (
+                  <span className="sm-admin-card-iniciales" aria-hidden="true">
+                    {iniciales}
+                  </span>
+                )}
+              </div>
+
+              <div className="sm-admin-card-info">
+                <h2 className="sm-admin-card-nombre">{nombreMostrado}</h2>
+
+                <div className="sm-admin-card-meta">
+                  {isMaster ? (
+                    <span className="sm-role-badge sm-role-badge--master">👑 Master</span>
+                  ) : (
+                    <span className="sm-role-badge">● {rolLabel}</span>
+                  )}
+                  <a href={`mailto:${user?.correo}`} className="sm-admin-card-correo">
+                    {user?.correo}
+                  </a>
+                </div>
+
+                <p className="sm-admin-card-desc">
+                  Administración Global del Ecosistema · Gestión de usuarios, auditoría de
+                  trazabilidad y ajustes transversales.
+                </p>
+
+                <div className="sm-global-admin-links">
+                  {GLOBAL_ADMIN_NAV.map((nav) => {
+                    const isLocked = nav.minRole === 'superadmin' && user?.rol !== 'superadmin';
+                    const targetPath = nav.getPath ? nav.getPath(user) : nav.path;
+                    return (
+                      <button
+                        key={nav.id}
+                        type="button"
+                        className={`sm-btn-global-link ${isLocked ? 'sm-btn-global-link--locked' : ''}`}
+                        onClick={() => {
+                          if (isLocked) {
+                            setGlobalLockAlert({
+                              modulo: nav.label,
+                              razon: 'Esta sección está reservada exclusivamente para usuarios con perfil de Administrador.',
+                            });
+                          } else {
+                            navigate(targetPath);
+                          }
+                        }}
+                        title={isLocked ? `🔒 Acceso restringido (Solo Administradores)` : `Ir a ${nav.label}`}
+                      >
+                        <span>{isLocked ? '🔒' : nav.icon}</span>
+                        <span>{nav.label}</span>
+                        {isLocked ? (
+                          <span className="sm-global-lock-pill">Solo Administrador</span>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* ── 2. MAPA DE CALIDAD DE PROCESOS (CONTENIDO PRINCIPAL) ── */}
           <section className="sm-mapa-section" aria-label="Mapa de Procesos SGC">
             {puedeVerMapa(user) ? (
               <>
@@ -133,53 +219,6 @@ export default function SeleccionModulo() {
             )}
           </section>
 
-          {/* ── 2. SECCIÓN DE ADMINISTRACIÓN GLOBAL (TRANSVERSAL) ── */}
-          {(user?.rol === 'admin' || user?.rol === 'superadmin') && (
-            <div className="sm-global-admin-bar">
-              <div className="sm-global-admin-header">
-                <span className="sm-global-admin-icon">⚙️</span>
-                <div className="sm-global-admin-text">
-                  <h4>Administración Global del Ecosistema</h4>
-                  <p>Gestión de usuarios, auditoría de trazabilidad y ajustes transversales.</p>
-                </div>
-              </div>
-
-              <div className="sm-global-admin-links">
-                {GLOBAL_ADMIN_NAV.map((nav) => {
-                  const isLocked = nav.minRole === 'superadmin' && user?.rol !== 'superadmin';
-                  const targetPath = nav.getPath ? nav.getPath(user) : nav.path;
-                  return (
-                    <button
-                      key={nav.id}
-                      type="button"
-                      className={`sm-btn-global-link ${isLocked ? 'sm-btn-global-link--locked' : ''}`}
-                      onClick={() => {
-                        if (isLocked) {
-                          setGlobalLockAlert({
-                            modulo: nav.label,
-                            razon: 'Esta sección está reservada exclusivamente para usuarios con perfil de Administrador.',
-                          });
-                        } else {
-                          navigate(targetPath);
-                        }
-                      }}
-                      title={isLocked ? `🔒 Acceso restringido (Solo Administradores)` : `Ir a ${nav.label}`}
-                    >
-                      <span>{isLocked ? '🔒' : nav.icon}</span>
-                      <span>{nav.label}</span>
-                      {isLocked ? (
-                        <span className="sm-global-lock-pill">Solo Administrador</span>
-                      ) : (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                          <path d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* ── 3. BARRA HORIZONTAL DE CONTACTOS WHATSAPP (PARTE INFERIOR) ── */}
           {(user?.rol === 'admin' || user?.rol === 'superadmin') && (

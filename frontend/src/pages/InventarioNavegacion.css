@@ -1,0 +1,146 @@
+/* ---------------------------------------------------------------------------
+   Navegación jerárquica del módulo Inventario (empresas -> tarjetas).
+   Sin paleta propia: todo sale de las variables globales de index.css.
+   Namespacing: sgc-invnav-*
+--------------------------------------------------------------------------- */
+
+.sgc-invnav {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 24px 20px 48px;
+}
+
+.sgc-invnav-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.sgc-invnav-volver {
+    flex-shrink: 0;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border, rgba(15, 23, 42, 0.12));
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.sgc-invnav-volver:hover {
+    background: var(--color-bg-subtle);
+}
+
+.sgc-invnav-head-texto {
+    flex: 1;
+    min-width: 0;
+}
+
+.sgc-invnav-accion {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background: var(--color-accent-blue);
+    color: var(--color-text-inverse);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.sgc-invnav-accion:hover {
+    background: var(--color-accent-blue-hover);
+}
+
+.sgc-invnav-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: -0.01em;
+}
+
+.sgc-invnav-subtitle {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.sgc-invnav-estado {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
+.sgc-invnav-estado--err {
+    color: var(--color-rechazado, #DC2626);
+}
+
+/* ── Rejilla de entidades ── */
+.sgc-invnav-grid {
+    display: grid;
+    /* auto-fit + minmax: 3 tarjetas en escritorio, 1 en móvil, sin media query. */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
+}
+
+.sgc-invnav-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 150px;
+    padding: 22px;
+    border-radius: 14px;
+    border: 1px solid var(--color-navy-border);
+    background: linear-gradient(160deg, var(--color-navy-card-2), var(--color-navy-card));
+    color: var(--color-text-inverse);
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sgc-invnav-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(7, 13, 30, 0.28);
+}
+
+/* La franja superior distingue de un vistazo el tipo de caja. */
+.sgc-invnav-card--global {
+    border-top: 3px solid var(--color-accent-blue);
+}
+
+.sgc-invnav-card--union {
+    border-top: 3px solid var(--color-gold-bright);
+}
+
+.sgc-invnav-card--general {
+    border-top: 3px solid var(--color-text-light);
+}
+
+.sgc-invnav-card-nombre {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.sgc-invnav-card-cifras {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.sgc-invnav-card-cifras strong {
+    color: var(--color-gold-bright);
+    font-size: 15px;
+}
+
+.sgc-invnav-card-pie {
+    margin-top: auto;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.55);
+}

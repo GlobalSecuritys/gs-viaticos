@@ -24,7 +24,8 @@ import CalidadProcesos from './pages/CalidadProcesos';
 import CalidadCategoria from './pages/CalidadCategoria';
 import CalidadDetalleProceso from './pages/CalidadDetalleProceso';
 import SeccionEnConstruccion from './pages/SeccionEnConstruccion';
-import Inventario from './pages/Inventario';
+import InventarioNavegacion from './pages/InventarioNavegacion';
+import InventarioAccesos from './pages/InventarioAccesos';
 
 export default function App() {
   return (
@@ -254,13 +255,46 @@ export default function App() {
             }
           />
 
-          {/* El gateo fino ocurre dentro de <Inventario /> con accesos_procesos['CI']:
-              admin y lector ven el panel de supervisión, el resto la vista de captura. */}
+          {/* Navegación jerárquica del inventario:
+                /inventario                       -> las 3 empresas
+                /inventario/:empresaId            -> tarjetas de Global, o el
+                                                     inventario directo de una UT
+                /inventario/:empresaId/:clienteId -> inventario de esa tarjeta
+              El gateo fino sigue ocurriendo dentro de <Inventario /> con
+              accesos_procesos['CI']: admin y lector ven el panel de supervisión,
+              el resto la vista de captura. */}
           <Route
             path="/inventario"
             element={
               <PrivateRoute>
-                <Inventario />
+                <InventarioNavegacion />
+              </PrivateRoute>
+            }
+          />
+          {/* Va antes que /inventario/:empresaId por legibilidad; React Router
+              prioriza el segmento estático de todas formas. La pantalla es
+              exclusiva de la cuenta Master y el backend lo vuelve a exigir. */}
+          <Route
+            path="/inventario/accesos"
+            element={
+              <PrivateRoute>
+                <InventarioAccesos />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/inventario/:empresaId"
+            element={
+              <PrivateRoute>
+                <InventarioNavegacion />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/inventario/:empresaId/:clienteId"
+            element={
+              <PrivateRoute>
+                <InventarioNavegacion />
               </PrivateRoute>
             }
           />
