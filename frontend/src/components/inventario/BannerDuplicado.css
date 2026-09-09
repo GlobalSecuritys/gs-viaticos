@@ -1,0 +1,106 @@
+/* Aviso de posible duplicado — usa la paleta global de index.css */
+
+.sgc-inv-dup {
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
+    box-shadow: var(--color-shadow-sm);
+}
+
+.sgc-inv-dup--exacto {
+    border-color: var(--color-rechazado);
+    background: var(--color-rechazado-bg);
+}
+
+.sgc-inv-dup--posible {
+    border-color: var(--color-pendiente);
+    background: var(--color-pendiente-bg);
+}
+
+.sgc-inv-dup-head {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.sgc-inv-dup-icon {
+    font-size: 20px;
+    line-height: 1.2;
+}
+
+.sgc-inv-dup-title {
+    display: block;
+    font-size: 14px;
+    color: var(--color-text);
+}
+
+.sgc-inv-dup-sub {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    line-height: 1.45;
+}
+
+.sgc-inv-dup-list {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sgc-inv-dup-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid var(--color-border);
+}
+
+.sgc-inv-dup-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.sgc-inv-dup-item-desc {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+    word-break: break-word;
+}
+
+.sgc-inv-dup-item-meta {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.sgc-inv-dup-ignorar {
+    margin-top: 12px;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-accent-blue);
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.sgc-inv-dup-ignorar:hover {
+    color: var(--color-accent-blue-hover);
+}
+
+@media (max-width: 640px) {
+    .sgc-inv-dup-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

@@ -380,4 +380,52 @@ async def eliminar_archivo_cloudinary(public_id: str) -> None:
     try:
         await asyncio.to_thread(cloudinary.uploader.destroy, public_id, invalidate=True)
     except Exception as e:
-        logger.warning(f"No se pudo eliminar de Cloudinary {public_id}: {e}")
+        logger.warning(f"No se pudo eliminar de Cloudinary {public_id}: {e}")
+
+INVENTARIO_FOLDER = "gs_viaticos/inventario/items"
+
+
+def _upload_inventario_sync(content: bytes) -> dict:
+    return cloudinary.uploader.upload(
+        content,
+        folder=INVENTARIO_FOLDER,
+        resource_type="auto",
+        use_filename=True,
+        unique_filename=True,
+        timeout=45,
+    )
+
+
+async def upload_foto_inventario(file: UploadFile) -> CloudinaryUploadResult:
+    """Sube la foto de referencia de un ítem de inventario a Cloudinary."""
+    content = await file.read()
+    _validate_file(file, content)
+
+    try:
+        result = await asyncio.to_thread(_upload_inventario_sync, content)
+    except CloudinaryError as exc:
+        logger.error("Error al subir foto de inventario a Cloudinary: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="No se pudo subir la foto del ítem. Intenta nuevamente.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Error inesperado al subir foto de inventario a Cloudinary")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ocurrió un error inesperado al procesar la imagen.",
+        ) from exc
+    finally:
+        await file.close()
+
+    secure_url = result.get("secure_url")
+    public_id = result.get("public_id")
+
+    if not secure_url or not public_id:
+        logger.error("Respuesta inesperada de Cloudinary: %s", result)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Respuesta inválida del servicio de imágenes.",
+        )
+
+    return CloudinaryUploadResult(secure_url=secure_url, public_id=public_id)

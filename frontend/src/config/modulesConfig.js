@@ -269,6 +269,7 @@ export function isAdminMaster(user) {
 /**
  * Asignación de módulos operativos a procesos del Mapa SGC:
  * - Operaciones (OP) → [Viáticos, Autoplaner ODS]
+ * - Compras e Inventario (CI) → [Inventario]
  * - Mejora Continua (MC) → [Backup & Evidencias]
  * - Administrativo (AD) → [Talento Humano, Escuela GSB]
  */
@@ -364,6 +365,54 @@ export const MODULOS_SGC_ASOCIADOS = {
           descripcion: 'Asignación algorítmica y balanceada de personal técnico.',
         },
       ],
+      puedeAcceder: () => true,
+      lockReason: '',
+    },
+  ],
+  CI: [
+    {
+      codigo: 'CI',
+      moduloId: 'inventario',
+      nombre: 'Inventario',
+      badge: 'INVENTARIO',
+      colorTheme: 'blue',
+      colorHex: '#3B82F6',
+      descripcion: 'Control de stock por planillas, kardex de entradas y salidas de material, y consolidado de bodega.',
+      ruta: '/inventario',
+      botonTexto: 'Ingresar a Inventario',
+      chips: [
+        {
+          label: 'Stock por Planilla',
+          icon: '📦',
+          path: '/inventario',
+          badge: 'BODEGA',
+          descripcion: 'Existencias vigentes agrupadas por línea de trabajo (mantenimiento, RTC, ...).',
+        },
+        {
+          label: 'Entradas & Salidas',
+          icon: '🔁',
+          path: '/inventario',
+          badge: 'MOVIMIENTOS',
+          descripcion: 'Registro de salidas a servicio, devoluciones a bodega e ingresos por compra.',
+        },
+        {
+          label: 'Kardex por Ítem',
+          icon: '📒',
+          path: '/inventario',
+          badge: 'TRAZABILIDAD',
+          descripcion: 'Historial completo de cada elemento con responsable y stock resultante.',
+        },
+        {
+          label: 'Consolidado',
+          icon: '📊',
+          path: '/inventario',
+          badge: 'REPORTES',
+          descripcion: 'Totales por planilla, unidades en stock y alerta de elementos agotados.',
+        },
+      ],
+      // El módulo es accesible para todo usuario autenticado: cualquier técnico
+      // registra sus propios movimientos. El nivel de accesos_procesos['CI']
+      // decide adentro si ve el panel de supervisión o la vista de captura.
       puedeAcceder: () => true,
       lockReason: '',
     },

@@ -494,7 +494,7 @@ export default function CalidadDetalleProceso() {
                       <div
                         key={mod.moduloId}
                         className={`sgc-det-modulo-card sgc-det-modulo-card--${mod.colorTheme} ${!tieneAcceso ? 'sgc-det-modulo-card--locked' : ''}`}
-                        onClick={() => handleAccesoModulo(mod, mod.ruta)}
+                        onClick={mod.moduloId === 'autoplaner-ods' ? undefined : () => handleAccesoModulo(mod, mod.ruta)}
                         title={!tieneAcceso ? `🔒 Acceso restringido a ${mod.nombre}` : `Haga clic para ingresar al módulo de ${mod.nombre}`}
                       >
                         {/* Glow interior al hover */}
@@ -503,7 +503,7 @@ export default function CalidadDetalleProceso() {
                         {/* Badge de categoría en la esquina superior derecha */}
                         {!tieneAcceso ? (
                           <span className="sgc-det-lock-badge">🔒 SIN ACCESO</span>
-                        ) : mod.badge ? (
+                        ) : mod.badge && mod.moduloId !== 'autoplaner-ods' ? (
                           <span className={`sgc-det-modulo-badge sgc-det-modulo-badge--${mod.colorTheme}`}>
                             {mod.badge}
                           </span>
@@ -566,23 +566,38 @@ export default function CalidadDetalleProceso() {
                           </div>
                         )}
 
-                        {/* Link de acceso al pie de la tarjeta */}
+                        {/* Link/Botón de acceso al pie de la tarjeta */}
                         <div className="sgc-det-modulo-footer">
-                          <div className={`sgc-det-modulo-cta-link ${!tieneAcceso ? 'sgc-det-modulo-cta-link--locked' : ''}`}>
-                            {!tieneAcceso ? (
-                              <>
-                                <span className="sgc-det-cta-label">Acceso Restringido</span>
-                                <span className="sgc-det-lock-small">🔒</span>
-                              </>
-                            ) : (
-                              <>
-                                <span className="sgc-det-cta-label">{mod.botonTexto || `Ingresar a ${mod.nombre}`}</span>
-                                <svg className="sgc-det-cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M5 12h14M12 5l7 7-7 7" />
-                                </svg>
-                              </>
-                            )}
-                          </div>
+                          {mod.moduloId === 'autoplaner-ods' ? (
+                            <a
+                              href="http://autoplannerapp.com/GSB/#/passport/login"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="sgc-det-modulo-btn-autoplaner"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <span className="sgc-det-cta-label">{mod.botonTexto || 'Ingresar a Autoplaner ODS'}</span>
+                              <svg className="sgc-det-cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M5 12h14M12 5l7 7-7 7" />
+                              </svg>
+                            </a>
+                          ) : (
+                            <div className={`sgc-det-modulo-cta-link ${!tieneAcceso ? 'sgc-det-modulo-cta-link--locked' : ''}`}>
+                              {!tieneAcceso ? (
+                                <>
+                                  <span className="sgc-det-cta-label">Acceso Restringido</span>
+                                  <span className="sgc-det-lock-small">🔒</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="sgc-det-cta-label">{mod.botonTexto || `Ingresar a ${mod.nombre}`}</span>
+                                  <svg className="sgc-det-cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M5 12h14M12 5l7 7-7 7" />
+                                  </svg>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

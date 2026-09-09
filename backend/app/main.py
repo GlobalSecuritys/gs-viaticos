@@ -10,6 +10,7 @@ from app.routers.proveedores import router as proveedores_router
 from app.routers.cuentas_cobro import router as cuentas_cobro_router
 from app.routers.talento_humano import router as talento_humano_router
 from app.routers.calidad_procesos import router as calidad_procesos_router, seed_procesos_calidad_si_vacio
+from app.routers.inventario import router as inventario_router, seed_planillas_inventario_si_vacio
 
 from sqlalchemy import text
 from app.database import engine, SessionLocal
@@ -22,6 +23,11 @@ from app.models.talento_humano import (
     EmpleadoSolicitud,
     EmpleadoDotacion,
     EmpleadoEvaluacion,
+)
+from app.models.inventario import (
+    InventarioPlanilla,
+    InventarioItem,
+    InventarioMovimiento,
 )
 from app.models.calidad_procesos import (
     ProcesoCalidad,
@@ -61,9 +67,13 @@ def startup_db_check():
         ProcesoCalidadResponsable.__table__.create(bind=engine, checkfirst=True)
         ProcesoCalidadDocumento.__table__.create(bind=engine, checkfirst=True)
         ProcesoCalidadAccesoAdmin.__table__.create(bind=engine, checkfirst=True)
+        InventarioPlanilla.__table__.create(bind=engine, checkfirst=True)
+        InventarioItem.__table__.create(bind=engine, checkfirst=True)
+        InventarioMovimiento.__table__.create(bind=engine, checkfirst=True)
 
         with SessionLocal() as db:
             seed_procesos_calidad_si_vacio(db)
+            seed_planillas_inventario_si_vacio(db)
             _migrar_rol_admin_a_superadmin(db)
     except Exception as e:
         print(f"Startup DB check warning: {e}")
@@ -134,6 +144,7 @@ app.include_router(proveedores_router)
 app.include_router(cuentas_cobro_router)
 app.include_router(talento_humano_router)
 app.include_router(calidad_procesos_router)
+app.include_router(inventario_router)
 
 
 @app.get("/", include_in_schema=False)

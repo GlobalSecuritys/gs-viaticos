@@ -24,6 +24,7 @@ import CalidadProcesos from './pages/CalidadProcesos';
 import CalidadCategoria from './pages/CalidadCategoria';
 import CalidadDetalleProceso from './pages/CalidadDetalleProceso';
 import SeccionEnConstruccion from './pages/SeccionEnConstruccion';
+import Inventario from './pages/Inventario';
 
 export default function App() {
   return (
@@ -253,18 +254,13 @@ export default function App() {
             }
           />
 
+          {/* El gateo fino ocurre dentro de <Inventario /> con accesos_procesos['CI']:
+              admin y lector ven el panel de supervisión, el resto la vista de captura. */}
           <Route
             path="/inventario"
             element={
               <PrivateRoute>
-                <SeccionEnConstruccion
-                  titulo="Inventario"
-                  subtitulo="Gestión de Almacén, Stock y Materiales"
-                  icono="📦"
-                  grupoPadre="Procesos Misionales"
-                  descripcion="Módulo para el control de inventario de equipos, herramientas, stock de bodega y logística de suministros."
-                  colorTheme="blue"
-                />
+                <Inventario />
               </PrivateRoute>
             }
           />

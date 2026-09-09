@@ -29,6 +29,7 @@ export default function TecnicoLayout({ children }) {
         { path: '/mis-asignaciones', label: 'Mis asignaciones', icon: '📋' },
         { path: '/cuenta-cobro', label: 'Cuenta de cobro', icon: '💵' },
         { path: '/talento-humano', label: 'Talento Humano', icon: '👥' },
+        { path: '/inventario', label: 'Inventario', icon: '📦' },
     ];
 
     const nombreMostrado = obtenerNombreUsuario(user, 'Técnico');

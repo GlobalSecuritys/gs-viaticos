@@ -1,0 +1,84 @@
+/* Captura de foto de referencia — paleta global de index.css */
+
+.sgc-inv-foto-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sgc-inv-foto-drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 26px 18px;
+    border: 2px dashed var(--color-border-hover);
+    border-radius: 12px;
+    background: var(--color-bg-tertiary);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.sgc-inv-foto-drop:hover {
+    border-color: var(--color-accent-blue);
+    background: var(--color-accent-blue-subtle);
+}
+
+.sgc-inv-foto-icon {
+    font-size: 28px;
+}
+
+.sgc-inv-foto-titulo {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.sgc-inv-foto-hint {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    max-width: 280px;
+    line-height: 1.4;
+}
+
+.sgc-inv-foto-preview {
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--color-bg-secondary);
+}
+
+.sgc-inv-foto-preview img {
+    display: block;
+    width: 100%;
+    max-height: 240px;
+    object-fit: contain;
+    background: var(--color-bg-subtle);
+}
+
+.sgc-inv-foto-acciones {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--color-border-subtle);
+}
+
+.sgc-inv-foto-nombre {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sgc-inv-foto-botones {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}

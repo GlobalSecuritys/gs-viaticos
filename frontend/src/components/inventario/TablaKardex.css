@@ -1,0 +1,92 @@
+/* Kardex de movimientos — paleta global de index.css */
+
+.sgc-inv-kardex-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-bg-secondary);
+}
+
+.sgc-inv-kardex {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 680px;
+}
+
+.sgc-inv-kardex thead th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    background: var(--color-bg-subtle);
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+}
+
+.sgc-inv-kardex tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--color-border-subtle);
+    color: var(--color-text-secondary);
+    vertical-align: top;
+}
+
+.sgc-inv-kardex tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.sgc-inv-kardex-fecha {
+    white-space: nowrap;
+    color: var(--color-text-muted);
+}
+
+.sgc-inv-kardex-obs {
+    max-width: 280px;
+}
+
+.sgc-inv-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.sgc-inv-pos {
+    color: var(--color-aprobado);
+}
+
+.sgc-inv-neg {
+    color: var(--color-rechazado);
+}
+
+.sgc-inv-tag {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.sgc-inv-tag--entrada {
+    background: var(--color-aprobado-bg);
+    color: var(--color-aprobado);
+}
+
+.sgc-inv-tag--salida {
+    background: var(--color-rechazado-bg);
+    color: var(--color-rechazado);
+}
+
+.sgc-inv-kardex-vacio {
+    margin: 0;
+    padding: 22px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    border: 1px dashed var(--color-border);
+    border-radius: 12px;
+    background: var(--color-bg-tertiary);
+}

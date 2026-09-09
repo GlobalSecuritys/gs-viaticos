@@ -163,3 +163,45 @@ def get_current_admin_calidad(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Acceso restringido: Solo Administradores/Master con acceso al Mapa de Procesos SGC pueden modificar el mapa y la documentación."
     )
+
+# -----------------------------------------------------------------------------
+# ACCESO POR PROCESO DEL MAPA SGC (genérico y reutilizable)
+# -----------------------------------------------------------------------------
+# Los niveles vienen de accesos_procesos (ProcesoCalidadAccesoAdmin), que
+# get_current_user ya deja cargados en usuario._accesos_procesos. Esta fábrica
+# evita seguir escribiendo una dependencia one-off por cada módulo nuevo.
+NIVELES_SECCION = {"ninguno": 0, "lector": 1, "admin": 2}
+
+
+def require_seccion(codigo_proceso: str, nivel_minimo: str = "lector"):
+    """
+    Devuelve una dependencia FastAPI que exige al menos `nivel_minimo` en
+    accesos_procesos[codigo_proceso]. superadmin y la cuenta Master
+    (pilaradmin@gsbank.com) siempre pasan, igual que en el resto del sistema.
+
+    Uso: Depends(require_seccion("CI", "admin"))
+    """
+    codigo = str(codigo_proceso).strip().upper()
+    if nivel_minimo not in NIVELES_SECCION:
+        raise ValueError(f"nivel_minimo inválido: {nivel_minimo}")
+
+    def dependencia(
+        current_user: Annotated[Usuario, Depends(get_current_user)]
+    ) -> Usuario:
+        correo = (current_user.correo or "").strip().lower()
+        if current_user.rol == "superadmin" or correo == "pilaradmin@gsbank.com":
+            return current_user
+
+        accesos = current_user.__dict__.get("_accesos_procesos") or {}
+        nivel_usuario = accesos.get(codigo, "ninguno")
+        if NIVELES_SECCION.get(nivel_usuario, 0) < NIVELES_SECCION[nivel_minimo]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    f"No tienes acceso de {nivel_minimo} al proceso {codigo}. "
+                    "Solicítalo a la Administradora Master del Mapa de Procesos SGC."
+                ),
+            )
+        return current_user
+
+    return dependencia
