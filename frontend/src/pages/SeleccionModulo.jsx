@@ -90,112 +90,101 @@ export default function SeleccionModulo() {
       {/* ── HUB LAYOUT: Contenido Principal Unificado ── */}
       <div className="sm-hub-layout">
         <main className="sm-main">
-          {/* ── HERO SECTION ── */}
+          {/* ── 1. HERO + IDENTIDAD + ADMINISTRACIÓN GLOBAL (BLOQUE ÚNICO) ──
+              El saludo, la foto, el rol/correo y los accesos globales viven en
+              una sola tarjeta: antes eran dos bloques que repetían el badge
+              Master y el correo. */}
           <div className="sm-hero">
             <div className="sm-hero-badge">
               <span className="sm-hero-badge-dot" />
               Ecosistema Operativo Activo · {new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}
             </div>
 
-            <h1 className="sm-hero-title">
-              {saludo},<br />
-              <span className="sm-hero-name">{primerNombre}</span>
-            </h1>
-            <p className="sm-hero-sub">
-              Mapa de Procesos SGC · Navegue e ingrese a las operaciones y módulos de la organización
-            </p>
-
-            {/* Role badge */}
-            <div className="sm-role-strip">
-              {isMaster ? (
-                <span className="sm-role-badge sm-role-badge--master">
-                  👑 Master — <a href={`mailto:${user?.correo}`} className="sm-master-link">{user?.correo}</a>
-                </span>
-              ) : (
-                <>
-                  <span className="sm-role-badge">● {rolLabel}</span>
-                  <span className="sm-role-email">{user?.correo}</span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* ── 1. ADMINISTRACIÓN GLOBAL DEL ECOSISTEMA ──
-              Va pegada al saludo, antes del mapa y del panel de accesos por
-              proceso: es la identidad de quien entró y sus accesos personales. */}
-          {esAdminGlobal && (
-            <section className="sm-admin-card" aria-label="Administración Global del Ecosistema">
-              <div className="sm-admin-card-foto">
+            <section className="sm-hero-card" aria-label="Administración Global del Ecosistema">
+              <div className="sm-hero-card-foto">
                 {fotoAdmin && !fotoFallida ? (
                   <img
                     src={fotoAdmin}
                     alt={`Foto de ${nombreMostrado}`}
-                    className="sm-admin-card-img"
+                    className="sm-hero-card-img"
                     onError={() => setFotoFallida(true)}
                   />
                 ) : (
-                  <span className="sm-admin-card-iniciales" aria-hidden="true">
+                  <span className="sm-hero-card-iniciales" aria-hidden="true">
                     {iniciales}
                   </span>
                 )}
               </div>
 
-              <div className="sm-admin-card-info">
-                <h2 className="sm-admin-card-nombre">{nombreMostrado}</h2>
+              <div className="sm-hero-card-info">
+                <h1 className="sm-hero-title">
+                  {saludo}, <span className="sm-hero-name">{primerNombre}</span>
+                </h1>
 
-                <div className="sm-admin-card-meta">
+                {/* Rol y correo aparecen una sola vez, aquí. */}
+                <div className="sm-role-strip">
                   {isMaster ? (
                     <span className="sm-role-badge sm-role-badge--master">👑 Master</span>
                   ) : (
                     <span className="sm-role-badge">● {rolLabel}</span>
                   )}
-                  <a href={`mailto:${user?.correo}`} className="sm-admin-card-correo">
+                  <span className="sm-hero-card-nombre">{nombreMostrado}</span>
+                  <a href={`mailto:${user?.correo}`} className="sm-role-email">
                     {user?.correo}
                   </a>
                 </div>
 
-                <p className="sm-admin-card-desc">
-                  Administración Global del Ecosistema · Gestión de usuarios, auditoría de
-                  trazabilidad y ajustes transversales.
+                <p className="sm-hero-sub">
+                  Mapa de Procesos SGC · Navegue e ingrese a las operaciones y módulos de la
+                  organización
                 </p>
 
-                <div className="sm-global-admin-links">
-                  {GLOBAL_ADMIN_NAV.map((nav) => {
-                    const isLocked = nav.minRole === 'superadmin' && user?.rol !== 'superadmin';
-                    const targetPath = nav.getPath ? nav.getPath(user) : nav.path;
-                    return (
-                      <button
-                        key={nav.id}
-                        type="button"
-                        className={`sm-btn-global-link ${isLocked ? 'sm-btn-global-link--locked' : ''}`}
-                        onClick={() => {
-                          if (isLocked) {
-                            setGlobalLockAlert({
-                              modulo: nav.label,
-                              razon: 'Esta sección está reservada exclusivamente para usuarios con perfil de Administrador.',
-                            });
-                          } else {
-                            navigate(targetPath);
-                          }
-                        }}
-                        title={isLocked ? `🔒 Acceso restringido (Solo Administradores)` : `Ir a ${nav.label}`}
-                      >
-                        <span>{isLocked ? '🔒' : nav.icon}</span>
-                        <span>{nav.label}</span>
-                        {isLocked ? (
-                          <span className="sm-global-lock-pill">Solo Administrador</span>
-                        ) : (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                            <path d="M5 12h14M12 5l7 7-7 7" />
-                          </svg>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                {esAdminGlobal && (
+                  <>
+                    <p className="sm-hero-card-desc">
+                      Administración Global del Ecosistema · Gestión de usuarios, auditoría de
+                      trazabilidad y ajustes transversales.
+                    </p>
+
+                    <div className="sm-global-admin-links">
+                      {GLOBAL_ADMIN_NAV.map((nav) => {
+                        const isLocked = nav.minRole === 'superadmin' && user?.rol !== 'superadmin';
+                        const targetPath = nav.getPath ? nav.getPath(user) : nav.path;
+                        return (
+                          <button
+                            key={nav.id}
+                            type="button"
+                            className={`sm-btn-global-link ${isLocked ? 'sm-btn-global-link--locked' : ''}`}
+                            onClick={() => {
+                              if (isLocked) {
+                                setGlobalLockAlert({
+                                  modulo: nav.label,
+                                  razon: 'Esta sección está reservada exclusivamente para usuarios con perfil de Administrador.',
+                                });
+                              } else {
+                                navigate(targetPath);
+                              }
+                            }}
+                            title={isLocked ? `🔒 Acceso restringido (Solo Administradores)` : `Ir a ${nav.label}`}
+                          >
+                            <span>{isLocked ? '🔒' : nav.icon}</span>
+                            <span>{nav.label}</span>
+                            {isLocked ? (
+                              <span className="sm-global-lock-pill">Solo Administrador</span>
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                <path d="M5 12h14M12 5l7 7-7 7" />
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             </section>
-          )}
+          </div>
 
           {/* ── 2. MAPA DE CALIDAD DE PROCESOS (CONTENIDO PRINCIPAL) ── */}
           <section className="sm-mapa-section" aria-label="Mapa de Procesos SGC">

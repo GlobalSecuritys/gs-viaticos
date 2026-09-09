@@ -281,8 +281,14 @@
    HERO SECTION
    ════════════════════════════════ */
 .sm-hero {
-    text-align: center;
-    margin-bottom: 2.75rem;
+    /* Contenedor del bloque único: el chip de estado va centrado encima y la
+       tarjeta ocupa todo el ancho debajo. */
+    width: 100%;
+    max-width: 1400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2.25rem;
     animation: fadeSlideUp 0.5s ease both;
 }
 
@@ -316,12 +322,13 @@
 
 .sm-hero-title {
     font-family: 'Outfit', 'Inter', sans-serif;
-    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    /* Más contenido que antes porque ahora convive con la foto en una fila. */
+    font-size: clamp(1.7rem, 3.2vw, 2.5rem);
     font-weight: 900;
     color: var(--text-primary);
     line-height: 1.12;
     letter-spacing: -0.03em;
-    margin-bottom: 0.75rem;
+    margin: 0;
 }
 
 .sm-hero-name {
@@ -332,21 +339,19 @@
 }
 
 .sm-hero-sub {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     color: var(--text-secondary);
     font-weight: 500;
-    margin-bottom: 1.25rem;
+    margin: 0;
 }
 
 .sm-role-strip {
-    display: inline-flex;
+    /* Dentro de la tarjeta ya no necesita fondo ni borde propios: sería una
+       caja dentro de otra caja. */
+    display: flex;
     align-items: center;
-    gap: 0.85rem;
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(226, 232, 240, 0.9);
-    border-radius: 12px;
-    padding: 0.45rem 1.1rem;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+    gap: 0.7rem;
+    flex-wrap: wrap;
 }
 
 .sm-role-badge {
@@ -371,18 +376,6 @@
     color: #92400E;
     font-weight: 900;
     box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
-}
-
-.sm-master-link {
-    color: #B45309;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    font-weight: 800;
-    transition: color 0.2s ease;
-}
-
-.sm-master-link:hover {
-    color: #78350F;
 }
 
 /* ════════════════════════════════
@@ -594,13 +587,11 @@
 /* ════════════════════════════════
    BARRA DE ADMINISTRACIÓN GLOBAL
    ════════════════════════════════ */
-/* Tarjeta de identidad del admin conectado + sus accesos globales.
-   Va justo debajo del saludo, así que hereda el mismo vidrio translúcido y el
-   borde ámbar del resto de elementos "Master" del hub. */
-.sm-admin-card {
+/* Tarjeta única del hub: saludo, identidad y accesos globales en un solo
+   bloque. Hereda el vidrio translúcido y el borde ámbar de los elementos
+   "Master" del resto del hub. */
+.sm-hero-card {
     width: 100%;
-    max-width: 1400px;
-    margin-bottom: 2rem;
     background: rgba(255, 255, 255, 0.88);
     border: 1.5px solid rgba(245, 158, 11, 0.25);
     border-radius: 18px;
@@ -613,11 +604,11 @@
     animation: fadeSlideUp 0.6s 0.1s ease both;
 }
 
-.sm-admin-card-foto {
+.sm-hero-card-foto {
     flex-shrink: 0;
-    width: 104px;
-    height: 104px;
-    border-radius: 22px;
+    width: 120px;
+    height: 120px;
+    border-radius: 24px;
     overflow: hidden;
     display: grid;
     place-items: center;
@@ -627,14 +618,14 @@
     box-shadow: 0 6px 18px rgba(245, 158, 11, 0.18);
 }
 
-.sm-admin-card-img {
+.sm-hero-card-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
 
-.sm-admin-card-iniciales {
+.sm-hero-card-iniciales {
     font-family: 'Outfit', 'Inter', sans-serif;
     font-size: 2.1rem;
     font-weight: 900;
@@ -642,44 +633,31 @@
     letter-spacing: 0.02em;
 }
 
-.sm-admin-card-info {
+.sm-hero-card-info {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
+    gap: 0.6rem;
 }
 
-.sm-admin-card-nombre {
-    font-family: 'Outfit', 'Inter', sans-serif;
-    font-size: 1.35rem;
-    font-weight: 900;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
-    margin: 0;
+.sm-hero-card-nombre {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-secondary);
 }
 
-.sm-admin-card-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-}
-
-.sm-admin-card-correo {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    font-weight: 600;
+a.sm-role-email {
     text-decoration: none;
 }
 
-.sm-admin-card-correo:hover {
+a.sm-role-email:hover {
     color: #B45309;
     text-decoration: underline;
     text-underline-offset: 3px;
 }
 
-.sm-admin-card-desc {
+.sm-hero-card-desc {
     font-size: 0.8rem;
     color: var(--text-secondary);
     line-height: 1.4;
@@ -797,18 +775,18 @@
 @media (max-width: 860px) {
     /* En vertical la foto encabeza la tarjeta y todo se centra debajo, en vez
        de mantener a la fuerza el par foto-izquierda / info-derecha. */
-    .sm-admin-card {
+    .sm-hero-card {
         flex-direction: column;
         align-items: center;
         text-align: center;
         gap: 1.1rem;
         padding: 1.5rem 1.25rem;
     }
-    .sm-admin-card-info {
+    .sm-hero-card-info {
         width: 100%;
         align-items: center;
     }
-    .sm-admin-card-meta {
+    .sm-role-strip {
         justify-content: center;
     }
     .sm-global-admin-links {
