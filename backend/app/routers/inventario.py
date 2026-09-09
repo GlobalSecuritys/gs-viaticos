@@ -1,12 +1,12 @@
 """
-Módulo Inventario — asociado al proceso CI (Compras e Inventario) del Mapa SGC.
+Módulo Inventario - asociado al proceso IN (Inventario) del Mapa SGC.
 
 Control de acceso:
-  * Captura y consulta (cualquier técnico autenticado): get_current_user.
-    Igual que en viáticos, un técnico registra sus propios movimientos sin
+  * Captura y consulta (cualquier tecnico autenticado): get_current_user.
+    Igual que en viaticos, un tecnico registra sus propios movimientos sin
     necesitar un permiso especial.
-  * Supervisión (editar/eliminar ítems, gestionar planillas): require_seccion("CI", "admin").
-  * Reportes consolidados: require_seccion("CI", "lector").
+  * Supervision (editar/eliminar items, gestionar planillas): require_seccion("IN", "admin").
+  * Reportes consolidados: require_seccion("IN", "lector").
 """
 
 import re
@@ -47,11 +47,11 @@ from app.schemas.inventario import (
 from app.services.auditoria import registrar_auditoria
 from app.services.inventario_duplicados import buscar_duplicados
 
-router = APIRouter(prefix="/inventario", tags=["Inventario (CI)"])
+router = APIRouter(prefix="/inventario", tags=["Inventario (IN)"])
 
 CurrentUser = Annotated[Usuario, Depends(get_current_user)]
-AdminCI = Annotated[Usuario, Depends(require_seccion("CI", "admin"))]
-LectorCI = Annotated[Usuario, Depends(require_seccion("CI", "lector"))]
+AdminIN = Annotated[Usuario, Depends(require_seccion("IN", "admin"))]
+LectorIN = Annotated[Usuario, Depends(require_seccion("IN", "lector"))]
 DB = Annotated[Session, Depends(get_db)]
 
 PLANILLAS_INICIALES = ["MANTENIMIENTO", "RTC"]
@@ -268,7 +268,7 @@ def listar_planillas(
 
 
 @router.post("/planillas", response_model=PlanillaResponse, status_code=status.HTTP_201_CREATED)
-def crear_planilla(datos: PlanillaCreate, db: DB, current_user: AdminCI):
+def crear_planilla(datos: PlanillaCreate, db: DB, current_user: AdminIN):
     existente = db.scalar(
         select(InventarioPlanilla).where(InventarioPlanilla.nombre == datos.nombre)
     )
@@ -308,7 +308,7 @@ def crear_planilla(datos: PlanillaCreate, db: DB, current_user: AdminCI):
 
 
 @router.put("/planillas/{planilla_id}", response_model=PlanillaResponse)
-def actualizar_planilla(planilla_id: int, datos: PlanillaUpdate, db: DB, current_user: AdminCI):
+def actualizar_planilla(planilla_id: int, datos: PlanillaUpdate, db: DB, current_user: AdminIN):
     planilla = db.get(InventarioPlanilla, planilla_id)
     if not planilla:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Planilla no encontrada.")
@@ -478,7 +478,7 @@ def crear_item(datos: ItemCreate, db: DB, current_user: CurrentUser):
 
 
 @router.put("/items/{item_id}", response_model=ItemResponse)
-def actualizar_item(item_id: int, datos: ItemUpdate, db: DB, current_user: AdminCI):
+def actualizar_item(item_id: int, datos: ItemUpdate, db: DB, current_user: AdminIN):
     item = _obtener_item_o_404(db, item_id)
 
     if datos.planilla_id and datos.planilla_id != item.planilla_id:
@@ -515,7 +515,7 @@ def actualizar_item(item_id: int, datos: ItemUpdate, db: DB, current_user: Admin
 
 
 @router.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar_item(item_id: int, db: DB, current_user: AdminCI):
+def eliminar_item(item_id: int, db: DB, current_user: AdminIN):
     """Soft-delete: el ítem deja de listarse pero su kardex se conserva."""
     item = _obtener_item_o_404(db, item_id)
     descripcion = item.descripcion
@@ -598,7 +598,7 @@ def obtener_kardex(item_id: int, db: DB, current_user: CurrentUser):
 # REPORTE CONSOLIDADO (panel de supervisión CI)
 # -----------------------------------------------------------------------------
 @router.get("/reportes/global", response_model=ReporteGlobalResponse)
-def reporte_global(db: DB, current_user: LectorCI):
+def reporte_global(db: DB, current_user: LectorIN):
     filas = db.execute(
         select(
             InventarioPlanilla.id,
@@ -637,3 +637,4 @@ def reporte_global(db: DB, current_user: LectorCI):
         total_movimientos=total_movimientos,
         por_planilla=por_planilla,
     )
+

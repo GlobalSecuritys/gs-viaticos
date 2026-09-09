@@ -25,7 +25,8 @@ const GRUPOS_PROCESOS = [
     icono: '⚙️',
     procesos: [
       { codigo: 'CO', nombre: 'Comercial' },
-      { codigo: 'CI', nombre: 'Compras e Inventario' },
+      { codigo: 'CI', nombre: 'Compras' },
+      { codigo: 'IN', nombre: 'Inventario', moduloActivo: true, moduloNombre: 'Inventario' },
       { codigo: 'OP', nombre: 'Operaciones', moduloActivo: true, moduloNombre: 'Viáticos' },
     ],
   },

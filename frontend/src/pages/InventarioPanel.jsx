@@ -281,7 +281,7 @@ export default function InventarioPanel({ soloLectura = false }) {
                     <div>
                         <h1 className="sgc-inv-title">Inventario</h1>
                         <p className="sgc-inv-subtitle">
-                            Compras e Inventario (CI) · Panel de supervisión
+                            Inventario (IN) · Panel de supervisión
                             {soloLectura && ' · solo lectura'}
                         </p>
                     </div>

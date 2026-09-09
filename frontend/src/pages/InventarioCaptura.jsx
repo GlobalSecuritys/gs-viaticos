@@ -228,7 +228,7 @@ export default function InventarioCaptura() {
                     <div>
                         <h1 className="sgc-inv-title">Inventario</h1>
                         <p className="sgc-inv-subtitle">
-                            Compras e Inventario (CI) · Registra salidas, devoluciones e ingresos de material.
+                            Inventario (IN) · Registra salidas, devoluciones e ingresos de material.
                         </p>
                     </div>
                     <button type="button" className="sgc-inv-btn sgc-inv-btn--primary" onClick={abrirAlta}>

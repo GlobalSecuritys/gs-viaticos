@@ -269,7 +269,8 @@ export function isAdminMaster(user) {
 /**
  * Asignación de módulos operativos a procesos del Mapa SGC:
  * - Operaciones (OP) → [Viáticos, Autoplaner ODS]
- * - Compras e Inventario (CI) → [Inventario]
+ * - Compras (CI) → [] (placeholder)
+ * - Inventario (IN) → [Inventario]
  * - Mejora Continua (MC) → [Backup & Evidencias]
  * - Administrativo (AD) → [Talento Humano, Escuela GSB]
  */
@@ -370,8 +371,11 @@ export const MODULOS_SGC_ASOCIADOS = {
     },
   ],
   CI: [
+    // Compras: placeholder (sin módulo operativo desarrollado aún)
+  ],
+  IN: [
     {
-      codigo: 'CI',
+      codigo: 'IN',
       moduloId: 'inventario',
       nombre: 'Inventario',
       badge: 'INVENTARIO',
@@ -411,7 +415,7 @@ export const MODULOS_SGC_ASOCIADOS = {
         },
       ],
       // El módulo es accesible para todo usuario autenticado: cualquier técnico
-      // registra sus propios movimientos. El nivel de accesos_procesos['CI']
+      // registra sus propios movimientos. El nivel de accesos_procesos['IN']
       // decide adentro si ve el panel de supervisión o la vista de captura.
       puedeAcceder: () => true,
       lockReason: '',

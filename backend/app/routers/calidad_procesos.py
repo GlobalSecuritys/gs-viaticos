@@ -68,12 +68,20 @@ PROCESOS_INICIALES = [
         "orden": 1,
     },
     {
-        "nombre": "Compras e Inventario",
+        "nombre": "Compras",
         "codigo": "CI",
         "categoria": "misional",
-        "descripcion": "Adquisiciones de suministros, gestión de inventarios, proveedores y logística de materiales.",
+        "descripcion": "Adquisiciones de suministros, gestión de proveedores y logística de materiales.",
         "color_hex": "#3B82F6",
         "orden": 2,
+    },
+    {
+        "nombre": "Inventario",
+        "codigo": "IN",
+        "categoria": "misional",
+        "descripcion": "Control de stock por planillas, kardex de entradas y salidas de material, y consolidado de bodega.",
+        "color_hex": "#3B82F6",
+        "orden": 3,
     },
     {
         "nombre": "Operaciones",
@@ -81,7 +89,7 @@ PROCESOS_INICIALES = [
         "categoria": "misional",
         "descripcion": "Ejecución de servicios técnicos en campo, mantenimiento, instalaciones y seguridad física.",
         "color_hex": "#3B82F6",
-        "orden": 3,
+        "orden": 4,
     },
     # Apoyo
     {
@@ -112,7 +120,11 @@ PROCESOS_INICIALES = [
 
 
 def seed_procesos_calidad_si_vacio(db: Session) -> None:
-    """Verifica si la tabla procesos_calidad tiene registros; si no, inserta los 8 iniciales."""
+    """Verifica si la tabla procesos_calidad tiene registros; si no, inserta los 9 iniciales.
+    Si ya tiene datos, corrige el registro duplicado del bug histórico:
+    el nodo Inventario fue creado copiando Operaciones (codigo='OP', nombre='Operaciones',
+    responsable heredado). Se detecta y corrige en tres capas de seguridad.
+    """
     count = db.scalar(select(func.count(ProcesoCalidad.id)))
     if count == 0:
         for p in PROCESOS_INICIALES:
@@ -126,6 +138,87 @@ def seed_procesos_calidad_si_vacio(db: Session) -> None:
             )
             db.add(proceso)
         db.commit()
+        return
+
+    _DESCRIPCION_INVENTARIO = (
+        "Control de stock por planillas, kardex de entradas y salidas "
+        "de material, y consolidado de bodega."
+    )
+
+    # ── Caso A: Existen DOS o más registros con codigo="OP" ──────────────────
+    # El real de Operaciones tiene nombre="Operaciones" y/o es el de menor id.
+    ops = db.scalars(
+        select(ProcesoCalidad).where(ProcesoCalidad.codigo == "OP")
+    ).all()
+
+    if len(ops) >= 2:
+        # Primero buscamos el que tiene nombre="Operaciones" como el real
+        op_real = next((p for p in ops if p.nombre == "Operaciones"), None)
+        # Si no, el real es el de menor id (el primero insertado)
+        if op_real is None:
+            op_real = min(ops, key=lambda p: p.id)
+
+        duplicados = [p for p in ops if p.id != op_real.id]
+        for dup in duplicados:
+            dup.codigo = "IN"
+            dup.nombre = "Inventario"
+            dup.descripcion = _DESCRIPCION_INVENTARIO
+            dup.orden = 3
+            # Eliminar responsables heredados de Operaciones
+            db.execute(
+                ProcesoCalidadResponsable.__table__.delete().where(
+                    ProcesoCalidadResponsable.proceso_id == dup.id
+                )
+            )
+        db.commit()
+        return  # Corrección de duplicados Caso A aplicada
+
+    # ── Caso B: Existe un registro con codigo="IN" pero datos de Operaciones ─
+    # Detecta si el nodo IN tiene nombre o descripción heredados del bug.
+    nodo_in = db.scalar(
+        select(ProcesoCalidad).where(ProcesoCalidad.codigo == "IN")
+    )
+    if nodo_in:
+        necesita_correccion = (
+            nodo_in.nombre != "Inventario"
+            or nodo_in.nombre == "Operaciones"
+            or "Operaciones" in (nodo_in.descripcion or "")
+        )
+        if necesita_correccion:
+            nodo_in.nombre = "Inventario"
+            nodo_in.descripcion = _DESCRIPCION_INVENTARIO
+            nodo_in.orden = 3
+            # Limpiar responsables heredados
+            db.execute(
+                ProcesoCalidadResponsable.__table__.delete().where(
+                    ProcesoCalidadResponsable.proceso_id == nodo_in.id
+                )
+            )
+            db.commit()
+        return  # nodo_in existe y está (o quedó) correcto
+
+    # ── Caso C: No existe ningún registro con codigo="IN" ────────────────────
+    # La tabla tiene datos pero el proceso Inventario no fue creado.
+    # Se inserta y se ajusta el orden de Operaciones si es necesario.
+    nuevo_in = ProcesoCalidad(
+        nombre="Inventario",
+        codigo="IN",
+        categoria="misional",
+        descripcion=_DESCRIPCION_INVENTARIO,
+        color_hex="#3B82F6",
+        orden=3,
+    )
+    db.add(nuevo_in)
+    # Si OP tiene orden=3 (ocupaba el lugar de IN), lo mueve a orden=4
+    op_misional = db.scalar(
+        select(ProcesoCalidad).where(
+            ProcesoCalidad.codigo == "OP",
+            ProcesoCalidad.orden == 3,
+        )
+    )
+    if op_misional:
+        op_misional.orden = 4
+    db.commit()
 
 
 # -----------------------------------------------------------------------------
@@ -353,9 +446,10 @@ PROCESOS_ACCESO_MAP = [
     {"codigo": "GR", "nombre": "Gerencia",            "categoria": "direccion", "tiene_modulo": False, "modulo_nombre": None},
     {"codigo": "MC", "nombre": "Mejora Continua",      "categoria": "direccion", "tiene_modulo": False, "modulo_nombre": None},
     # PROCESOS MISIONALES
-    {"codigo": "CO", "nombre": "Comercial",            "categoria": "misional",  "tiene_modulo": False, "modulo_nombre": None},
-    {"codigo": "CI", "nombre": "Compras e Inventario", "categoria": "misional",  "tiene_modulo": False, "modulo_nombre": None},
-    {"codigo": "OP", "nombre": "Operaciones",          "categoria": "misional",  "tiene_modulo": True,  "modulo_nombre": "Viáticos"},
+    {"codigo": "CO", "nombre": "Comercial",   "categoria": "misional",  "tiene_modulo": False, "modulo_nombre": None},
+    {"codigo": "CI", "nombre": "Compras",     "categoria": "misional",  "tiene_modulo": False, "modulo_nombre": None},
+    {"codigo": "IN", "nombre": "Inventario",  "categoria": "misional",  "tiene_modulo": True,  "modulo_nombre": "Inventario"},
+    {"codigo": "OP", "nombre": "Operaciones", "categoria": "misional",  "tiene_modulo": True,  "modulo_nombre": "Viáticos"},
     # PROCESOS DE APOYO
     {"codigo": "SA", "nombre": "Ambiental",            "categoria": "apoyo",     "tiene_modulo": False, "modulo_nombre": None},
     {"codigo": "AD", "nombre": "Administrativo",       "categoria": "apoyo",     "tiene_modulo": False, "modulo_nombre": None},
@@ -373,8 +467,8 @@ def listar_accesos_proceso(
     """
     [Exclusivo PilarAdmin] Devuelve la lista de todos los administradores (superadmin) con sus
     niveles de acceso asignados por proceso del Mapa SGC (tabla procesos_calidad_accesos_admin).
-    Agrupa los procesos en: Dirección (GR, MC), Misionales (CO, CI, OP) y Apoyo (SA, AD, SS).
-    Operaciones (OP) es el único proceso con módulo operativo activo actualmente (Viáticos).
+    Agrupa los procesos en: Dirección (GR, MC), Misionales (CO, CI, IN, OP) y Apoyo (SA, AD, SS).
+    Procesos con módulo operativo activo: OP (Viáticos), IN (Inventario).
     """
     # Obtener todos los administradores (superadmin)
     stmt_admins = (

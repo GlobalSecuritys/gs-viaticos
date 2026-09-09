@@ -9,7 +9,7 @@ import './MapaProcesosSGC.css';
  * Mapa de Procesos del Sistema de Gestión de Calidad (SGC).
  * Presenta las 8 cajas de proceso estándar y homogéneas:
  * - Dirección: Gerencia (GR), Mejora Continua (MC)
- * - Misionales: Comercial (CO), Compras e Inventario (CI), Operaciones (OP)
+ * - Misionales: Comercial (CO), Compras (CI), Inventario (IN), Operaciones (OP)
  * - Apoyo: Ambiental (SA), Administrativo (AD), SG-SST (SS)
  *
  * Cada caja contiene exclusivamente:
@@ -72,8 +72,10 @@ export default function MapaProcesosSGC({ mostrarEncabezadoCategoria = true }) {
     procesosMisionales.find((p) => p.codigo === 'CO') || procesosMisionales[0];
   const compras =
     procesosMisionales.find((p) => p.codigo === 'CI') || procesosMisionales[1];
+  const inventario =
+    procesosMisionales.find((p) => p.codigo === 'IN') || procesosMisionales[2];
   const operaciones =
-    procesosMisionales.find((p) => p.codigo === 'OP') || procesosMisionales[2];
+    procesosMisionales.find((p) => p.codigo === 'OP') || procesosMisionales[3];
 
   // Mapeo de procesos de apoyo
   const ambiental =
@@ -298,7 +300,7 @@ export default function MapaProcesosSGC({ mostrarEncabezadoCategoria = true }) {
                     </svg>
                   </div>
 
-                  {/* Subcolumna derecha: Operaciones (OP) [con Viáticos y Autoplaner ODS] */}
+                  {/* Subcolumna derecha: Operaciones (OP) [con Viáticos y Autoplaner ODS] & Inventario */}
                   <div className="sgc-mis-subcol-right">
                     {/* Subgrupo Operaciones */}
                     <div className="sgc-subgroup-section">
@@ -309,6 +311,30 @@ export default function MapaProcesosSGC({ mostrarEncabezadoCategoria = true }) {
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <circle cx="12" cy="12" r="3" />
                               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                            </svg>,
+                            'blue'
+                          )}
+
+                      </div>
+                    </div>
+
+                    {/* Flecha vertical entre Operaciones e Inventario */}
+                    <div className="sgc-v-mini-connector">
+                      <svg width="22" height="26" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l-4 4h2.5v12H8l4 4 4-4h-2.5V6H16l-4-4z" />
+                      </svg>
+                    </div>
+
+                    {/* Subgrupo Inventario */}
+                    <div className="sgc-subgroup-section">
+                      <div className="sgc-subgroup-grid">
+                        {inventario &&
+                          renderProcesoCalidadCard(
+                            inventario,
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                              <line x1="12" y1="22.08" x2="12" y2="12" />
                             </svg>,
                             'blue'
                           )}
