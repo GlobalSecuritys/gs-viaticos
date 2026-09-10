@@ -62,6 +62,18 @@ const FILTROS_PERIODO = [
 
 const RESUMEN_VACIO = { total: 0, total_historico: 0, filas: [] };
 
+// Distingue "el servidor no responde" de un error real del backend: sin esto,
+// tener la API caída se ve igual que un fallo de la consulta.
+function mensajeDeError(err, mensajeBase) {
+    if (!err?.response) {
+        return `${mensajeBase} No hay respuesta del servidor (${api.defaults.baseURL}). Verifica que el backend esté encendido.`;
+    }
+    if (err.response.status === 401 || err.response.status === 403) {
+        return 'Tu sesión expiró o no tienes permisos sobre este módulo. Vuelve a iniciar sesión.';
+    }
+    return `${mensajeBase} (error ${err.response.status})`;
+}
+
 // Mínimo de caracteres para disparar la búsqueda de técnicos en el servidor.
 const MIN_CHARS_BUSQUEDA = 2;
 const DEBOUNCE_BUSQUEDA_MS = 350;
@@ -132,9 +144,10 @@ export default function AdminDashboard() {
                 params: { periodo: periodoId },
             });
             setResumen(data ?? RESUMEN_VACIO);
-        } catch {
+            setError('');
+        } catch (err) {
             setResumen(RESUMEN_VACIO);
-            setError('No se pudo cargar el resumen de gastos.');
+            setError(mensajeDeError(err, 'No se pudo cargar el resumen de gastos.'));
         } finally {
             setCargandoResumen(false);
         }
@@ -149,9 +162,9 @@ export default function AdminDashboard() {
                 params: todos ? { limit: 200 } : { q, limit: 60 },
             });
             setTecnicos(data ?? []);
-        } catch {
+        } catch (err) {
             setTecnicos([]);
-            setError('No se pudo cargar el listado de técnicos.');
+            setError(mensajeDeError(err, 'No se pudo cargar el listado de técnicos.'));
         } finally {
             setCargandoTecnicos(false);
         }
