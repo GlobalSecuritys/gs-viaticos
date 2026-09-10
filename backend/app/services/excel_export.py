@@ -496,11 +496,17 @@ def generar_excel_viaticos_asignacion(
     ws["C7"] = cedula_tecnico
 
     aprobados_count = len([v for v in viaticos if str(v.estado).lower() == "aprobado"])
-    # Celda F7: mostrar las órdenes de servicio (OT) reales de los viáticos
+    # Celda F7 ("Órdenes de servicio realizadas"): prioriza la OT que el técnico
+    # diligenció en la asignación; si no la registró, se mantiene el
+    # comportamiento previo (OTs de los viáticos y, en su defecto, el conteo).
+    ot_asignacion = (asignacion.orden_trabajo or "").strip()
     ots_unicas = list(dict.fromkeys(
         v.ot.strip() for v in viaticos if v.ot and v.ot.strip()
     ))
-    ws["F7"] = ", ".join(ots_unicas) if ots_unicas else str(aprobados_count)
+    if ot_asignacion:
+        ws["F7"] = ot_asignacion
+    else:
+        ws["F7"] = ", ".join(ots_unicas) if ots_unicas else str(aprobados_count)
     ws["J7"] = date.today().strftime("%d/%m/%y")
 
     if asignacion.fecha_inicio:

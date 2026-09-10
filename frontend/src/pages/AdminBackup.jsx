@@ -133,6 +133,12 @@ export default function AdminBackup() {
   const toastTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // ── Bitácora local (sin backend) ──
+  const [bitacora, setBitacora] = useState([]);
+  const [bitacoraAbierta, setBitacoraAbierta] = useState(false);
+  const [bitacoraFormVisible, setBitacoraFormVisible] = useState(false);
+  const [bitacoraTexto, setBitacoraTexto] = useState('');
+
   const showToast = (msg, tipo = 'ok') => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToast({ show: true, msg, tipo });
@@ -490,6 +496,17 @@ export default function AdminBackup() {
           <button
             type="button"
             className="bkp-btn-nav"
+            onClick={() => navigate(-1)}
+            title="Volver a la pantalla anterior"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            Volver
+          </button>
+          <button
+            type="button"
+            className="bkp-btn-nav"
             onClick={() => navigate('/seleccion-modulo')}
             title="Volver a la selección de módulos"
           >
@@ -522,6 +539,121 @@ export default function AdminBackup() {
           <span className="bkp-badge-icon">🔒</span>
           <span>ÁREA EXCLUSIVA DE ADMINISTRACIÓN — ACCESO RESTRINGIDO</span>
         </div>
+
+        {/* ── BITÁCORA LOCAL ── */}
+        <section className="bkp-bitacora-section">
+          <div className="bkp-bitacora-header" onClick={() => setBitacoraAbierta((p) => !p)}>
+            <div className="bkp-bitacora-title-wrap">
+              <svg
+                className={`bkp-chev ${bitacoraAbierta ? 'bkp-chev--down' : ''}`}
+                width="17" height="17" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+              <span className="bkp-bitacora-label">
+                📋 Bitácora de Descargas
+              </span>
+              {bitacora.length > 0 && (
+                <span className="bkp-chip">{bitacora.length} {bitacora.length === 1 ? 'registro' : 'registros'}</span>
+              )}
+            </div>
+            <button
+              type="button"
+              className="bkp-btn-outline bkp-btn-sm"
+              title="Agregar anotación"
+              onClick={(e) => {
+                e.stopPropagation();
+                setBitacoraAbierta(true);
+                setBitacoraFormVisible((p) => !p);
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Nueva anotación
+            </button>
+          </div>
+
+          {bitacoraAbierta && (
+            <div className="bkp-bitacora-body">
+              {bitacoraFormVisible && (
+                <form
+                  className="bkp-bitacora-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const txt = bitacoraTexto.trim();
+                    if (!txt) return;
+                    setBitacora((prev) => [
+                      { id: Date.now(), texto: txt, fecha: new Date() },
+                      ...prev
+                    ]);
+                    setBitacoraTexto('');
+                    setBitacoraFormVisible(false);
+                  }}
+                >
+                  <textarea
+                    className="bkp-bitacora-textarea"
+                    placeholder="Describe la carpeta o archivo descargado (ej. Backup oficina GDL – julio 2026)…"
+                    value={bitacoraTexto}
+                    onChange={(e) => setBitacoraTexto(e.target.value)}
+                    rows={3}
+                    autoFocus
+                  />
+                  <div className="bkp-bitacora-form-actions">
+                    <button
+                      type="button"
+                      className="bkp-btn-outline bkp-btn-sm"
+                      onClick={() => { setBitacoraFormVisible(false); setBitacoraTexto(''); }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="bkp-btn-primary bkp-btn-sm"
+                      disabled={!bitacoraTexto.trim()}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      Guardar
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {bitacora.length === 0 && !bitacoraFormVisible && (
+                <p className="bkp-bitacora-empty">Sin anotaciones aún. Usa "Nueva anotación" para registrar descargas.</p>
+              )}
+
+              {bitacora.length > 0 && (
+                <ul className="bkp-bitacora-list">
+                  {bitacora.map((item) => (
+                    <li key={item.id} className="bkp-bitacora-item">
+                      <div className="bkp-bitacora-item-meta">
+                        <span className="bkp-bitacora-item-date">
+                          {item.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {' · '}
+                          {item.fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <button
+                          type="button"
+                          className="bkp-bitacora-del"
+                          title="Eliminar anotación"
+                          onClick={() => setBitacora((prev) => prev.filter((x) => x.id !== item.id))}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <p className="bkp-bitacora-item-txt">{item.texto}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </section>
 
         {/* Zona de Selección / Carga de Datos */}
         {!data.length && (

@@ -42,18 +42,18 @@ const CONTEXTO_KEY = 'gs_fecha_anterior_viatico';
 function getItemInicial(id) {
     return {
         id,
-        tipo_id: 'cedula',          // 'cedula' | 'nit_proveedor' | 'nit_nuevo'
+        tipo_id: 'cedula',          // 'cedula' | 'nit_proveedor'
         nit: '',
-        nit_nuevo_texto: '',
         proveedor_query: '',         // texto que el usuario escribe para buscar
         proveedor_seleccionado: null, // { nit, nombre }
         razon_social: '',
-        ot: '',                      // Orden de servicio
         concepto: 'alimentacion',
         origen: '',
         destino: '',
-        tiene_soporte: 'si',
         valor: '',
+        fecha_gasto: '',             // vacío = hereda fecha base global
+        fecha_gasto_modificada: false,// true cuando el usuario cambió la fecha individualmente
+        doc_tipo: null,              // 'soporte' | 'cuenta_cobro' | null
         cuenta_cobro: null,
         archivo: null,
         previewUrl: null,
@@ -105,6 +105,9 @@ export default function NuevoViatico() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [exitoMsg, setExitoMsg] = useState('');
+
+    // Control de edición de fecha individual por gasto
+    const [gastoFechaEditando, setGastoFechaEditando] = useState(null); // gastoId | null
 
     // Autocomplete de proveedores: sugerencias por ítem
     const [sugerencias, setSugerencias] = useState({}); // { [gastoId]: [] }
@@ -182,12 +185,7 @@ export default function NuevoViatico() {
         (acc, g) => acc + (parseFloat(g.valor) || 0),
         0
     );
-    const conSoporteCount = gastos.filter(
-        (g) => g.tiene_soporte === 'si'
-    ).length;
-    const sinSoporteCount = gastos.filter(
-        (g) => g.tiene_soporte === 'no'
-    ).length;
+    const conDocCount = gastos.filter((g) => g.doc_tipo !== null).length;
 
     const anticipoAsig = asignacionDetalle
         ? Number(asignacionDetalle.monto_anticipo || 0)
@@ -213,6 +211,20 @@ export default function NuevoViatico() {
                 );
                 return;
             }
+            // Validar que cada gasto haya indicado su tipo de documentación
+            const tieneDoc =
+                (g.doc_tipo === 'soporte' && g.archivo) ||
+                (g.doc_tipo === 'cuenta_cobro' && g.cuenta_cobro);
+            if (!tieneDoc) {
+                setError(
+                    g.doc_tipo === 'soporte'
+                        ? `El Gasto #${i + 1} (${g.concepto}): seleccionaste "Soporte físico" pero no adjuntaste ningún archivo.`
+                        : g.doc_tipo === 'cuenta_cobro'
+                        ? `El Gasto #${i + 1} (${g.concepto}): seleccionaste "Cuenta de cobro" pero no la has adjuntado.`
+                        : `El Gasto #${i + 1} (${g.concepto}) requiere indicar el tipo de documentación (Soporte físico o Cuenta de cobro).`
+                );
+                return;
+            }
         }
 
         setLoading(true);
@@ -225,6 +237,9 @@ export default function NuevoViatico() {
                 const g = gastos[i];
                 const val = parseFloat(g.valor);
 
+                // Fecha individual del gasto (o la fecha base si no se modificó)
+                const fechaGasto = g.fecha_gasto || fechaSeleccionada;
+
                 // Determinar el NIT final y tipo_identificacion según modo elegido
                 let nitFinal = '';
                 let tipoId = g.tipo_id || 'cedula';
@@ -234,13 +249,6 @@ export default function NuevoViatico() {
                     nitFinal = g.proveedor_seleccionado?.nit || '';
                     if (!nitFinal) {
                         setError(`Gasto #${i + 1}: debes seleccionar un proveedor de la lista.`);
-                        setLoading(false);
-                        return;
-                    }
-                } else {
-                    nitFinal = g.nit_nuevo_texto.trim();
-                    if (!nitFinal) {
-                        setError(`Gasto #${i + 1}: ingresa el NIT manualmente.`);
                         setLoading(false);
                         return;
                     }
@@ -258,15 +266,15 @@ export default function NuevoViatico() {
                     lugar_subtipo: lugar_subtipo,
                     origen: g.origen || '—',
                     destino: g.destino || (asignacionDetalle ? asignacionDetalle.ciudad : '—'),
-                    tiene_soporte: g.tiene_soporte === 'si',
+                    tiene_soporte: g.doc_tipo === 'soporte' && !!g.archivo,
                     asignacion_id: asignacionIdParam ? Number(asignacionIdParam) : null,
                 });
 
                 const payload = {
-                    fecha: fechaSeleccionada,
+                    fecha: fechaGasto,
                     cliente: g.razon_social || (asignacionDetalle ? asignacionDetalle.cliente : (nitFinal || 'Gasto Operativo')),
                     ciudad: g.destino || (asignacionDetalle ? asignacionDetalle.ciudad : 'N/A'),
-                    ot: g.ot.trim() || '',
+                    ot: '',
                     tipo_gasto: g.concepto,
                     valor: val,
                     descripcion: descripcionEstructurada,
@@ -281,8 +289,8 @@ export default function NuevoViatico() {
                     payload
                 );
 
-                // 2. Si adjuntó foto/soporte, subir la evidencia asociada a este ítem
-                if (g.archivo && g.tiene_soporte === 'si') {
+                // 2. Si eligió soporte y adjuntó archivo, subirlo
+                if (g.doc_tipo === 'soporte' && g.archivo) {
                     try {
                         await subirEvidencias(viaticoCreado.id, [g.archivo]);
                     } catch (errUpload) {
@@ -413,6 +421,23 @@ export default function NuevoViatico() {
                 {exitoMsg && <div className="nv-success-banner">{exitoMsg}</div>}
 
                 {/* Banner de alerta: Período de gracia de 24h activo */}
+                {/* Aviso: la asignación aún no tiene OT diligenciada (campo opcional) */}
+                {asignacionDetalle && !(asignacionDetalle.orden_trabajo || '').trim() && (
+                    <div className="nv-aviso-ot">
+                        <span>⚠️</span>
+                        <span>
+                            Aún no has registrado la <strong>OT</strong> de esta asignación. Puedes hacerlo desde{' '}
+                            <button
+                                type="button"
+                                className="nv-aviso-ot-link"
+                                onClick={() => navigate('/mis-asignaciones')}
+                            >
+                                Mis Asignaciones
+                            </button>.
+                        </span>
+                    </div>
+                )}
+
                 {asignacionDetalle && !fueraDeRango && calcularEstadoGraciaAsignacion(asignacionDetalle).enGracia && (() => {
                     const infoGracia = calcularEstadoGraciaAsignacion(asignacionDetalle);
                     const limiteStr = infoGracia.limiteDate
@@ -545,6 +570,8 @@ export default function NuevoViatico() {
                                 <div className="nv-gastos-list">
                                     {gastos.map((gasto, index) => (
                                         <div key={gasto.id} className="nv-gasto-item-card">
+
+                                            {/* Header: número + eliminar */}
                                             <div className="nv-gasto-item-top">
                                                 <span className="nv-gasto-item-number">
                                                     Gasto {index + 1}
@@ -561,26 +588,69 @@ export default function NuevoViatico() {
                                                 )}
                                             </div>
 
-                                            <div className="nv-gasto-fields-grid">
-                                                {/* ── IDENTIFICACIÓN (3 modos) ── */}
-                                            <div className="nv-field-group nv-field-group--full">
-                                                <label>Identificación</label>
-                                                <div className="nv-id-toggle-row">
-                                                    {[
-                                                        { key: 'cedula', label: '✓ Mi cédula' },
-                                                        { key: 'nit_proveedor', label: '🔍 NIT proveedor' },
-                                                        { key: 'nit_nuevo', label: '✏️ NIT nuevo' },
-                                                    ].map(({ key, label }) => (
-                                                        <button
-                                                            key={key}
-                                                            type="button"
-                                                            className={`nv-id-mode-btn ${gasto.tipo_id === key ? 'nv-id-mode-btn--active' : ''}`}
-                                                            onClick={() => handleGastoChange(gasto.id, 'tipo_id', key)}
-                                                        >
-                                                            {label}
-                                                        </button>
-                                                    ))}
+                                            {/* ── FECHA DEL GASTO (individual) ── */}
+                                            <div className="nv-gasto-section">
+                                                <div className="nv-field-group nv-field-group--full">
+                                                    <div className="nv-label-row">
+                                                        <label>Fecha del gasto</label>
+                                                        {!gasto.fecha_gasto_modificada && (
+                                                            <span className="nv-fecha-hint">Heredada de la fecha base</span>
+                                                        )}
+                                                    </div>
+                                                    {gasto.fecha_gasto_modificada ? (
+                                                        <div className="nv-fecha-gasto-row">
+                                                            <input
+                                                                type="date"
+                                                                value={gasto.fecha_gasto || fechaSeleccionada}
+                                                                onChange={(e) => handleGastoChange(gasto.id, 'fecha_gasto', e.target.value)}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className="nv-btn-secondary nv-btn-sm"
+                                                                onClick={() => {
+                                                                    handleGastoChange(gasto.id, 'fecha_gasto_modificada', false);
+                                                                    handleGastoChange(gasto.id, 'fecha_gasto', '');
+                                                                }}
+                                                            >
+                                                                ↩ Usar fecha base
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="nv-fecha-gasto-row">
+                                                            <span className="nv-fecha-badge">
+                                                                📅 {gasto.fecha_gasto || fechaSeleccionada || 'Sin fecha base'}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                className="nv-btn-secondary nv-btn-sm"
+                                                                onClick={() => handleGastoChange(gasto.id, 'fecha_gasto_modificada', true)}
+                                                            >
+                                                                ✏️ Modificar fecha
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
+                                            </div>
+
+                                            {/* ── IDENTIFICACIÓN ── */}
+                                            <div className="nv-gasto-section">
+                                                <div className="nv-field-group nv-field-group--full">
+                                                    <label>Identificación</label>
+                                                    <div className="nv-id-toggle-row">
+                                                        {[
+                                                            { key: 'cedula', label: '✓ Mi cédula' },
+                                                            { key: 'nit_proveedor', label: '🔍 NIT proveedor' },
+                                                        ].map(({ key, label }) => (
+                                                            <button
+                                                                key={key}
+                                                                type="button"
+                                                                className={`nv-id-mode-btn ${gasto.tipo_id === key ? 'nv-id-mode-btn--active' : ''}`}
+                                                                onClick={() => handleGastoChange(gasto.id, 'tipo_id', key)}
+                                                            >
+                                                                {label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
 
                                                 {/* Modo: cédula propia */}
                                                 {gasto.tipo_id === 'cedula' && (
@@ -628,19 +698,11 @@ export default function NuevoViatico() {
                                                     </div>
                                                 )}
 
-                                                {/* Modo: NIT manual / nuevo */}
-                                                {gasto.tipo_id === 'nit_nuevo' && (
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Ej: 900.123.456-7"
-                                                        value={gasto.nit_nuevo_texto}
-                                                        onChange={(e) =>
-                                                            handleGastoChange(gasto.id, 'nit_nuevo_texto', e.target.value)
-                                                        }
-                                                    />
-                                                )}
+                                                </div>
                                             </div>
 
+                                            {/* ── DATOS DEL GASTO ── */}
+                                            <div className="nv-gasto-section">
                                                 {/* Razón social */}
                                                 <div className="nv-field-group">
                                                     <label>Razón social</label>
@@ -650,19 +712,6 @@ export default function NuevoViatico() {
                                                         value={gasto.razon_social}
                                                         onChange={(e) =>
                                                             handleGastoChange(gasto.id, 'razon_social', e.target.value)
-                                                        }
-                                                    />
-                                                </div>
-
-                                                {/* Orden de servicio */}
-                                                <div className="nv-field-group">
-                                                    <label>Orden de servicio</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Ej: OT-2025-001"
-                                                        value={gasto.ot}
-                                                        onChange={(e) =>
-                                                            handleGastoChange(gasto.id, 'ot', e.target.value)
                                                         }
                                                     />
                                                 </div>
@@ -744,27 +793,6 @@ export default function NuevoViatico() {
                                                     />
                                                 </div>
 
-                                                {/* ¿Tiene soporte? */}
-                                                <div className="nv-field-group">
-                                                    <label>¿Tiene soporte?</label>
-                                                    <div className="nv-soporte-toggle-group">
-                                                        <button
-                                                            type="button"
-                                                            className={`nv-toggle-btn ${gasto.tiene_soporte === 'si' ? 'nv-toggle-btn--active' : ''}`}
-                                                            onClick={() => handleGastoChange(gasto.id, 'tiene_soporte', 'si')}
-                                                        >
-                                                            Sí
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className={`nv-toggle-btn ${gasto.tiene_soporte === 'no' ? 'nv-toggle-btn--active' : ''}`}
-                                                            onClick={() => handleGastoChange(gasto.id, 'tiene_soporte', 'no')}
-                                                        >
-                                                            No
-                                                        </button>
-                                                    </div>
-                                                </div>
-
                                                 {/* Valor del gasto */}
                                                 <div className="nv-field-group">
                                                     <label>Valor del gasto (COP) *</label>
@@ -781,9 +809,31 @@ export default function NuevoViatico() {
                                                 </div>
                                             </div>
 
-                                            {/* Soporte (opcional) dentro de CADA ítem */}
-                                            {gasto.tiene_soporte === 'si' && (
-                                                <div className="nv-gasto-soporte-box">
+                                            {/* ── DOCUMENTACIÓN ── */}
+                                            <div className="nv-gasto-section">
+                                                <div className="nv-field-group nv-field-group--full">
+                                                    <label>Documentación</label>
+                                                    <div className="nv-doc-toggle-row">
+                                                        <button
+                                                            type="button"
+                                                            className={`nv-doc-option ${gasto.doc_tipo === 'soporte' ? 'nv-doc-option--active' : ''}`}
+                                                            onClick={() => handleGastoChange(gasto.id, 'doc_tipo', 'soporte')}
+                                                        >
+                                                            📎 Soporte físico
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className={`nv-doc-option ${gasto.doc_tipo === 'cuenta_cobro' ? 'nv-doc-option--active' : ''}`}
+                                                            onClick={() => handleGastoChange(gasto.id, 'doc_tipo', 'cuenta_cobro')}
+                                                        >
+                                                            📄 Cuenta de cobro
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Soporte físico (foto/PDF) */}
+                                                {gasto.doc_tipo === 'soporte' && (
+                                                    <div className="nv-gasto-soporte-box">
                                                     <span className="nv-soporte-label">Soporte (opcional - Foto o PDF)</span>
                                                     {gasto.archivo || gasto.previewUrl ? (
                                                         <div className="nv-soporte-preview-wrap">
@@ -878,47 +928,50 @@ export default function NuevoViatico() {
                                                         </label>
                                                     )}
                                                 </div>
-                                            )}
+                                                )}
 
-                                            {/* Cuenta de cobro vinculada a este viático */}
-                                            <div className="nv-gasto-cc-box">
-                                                {gasto.cuenta_cobro ? (
-                                                    <div className="nv-cc-tag-attached">
-                                                        <div className="nv-cc-tag-info">
-                                                            <span className="nv-cc-tag-icon">✅</span>
-                                                            <div>
-                                                                <strong>Cuenta de cobro adjunta</strong>
-                                                                <span className="nv-cc-tag-meta">
-                                                                    {formatCOP(gasto.cuenta_cobro.total)} · Cta: {gasto.cuenta_cobro.numero_cuenta}
-                                                                </span>
+                                                {/* Cuenta de cobro */}
+                                                {gasto.doc_tipo === 'cuenta_cobro' && (
+                                                    <div className="nv-gasto-cc-box">
+                                                        {gasto.cuenta_cobro ? (
+                                                            <div className="nv-cc-tag-attached">
+                                                                <div className="nv-cc-tag-info">
+                                                                    <span className="nv-cc-tag-icon">✅</span>
+                                                                    <div>
+                                                                        <strong>Cuenta de cobro adjunta</strong>
+                                                                        <span className="nv-cc-tag-meta">
+                                                                            {formatCOP(gasto.cuenta_cobro.total)} · Cta: {gasto.cuenta_cobro.numero_cuenta}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="nv-cc-tag-actions">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="nv-cc-btn-edit"
+                                                                        onClick={() => setModalCCGastoId(gasto.id)}
+                                                                    >
+                                                                        ✏️ Editar
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="nv-cc-btn-remove"
+                                                                        onClick={() => handleGastoChange(gasto.id, 'cuenta_cobro', null)}
+                                                                        title="Quitar cuenta de cobro"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <div className="nv-cc-tag-actions">
+                                                        ) : (
                                                             <button
                                                                 type="button"
-                                                                className="nv-cc-btn-edit"
+                                                                className="nv-cc-btn-attach"
                                                                 onClick={() => setModalCCGastoId(gasto.id)}
                                                             >
-                                                                ✏️ Editar
+                                                                📄 Subir cuenta de cobro con este viático
                                                             </button>
-                                                            <button
-                                                                type="button"
-                                                                className="nv-cc-btn-remove"
-                                                                onClick={() => handleGastoChange(gasto.id, 'cuenta_cobro', null)}
-                                                                title="Quitar cuenta de cobro"
-                                                            >
-                                                                ✕
-                                                            </button>
-                                                        </div>
+                                                        )}
                                                     </div>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        className="nv-cc-btn-attach"
-                                                        onClick={() => setModalCCGastoId(gasto.id)}
-                                                    >
-                                                        📄 Subir cuenta de cobro con este viático
-                                                    </button>
                                                 )}
                                             </div>
                                         </div>
@@ -951,15 +1004,15 @@ export default function NuevoViatico() {
                                     <strong>${totalValor.toLocaleString('es-CO')}</strong>
                                 </div>
                                 <div className="nv-summary-row">
-                                    <span>Con soporte</span>
+                                    <span>Con documentación</span>
                                     <strong style={{ color: 'var(--color-aprobado)' }}>
-                                        {conSoporteCount}
+                                        {conDocCount}
                                     </strong>
                                 </div>
                                 <div className="nv-summary-row">
-                                    <span>Sin soporte</span>
+                                    <span>Sin documentar</span>
                                     <strong style={{ color: 'var(--color-pendiente)' }}>
-                                        {sinSoporteCount}
+                                        {totalGastosCount - conDocCount}
                                     </strong>
                                 </div>
 
@@ -988,7 +1041,7 @@ export default function NuevoViatico() {
                                 <div>
                                     <strong>Consejo</strong>
                                     <p>
-                                        Puedes adjuntar fotos por cada gasto. La evidencia es opcional.
+                                        Cada gasto requiere un <strong>soporte</strong> (foto/imagen) o una <strong>cuenta de cobro</strong>. Sin documento, el gasto no podrá enviarse.
                                     </p>
                                 </div>
                             </div>
@@ -997,8 +1050,9 @@ export default function NuevoViatico() {
                                 <span className="nv-verif-title">Antes de enviar, verifica:</span>
                                 <ul>
                                     <li>✓ Todos los gastos registrados</li>
-                                    <li>✓ Valores correctos</li>
-                                    <li>✓ Soportes (opcional)</li>
+                                    <li>✓ Valores y fechas correctos</li>
+                                    <li>✓ Cada gasto con soporte o cuenta de cobro</li>
+                                    <li>✓ Identificación (cédula o NIT) completada</li>
                                 </ul>
                             </div>
 

@@ -63,6 +63,12 @@ export function subirCuentaCobroAsignacion(asignacionId, file) {
     });
 }
 
+// PATCH /asignaciones/:id/orden-trabajo -> el propio técnico guarda (o limpia)
+// el número/código de OT de su asignación. Campo opcional.
+export function guardarOrdenTrabajoAsignacion(id, orden_trabajo) {
+    return api.patch(`/asignaciones/${id}/orden-trabajo`, { orden_trabajo });
+}
+
 export function extenderFechaAsignacion(id, fecha_fin) {
     return api.patch(`/admin/asignaciones/${id}/extender-fecha`, { fecha_fin });
-}
+}

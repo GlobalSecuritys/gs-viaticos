@@ -14,6 +14,7 @@ from app.models.viatico import Viatico
 from app.schemas.asignacion import (
     AsignacionCreate,
     AsignacionExtenderFecha,
+    AsignacionOrdenTrabajo,
     AsignacionResponse,
     AsignacionUpdate,
 )
@@ -167,6 +168,7 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
         tipo=a.tipo,
         cliente=a.cliente,
         empresa=a.empresa,
+        orden_trabajo=a.orden_trabajo,
         ciudad=a.ciudad,
         fecha_inicio=a.fecha_inicio,
         fecha_fin=a.fecha_fin,
@@ -477,6 +479,37 @@ def listar_mis_asignaciones_activas(
         if a.estado in ("pendiente", "en_curso") or (a.estado == "finalizada" and info_gracia["puede_subir_viaticos"]):
             activas.append(_a_response(a))
     return activas
+
+
+@router_tecnico.patch("/{id}/orden-trabajo", response_model=AsignacionResponse)
+def guardar_orden_trabajo_tecnico(
+    id: int,
+    datos: AsignacionOrdenTrabajo,
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Permite al técnico dueño de la asignación guardar (o limpiar) el número/código
+    de la OT. Campo OPCIONAL: no condiciona el registro de viáticos.
+    """
+    asignacion = _obtener_o_404(id, db)
+    if asignacion.tecnico_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No puedes modificar una asignación que no te pertenece",
+        )
+
+    valor = (datos.orden_trabajo or "").strip()
+    if len(valor) > 50:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La OT no puede superar los 50 caracteres",
+        )
+
+    asignacion.orden_trabajo = valor or None
+    db.commit()
+    db.refresh(asignacion)
+    return _a_response(asignacion)
 
 
 @router_tecnico.post(

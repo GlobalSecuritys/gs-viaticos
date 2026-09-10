@@ -5,6 +5,7 @@ from app.routers.admin import router as admin_router
 from app.routers.asignaciones import router as asignaciones_router
 from app.routers.asignaciones import router_tecnico as asignaciones_tecnico_router
 from app.routers.auth import router as auth_router
+from app.routers.panel_viaticos import router as panel_viaticos_router
 from app.routers.viaticos import router as viaticos_router
 from app.routers.proveedores import router as proveedores_router
 from app.routers.cuentas_cobro import router as cuentas_cobro_router
@@ -57,6 +58,7 @@ def startup_db_check():
             conn.execute(text("ALTER TABLE viaticos ADD COLUMN IF NOT EXISTS comentario_admin TEXT;"))
             conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS eliminado_en TIMESTAMP WITHOUT TIME ZONE;"))
             conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS cerrada_en TIMESTAMP WITHOUT TIME ZONE;"))
+            conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS orden_trabajo VARCHAR(50);"))
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_admin_calidad BOOLEAN DEFAULT FALSE;"))
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS acceso_mapa BOOLEAN DEFAULT TRUE;"))
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol_mapa VARCHAR(20) DEFAULT 'lector';"))
@@ -221,6 +223,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(viaticos_router)
 app.include_router(admin_router)
+app.include_router(panel_viaticos_router)
 app.include_router(asignaciones_router)
 app.include_router(asignaciones_tecnico_router)
 app.include_router(proveedores_router)

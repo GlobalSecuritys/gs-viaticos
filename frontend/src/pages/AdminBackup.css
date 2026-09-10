@@ -722,3 +722,167 @@
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   BITÁCORA LOCAL DE DESCARGAS
+   ══════════════════════════════════════════════════════════════ */
+
+.bkp-bitacora-section {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.bkp-bitacora-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+  flex-wrap: wrap;
+}
+
+.bkp-bitacora-header:hover {
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.bkp-bitacora-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.bkp-bitacora-label {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: 0.01em;
+}
+
+.bkp-bitacora-body {
+  border-top: 1px solid rgba(226, 232, 240, 0.7);
+  padding: 1.25rem 1.5rem;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Formulario */
+.bkp-bitacora-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  animation: bkpFadeIn 0.18s ease;
+}
+
+@keyframes bkpFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.bkp-bitacora-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1.5px solid rgba(226, 232, 240, 0.9);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #0F172A;
+  background: #FFFFFF;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+
+.bkp-bitacora-textarea:focus {
+  border-color: #D97706;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.12);
+}
+
+.bkp-bitacora-form-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+/* Lista de registros */
+.bkp-bitacora-empty {
+  font-size: 0.83rem;
+  color: #94A3B8;
+  text-align: center;
+  padding: 0.5rem 0 0.25rem;
+  margin: 0;
+}
+
+.bkp-bitacora-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.bkp-bitacora-item {
+  background: #FFFFFF;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-left: 3px solid #D97706;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  animation: bkpFadeIn 0.2s ease;
+}
+
+.bkp-bitacora-item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.bkp-bitacora-item-date {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94A3B8;
+  letter-spacing: 0.03em;
+}
+
+.bkp-bitacora-del {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: transparent;
+  color: #EF4444;
+  font-size: 1rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+.bkp-bitacora-del:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.bkp-bitacora-item-txt {
+  font-size: 0.87rem;
+  color: #334155;
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

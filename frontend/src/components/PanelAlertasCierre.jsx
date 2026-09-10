@@ -88,7 +88,6 @@ export default function PanelAlertasCierre() {
         aria-label="Panel de alertas de cierre de asignaciones"
       >
         <span className="pac-tab-icon">⏰</span>
-        <span className="pac-tab-label">Cierres</span>
         {conteoAlertas > 0 && (
           <span className="pac-tab-badge">{conteoAlertas}</span>
         )}

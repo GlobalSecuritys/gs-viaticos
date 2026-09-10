@@ -90,6 +90,7 @@ class AsignacionResponse(AsignacionBase):
     id: int
     estado: EstadoAsignacion
     creado_por_id: int
+    orden_trabajo: str | None = None
     tecnico_nombre: str
     creado_por_nombre: str
     monto_anticipo: Decimal = Decimal("0.00")
@@ -115,3 +116,13 @@ class AsignacionExtenderFecha(BaseModel):
     """Payload mínimo para extender (o acortar) la fecha de fin de una asignación."""
 
     fecha_fin: date
+
+
+class AsignacionOrdenTrabajo(BaseModel):
+    """
+    Payload que el propio técnico envía desde "Mis Asignaciones" para guardar
+    (o limpiar) el número/código de la OT de su asignación. Campo OPCIONAL:
+    enviar cadena vacía o null lo deja sin diligenciar.
+    """
+
+    orden_trabajo: str | None = None

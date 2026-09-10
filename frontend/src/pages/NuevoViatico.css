@@ -1121,3 +1121,130 @@
 .nv-cc-btn-remove:hover {
     background: #FEF2F2;
 }
+
+/* ===== Secciones dentro de la tarjeta de gasto ===== */
+.nv-gasto-section {
+    border-top: 1px solid var(--color-border);
+    padding-top: 1rem;
+    margin-top: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.nv-gasto-section:first-of-type {
+    border-top: none;
+    padding-top: 0;
+}
+
+/* ===== Fecha individual por gasto ===== */
+.nv-fecha-gasto-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.nv-fecha-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-primary);
+    font-weight: 500;
+}
+
+.nv-fecha-hint {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+/* ===== Botón secundario pequeño ===== */
+.nv-btn-secondary {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    color: var(--color-text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.4rem 0.85rem;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.nv-btn-secondary:hover {
+    background: var(--color-bg-hover, #f0f0f0);
+    border-color: var(--color-primary);
+}
+
+.nv-btn-sm {
+    font-size: 0.78rem;
+    padding: 0.3rem 0.65rem;
+}
+
+/* ===== Selector de tipo de documentación ===== */
+.nv-doc-toggle-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.4rem;
+}
+
+.nv-doc-option {
+    flex: 1;
+    min-width: 130px;
+    padding: 0.5rem 0.75rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: 0.83rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.nv-doc-option:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light, #EEF2FF);
+}
+
+.nv-doc-option--active {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light, #EEF2FF);
+    color: var(--color-primary);
+}
+/* Aviso pequeño: asignación sin OT diligenciada */
+.nv-aviso-ot {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0.75rem;
+    background: #FFFBEB;
+    border: 1px solid #FCD34D;
+    border-radius: 8px;
+    color: #92400E;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.nv-aviso-ot-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: #B45309;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.nv-aviso-ot-link:hover {
+    color: #92400E;
+}

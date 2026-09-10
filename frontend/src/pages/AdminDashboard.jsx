@@ -1,14 +1,12 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { listarAuditoria } from '../services/auditoria';
-import { listarAsignaciones } from '../services/asignaciones';
-import { obtenerAsignacionActivaDeTecnico, LABEL_TIPO_ASIGNACION } from '../utils/asignaciones';
+import { LABEL_TIPO_ASIGNACION } from '../utils/asignaciones';
 import logoGSB from '../assets/logo-gsb.png';
 import NotificationBell from '../components/NotificationBell';
 import InstallPwaPrompt from '../components/InstallPwaPrompt';
-import ModalEvidencia from '../components/ModalEvidencia';
 import ModalAsignacionesTecnico from '../components/ModalAsignacionesTecnico';
 import ModalCuentasCobroTecnico from '../components/ModalCuentasCobroTecnico';
 import ModalCrearUsuario from '../components/ModalCrearUsuario';
@@ -53,39 +51,20 @@ function labelRol(rol) {
     return 'Técnico';
 }
 
-function esHoy(fechaStr) {
-    const hoy = new Date();
-    const f = new Date(fechaStr + 'T00:00:00');
-    return (
-        f.getFullYear() === hoy.getFullYear() &&
-        f.getMonth() === hoy.getMonth() &&
-        f.getDate() === hoy.getDate()
-    );
-}
-
-function esEstaSemana(fechaStr) {
-    const hoy = new Date();
-    const f = new Date(fechaStr + 'T00:00:00');
-    const diaSemana = (hoy.getDay() + 6) % 7; // lunes = 0
-    const inicioSemana = new Date(hoy);
-    inicioSemana.setHours(0, 0, 0, 0);
-    inicioSemana.setDate(hoy.getDate() - diaSemana);
-    const finSemana = new Date(inicioSemana);
-    finSemana.setDate(inicioSemana.getDate() + 7);
-    return f >= inicioSemana && f < finSemana;
-}
-
-function esEsteMes(fechaStr) {
-    const hoy = new Date();
-    const f = new Date(fechaStr + 'T00:00:00');
-    return f.getFullYear() === hoy.getFullYear() && f.getMonth() === hoy.getMonth();
-}
-
+// Los rangos de cada periodo los calcula el backend (GET /admin/viaticos-resumen),
+// que es la fuente única del total gastado del panel.
 const FILTROS_PERIODO = [
-    { id: 'hoy', label: 'Hoy', fn: esHoy },
-    { id: 'semana', label: 'Esta semana', fn: esEstaSemana },
-    { id: 'mes', label: 'Este mes', fn: esEsteMes },
+    { id: 'hoy', label: 'Hoy' },
+    { id: 'semana', label: 'Esta semana' },
+    { id: 'mes', label: 'Este mes' },
+    { id: 'historico', label: 'Histórico' },
 ];
+
+const RESUMEN_VACIO = { total: 0, total_historico: 0, filas: [] };
+
+// Mínimo de caracteres para disparar la búsqueda de técnicos en el servidor.
+const MIN_CHARS_BUSQUEDA = 2;
+const DEBOUNCE_BUSQUEDA_MS = 350;
 
 export default function AdminDashboard() {
     const { user, logout } = useAuth();
@@ -93,13 +72,15 @@ export default function AdminDashboard() {
     const esLector = esLectorSeccion(user, 'OP');
 
     const [perfilData, setPerfilData] = useState(null);
-    const [usuarios, setUsuarios] = useState([]);
-    const [viaticos, setViaticos] = useState([]);
-    const [asignaciones, setAsignaciones] = useState([]);
+    // Resumen de gastos: único cálculo de "total gastado" de la pantalla.
+    const [resumen, setResumen] = useState(RESUMEN_VACIO);
+    const [cargandoResumen, setCargandoResumen] = useState(true);
+    // Técnicos: NO se cargan al abrir el panel, solo al buscar o al expandir.
+    const [tecnicos, setTecnicos] = useState([]);
+    const [cargandoTecnicos, setCargandoTecnicos] = useState(false);
     const [tecnicoParaAsignaciones, setTecnicoParaAsignaciones] = useState(null);
     const [tecnicoParaCuentasCobro, setTecnicoParaCuentasCobro] = useState(null);
     const [mostrarCrearUsuario, setMostrarCrearUsuario] = useState(false);
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [periodo, setPeriodo] = useState('mes');
     const [ultimaAccion, setUltimaAccion] = useState(null);
@@ -108,20 +89,14 @@ export default function AdminDashboard() {
     const [sidebarAbierto, setSidebarAbierto] = useState(false);
     const [itemMenuActivo, setItemMenuActivo] = useState('inicio');
 
-    // Modal de consolidado y evidencia
-    const [registroConsolidado, setRegistroConsolidado] = useState(null);
-    const [evidenciaPreview, setEvidenciaPreview] = useState(null);
-    const [busquedaConsolidado, setBusquedaConsolidado] = useState('');
-    const [filtroEstadoConsolidado, setFiltroEstadoConsolidado] = useState('todos');
     const [busquedaTecnico, setBusquedaTecnico] = useState('');
-    const [seccionViaticosColapsada, setSeccionViaticosColapsada] = useState(true);
-    // Control de colapso global e individual de tarjetas de técnicos (inician colapsadas por defecto)
+    // "Expandir todos" es ahora una acción manual: trae el listado completo
+    // desde el servidor y expande las tarjetas. Por defecto está apagado.
     const [expandirTodosTecnicos, setExpandirTodosTecnicos] = useState(false);
     const [tecnicosExpandidos, setTecnicosExpandidos] = useState({});
 
     const toggleExpandirTodos = () => {
-        const nuevoEstado = !expandirTodosTecnicos;
-        setExpandirTodosTecnicos(nuevoEstado);
+        setExpandirTodosTecnicos((prev) => !prev);
         setTecnicosExpandidos({});
     };
 
@@ -136,27 +111,51 @@ export default function AdminDashboard() {
     const [filtroAsigTecnicos, setFiltroAsigTecnicos] = useState({});
 
     // Referencias para scroll suave desde el sidebar
-    const seccionViaticosRef = useRef(null);
     const seccionTecnicosRef = useRef(null);
 
-    async function cargar() {
+    const cargarPerfil = useCallback(async () => {
         try {
-            const [resMe, resUsuarios, resViaticos, resAsig] = await Promise.all([
-                api.get('/auth/me').catch(() => null),
-                api.get('/admin/usuarios'),
-                api.get('/admin/viaticos'),
-                listarAsignaciones().catch(() => ({ data: [] })),
-            ]);
+            const resMe = await api.get('/auth/me');
             setPerfilData(resMe?.data ?? null);
-            setUsuarios(resUsuarios.data);
-            setViaticos(resViaticos.data);
-            setAsignaciones(resAsig.data || []);
         } catch {
-            setError('No se pudieron cargar los datos del panel.');
-        } finally {
-            setLoading(false);
+            setPerfilData(null);
         }
-    }
+    }, []);
+
+    // Única consulta de totales del panel. El backend agrega en SQL y devuelve
+    // tanto el total del periodo como el histórico, así que no hay dos cálculos
+    // distintos de "total gastado" en la pantalla.
+    const cargarResumen = useCallback(async (periodoId) => {
+        setCargandoResumen(true);
+        try {
+            const { data } = await api.get('/admin/viaticos-resumen', {
+                params: { periodo: periodoId },
+            });
+            setResumen(data ?? RESUMEN_VACIO);
+        } catch {
+            setResumen(RESUMEN_VACIO);
+            setError('No se pudo cargar el resumen de gastos.');
+        } finally {
+            setCargandoResumen(false);
+        }
+    }, []);
+
+    // Búsqueda de técnicos filtrada EN EL SERVIDOR (no se traen todos para
+    // filtrarlos aquí). Solo se llama al buscar o al expandir el listado.
+    const cargarTecnicos = useCallback(async ({ q = '', todos = false } = {}) => {
+        setCargandoTecnicos(true);
+        try {
+            const { data } = await api.get('/admin/tecnicos', {
+                params: todos ? { limit: 200 } : { q, limit: 60 },
+            });
+            setTecnicos(data ?? []);
+        } catch {
+            setTecnicos([]);
+            setError('No se pudo cargar el listado de técnicos.');
+        } finally {
+            setCargandoTecnicos(false);
+        }
+    }, []);
 
     async function cargarUltimaAccion(actorId) {
         setCargandoAccion(true);
@@ -171,125 +170,44 @@ export default function AdminDashboard() {
     }
 
     useEffect(() => {
-        cargar();
-    }, []);
+        cargarPerfil();
+    }, [cargarPerfil]);
+
+    useEffect(() => {
+        cargarResumen(periodo);
+    }, [periodo, cargarResumen]);
 
     useEffect(() => {
         if (user?.id) cargarUltimaAccion(user.id);
     }, [user?.id]);
 
-    const stats = useMemo(() => {
-        const totalGastado = viaticos.reduce((acc, v) => acc + Number(v.valor), 0);
-        return {
-            totalGastado,
-            pendientes: viaticos.filter((v) => v.estado === 'pendiente').length,
-            aprobados: viaticos.filter((v) => v.estado === 'aprobado').length,
-            rechazados: viaticos.filter((v) => v.estado === 'rechazado').length,
-        };
-    }, [viaticos]);
+    const busquedaActiva = busquedaTecnico.trim().length >= MIN_CHARS_BUSQUEDA;
+    const listadoVisible = expandirTodosTecnicos || busquedaActiva;
 
-    const tecnicos = useMemo(() => {
-        return usuarios
-            .filter((u) => {
-                const esUsuarioActual =
-                    (user?.id && String(u.id) === String(user.id)) ||
-                    (user?.correo && u.correo?.toLowerCase() === user.correo.toLowerCase());
-                if (esUsuarioActual) return false;
-                if (user?.rol === 'superadmin' && u.rol === 'superadmin') return false;
-                return true;
-            })
-            .map((u) => {
-                const viaticosUsuario = viaticos.filter((v) => v.usuario_id === u.id);
-                const totalGastado = viaticosUsuario.reduce((acc, v) => acc + Number(v.valor), 0);
-                return {
-                    ...u,
-                    cantidadViaticos: viaticosUsuario.length,
-                    totalGastado,
-                };
-            });
-    }, [usuarios, viaticos, user]);
-
-    const tecnicosFiltrados = useMemo(() => {
-        if (!busquedaTecnico.trim()) return tecnicos;
-        const q = busquedaTecnico.trim().toLowerCase();
-        return tecnicos.filter((t) =>
-            t.nombre?.toLowerCase().includes(q) ||
-            t.codigo_empleado?.toLowerCase().includes(q) ||
-            t.correo?.toLowerCase().includes(q)
-        );
-    }, [tecnicos, busquedaTecnico]);
-
-    // Consolidado de registros por Técnico + Fecha
-    const viaticosConsolidados = useMemo(() => {
-        const grupos = new Map();
-        viaticos.forEach((v) => {
-            const key = `${v.usuario_id}_${v.fecha}`;
-            const u = usuarios.find((usr) => usr.id === v.usuario_id);
-            const actual = grupos.get(key) || {
-                key,
-                usuario_id: v.usuario_id,
-                tecnico_nombre: v.nombre || u?.nombre || `Usuario #${v.usuario_id}`,
-                fecha: v.fecha,
-                ciudad: v.ciudad || 'N/A',
-                items: [],
-                total: 0,
-                estado: v.estado,
-            };
-
-            let meta;
-            try {
-                meta = JSON.parse(v.descripcion);
-            } catch {
-                meta = { razon_social: v.cliente, nit: '—', origen: '—', destino: v.ciudad, tiene_soporte: Boolean(v.evidencias?.length) };
-            }
-
-            actual.items.push({
-                ...v,
-                meta,
-                _asignacion_label: v.asignacion_id
-                    ? (v.asignacion_resumen?.cliente || `Asig. #${v.asignacion_id}`)
-                    : 'Independiente',
-            });
-            actual.total += Number(v.valor);
-
-            if (v.estado === 'pendiente') actual.estado = 'pendiente';
-            grupos.set(key, actual);
-        });
-
-        let list = [...grupos.values()].sort((a, b) => b.fecha.localeCompare(a.fecha));
-
-        if (filtroEstadoConsolidado !== 'todos') {
-            list = list.filter((r) => r.estado === filtroEstadoConsolidado);
+    // Debounce: una sola consulta por pausa de escritura, no una por tecla.
+    useEffect(() => {
+        if (!listadoVisible) {
+            setTecnicos([]);
+            return undefined;
         }
+        const q = busquedaTecnico.trim();
+        const temporizador = setTimeout(() => {
+            cargarTecnicos({ q, todos: expandirTodosTecnicos && !q });
+        }, DEBOUNCE_BUSQUEDA_MS);
+        return () => clearTimeout(temporizador);
+    }, [listadoVisible, busquedaTecnico, expandirTodosTecnicos, cargarTecnicos]);
 
-        if (!busquedaConsolidado.trim()) return list;
-        const query = busquedaConsolidado.toLowerCase();
-        return list.filter((r) =>
-            r.tecnico_nombre.toLowerCase().includes(query) ||
-            r.ciudad.toLowerCase().includes(query) ||
-            r.fecha.includes(query)
-        );
-    }, [viaticos, usuarios, busquedaConsolidado, filtroEstadoConsolidado]);
-
-    const filtroActivo = FILTROS_PERIODO.find((f) => f.id === periodo) ?? FILTROS_PERIODO[2];
-
-    const resumenPeriodo = useMemo(() => {
-        const viaticosPeriodo = viaticos.filter((v) => filtroActivo.fn(v.fecha));
-        const porUsuario = new Map();
-
-        viaticosPeriodo.forEach((v) => {
-            const actual = porUsuario.get(v.usuario_id) || {
-                nombre: v.nombre || `Usuario #${v.usuario_id}`,
-                total: 0,
-            };
-            actual.total += Number(v.valor);
-            porUsuario.set(v.usuario_id, actual);
-        });
-
-        const filas = [...porUsuario.values()].sort((a, b) => b.total - a.total);
-        const total = filas.reduce((acc, f) => acc + f.total, 0);
-        return { filas, total };
-    }, [viaticos, filtroActivo]);
+    // Refresco tras crear usuario / actualizar asignaciones.
+    const recargarPanel = useCallback(() => {
+        cargarPerfil();
+        cargarResumen(periodo);
+        if (listadoVisible) {
+            cargarTecnicos({
+                q: busquedaTecnico.trim(),
+                todos: expandirTodosTecnicos && !busquedaTecnico.trim(),
+            });
+        }
+    }, [cargarPerfil, cargarResumen, cargarTecnicos, periodo, listadoVisible, busquedaTecnico, expandirTodosTecnicos]);
 
     const perfil = perfilData ?? {
         nombre: user?.nombre ?? '',
@@ -486,7 +404,7 @@ export default function AdminDashboard() {
                         </div>
                     )}
 
-                    {/* ── FILA SUPERIOR: Perfil Admin + 4 KPIs ── */}
+                    {/* ── FILA SUPERIOR: Perfil Admin ── */}
                     <section className="gsb-top-section">
                         {/* Tarjeta de Perfil Administrador (Navy Card) */}
                         <div className="gsb-profile-card">
@@ -540,125 +458,6 @@ export default function AdminDashboard() {
                             </div>
                         </div>
 
-                        {/* 4 KPIs con Gráficas de Ondas Corporativas */}
-                        <div className="gsb-kpis-grid">
-                            {/* KPI 1: TOTAL GASTADO */}
-                            <div
-                                className={`gsb-kpi-card ${filtroEstadoConsolidado === 'todos' ? 'gsb-kpi-card--selected' : ''}`}
-                                onClick={() => setFiltroEstadoConsolidado('todos')}
-                            >
-                                <div className="gsb-kpi-card-top">
-                                    <div className="gsb-kpi-icon-wrap gsb-kpi-icon--blue">
-                                        <span>💼</span>
-                                    </div>
-                                    <span className="gsb-kpi-arrow-indicator gsb-kpi-arrow--blue">↗</span>
-                                </div>
-                                <span className="gsb-kpi-label">TOTAL GASTADO</span>
-                                <h3 className="gsb-kpi-value">{formatCOP(stats.totalGastado)}</h3>
-                                <span className="gsb-kpi-sub">Este mes</span>
-
-                                {/* Onda azul */}
-                                <div className="gsb-kpi-wave-wrap">
-                                    <svg viewBox="0 0 120 28" preserveAspectRatio="none" className="gsb-kpi-wave">
-                                        <defs>
-                                            <linearGradient id="blueWave" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#1D63C8" stopOpacity="0.25" />
-                                                <stop offset="100%" stopColor="#1D63C8" stopOpacity="0.0" />
-                                            </linearGradient>
-                                        </defs>
-                                        <path d="M0 24 Q 30 5, 60 18 T 120 12 L 120 28 L 0 28 Z" fill="url(#blueWave)" />
-                                        <path d="M0 24 Q 30 5, 60 18 T 120 12" fill="none" stroke="#1D63C8" strokeWidth="2.2" strokeLinecap="round" />
-                                    </svg>
-                                </div>
-                            </div>
-
-                            {/* KPI 2: PENDIENTES */}
-                            <div
-                                className={`gsb-kpi-card ${filtroEstadoConsolidado === 'pendiente' ? 'gsb-kpi-card--selected' : ''}`}
-                                onClick={() => setFiltroEstadoConsolidado((prev) => prev === 'pendiente' ? 'todos' : 'pendiente')}
-                            >
-                                <div className="gsb-kpi-card-top">
-                                    <div className="gsb-kpi-icon-wrap gsb-kpi-icon--amber">
-                                        <span>⏳</span>
-                                    </div>
-                                </div>
-                                <span className="gsb-kpi-label">PENDIENTES</span>
-                                <h3 className="gsb-kpi-value">{stats.pendientes}</h3>
-                                <span className="gsb-kpi-sub">Por aprobar</span>
-
-                                {/* Onda ámbar */}
-                                <div className="gsb-kpi-wave-wrap">
-                                    <svg viewBox="0 0 120 28" preserveAspectRatio="none" className="gsb-kpi-wave">
-                                        <defs>
-                                            <linearGradient id="amberWave" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#D97706" stopOpacity="0.25" />
-                                                <stop offset="100%" stopColor="#D97706" stopOpacity="0.0" />
-                                            </linearGradient>
-                                        </defs>
-                                        <path d="M0 22 Q 35 25, 65 14 T 120 16 L 120 28 L 0 28 Z" fill="url(#amberWave)" />
-                                        <path d="M0 22 Q 35 25, 65 14 T 120 16" fill="none" stroke="#D97706" strokeWidth="2.2" strokeLinecap="round" />
-                                    </svg>
-                                </div>
-                            </div>
-
-                            {/* KPI 3: APROBADOS */}
-                            <div
-                                className={`gsb-kpi-card ${filtroEstadoConsolidado === 'aprobado' ? 'gsb-kpi-card--selected' : ''}`}
-                                onClick={() => setFiltroEstadoConsolidado((prev) => prev === 'aprobado' ? 'todos' : 'aprobado')}
-                            >
-                                <div className="gsb-kpi-card-top">
-                                    <div className="gsb-kpi-icon-wrap gsb-kpi-icon--emerald">
-                                        <span>✓</span>
-                                    </div>
-                                </div>
-                                <span className="gsb-kpi-label">APROBADOS</span>
-                                <h3 className="gsb-kpi-value">{stats.aprobados}</h3>
-                                <span className="gsb-kpi-sub">Este mes</span>
-
-                                {/* Onda verde */}
-                                <div className="gsb-kpi-wave-wrap">
-                                    <svg viewBox="0 0 120 28" preserveAspectRatio="none" className="gsb-kpi-wave">
-                                        <defs>
-                                            <linearGradient id="emeraldWave" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#059669" stopOpacity="0.25" />
-                                                <stop offset="100%" stopColor="#059669" stopOpacity="0.0" />
-                                            </linearGradient>
-                                        </defs>
-                                        <path d="M0 26 Q 30 8, 60 22 T 120 10 L 120 28 L 0 28 Z" fill="url(#emeraldWave)" />
-                                        <path d="M0 26 Q 30 8, 60 22 T 120 10" fill="none" stroke="#059669" strokeWidth="2.2" strokeLinecap="round" />
-                                    </svg>
-                                </div>
-                            </div>
-
-                            {/* KPI 4: RECHAZADOS */}
-                            <div
-                                className={`gsb-kpi-card ${filtroEstadoConsolidado === 'rechazado' ? 'gsb-kpi-card--selected' : ''}`}
-                                onClick={() => setFiltroEstadoConsolidado((prev) => prev === 'rechazado' ? 'todos' : 'rechazado')}
-                            >
-                                <div className="gsb-kpi-card-top">
-                                    <div className="gsb-kpi-icon-wrap gsb-kpi-icon--crimson">
-                                        <span>✕</span>
-                                    </div>
-                                </div>
-                                <span className="gsb-kpi-label">RECHAZADOS</span>
-                                <h3 className="gsb-kpi-value">{stats.rechazados}</h3>
-                                <span className="gsb-kpi-sub">Este mes</span>
-
-                                {/* Onda roja */}
-                                <div className="gsb-kpi-wave-wrap">
-                                    <svg viewBox="0 0 120 28" preserveAspectRatio="none" className="gsb-kpi-wave">
-                                        <defs>
-                                            <linearGradient id="crimsonWave" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#DC2626" stopOpacity="0.25" />
-                                                <stop offset="100%" stopColor="#DC2626" stopOpacity="0.0" />
-                                            </linearGradient>
-                                        </defs>
-                                        <path d="M0 16 Q 40 26, 75 12 T 120 20 L 120 28 L 0 28 Z" fill="url(#crimsonWave)" />
-                                        <path d="M0 16 Q 40 26, 75 12 T 120 20" fill="none" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
                     </section>
 
                     {/* ── FILA INFERIOR: Técnicos + Resumen de Gastos ── */}
@@ -669,7 +468,11 @@ export default function AdminDashboard() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
                                     <div>
                                         <h2 className="gsb-section-title">Técnicos</h2>
-                                        <p className="gsb-section-subtitle">Gestión y actividad de técnicos ({tecnicosFiltrados.length})</p>
+                                        <p className="gsb-section-subtitle">
+                                            {listadoVisible
+                                                ? `Gestión y actividad de técnicos (${tecnicos.length})`
+                                                : 'Busca un técnico o expande el listado completo'}
+                                        </p>
                                     </div>
                                     <button
                                         type="button"
@@ -708,9 +511,36 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
 
+                            {/* El listado arranca oculto: no se renderiza ni se consulta
+                                hasta que el admin busca o pulsa "Expandir todos". */}
+                            {!listadoVisible && (
+                                <div className="gsb-techs-placeholder">
+                                    <span className="gsb-techs-placeholder-icon">🔍</span>
+                                    <p className="gsb-techs-placeholder-txt">
+                                        Escribe al menos {MIN_CHARS_BUSQUEDA} caracteres para buscar un técnico
+                                        por nombre, cédula o correo, o pulsa <strong>Expandir todos</strong> para
+                                        cargar el listado completo.
+                                    </p>
+                                </div>
+                            )}
+
+                            {listadoVisible && cargandoTecnicos && (
+                                <div className="gsb-techs-placeholder">
+                                    <p className="gsb-techs-placeholder-txt">Cargando técnicos…</p>
+                                </div>
+                            )}
+
+                            {listadoVisible && !cargandoTecnicos && tecnicos.length === 0 && (
+                                <div className="gsb-techs-placeholder">
+                                    <p className="gsb-techs-placeholder-txt">
+                                        Ningún técnico coincide con la búsqueda.
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="gsb-techs-grid">
-                                {tecnicosFiltrados.map((t) => {
-                                    const asigActiva = obtenerAsignacionActivaDeTecnico(asignaciones, t.id);
+                                {(listadoVisible && !cargandoTecnicos ? tecnicos : []).map((t) => {
+                                    const asigActiva = t.asignacion_activa;
                                     const estaExpandido = tecnicosExpandidos[t.id] !== undefined ? tecnicosExpandidos[t.id] : expandirTodosTecnicos;
 
                                     return (
@@ -770,7 +600,7 @@ export default function AdminDashboard() {
 
                                                     <div className="gsb-tech-compact-footer">
                                                         <span className="gsb-tech-compact-viaticos-chip">
-                                                            🧾 {t.cantidadViaticos || 0} viát. · {formatCOP(t.totalGastado || 0)}
+                                                            🧾 {t.cantidad_viaticos || 0} viát. · {formatCOP(t.total_gastado || 0)}
                                                         </span>
                                                         <button
                                                             type="button"
@@ -814,9 +644,8 @@ export default function AdminDashboard() {
 
                                                     {/* ── Widget de Saldo por Asignación ── */}
                                                     {(() => {
-                                                        const asigTec = asignaciones.filter(
-                                                            a => String(a.tecnico_id || a.usuario_id) === String(t.id) &&
-                                                                 (Number(a.monto_anticipo || 0) > 0 || Number(a.total_gastado || 0) > 0)
+                                                        const asigTec = (t.asignaciones || []).filter(
+                                                            a => Number(a.monto_anticipo || 0) > 0 || Number(a.total_gastado || 0) > 0
                                                         );
                                                         const filtroKey = filtroAsigTecnicos[t.id] || 'global';
                                                         const setFiltro = (val) => setFiltroAsigTecnicos(prev => ({ ...prev, [t.id]: val }));
@@ -875,11 +704,11 @@ export default function AdminDashboard() {
                                                     {/* Métricas de Viáticos y Gasto */}
                                                     <div className="gsb-tech-metrics-row">
                                                         <div className="gsb-tech-metric">
-                                                            <span className="gsb-tech-metric-val">{t.cantidadViaticos}</span>
+                                                            <span className="gsb-tech-metric-val">{t.cantidad_viaticos}</span>
                                                             <span className="gsb-tech-metric-lbl">VIÁTICOS</span>
                                                         </div>
                                                         <div className="gsb-tech-metric">
-                                                            <span className="gsb-tech-metric-val">{formatCOP(t.totalGastado)}</span>
+                                                            <span className="gsb-tech-metric-val">{formatCOP(t.total_gastado)}</span>
                                                             <span className="gsb-tech-metric-lbl">GASTADO</span>
                                                         </div>
                                                     </div>
@@ -972,17 +801,26 @@ export default function AdminDashboard() {
 
                                 <div className="gsb-summary-total-hero">
                                     <span className="gsb-summary-hero-lbl">Total Gastado</span>
-                                    <h3 className="gsb-summary-hero-val">{formatCOP(resumenPeriodo.total)}</h3>
+                                    <h3 className="gsb-summary-hero-val">
+                                        {cargandoResumen ? '…' : formatCOP(Number(resumen.total || 0))}
+                                    </h3>
+                                    {periodo !== 'historico' && (
+                                        <span className="gsb-summary-hero-hist">
+                                            Histórico: {formatCOP(Number(resumen.total_historico || 0))}
+                                        </span>
+                                    )}
                                 </div>
 
                                 <div className="gsb-summary-list">
-                                    {resumenPeriodo.filas.length === 0 ? (
+                                    {cargandoResumen ? (
+                                        <p className="gsb-summary-empty">Calculando…</p>
+                                    ) : (resumen.filas || []).length === 0 ? (
                                         <p className="gsb-summary-empty">Sin gastos registrados en este periodo.</p>
                                     ) : (
-                                        resumenPeriodo.filas.map((f, i) => (
-                                            <div className="gsb-summary-row" key={i}>
+                                        resumen.filas.map((f) => (
+                                            <div className="gsb-summary-row" key={f.usuario_id}>
                                                 <span className="gsb-summary-tech-name">{f.nombre}</span>
-                                                <span className="gsb-summary-tech-val">{formatCOP(f.total)}</span>
+                                                <span className="gsb-summary-tech-val">{formatCOP(Number(f.total || 0))}</span>
                                             </div>
                                         ))
                                     )}
@@ -990,7 +828,7 @@ export default function AdminDashboard() {
 
                                 <div className="gsb-summary-total-footer">
                                     <span>Total</span>
-                                    <strong>{formatCOP(resumenPeriodo.total)}</strong>
+                                    <strong>{cargandoResumen ? '…' : formatCOP(Number(resumen.total || 0))}</strong>
                                 </div>
                             </div>
                         </section>
@@ -1003,136 +841,12 @@ export default function AdminDashboard() {
                 </footer>
             </div>
 
-            {/* ── MODAL DETALLE CONSOLIDADO (ADMIN) ── */}
-            {registroConsolidado && (
-                <div className="sa-modal-overlay" onClick={() => setRegistroConsolidado(null)}>
-                    <div
-                        className="sa-modal"
-                        style={{ maxWidth: '780px', width: '90%', maxHeight: '88vh', overflowY: 'auto', padding: '1.75rem', boxSizing: 'border-box' }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="sa-modal-header">
-                            <div>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Detalle del viático</h3>
-                                <span className={`estado-badge estado-badge--${registroConsolidado.estado === 'pendiente' ? 'inactivo' : registroConsolidado.estado}`}>
-                                    {registroConsolidado.estado === 'pendiente' ? 'EN REVISIÓN' : registroConsolidado.estado.toUpperCase()}
-                                </span>
-                            </div>
-                            <button className="sa-modal-close" onClick={() => setRegistroConsolidado(null)}>✕</button>
-                        </div>
-
-                        <div className="detalle-asig-grid" style={{ marginBottom: '1.25rem' }}>
-                            <div>
-                                <span className="detalle-label">Técnico</span>
-                                <span className="detalle-valor">{registroConsolidado.tecnico_nombre}</span>
-                            </div>
-                            <div>
-                                <span className="detalle-label">Fecha del registro</span>
-                                <span className="detalle-valor">{registroConsolidado.fecha}</span>
-                            </div>
-                            <div>
-                                <span className="detalle-label">Ciudad</span>
-                                <span className="detalle-valor">{registroConsolidado.ciudad}</span>
-                            </div>
-                            <div>
-                                <span className="detalle-label">Ítems registrados</span>
-                                <span className="detalle-valor">{registroConsolidado.items.length}</span>
-                            </div>
-                        </div>
-
-                        {/* Listado de ítems dentro del consolidado */}
-                        <div className="admin-table-wrap" style={{ marginTop: '1rem', border: '1px solid var(--color-border)', borderRadius: '8px' }}>
-                            <table className="admin-table" style={{ fontSize: '0.82rem' }}>
-                                <thead>
-                                    <tr>
-                                        <th>Concepto</th>
-                                        <th>Asignación / Origen</th>
-                                        <th>Valor</th>
-                                        <th>Soporte</th>
-                                        <th style={{ textAlign: 'center' }}>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {registroConsolidado.items.map((item) => {
-                                        const evidencia = item.evidencias?.[0];
-                                        return (
-                                            <tr key={item.id}>
-                                                <td>
-                                                    <strong>{item.tipo_gasto?.toUpperCase()}</strong>
-                                                    {item.ot && <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>OT: {item.ot}</span>}
-                                                </td>
-                                                <td>
-                                                    <span style={{
-                                                        display: 'inline-block',
-                                                        padding: '0.2rem 0.5rem',
-                                                        borderRadius: '4px',
-                                                        fontSize: '0.75rem',
-                                                        fontWeight: 600,
-                                                        background: item.asignacion_id ? '#EFF6FF' : '#F1F5F9',
-                                                        color: item.asignacion_id ? '#1D63C8' : '#64748B',
-                                                        whiteSpace: 'nowrap',
-                                                    }}>
-                                                        {item._asignacion_label}
-                                                    </span>
-                                                </td>
-                                                <td><strong>{formatCOP(item.valor)}</strong></td>
-                                                <td>
-                                                    {evidencia ? (
-                                                        <img
-                                                            src={evidencia.secure_url}
-                                                            alt="Soporte"
-                                                            style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', border: '1px solid var(--color-border)' }}
-                                                            onClick={() => setEvidenciaPreview(item)}
-                                                        />
-                                                    ) : (
-                                                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Sin soporte</span>
-                                                    )}
-                                                </td>
-                                                <td style={{ textAlign: 'center' }}>
-                                                    {evidencia && (
-                                                        <button className="admin-mini-btn" onClick={() => setEvidenciaPreview(item)}>
-                                                            👁️ Ver soporte
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal de previsualización de foto/evidencia */}
-            {evidenciaPreview && (
-                <ModalEvidencia
-                    viatico={evidenciaPreview}
-                    onClose={() => setEvidenciaPreview(null)}
-                    onAprobar={esLector ? null : (id, cText) => {
-                        setEvidenciaPreview(null);
-                        setMensajeFeedback(`✅ Viático aprobado correctamente${cText ? ` — Comentario: "${cText}"` : ''}`);
-                        cargar();
-                    }}
-                    onRechazar={esLector ? null : (id, cText) => {
-                        setEvidenciaPreview(null);
-                        setMensajeFeedback(`❌ Viático rechazado correctamente${cText ? ` — Motivo enviado: "${cText}"` : ''}`);
-                        cargar();
-                    }}
-                    onPresupuestoActualizado={esLector ? null : (v) => {
-                        setViaticos((prev) => prev.map((x) => (x.id === v.id ? v : x)));
-                        setEvidenciaPreview(v);
-                    }}
-                />
-            )}
-
             {/* Modal de Asignaciones Individuales de Técnico */}
             {tecnicoParaAsignaciones && (
                 <ModalAsignacionesTecnico
                     tecnico={tecnicoParaAsignaciones}
                     onClose={() => setTecnicoParaAsignaciones(null)}
-                    onAsignacionActualizada={cargar}
+                    onAsignacionActualizada={recargarPanel}
                 />
             )}
 
@@ -1151,7 +865,7 @@ export default function AdminDashboard() {
                     onCreado={(nuevo) => {
                         setMostrarCrearUsuario(false);
                         setMensajeFeedback(`✅ Usuario "${nuevo.nombre}" creado exitosamente.`);
-                        cargar();
+                        recargarPanel();
                     }}
                 />
             )}

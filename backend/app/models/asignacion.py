@@ -51,6 +51,12 @@ class Asignacion(Base):
     fecha_inicio: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     fecha_fin: Mapped[date] = mapped_column(Date, nullable=False, index=True)
 
+    # Número/código de la Orden de Trabajo (OT / orden de servicio) que el
+    # propio técnico diligencia desde "Mis Asignaciones". Es OPCIONAL: no
+    # bloquea el registro de viáticos y alimenta la celda "Órdenes de servicio
+    # realizadas" del Excel de legalización.
+    orden_trabajo: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
     observaciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     monto_anticipo: Mapped[Decimal] = mapped_column(
         Numeric(10, 2), nullable=False, server_default="0.00"

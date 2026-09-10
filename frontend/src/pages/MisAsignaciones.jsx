@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TecnicoLayout from '../components/TecnicoLayout';
 import api from '../services/api';
-import { listarAsignaciones, obtenerMisAsignacionesActivas } from '../services/asignaciones';
+import { guardarOrdenTrabajoAsignacion, listarAsignaciones, obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION, calcularEstadoGraciaAsignacion } from '../utils/asignaciones';
 import { formatFechaLarga, formatCOP } from '../utils/personal';
 import './MisAsignaciones.css';
@@ -14,6 +14,101 @@ function estaEnRango(asignacion) {
     if (!asignacion) return true;
     const { puedeSubir } = calcularEstadoGraciaAsignacion(asignacion);
     return puedeSubir;
+}
+
+/**
+ * Normaliza texto (sin tildes, minúsculas) para comparar nombres de cliente.
+ */
+function normalizar(texto) {
+    return (texto || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+/**
+ * Clientes para los que se muestra el aviso de OT pendiente mientras el campo
+ * esté vacío. Por ahora únicamente Banco Agrario de Colombia.
+ */
+const CLIENTES_CON_AVISO_OT = ['banco agrario'];
+
+function requiereAvisoOT(asignacion) {
+    const cliente = normalizar(asignacion?.cliente);
+    const empresa = normalizar(asignacion?.empresa);
+    return CLIENTES_CON_AVISO_OT.some(
+        (clave) => cliente.includes(clave) || empresa.includes(clave)
+    );
+}
+
+/**
+ * Campo OPCIONAL de OT (Orden de Trabajo/Servicio) de la asignación.
+ * No condiciona el registro de viáticos: el botón de registrar sigue
+ * funcionando aunque la OT esté vacía.
+ */
+function OrdenTrabajoAsignacion({ asignacion, onGuardada }) {
+    const [valor, setValor] = useState(asignacion.orden_trabajo || '');
+    const [guardada, setGuardada] = useState(asignacion.orden_trabajo || '');
+    const [guardando, setGuardando] = useState(false);
+    const [errorOt, setErrorOt] = useState('');
+
+    const mostrarAviso = requiereAvisoOT(asignacion) && !guardada;
+    const hayCambios = valor.trim() !== (guardada || '');
+
+    async function guardar() {
+        setGuardando(true);
+        setErrorOt('');
+        try {
+            const res = await guardarOrdenTrabajoAsignacion(asignacion.id, valor.trim());
+            const nueva = res?.data?.orden_trabajo || '';
+            setGuardada(nueva);
+            setValor(nueva);
+            onGuardada(asignacion.id, nueva);
+        } catch {
+            setErrorOt('No se pudo guardar la OT. Intenta nuevamente.');
+        } finally {
+            setGuardando(false);
+        }
+    }
+
+    return (
+        <div className="mac-ot-box">
+            {mostrarAviso && (
+                <div className="mac-ot-aviso">
+                    <span>⚠️</span>
+                    <span>Recuerda registrar la OT de esta asignación.</span>
+                </div>
+            )}
+
+            <label className="mac-ot-label" htmlFor={`ot-${asignacion.id}`}>
+                OT (Orden de Trabajo/Servicio) <span className="mac-ot-opcional">Opcional</span>
+            </label>
+            <div className="mac-ot-row">
+                <input
+                    id={`ot-${asignacion.id}`}
+                    className="mac-ot-input"
+                    type="text"
+                    maxLength={50}
+                    placeholder="Ej: 123456"
+                    value={valor}
+                    onChange={(e) => setValor(e.target.value)}
+                    disabled={guardando}
+                />
+                <button
+                    type="button"
+                    className="mac-ot-btn"
+                    onClick={guardar}
+                    disabled={guardando || !hayCambios}
+                >
+                    {guardando ? 'Guardando...' : 'Guardar'}
+                </button>
+            </div>
+            {errorOt && <p className="mac-ot-error">{errorOt}</p>}
+            {!errorOt && guardada && !hayCambios && (
+                <p className="mac-ot-ok">✅ OT registrada: <strong>{guardada}</strong></p>
+            )}
+        </div>
+    );
 }
 
 export default function MisAsignaciones() {
@@ -40,6 +135,13 @@ export default function MisAsignaciones() {
             }
         }
         cargar();
+    }, []);
+
+    // Refleja en el listado la OT recién guardada (sin recargar la página)
+    const actualizarOrdenTrabajo = useCallback((asignacionId, ordenTrabajo) => {
+        setAsignaciones((prev) =>
+            prev.map((a) => (a.id === asignacionId ? { ...a, orden_trabajo: ordenTrabajo } : a))
+        );
     }, []);
 
     // Mapa de viáticos vinculados a cada asignación
@@ -181,6 +283,8 @@ export default function MisAsignaciones() {
                                             <strong>Notas:</strong> {a.observaciones}
                                         </p>
                                     )}
+                                    <OrdenTrabajoAsignacion asignacion={a} onGuardada={actualizarOrdenTrabajo} />
+
                                     {(() => {
                                          const infoGracia = calcularEstadoGraciaAsignacion(a);
                                          if (infoGracia.puedeSubir) {

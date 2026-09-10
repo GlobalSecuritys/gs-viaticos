@@ -119,6 +119,25 @@ PROCESOS_INICIALES = [
 ]
 
 
+def _renombrar_ci_a_compras(db: Session) -> None:
+    """Deja el proceso CI con el nombre "Compras". Idempotente.
+
+    Inventario (IN) es un proceso aparte desde hace tiempo, así que el nombre
+    heredado "Compras e Inventario" ya no describe lo que hace CI. Solo toca el
+    nombre: la descripción y todo lo demás quedan como están.
+    """
+    try:
+        proceso_ci = db.scalar(select(ProcesoCalidad).where(ProcesoCalidad.codigo == "CI"))
+        if proceso_ci and proceso_ci.nombre != "Compras":
+            anterior = proceso_ci.nombre
+            proceso_ci.nombre = "Compras"
+            db.commit()
+            print(f"[STARTUP] Proceso CI renombrado: '{anterior}' -> 'Compras'")
+    except Exception as e:
+        db.rollback()
+        print(f"[STARTUP] Advertencia al renombrar el proceso CI: {e}")
+
+
 def seed_procesos_calidad_si_vacio(db: Session) -> None:
     """Verifica si la tabla procesos_calidad tiene registros; si no, inserta los 9 iniciales.
     Si ya tiene datos, corrige el registro duplicado del bug histórico:
@@ -139,6 +158,13 @@ def seed_procesos_calidad_si_vacio(db: Session) -> None:
             db.add(proceso)
         db.commit()
         return
+
+    # ── Renombrado de CI: "Compras e Inventario" -> "Compras" ───────────────
+    # PROCESOS_INICIALES ya dice "Compras", pero el seed solo corre con la tabla
+    # vacía: las bases creadas antes conservan el nombre viejo, de cuando compras
+    # e inventario eran un solo proceso. Va antes de los casos A/B/C porque cada
+    # uno hace su propio return.
+    _renombrar_ci_a_compras(db)
 
     _DESCRIPCION_INVENTARIO = (
         "Control de stock por planillas, kardex de entradas y salidas "
