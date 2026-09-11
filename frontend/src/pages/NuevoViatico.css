@@ -746,6 +746,13 @@
     color: var(--color-text-muted);
 }
 
+/* Modo "NIT nuevo": input manual + ayuda, mismo espaciado que el autocomplete */
+.nv-id-nuevo-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
 /* ── Autocomplete dropdown ── */
 .nv-autocomplete-wrap {
     position: relative;

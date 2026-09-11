@@ -42,8 +42,9 @@ const CONTEXTO_KEY = 'gs_fecha_anterior_viatico';
 function getItemInicial(id) {
     return {
         id,
-        tipo_id: 'cedula',          // 'cedula' | 'nit_proveedor'
+        tipo_id: 'cedula',          // 'cedula' | 'nit_proveedor' | 'nit_nuevo'
         nit: '',
+        nit_nuevo_texto: '',         // NIT escrito a mano cuando el proveedor aun no existe
         proveedor_query: '',         // texto que el usuario escribe para buscar
         proveedor_seleccionado: null, // { nit, nombre }
         razon_social: '',
@@ -249,6 +250,13 @@ export default function NuevoViatico() {
                     nitFinal = g.proveedor_seleccionado?.nit || '';
                     if (!nitFinal) {
                         setError(`Gasto #${i + 1}: debes seleccionar un proveedor de la lista.`);
+                        setLoading(false);
+                        return;
+                    }
+                } else if (tipoId === 'nit_nuevo') {
+                    nitFinal = (g.nit_nuevo_texto || '').trim();
+                    if (!nitFinal) {
+                        setError(`Gasto #${i + 1}: ingresa el NIT del proveedor nuevo.`);
                         setLoading(false);
                         return;
                     }
@@ -640,6 +648,7 @@ export default function NuevoViatico() {
                                                         {[
                                                             { key: 'cedula', label: '✓ Mi cédula' },
                                                             { key: 'nit_proveedor', label: '🔍 NIT proveedor' },
+                                                            { key: 'nit_nuevo', label: '✏️ NIT nuevo' },
                                                         ].map(({ key, label }) => (
                                                             <button
                                                                 key={key}
@@ -695,6 +704,24 @@ export default function NuevoViatico() {
                                                                 ))}
                                                             </ul>
                                                         )}
+                                                    </div>
+                                                )}
+
+                                                {/* Modo: NIT nuevo (proveedor que aun no esta en la base) */}
+                                                {gasto.tipo_id === 'nit_nuevo' && (
+                                                    <div className="nv-id-nuevo-wrap">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Ej: 900.123.456-7"
+                                                            value={gasto.nit_nuevo_texto}
+                                                            onChange={(e) =>
+                                                                handleGastoChange(gasto.id, 'nit_nuevo_texto', e.target.value)
+                                                            }
+                                                            autoComplete="off"
+                                                        />
+                                                        <span className="nv-id-hint">
+                                                            Usa esta opción si el proveedor todavía no aparece en la búsqueda. Escribe también la razón social abajo.
+                                                        </span>
                                                     </div>
                                                 )}
 
