@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 import httpx
 
 from app.services.excel_export import generar_excel_viaticos_asignacion
+from app.services.pdf_cuenta_cobro import generar_pdf_cuenta_cobro
 
 if TYPE_CHECKING:
     from app.models.asignacion import Asignacion
@@ -83,17 +84,19 @@ def slug(texto: Optional[str], por_defecto: str = "sin-dato") -> str:
     return base or por_defecto
 
 
-def _extension_de_url(url: str) -> str:
+def _extension_de_url(url: str, por_defecto: str = ".jpg") -> str:
     try:
-        ruta = urlparse(url).path
+        ruta = urlparse(url).path.lower()
+        if ".pdf" in ruta:
+            return ".pdf"
         punto = ruta.rfind(".")
         if punto != -1:
-            ext = ruta[punto:].lower()
+            ext = ruta[punto:]
             if ext in EXTENSIONES_VALIDAS:
                 return ext
     except Exception:
         pass
-    return ".jpg"
+    return por_defecto
 
 
 def _formato_fecha(valor) -> str:
@@ -207,6 +210,10 @@ def _construir_descripcion(
     if asignacion.observaciones:
         lineas += ["", f"Observaciones         : {asignacion.observaciones}"]
 
+    cuenta_cobro = getattr(asignacion, "cuenta_cobro", None)
+    if cuenta_cobro is not None and getattr(cuenta_cobro, "secure_url", None):
+        lineas += ["", "Cuenta de cobro       : Archivo adjunto incluido en esta carpeta."]
+
     lineas += [
         "",
         f"Documento generado el {datetime.now().strftime('%Y-%m-%d %H:%M')}.",
@@ -308,6 +315,83 @@ def _escribir_asignacion(
             datos = buffer.drain()
             if datos:
                 yield datos
+
+    # 4) Cuentas de Cobro
+    # 4.1) Cuenta de cobro adjunta a nivel asignación (archivo en Cloudinary)
+    cuenta_cobro_asig = getattr(asignacion, "cuenta_cobro", None)
+    if cuenta_cobro_asig is not None and getattr(cuenta_cobro_asig, "secure_url", None):
+        url_cc = cuenta_cobro_asig.secure_url
+        ext_cc = _extension_de_url(url_cc, por_defecto=".pdf")
+        tecnico_cc = slug(
+            getattr(getattr(cuenta_cobro_asig, "tecnico", None), "nombre", None)
+            or getattr(getattr(asignacion, "tecnico", None), "nombre", None),
+            "tecnico",
+        )
+        nombre_cc = f"Cuenta_Cobro_{tecnico_cc}{ext_cc}"
+
+        info_cc = zipfile.ZipInfo(
+            f"{base}{nombre_cc}",
+            date_time=datetime.now().timetuple()[:6],
+        )
+        info_cc.compress_type = zipfile.ZIP_STORED
+
+        try:
+            with client.stream("GET", url_cc) as respuesta:
+                respuesta.raise_for_status()
+                with zf.open(info_cc, "w") as destino:
+                    for trozo in respuesta.iter_bytes(CHUNK_SIZE):
+                        destino.write(trozo)
+                        datos = buffer.drain()
+                        if datos:
+                            yield datos
+        except Exception:
+            logger.warning(
+                "No se pudo descargar la cuenta de cobro de la asignación %s (url: %s)",
+                asignacion.id,
+                url_cc,
+            )
+            zf.writestr(
+                f"{base}Cuenta_Cobro_ERROR.txt",
+                f"No fue posible descargar el archivo de la cuenta de cobro desde {url_cc}",
+            )
+            datos = buffer.drain()
+            if datos:
+                yield datos
+
+    # 4.2) Cuentas de cobro digitales emitidas para los viáticos de la asignación
+    cuentas_vistas: set[int] = set()
+    for viatico in viaticos:
+        cc_viatico = getattr(viatico, "cuenta_cobro", None)
+        if cc_viatico is not None and cc_viatico.id not in cuentas_vistas:
+            cuentas_vistas.add(cc_viatico.id)
+            try:
+                pdf_bytes = generar_pdf_cuenta_cobro(cc_viatico)
+                consecutivo = cc_viatico.consecutivo or f"{cc_viatico.id}"
+                concepto = slug(cc_viatico.concepto_servicio or viatico.tipo_gasto, "gasto")[:20]
+                nombre_pdf = f"Cuenta_Cobro_{consecutivo}_{concepto}.pdf"
+
+                info_pdf = zipfile.ZipInfo(
+                    f"{base}{nombre_pdf}",
+                    date_time=datetime.now().timetuple()[:6],
+                )
+                info_pdf.compress_type = zipfile.ZIP_DEFLATED
+                zf.writestr(info_pdf, pdf_bytes)
+                datos = buffer.drain()
+                if datos:
+                    yield datos
+            except Exception:
+                logger.exception(
+                    "No se pudo generar el PDF de la cuenta de cobro %s (viático %s)",
+                    cc_viatico.id,
+                    viatico.id,
+                )
+                zf.writestr(
+                    f"{base}Cuenta_Cobro_{cc_viatico.id}_ERROR.txt",
+                    f"No fue posible generar el PDF de la cuenta de cobro ID {cc_viatico.id}.",
+                )
+                datos = buffer.drain()
+                if datos:
+                    yield datos
 
 
 def iter_zip_asignacion(

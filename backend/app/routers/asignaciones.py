@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.security import get_current_admin, get_current_user
 from app.database import get_db
 from app.models.asignacion import Asignacion
+from app.models.cuenta_cobro import CuentaCobro
 from app.models.usuario import Usuario
 from app.models.viatico import Viatico
 from app.schemas.asignacion import (
@@ -288,6 +289,7 @@ def _viaticos_de_asignacion(asignacion_id: int, db: Session) -> list:
         .options(
             joinedload(Viatico.evidencias),
             joinedload(Viatico.usuario),
+            joinedload(Viatico.cuenta_cobro),
         )
         .where(Viatico.asignacion_id == asignacion_id)
         .order_by(Viatico.fecha.asc(), Viatico.id.asc())
