@@ -29,8 +29,17 @@ export default function InventarioNavegacion() {
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState('');
     // Ruta de la ficha del proceso IN en el Mapa SGC, que es de donde se entra
-    // al módulo. Se resuelve por código porque la ficha se direcciona por id.
     const [rutaFichaIN, setRutaFichaIN] = useState('/calidad-de-procesos');
+
+    useEffect(() => {
+        if (user?.rol === 'tecnico') {
+            navigate('/dashboard', { replace: true });
+        }
+    }, [user, navigate]);
+
+    if (user?.rol === 'tecnico') {
+        return null;
+    }
 
     const cargar = useCallback(async () => {
         setCargando(true);

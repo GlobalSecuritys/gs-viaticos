@@ -1,547 +1,145 @@
-/* ===== Employee Dashboard (Corporate Enterprise Theme) ===== */
+﻿/* ===================================================================
+   GS Viaticos - Dashboard Tecnico (Premium)
+   Paleta: Azul Marino + Azul Electrico + Blanco + Dorado GSB acento
+   =================================================================== */
 
+/* Variables locales del dashboard */
 .dash-tec-container {
-    max-width: 1200px;
+    --db-navy:      #0B1120;
+    --db-navy-2:    #0F172A;
+    --db-blue:      #2563EB;
+    --db-blue-lt:   #3B82F6;
+    --db-blue-glow: rgba(37,99,235,0.25);
+    --db-gold:      #D97706;
+    --db-gold-lt:   #F59E0B;
+    --db-slate-300: #CBD5E1;
+    --db-radius:    14px;
+    --db-shadow:    0 4px 24px rgba(0,0,0,0.18);
+    --db-shadow-xl: 0 12px 48px rgba(0,0,0,0.30);
+
+    font-family: 'Inter', system-ui, sans-serif;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 2rem 1.5rem;
+    padding: 2rem 1.5rem 3rem;
     display: flex;
     flex-direction: column;
-    gap: 1.75rem;
+    gap: 1.5rem;
 }
 
-/* ── Top Header Card ── */
+/* HERO HEADER CARD */
 .dash-tec-header-card {
-    background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem 2rem;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0F172A 0%, #162044 55%, #0c1a3a 100%);
+    border: 1px solid rgba(37,99,235,0.30);
+    border-radius: 20px;
+    padding: 1.75rem 2rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: var(--color-shadow);
     flex-wrap: wrap;
     gap: 1.25rem;
-    border-top: 3px solid var(--color-primary-blue);
+    box-shadow: var(--db-shadow-xl), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.dash-tec-header-card::before {
+    content: '';
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(37,99,235,0.20) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.dash-tec-header-card::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #D97706 0%, #F59E0B 100%);
+    border-radius: 20px 0 0 20px;
 }
 
 .dash-tec-header-left {
     display: flex;
     align-items: center;
     gap: 1.25rem;
+    position: relative;
+    z-index: 1;
 }
 
 .dash-tec-avatar {
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
-    background-color: var(--color-accent-blue-light);
-    color: var(--color-accent-blue);
-    border: 2px solid var(--color-border);
+    background: linear-gradient(135deg, #2563EB 0%, #1d4ed8 100%);
+    color: #FFFFFF;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 1.4rem;
+    font-weight: 800;
+    font-size: 1.45rem;
     flex-shrink: 0;
+    box-shadow: 0 0 0 3px #D97706, 0 0 20px rgba(37,99,235,0.35);
+    letter-spacing: -0.02em;
 }
 
 .dash-tec-header-info {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.2rem;
 }
 
 .dash-tec-greeting {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--color-text);
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #FFFFFF;
     margin: 0;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
 }
 
 .dash-tec-user-meta {
-    font-size: 0.875rem;
-    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    color: #CBD5E1;
     margin: 0;
+    font-weight: 500;
 }
 
 .dash-tec-date-badge {
-    background-color: var(--color-bg-tertiary);
-    border: 1px solid var(--color-border);
-    padding: 0.55rem 1.1rem;
-    border-radius: var(--radius-md);
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--color-text-muted);
-}
-
-/* ── 4 KPI Cards Grid ── */
-.dash-tec-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1.25rem;
-}
-
-.dash-tec-kpi-card {
-    background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: 1.35rem 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: var(--color-shadow);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.dash-tec-kpi-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--color-shadow-md);
-    border-color: var(--color-border-hover);
-}
-
-.dash-tec-kpi-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-}
-
-.dash-tec-kpi-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--color-text-muted);
-}
-
-.dash-tec-kpi-val {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--color-text);
-    letter-spacing: -0.02em;
-}
-
-.dash-tec-kpi-val--purple {
-    color: #7C3AED;
-}
-
-.dash-tec-kpi-link {
-    background: transparent;
-    border: none;
-    color: var(--color-accent-blue);
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 0;
-    text-align: left;
-    transition: color 0.2s ease;
-}
-
-.dash-tec-kpi-link:hover {
-    color: var(--color-primary-blue);
-    text-decoration: underline;
-}
-
-.dash-tec-kpi-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    flex-shrink: 0;
-}
-
-.dash-tec-kpi-icon--blue {
-    background-color: var(--color-accent-blue-light);
-}
-
-.dash-tec-kpi-icon--green {
-    background-color: var(--color-aprobado-bg);
-}
-
-.dash-tec-kpi-icon--orange {
-    background-color: var(--color-pendiente-bg);
-}
-
-.dash-tec-kpi-icon--purple {
-    background-color: #F3E8FF;
-}
-
-/* ── Charts Grid (3 Columns) ── */
-.dash-tec-charts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 1.5rem;
-}
-
-.dash-chart-card {
-    background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    box-shadow: var(--color-shadow);
-    display: flex;
-    flex-direction: column;
-}
-
-.dash-chart-title {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--color-text);
-    margin: 0 0 1.25rem;
-    letter-spacing: -0.01em;
-}
-
-/* Widget 1: Donut Chart */
-.dash-donut-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.25rem;
-}
-
-.dash-donut-svg {
-    width: 140px;
-    height: 140px;
-    transform: rotate(0deg);
-}
-
-.dash-donut-legend {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.dash-legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
+    position: relative;
+    z-index: 1;
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.14);
+    padding: 0.6rem 1.2rem;
+    border-radius: 50px;
     font-size: 0.82rem;
-}
-
-.dash-legend-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.dash-legend-label {
-    color: var(--color-text-muted);
-    font-weight: 500;
-    flex: 1;
-}
-
-.dash-legend-pct {
-    font-weight: 700;
-    color: var(--color-text);
-    margin-right: 0.5rem;
-}
-
-.dash-legend-val {
     font-weight: 600;
-    color: var(--color-text-muted);
-    font-size: 0.8rem;
-}
-
-/* Widget 2: Compare Bars */
-.dash-compare-wrap {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    justify-content: space-between;
-    gap: 1.5rem;
-}
-
-.dash-bars-compare {
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 3rem;
-    height: 160px;
-    padding-top: 1rem;
-}
-
-.dash-compare-col {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    height: 100%;
-    justify-content: flex-end;
-}
-
-.dash-compare-amount {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--color-text);
-}
-
-.dash-bar-outer {
-    width: 38px;
-    height: 110px;
-    background-color: var(--color-bg-tertiary);
-    border-radius: var(--radius-sm);
-    display: flex;
-    align-items: flex-end;
-    overflow: hidden;
-    border: 1px solid var(--color-border);
-}
-
-.dash-bar-fill {
-    width: 100%;
-    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    transition: height 0.4s ease;
-}
-
-.dash-bar-fill--green {
-    background-color: var(--color-aprobado);
-}
-
-.dash-bar-fill--blue {
-    background-color: var(--color-accent-blue);
-}
-
-.dash-compare-label {
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-    font-weight: 600;
-}
-
-.dash-compare-badge {
-    background-color: var(--color-aprobado-bg);
-    border: 1px solid rgba(5, 150, 105, 0.2);
-    border-radius: var(--radius-md);
-    padding: 0.75rem 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.dash-badge-title {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: var(--color-aprobado);
-    text-transform: uppercase;
-}
-
-.dash-badge-val {
-    font-size: 1rem;
-    font-weight: 800;
-    color: var(--color-aprobado);
-}
-
-/* Widget 3: Monthly Bars */
-.dash-monthly-wrap {
-    height: 100%;
-    display: flex;
-    align-items: flex-end;
-}
-
-.dash-monthly-bars {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    width: 100%;
-    height: 180px;
-    gap: 0.3rem;
-}
-
-.dash-monthly-col {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.4rem;
-    height: 100%;
-    justify-content: flex-end;
-}
-
-.dash-monthly-bar-track {
-    width: 100%;
-    max-width: 18px;
-    height: 140px;
-    background-color: var(--color-bg-tertiary);
-    border-radius: 4px;
-    display: flex;
-    align-items: flex-end;
-    overflow: hidden;
-}
-
-.dash-monthly-bar-fill {
-    width: 100%;
-    background-color: var(--color-accent-blue);
-    border-radius: 4px 4px 0 0;
-    transition: height 0.3s ease;
-}
-
-.dash-monthly-col:hover .dash-monthly-bar-fill {
-    background-color: var(--color-primary-blue);
-}
-
-.dash-monthly-label {
-    font-size: 0.68rem;
-    color: var(--color-text-muted);
-    font-weight: 600;
-}
-
-/* Action Banner */
-.dash-tec-action-banner {
-    background: linear-gradient(135deg, var(--color-primary-blue) 0%, #1D63C8 100%);
-    border-radius: var(--radius-lg);
-    padding: 1.75rem 2rem;
-    color: #FFFFFF;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: var(--color-shadow-md);
-    flex-wrap: wrap;
-    gap: 1.25rem;
-}
-
-.dash-tec-action-banner h2 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin: 0 0 0.25rem;
-}
-
-.dash-tec-action-banner p {
-    font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.8);
-    margin: 0;
-}
-
-.dash-tec-btn-action {
-    background-color: #FFFFFF;
-    color: var(--color-primary-blue);
-    border: none;
-    border-radius: var(--radius-md);
-    padding: 0.75rem 1.5rem;
-    font-size: 0.9rem;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: var(--color-shadow-sm);
-    transition: all 0.2s ease;
+    color: #CBD5E1;
     white-space: nowrap;
+    transition: all 0.2s;
 }
 
-.dash-tec-btn-action:hover {
-    background-color: var(--color-gold-light);
-    color: var(--color-gold-dark);
-    transform: translateY(-2px);
-    box-shadow: var(--color-shadow);
+.dash-tec-date-badge:hover {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
 }
 
-@media (max-width: 768px) {
-    .dash-tec-container {
-        padding: 1.25rem 1rem;
-    }
-    .dash-tec-header-card {
-        padding: 1.25rem;
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .dash-tec-action-banner {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .dash-tec-btn-action {
-        text-align: center;
-    }
-}
-
-@media (max-width: 600px) {
-    .dash-tec-container {
-        padding: 0.85rem 0.75rem;
-        gap: 1rem;
-    }
-
-    /* Header card más compacto */
-    .dash-tec-header-card {
-        padding: 1rem;
-        gap: 0.75rem;
-        border-radius: var(--radius-md);
-    }
-
-    .dash-tec-avatar {
-        width: 46px;
-        height: 46px;
-        font-size: 1.1rem;
-    }
-
-    .dash-tec-user-name {
-        font-size: 1.15rem;
-    }
-
-    .dash-tec-date-badge {
-        font-size: 0.75rem;
-        padding: 0.4rem 0.75rem;
-    }
-
-    /* KPI en 2 columnas compactas */
-    .dash-tec-kpi-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 0.65rem;
-    }
-
-    .dash-tec-kpi-card {
-        padding: 0.9rem 0.85rem;
-        border-radius: var(--radius-md);
-    }
-
-    .dash-tec-kpi-val {
-        font-size: 1.15rem;
-    }
-
-    .dash-tec-kpi-icon {
-        width: 38px;
-        height: 38px;
-        font-size: 1.05rem;
-    }
-
-    /* Gráficas en 1 columna */
-    .dash-tec-charts-grid {
-        grid-template-columns: 1fr;
-        gap: 0.85rem;
-    }
-
-    .dash-chart-card {
-        padding: 1rem;
-        border-radius: var(--radius-md);
-    }
-
-    /* Banner de acción más compacto */
-    .dash-tec-action-banner {
-        padding: 1.25rem;
-        border-radius: var(--radius-md);
-        gap: 0.85rem;
-    }
-
-    .dash-tec-action-banner h2 {
-        font-size: 1.05rem;
-    }
-
-    .dash-tec-btn-action {
-        padding: 0.7rem 1rem;
-        font-size: 0.875rem;
-    }
-}
-
-/* ── SECCIÓN ESTADO DE SALDOS (TAREA 4) ── */
+/* SECCION ESTADO DE SALDOS */
 .dash-saldo-section {
-    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-    border: 1px solid rgba(99, 102, 241, 0.35);
-    border-left: 4px solid #6366F1;
-    border-radius: 14px;
-    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, #070D1A 0%, #0D1B36 60%, #111827 100%);
+    border: 1px solid rgba(37,99,235,0.25);
+    border-left: 4px solid #D97706;
+    border-radius: var(--db-radius);
+    padding: 1.5rem 1.75rem;
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
-    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.12);
-    order: -1; /* aparece antes de los KPIs */
+    gap: 1rem;
+    box-shadow: var(--db-shadow), 0 0 40px rgba(217,119,6,0.08);
 }
 
 .dash-saldo-header {
@@ -558,106 +156,485 @@
     gap: 0.6rem;
 }
 
-.dash-saldo-icon {
-    font-size: 1.4rem;
-}
+.dash-saldo-icon { font-size: 1.35rem; }
 
 .dash-saldo-title {
     font-size: 1rem;
     font-weight: 700;
     color: #E2E8F0;
     margin: 0;
+    letter-spacing: -0.01em;
 }
 
 .dash-saldo-select {
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
     border-radius: 8px;
     color: #CBD5E1;
     font-size: 0.82rem;
-    padding: 0.4rem 0.75rem;
+    font-family: inherit;
+    padding: 0.45rem 0.85rem;
     cursor: pointer;
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, background 0.2s;
 }
+
 .dash-saldo-select:hover,
 .dash-saldo-select:focus {
-    border-color: #6366F1;
+    border-color: #D97706;
+    background: rgba(217,119,6,0.08);
 }
 
 .dash-saldo-sublabel {
     font-size: 0.78rem;
-    color: #94A3B8;
-    margin: 0;
+    color: #64748B;
+    margin: -0.25rem 0 0;
+    font-weight: 500;
 }
 
 .dash-saldo-metrics {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
+    gap: 0.85rem;
 }
 
 .dash-saldo-metric {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.3rem;
     text-align: center;
+    transition: transform 0.2s;
 }
 
+.dash-saldo-metric:hover { transform: translateY(-1px); }
+
 .dash-saldo-metric--ok {
-    border-color: rgba(34, 197, 94, 0.35);
-    background: rgba(34, 197, 94, 0.07);
+    border-color: rgba(16,185,129,0.30);
+    background: rgba(16,185,129,0.06);
 }
 
 .dash-saldo-metric--warn {
-    border-color: rgba(239, 68, 68, 0.45);
-    background: rgba(239, 68, 68, 0.1);
-    animation: pulse-warn 2s ease-in-out infinite;
+    border-color: rgba(239,68,68,0.40);
+    background: rgba(239,68,68,0.08);
+    animation: db-pulse-warn 2.2s ease-in-out infinite;
 }
 
-@keyframes pulse-warn {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-    50%       { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.15); }
+@keyframes db-pulse-warn {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+    50%       { box-shadow: 0 0 0 6px rgba(239,68,68,0.12); }
 }
 
 .dash-saldo-metric-lbl {
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #94A3B8;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #64748B;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
 }
 
-.dash-saldo-metric--ok  .dash-saldo-metric-lbl { color: #4ADE80; }
+.dash-saldo-metric--ok  .dash-saldo-metric-lbl { color: #34D399; }
 .dash-saldo-metric--warn .dash-saldo-metric-lbl { color: #FCA5A5; }
 
 .dash-saldo-metric-val {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 800;
     color: #F1F5F9;
+    letter-spacing: -0.02em;
 }
 
 .dash-saldo-metric--ok  .dash-saldo-metric-val { color: #4ADE80; }
 .dash-saldo-metric--warn .dash-saldo-metric-val { color: #F87171; }
 
 .dash-saldo-alert {
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.35);
+    background: rgba(239,68,68,0.10);
+    border: 1px solid rgba(239,68,68,0.30);
     border-radius: 8px;
-    padding: 0.6rem 1rem;
+    padding: 0.65rem 1rem;
     font-size: 0.82rem;
     color: #FCA5A5;
+    font-weight: 500;
 }
 
-@media (max-width: 600px) {
+/* KPI GRID */
+.dash-tec-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.1rem;
+}
+
+.dash-tec-kpi-card {
+    position: relative;
+    overflow: hidden;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: var(--db-radius);
+    padding: 1.4rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.dash-tec-kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #2563EB 0%, #3B82F6 100%);
+    border-radius: var(--db-radius) var(--db-radius) 0 0;
+    opacity: 0;
+    transition: opacity 0.22s;
+}
+
+.dash-tec-kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(37,99,235,0.12);
+    border-color: #BFDBFE;
+}
+
+.dash-tec-kpi-card:hover::before { opacity: 1; }
+
+.dash-tec-kpi-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.dash-tec-kpi-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748B;
+}
+
+.dash-tec-kpi-val {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #0F172A;
+    letter-spacing: -0.04em;
+    line-height: 1;
+}
+
+.dash-tec-kpi-link {
+    background: transparent;
+    border: none;
+    color: #2563EB;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+    transition: color 0.2s;
+    font-family: inherit;
+    margin-top: 0.2rem;
+}
+
+.dash-tec-kpi-link:hover {
+    color: #1D4ED8;
+    text-decoration: underline;
+}
+
+.dash-tec-kpi-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+.dash-tec-kpi-icon--blue   { background: #EFF6FF; }
+.dash-tec-kpi-icon--green  { background: #ECFDF5; }
+.dash-tec-kpi-icon--orange { background: #FFFBEB; }
+.dash-tec-kpi-icon--purple { background: #F5F3FF; }
+
+/* CHARTS GRID */
+.dash-tec-charts-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr 0.9fr;
+    gap: 1.25rem;
+}
+
+.dash-chart-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: var(--db-radius);
+    padding: 1.5rem 1.5rem 1.25rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    min-height: 300px;
+    transition: box-shadow 0.22s;
+}
+
+.dash-chart-card:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.09);
+}
+
+.dash-chart-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1E293B;
+    margin: 0 0 1.1rem;
+    letter-spacing: -0.01em;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid #F1F5F9;
+}
+
+/* Donut chart */
+.dash-donut-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.dash-donut-svg {
+    width: 135px;
+    height: 135px;
+    filter: drop-shadow(0 4px 14px rgba(37,99,235,0.15));
+}
+
+.dash-donut-legend {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.dash-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.35rem;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+
+.dash-legend-item:hover { background: #F8FAFC; }
+
+.dash-legend-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.dash-legend-label {
+    color: #475569;
+    font-weight: 500;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-legend-pct {
+    font-weight: 800;
+    color: #1E293B;
+    font-size: 0.82rem;
+    min-width: 32px;
+    text-align: right;
+}
+
+.dash-legend-val {
+    font-weight: 500;
+    color: #94A3B8;
+    font-size: 0.75rem;
+    min-width: 68px;
+    text-align: right;
+}
+
+/* Monthly bars */
+.dash-monthly-wrap {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+}
+
+.dash-monthly-bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    width: 100%;
+    height: 200px;
+    gap: 0.2rem;
+}
+
+.dash-monthly-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    height: 100%;
+    justify-content: flex-end;
+    cursor: default;
+}
+
+.dash-monthly-bar-track {
+    width: 100%;
+    max-width: 20px;
+    height: 160px;
+    background: #F1F5F9;
+    border-radius: 6px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    transition: background 0.2s;
+}
+
+.dash-monthly-col:hover .dash-monthly-bar-track { background: #E2E8F0; }
+
+.dash-monthly-bar-fill {
+    width: 100%;
+    background: linear-gradient(180deg, #3B82F6 0%, #2563EB 100%);
+    border-radius: 6px 6px 0 0;
+    transition: height 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.dash-monthly-col:hover .dash-monthly-bar-fill {
+    background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%);
+}
+
+.dash-monthly-label {
+    font-size: 0.66rem;
+    color: #94A3B8;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* BANNER ACCION RAPIDA */
+.dash-tec-action-banner {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1A3A7C 0%, #2563EB 60%, #1D4ED8 100%);
+    border-radius: var(--db-radius);
+    padding: 1.75rem 2rem;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    box-shadow: 0 6px 30px rgba(37,99,235,0.30);
+}
+
+.dash-tec-action-banner::before {
+    content: '';
+    position: absolute;
+    bottom: -40px;
+    right: -40px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.dash-tec-action-banner h2 {
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.02em;
+}
+
+.dash-tec-action-banner p {
+    font-size: 0.875rem;
+    color: rgba(255,255,255,0.75);
+    margin: 0;
+}
+
+.dash-tec-btn-action {
+    background: #FFFFFF;
+    color: #2563EB;
+    border: none;
+    border-radius: 10px;
+    padding: 0.8rem 1.6rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    transition: all 0.22s ease;
+    white-space: nowrap;
+}
+
+.dash-tec-btn-action:hover {
+    background: #FEF3C7;
+    color: #92400E;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.20);
+}
+
+/* RESPONSIVE */
+@media (max-width: 1100px) {
+    .dash-tec-charts-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .dash-tec-charts-grid .dash-chart-card:last-child {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .dash-tec-container {
+        padding: 1.25rem 1rem 2rem;
+        gap: 1.1rem;
+    }
+    .dash-tec-kpi-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .dash-tec-charts-grid {
+        grid-template-columns: 1fr;
+    }
     .dash-saldo-metrics {
         grid-template-columns: 1fr 1fr;
     }
-    .dash-saldo-section {
-        padding: 1rem;
+    .dash-tec-action-banner {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .dash-tec-btn-action {
+        text-align: center;
     }
 }
+
+@media (max-width: 520px) {
+    .dash-tec-container {
+        padding: 0.9rem 0.75rem 1.5rem;
+        gap: 0.85rem;
+    }
+    .dash-tec-avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+    .dash-tec-greeting { font-size: 1.2rem; }
+    .dash-tec-kpi-grid { grid-template-columns: 1fr; }
+    .dash-tec-kpi-val  { font-size: 1.6rem; }
+    .dash-saldo-metrics { grid-template-columns: 1fr; }
+}
+
+/* ANIMACIONES DE ENTRADA */
+@keyframes db-fadein-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.dash-tec-header-card    { animation: db-fadein-up 0.35s ease both; }
+.dash-saldo-section      { animation: db-fadein-up 0.40s 0.05s ease both; }
+.dash-tec-kpi-grid       { animation: db-fadein-up 0.40s 0.10s ease both; }
+.dash-tec-charts-grid    { animation: db-fadein-up 0.40s 0.15s ease both; }
+.dash-tec-action-banner  { animation: db-fadein-up 0.40s 0.20s ease both; }

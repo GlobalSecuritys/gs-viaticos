@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import AdminRoute from './components/AdminRoute';
 import Login from './pages/Login';
@@ -255,30 +255,24 @@ export default function App() {
             }
           />
 
-          {/* Navegación jerárquica del inventario:
-                /inventario                       -> las 3 empresas
-                /inventario/:empresaId            -> tarjetas de Global, o el
-                                                     inventario directo de una UT
-                /inventario/:empresaId/:clienteId -> inventario de esa tarjeta
-              El gateo fino sigue ocurriendo dentro de <Inventario /> con
-              accesos_procesos['CI']: admin y lector ven el panel de supervisión,
-              el resto la vista de captura. */}
+          {/* Navegación jerárquica del inventario (exclusivo para personal administrativo/supervisión, técnicos bloqueados) */}
           <Route
             path="/inventario"
             element={
               <PrivateRoute>
-                <InventarioNavegacion />
+                <NoTecnicoRoute>
+                  <InventarioNavegacion />
+                </NoTecnicoRoute>
               </PrivateRoute>
             }
           />
-          {/* Va antes que /inventario/:empresaId por legibilidad; React Router
-              prioriza el segmento estático de todas formas. La pantalla es
-              exclusiva de la cuenta Master y el backend lo vuelve a exigir. */}
           <Route
             path="/inventario/accesos"
             element={
               <PrivateRoute>
-                <InventarioAccesos />
+                <NoTecnicoRoute>
+                  <InventarioAccesos />
+                </NoTecnicoRoute>
               </PrivateRoute>
             }
           />
@@ -286,7 +280,9 @@ export default function App() {
             path="/inventario/:empresaId"
             element={
               <PrivateRoute>
-                <InventarioNavegacion />
+                <NoTecnicoRoute>
+                  <InventarioNavegacion />
+                </NoTecnicoRoute>
               </PrivateRoute>
             }
           />
@@ -294,7 +290,9 @@ export default function App() {
             path="/inventario/:empresaId/:clienteId"
             element={
               <PrivateRoute>
-                <InventarioNavegacion />
+                <NoTecnicoRoute>
+                  <InventarioNavegacion />
+                </NoTecnicoRoute>
               </PrivateRoute>
             }
           />
@@ -303,4 +301,12 @@ export default function App() {
       </AuthProvider>
     </BrowserRouter>
   );
+}
+
+function NoTecnicoRoute({ children }) {
+  const { user } = useAuth();
+  if (user?.rol === 'tecnico') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
 }

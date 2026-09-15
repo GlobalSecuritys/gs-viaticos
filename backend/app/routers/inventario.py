@@ -61,9 +61,22 @@ from app.schemas.inventario import EmpresaResponse
 from app.services.auditoria import registrar_auditoria
 from app.services.inventario_duplicados import buscar_duplicados
 
-router = APIRouter(prefix="/inventario", tags=["Inventario (IN)"])
+def require_no_tecnico(current_user: Annotated[Usuario, Depends(get_current_user)]) -> Usuario:
+    if current_user.rol == "tecnico":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Los técnicos no tienen acceso al módulo de inventario.",
+        )
+    return current_user
 
-CurrentUser = Annotated[Usuario, Depends(get_current_user)]
+
+router = APIRouter(
+    prefix="/inventario",
+    tags=["Inventario (IN)"],
+    dependencies=[Depends(require_no_tecnico)],
+)
+
+CurrentUser = Annotated[Usuario, Depends(require_no_tecnico)]
 AdminIN = Annotated[Usuario, Depends(require_seccion("IN", "admin"))]
 LectorIN = Annotated[Usuario, Depends(require_seccion("IN", "lector"))]
 PilarAdmin = Annotated[Usuario, Depends(get_current_pilar_admin)]
@@ -1611,7 +1624,7 @@ def listar_accesos_inventario(
     usuario_id: Optional[int] = Query(None, description="Limita el listado a un usuario"),
 ):
     """Usuarios activos con las entidades de inventario que tienen asignadas."""
-    stmt = select(Usuario).where(Usuario.activo.is_(True)).order_by(Usuario.nombre)
+    stmt = select(Usuario).where(Usuario.activo.is_(True), Usuario.rol != "tecnico").order_by(Usuario.nombre)
     if usuario_id:
         stmt = stmt.where(Usuario.id == usuario_id)
     usuarios = db.scalars(stmt).all()
@@ -1652,6 +1665,11 @@ def establecer_acceso_inventario(datos: AccesoInventarioSet, db: DB, current_use
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="El usuario indicado no existe."
+        )
+    if usuario.rol == "tecnico":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Los técnicos no tienen acceso al módulo de inventario.",
         )
 
     empresa, cliente = _resolver_scope(db, datos.empresa_id, datos.cliente_id)

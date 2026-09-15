@@ -301,33 +301,67 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Widget 2: Resumen de Asignaciones Activas */}
+                    {/* Widget 2: Asignaciones en curso */}
                     <div className="dash-chart-card">
                         <h3 className="dash-chart-title">Asignaciones en curso</h3>
-                        <div className="dash-asig-widget-wrap" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', height: '100%', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', flex: 1, justifyContent: 'space-between' }}>
                             {asignaciones.length === 0 ? (
-                                <p style={{ color: '#64748B', fontSize: '0.9rem', margin: 'auto 0' }}>
-                                    No tienes asignaciones activas en este momento.
-                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '0.5rem', color: '#94A3B8' }}>
+                                    <span style={{ fontSize: '2rem' }}>📋</span>
+                                    <p style={{ fontSize: '0.85rem', margin: 0, textAlign: 'center' }}>
+                                        Sin asignaciones activas
+                                    </p>
+                                </div>
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '190px', overflowY: 'auto' }}>
-                                    {asignaciones.map((a) => (
-                                        <div key={a.id} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.65rem 0.85rem', fontSize: '0.85rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, color: '#1E293B', marginBottom: '0.2rem' }}>
-                                                <span>{a.cliente} ({a.ciudad})</span>
-                                                <span style={{ color: '#0EA5E9' }}>#{a.id}</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', maxHeight: '215px', overflowY: 'auto', paddingRight: '2px' }}>
+                                    {asignaciones.map((a) => {
+                                        const saldo = Number(a.monto_anticipo || 0) - Number(a.total_gastado || 0);
+                                        const pctGastado = Number(a.monto_anticipo) > 0
+                                            ? Math.min(100, Math.round((Number(a.total_gastado || 0) / Number(a.monto_anticipo)) * 100))
+                                            : 0;
+                                        return (
+                                            <div key={a.id} style={{
+                                                background: '#FAFBFC',
+                                                border: '1px solid #E8EEF4',
+                                                borderRadius: '10px',
+                                                padding: '0.7rem 0.85rem',
+                                                fontSize: '0.82rem',
+                                                transition: 'border-color 0.2s, box-shadow 0.2s',
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
+                                                    <div>
+                                                        <div style={{ fontWeight: 700, color: '#1E293B', lineHeight: 1.3 }}>{a.cliente}</div>
+                                                        <div style={{ color: '#64748B', fontSize: '0.75rem' }}>📍 {a.ciudad}</div>
+                                                    </div>
+                                                    <span style={{
+                                                        fontSize: '0.7rem', fontWeight: 700,
+                                                        background: '#EFF6FF', color: '#2563EB',
+                                                        borderRadius: '20px', padding: '0.2rem 0.6rem',
+                                                        flexShrink: 0, marginLeft: '0.5rem'
+                                                    }}>#{a.id}</span>
+                                                </div>
+                                                <div style={{ height: '4px', background: '#E2E8F0', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.35rem' }}>
+                                                    <div style={{
+                                                        height: '100%',
+                                                        width: `${pctGastado}%`,
+                                                        background: pctGastado > 90 ? '#EF4444' : pctGastado > 70 ? '#F59E0B' : '#2563EB',
+                                                        borderRadius: '4px', transition: 'width 0.5s ease'
+                                                    }} />
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontSize: '0.74rem' }}>
+                                                    <span>Anticipo: <b style={{ color: '#0F172A' }}>{formatCOP(Number(a.monto_anticipo || 0))}</b></span>
+                                                    <span style={{ color: saldo < 0 ? '#EF4444' : '#059669', fontWeight: 600 }}>
+                                                        Saldo: {formatCOP(Math.abs(saldo))}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontSize: '0.8rem' }}>
-                                                <span>Anticipo: {formatCOP(Number(a.monto_anticipo || 0))}</span>
-                                                <span>Gastado: {formatCOP(Number(a.total_gastado || 0))}</span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                             <button
                                 className="dash-tec-kpi-link"
-                                style={{ alignSelf: 'flex-start', marginTop: '0.5rem', fontWeight: 600 }}
+                                style={{ alignSelf: 'flex-start', marginTop: '0.5rem', fontWeight: 700 }}
                                 onClick={() => navigate('/mis-asignaciones')}
                             >
                                 Gestionar misiones y viáticos →
