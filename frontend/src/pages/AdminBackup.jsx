@@ -4,7 +4,12 @@ import Papa from 'papaparse';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import {
+  listarBitacoraBackup,
+  crearAnotacionBitacora,
+  ocultarAnotacionBitacora,
+  completarPendientesBitacora,
+} from '../services/api';
 import logoGSB from '../assets/logo-gsb.png';
 import './AdminBackup.css';
 
@@ -114,7 +119,6 @@ export default function AdminBackup() {
   const [omitidasCount, setOmitidasCount] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
-  const [loadingDb, setLoadingDb] = useState(false);
 
   // Estados de descarga
   const [descargandoTodo, setDescargandoTodo] = useState(false);
@@ -133,11 +137,17 @@ export default function AdminBackup() {
   const toastTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // ── Bitácora local (sin backend) ──
+  // ── Bitácora (persistida en base de datos) ──
+  // Se lee siempre del backend, nunca de estado temporal del navegador, para
+  // que una anotación guardada siga visible tras cualquier acción o recarga.
   const [bitacora, setBitacora] = useState([]);
   const [bitacoraAbierta, setBitacoraAbierta] = useState(false);
   const [bitacoraFormVisible, setBitacoraFormVisible] = useState(false);
   const [bitacoraTexto, setBitacoraTexto] = useState('');
+  const [bitacoraCargando, setBitacoraCargando] = useState(true);
+  const [bitacoraGuardando, setBitacoraGuardando] = useState(false);
+  // Evita archivar dos veces las anotaciones por un mismo CSV cargado.
+  const backupArchivadoRef = useRef(false);
 
   const showToast = (msg, tipo = 'ok') => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -220,39 +230,79 @@ export default function AdminBackup() {
     });
   };
 
-  // Cargar directamente los viáticos activos desde la base de datos del backend
-  const cargarDirectoDeBd = async () => {
-    setLoadingDb(true);
-    setErrorMsg('');
+  // ── Bitácora: carga desde base de datos ──
+  const cargarBitacora = async () => {
     try {
-      const res = await api.get('/viaticos');
-      const viaticosDb = res.data || [];
-      if (!viaticosDb.length) {
-        showToast('No se encontraron viáticos en la base de datos.', 'warn');
-        setLoadingDb(false);
-        return;
-      }
-
-      // Mapear el formato de la BD a filas
-      const filasBd = viaticosDb.map((v) => ({
-        url_cloudinary: v.foto_url || v.url_foto || v.url_cloudinary || '',
-        oficina: v.asignacion?.nombre_asignacion || v.oficina || v.destino || 'Sede Principal',
-        tecnico: v.usuario?.nombre || v.nombre || `Técnico #${v.usuario_id || ''}`,
-        fecha: v.fecha_gasto || v.fecha || (v.created_at ? v.created_at.slice(0, 10) : ''),
-        concepto: v.concepto || v.tipo || 'Viático'
-      }));
-
-      procesarFilas(filasBd);
-      showToast(`Se cargaron ${filasBd.length} registros directamente de la base de datos.`, 'ok');
-    } catch (err) {
-      setErrorMsg(
-        'No se pudieron consultar los viáticos de la base de datos: ' +
-          (err.response?.data?.detail || err.message)
-      );
+      const res = await listarBitacoraBackup();
+      setBitacora(res.data || []);
+    } catch {
+      showToast('No se pudo cargar la bitácora de descargas.', 'err');
     } finally {
-      setLoadingDb(false);
+      setBitacoraCargando(false);
     }
   };
+
+  // Al entrar a la pantalla siempre se leen las anotaciones desde la BD.
+  useEffect(() => {
+    cargarBitacora();
+    // Solo al montar: la bitácora se lee una vez al entrar a la pantalla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const guardarAnotacion = async (texto) => {
+    setBitacoraGuardando(true);
+    try {
+      await crearAnotacionBitacora(texto);
+      setBitacoraTexto('');
+      setBitacoraFormVisible(false);
+      await cargarBitacora();
+      showToast('Anotación guardada en la bitácora.', 'ok');
+    } catch {
+      showToast('No se pudo guardar la anotación.', 'err');
+    } finally {
+      setBitacoraGuardando(false);
+    }
+  };
+
+  // Oculta la anotación (cambio de estado). La fila permanece en la BD.
+  const ocultarAnotacion = async (id) => {
+    try {
+      await ocultarAnotacionBitacora(id);
+      await cargarBitacora();
+    } catch {
+      showToast('No se pudo ocultar la anotación.', 'err');
+    }
+  };
+
+  // Al completarse un backup (CSV cargado), las anotaciones pendientes se
+  // archivan como "completadas": dejan de listarse pero NO se borran.
+  useEffect(() => {
+    if (!data.length) {
+      backupArchivadoRef.current = false;
+      return;
+    }
+    if (backupArchivadoRef.current) return;
+    backupArchivadoRef.current = true;
+
+    (async () => {
+      try {
+        const res = await completarPendientesBitacora();
+        const n = res.data?.completadas || 0;
+        await cargarBitacora();
+        if (n > 0) {
+          showToast(
+            `Backup completado: ${n} anotación(es) archivada(s). La bitácora queda lista para nuevas notas.`,
+            'ok'
+          );
+        }
+      } catch {
+        showToast('No se pudieron archivar las anotaciones de la bitácora.', 'err');
+      }
+    })();
+    // Debe dispararse solo cuando cambia si hay CSV cargado, no al recrearse
+    // las funciones del componente.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.length]);
 
   // Agrupamiento estructurado por Oficina -> Técnico -> Fotos
   const oficinasAgrupadas = useMemo(() => {
@@ -585,12 +635,7 @@ export default function AdminBackup() {
                     e.preventDefault();
                     const txt = bitacoraTexto.trim();
                     if (!txt) return;
-                    setBitacora((prev) => [
-                      { id: Date.now(), texto: txt, fecha: new Date() },
-                      ...prev
-                    ]);
-                    setBitacoraTexto('');
-                    setBitacoraFormVisible(false);
+                    guardarAnotacion(txt);
                   }}
                 >
                   <textarea
@@ -612,7 +657,7 @@ export default function AdminBackup() {
                     <button
                       type="submit"
                       className="bkp-btn-primary bkp-btn-sm"
-                      disabled={!bitacoraTexto.trim()}
+                      disabled={!bitacoraTexto.trim() || bitacoraGuardando}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
@@ -623,7 +668,11 @@ export default function AdminBackup() {
                 </form>
               )}
 
-              {bitacora.length === 0 && !bitacoraFormVisible && (
+              {bitacoraCargando && (
+                <p className="bkp-bitacora-empty">Cargando bitácora…</p>
+              )}
+
+              {!bitacoraCargando && bitacora.length === 0 && !bitacoraFormVisible && (
                 <p className="bkp-bitacora-empty">Sin anotaciones aún. Usa "Nueva anotación" para registrar descargas.</p>
               )}
 
@@ -633,15 +682,16 @@ export default function AdminBackup() {
                     <li key={item.id} className="bkp-bitacora-item">
                       <div className="bkp-bitacora-item-meta">
                         <span className="bkp-bitacora-item-date">
-                          {item.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {new Date(item.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
                           {' · '}
-                          {item.fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(item.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                          {item.usuario_nombre ? ` · ${item.usuario_nombre}` : ''}
                         </span>
                         <button
                           type="button"
                           className="bkp-bitacora-del"
-                          title="Eliminar anotación"
-                          onClick={() => setBitacora((prev) => prev.filter((x) => x.id !== item.id))}
+                          title="Ocultar anotación (se conserva en la base de datos)"
+                          onClick={() => ocultarAnotacion(item.id)}
                         >
                           ×
                         </button>
@@ -658,34 +708,6 @@ export default function AdminBackup() {
         {/* Zona de Selección / Carga de Datos */}
         {!data.length && (
           <section className="bkp-card bkp-upload-card">
-            <div className="bkp-upload-options">
-              <button
-                type="button"
-                className="bkp-btn-primary bkp-btn-lg"
-                onClick={cargarDirectoDeBd}
-                disabled={loadingDb}
-              >
-                {loadingDb ? (
-                  <>
-                    <span className="bkp-spinner"></span> Sincronizando con Base de Datos…
-                  </>
-                ) : (
-                  <>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                    </svg>
-                    Cargar comprobantes activos del Sistema
-                  </>
-                )}
-              </button>
-
-              <div className="bkp-divider-or">
-                <span>o carga un archivo CSV de respaldo</span>
-              </div>
-            </div>
-
             <div
               className={`bkp-dropzone ${isDragOver ? 'bkp-dropzone--dragover' : ''}`}
               tabIndex={0}

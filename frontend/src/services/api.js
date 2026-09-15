@@ -58,6 +58,24 @@ export function exportarViaticosAsignacion(asignacionId) {
   });
 }
 
+// Descarga la carpeta completa (Excel + Fotos + Descripcion.txt) de UNA
+// asignación finalizada. El backend la genera por streaming, pero puede tardar
+// si hay muchas fotos: por eso se amplía el timeout.
+export function descargarCarpetaAsignacion(asignacionId) {
+  return api.get(`/admin/asignaciones/${asignacionId}/descargar-carpeta`, {
+    responseType: 'blob',
+    timeout: 300000, // 5 min
+  });
+}
+
+// Descarga todo el historial: un ZIP con una subcarpeta por asignación finalizada.
+export function descargarTodasLasAsignaciones() {
+  return api.get('/admin/asignaciones/descargar-todas', {
+    responseType: 'blob',
+    timeout: 900000, // 15 min
+  });
+}
+
 export function exportarTalentoHumanoExcel() {
   return api.get('/talento-humano/exportar-excel', {
     responseType: 'blob',
@@ -86,6 +104,29 @@ export function eliminarDocumentoTalentoHumano(usuarioId, documentoId) {
 
 export function eliminarUsuario(usuarioId) {
   return api.delete(`/admin/usuarios/${usuarioId}`);
+}
+
+// ── Bitácora de Descargas (módulo de Backup) ────────────────────────────────
+// Las anotaciones se persisten en base de datos: ninguna de estas operaciones
+// borra filas, ocultar una anotación es solo un cambio de estado.
+
+// Devuelve únicamente las anotaciones activas (estado "pendiente").
+export function listarBitacoraBackup() {
+  return api.get('/admin/bitacora-backup');
+}
+
+export function crearAnotacionBitacora(texto) {
+  return api.post('/admin/bitacora-backup', { texto });
+}
+
+// Oculta la anotación de la vista activa (estado "eliminado"); no la borra.
+export function ocultarAnotacionBitacora(id) {
+  return api.delete(`/admin/bitacora-backup/${id}`);
+}
+
+// Archiva las anotaciones pendientes al completarse un backup (carga de CSV).
+export function completarPendientesBitacora() {
+  return api.post('/admin/bitacora-backup/completar-pendientes');
 }
 
 export function descargarBlob(blobData, filename) {

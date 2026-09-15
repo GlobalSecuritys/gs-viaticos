@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api, {
     exportarViaticosIndependientes,
     exportarViaticosAsignacion,
+    descargarCarpetaAsignacion,
+    descargarTodasLasAsignaciones,
     descargarBlob,
     eliminarUsuario,
 } from '../services/api';
@@ -146,6 +148,8 @@ export default function PerfilEmpleado() {
 
     const [exportandoIndependiente, setExportandoIndependiente] = useState(false);
     const [exportandoAsigId, setExportandoAsigId] = useState(null);
+    const [descargandoCarpetaId, setDescargandoCarpetaId] = useState(null);
+    const [descargandoHistorial, setDescargandoHistorial] = useState(false);
     const [mostrarViaticosIndependientes, setMostrarViaticosIndependientes] = useState(false);
 
     useEffect(() => {
@@ -239,6 +243,35 @@ export default function PerfilEmpleado() {
             alert('No se pudo exportar los viáticos de la asignación.');
         } finally {
             setExportandoAsigId(null);
+        }
+    }
+
+    // Descarga la carpeta completa (Excel + Fotos + Descripcion.txt) de una
+    // asignación finalizada. El ZIP lo arma el backend por streaming.
+    async function handleDescargarCarpeta(asignacion) {
+        setDescargandoCarpetaId(asignacion.id);
+        try {
+            const res = await descargarCarpetaAsignacion(asignacion.id);
+            const cliente = String(asignacion.cliente || 'cliente').replace(/[^A-Za-z0-9]+/g, '_');
+            descargarBlob(res.data, `Asignacion_${cliente}_${asignacion.fecha_inicio}.zip`);
+        } catch {
+            alert('No se pudo descargar la carpeta de la asignación.');
+        } finally {
+            setDescargandoCarpetaId(null);
+        }
+    }
+
+    // Descarga todo el historial: un ZIP con una subcarpeta por asignación finalizada.
+    async function handleDescargarHistorialCompleto() {
+        setDescargandoHistorial(true);
+        try {
+            const res = await descargarTodasLasAsignaciones();
+            const fecha = new Date().toISOString().slice(0, 10);
+            descargarBlob(res.data, `Historial_Asignaciones_${fecha}.zip`);
+        } catch {
+            alert('No se pudo descargar el historial completo.');
+        } finally {
+            setDescargandoHistorial(false);
         }
     }
 
@@ -945,6 +978,29 @@ export default function PerfilEmpleado() {
                                         <h2 className="pf-section-title" style={{ margin: 0 }}>
                                             Historial de asignaciones ({asignacionesFinalizadas.length})
                                         </h2>
+                                        <button
+                                            type="button"
+                                            style={{
+                                                background: descargandoHistorial ? '#E2E8F0' : '#EFF6FF',
+                                                border: '1px solid #BAE6FD',
+                                                color: descargandoHistorial ? '#64748B' : '#0284C7',
+                                                padding: '0.45rem 0.9rem',
+                                                borderRadius: '6px',
+                                                fontSize: '0.8rem',
+                                                fontWeight: 700,
+                                                cursor: descargandoHistorial ? 'wait' : 'pointer',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '0.35rem',
+                                            }}
+                                            onClick={handleDescargarHistorialCompleto}
+                                            disabled={descargandoHistorial}
+                                            title="Descargar un ZIP con una carpeta por cada asignación finalizada"
+                                        >
+                                            {descargandoHistorial
+                                                ? '⌛ Generando ZIP... esto puede tardar'
+                                                : '📦 Descargar todo el historial'}
+                                        </button>
                                     </div>
 
                                     {asignacionesFinalizadas.length > 0 ? (
@@ -1067,6 +1123,31 @@ export default function PerfilEmpleado() {
                                                                         >
                                                                             {exportandoAsigId === asignacion.id ? '⌛ Exportando...' : '📊 Exportar Excel'}
                                                                         </button>
+                                                                        {asignacion.estado === 'finalizada' && (
+                                                                            <button
+                                                                                type="button"
+                                                                                style={{
+                                                                                    background: '#EFF6FF',
+                                                                                    border: '1px solid #BAE6FD',
+                                                                                    color: '#0284C7',
+                                                                                    padding: '0.4rem 0.85rem',
+                                                                                    borderRadius: '6px',
+                                                                                    fontSize: '0.78rem',
+                                                                                    fontWeight: 700,
+                                                                                    cursor: descargandoCarpetaId === asignacion.id ? 'wait' : 'pointer',
+                                                                                    display: 'inline-flex',
+                                                                                    alignItems: 'center',
+                                                                                    gap: '0.25rem',
+                                                                                }}
+                                                                                onClick={() => handleDescargarCarpeta(asignacion)}
+                                                                                disabled={descargandoCarpetaId === asignacion.id}
+                                                                                title="Descargar carpeta con Excel, fotos y descripción"
+                                                                            >
+                                                                                {descargandoCarpetaId === asignacion.id
+                                                                                    ? '⌛ Generando...'
+                                                                                    : '📁 Descargar carpeta'}
+                                                                            </button>
+                                                                        )}
                                                                         <button
                                                                             type="button"
                                                                             style={{

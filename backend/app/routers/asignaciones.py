@@ -3,7 +3,7 @@ from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.security import get_current_admin, get_current_user
@@ -20,6 +20,11 @@ from app.schemas.asignacion import (
 )
 from app.schemas.cuenta_cobro_asignacion import CuentaCobroAsignacionResponse
 from app.services.cuenta_cobro_asignacion import guardar_cuenta_cobro_asignacion
+from app.services.descarga_carpeta import (
+    iter_zip_asignacion,
+    iter_zip_historial,
+    nombre_zip_asignacion,
+)
 from app.services.excel_export import generar_excel_viaticos_asignacion
 
 router = APIRouter(prefix="/admin/asignaciones", tags=["Asignaciones"])
@@ -251,6 +256,135 @@ def listar_asignaciones(
     )
     asignaciones = db.execute(stmt).unique().scalars().all()
     return [_a_response(a) for a in asignaciones]
+
+
+def _esta_finalizada(a: Asignacion) -> bool:
+    """Una asignación está finalizada si fue cerrada o su estado lo indica."""
+    return a.cerrada_en is not None or (a.estado or "").lower() == "finalizada"
+
+
+def _resumen_para_descripcion(a: Asignacion) -> dict:
+    """
+    Toma los montos del mismo cálculo ya usado en el resumen de gastos
+    (_a_response) para no duplicar ni inventar una fórmula nueva.
+    """
+    resp = _a_response(a)
+    return {
+        "monto_anticipo": resp.monto_anticipo,
+        "total_gastado": resp.total_gastado,
+        "saldo_restante": resp.saldo_restante,
+        "cantidad_viaticos": resp.cantidad_viaticos,
+    }
+
+
+def _viaticos_de_asignacion(asignacion_id: int, db: Session) -> list:
+    stmt = (
+        select(Viatico)
+        .options(
+            joinedload(Viatico.evidencias),
+            joinedload(Viatico.usuario),
+        )
+        .where(Viatico.asignacion_id == asignacion_id)
+        .order_by(Viatico.fecha.asc(), Viatico.id.asc())
+    )
+    return db.execute(stmt).unique().scalars().all()
+
+
+@router.get("/descargar-todas")
+def descargar_todas_las_asignaciones(
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Descarga un ZIP con una subcarpeta por cada asignación FINALIZADA
+    (Excel + Fotos + Descripcion.txt).
+
+    Las asignaciones se procesan de una en una y el ZIP se emite por streaming,
+    de modo que la memoria usada no crece con el tamaño del historial.
+
+    NOTA: esta ruta debe declararse ANTES de "/{id}" para que no sea
+    interpretada como un id de asignación.
+    """
+    purgar_asignaciones_eliminadas(db)
+
+    stmt_ids = (
+        select(Asignacion.id)
+        .where(
+            Asignacion.eliminado_en.is_(None),
+            or_(
+                Asignacion.cerrada_en.is_not(None),
+                Asignacion.estado == "finalizada",
+            ),
+        )
+        .order_by(Asignacion.fecha_inicio.desc())
+    )
+    ids = db.scalars(stmt_ids).all()
+
+    def generar_una_a_una():
+        """Generador perezoso: carga y libera una asignación por vez."""
+        for asignacion_id in ids:
+            stmt = (
+                select(Asignacion)
+                .options(
+                    joinedload(Asignacion.tecnico),
+                    joinedload(Asignacion.creado_por),
+                    joinedload(Asignacion.viaticos),
+                    joinedload(Asignacion.cuenta_cobro),
+                )
+                .where(Asignacion.id == asignacion_id)
+            )
+            asignacion = db.execute(stmt).unique().scalar_one_or_none()
+            if asignacion is None:
+                continue
+
+            viaticos = _viaticos_de_asignacion(asignacion_id, db)
+            yield asignacion, viaticos, _resumen_para_descripcion(asignacion)
+
+            # Libera de la sesión lo ya procesado para no acumular memoria.
+            db.expunge_all()
+
+    fecha = datetime.utcnow().strftime("%Y-%m-%d")
+    filename = f"Historial_Asignaciones_{fecha}.zip"
+
+    return StreamingResponse(
+        iter_zip_historial(generar_una_a_una()),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/{id}/descargar-carpeta")
+def descargar_carpeta_asignacion(
+    id: int,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Descarga un ZIP con la carpeta completa de UNA asignación finalizada:
+    Excel_Viaticos.xlsx + Fotos/ (desde Cloudinary) + Descripcion.txt.
+
+    El ZIP se genera por streaming: las fotos se copian de Cloudinary al ZIP
+    en trozos, sin guardarse en el servidor ni acumularse en memoria.
+    """
+    asignacion = _obtener_o_404(id, db)
+
+    if not _esta_finalizada(asignacion):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Solo se puede descargar la carpeta de asignaciones finalizadas."
+            ),
+        )
+
+    viaticos = _viaticos_de_asignacion(id, db)
+    resumen = _resumen_para_descripcion(asignacion)
+    filename = nombre_zip_asignacion(asignacion)
+
+    return StreamingResponse(
+        iter_zip_asignacion(asignacion, viaticos, resumen),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get("/{id}", response_model=AsignacionResponse)

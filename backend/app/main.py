@@ -11,6 +11,7 @@ from app.routers.proveedores import router as proveedores_router
 from app.routers.cuentas_cobro import router as cuentas_cobro_router
 from app.routers.talento_humano import router as talento_humano_router
 from app.routers.calidad_procesos import router as calidad_procesos_router, seed_procesos_calidad_si_vacio
+from app.routers.bitacora_backup import router as bitacora_backup_router
 from app.routers.inventario import (
     router as inventario_router,
     seed_estructura_inventario,
@@ -44,6 +45,7 @@ from app.models.calidad_procesos import (
     ProcesoCalidadDocumento,
     ProcesoCalidadAccesoAdmin,
 )
+from app.models.bitacora_backup import BitacoraBackup
 
 app = FastAPI(
     title="GS Viáticos API",
@@ -77,6 +79,7 @@ def startup_db_check():
         ProcesoCalidadResponsable.__table__.create(bind=engine, checkfirst=True)
         ProcesoCalidadDocumento.__table__.create(bind=engine, checkfirst=True)
         ProcesoCalidadAccesoAdmin.__table__.create(bind=engine, checkfirst=True)
+        BitacoraBackup.__table__.create(bind=engine, checkfirst=True)
         # Orden importante: las planillas referencian empresas y clientes.
         InventarioEmpresa.__table__.create(bind=engine, checkfirst=True)
         InventarioCliente.__table__.create(bind=engine, checkfirst=True)
@@ -231,6 +234,7 @@ app.include_router(cuentas_cobro_router)
 app.include_router(talento_humano_router)
 app.include_router(calidad_procesos_router)
 app.include_router(inventario_router)
+app.include_router(bitacora_backup_router)
 
 
 @app.get("/", include_in_schema=False)

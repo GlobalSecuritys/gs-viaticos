@@ -5,7 +5,7 @@ from typing import Annotated, List, Optional
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.viatico import Viatico
 from app.models.evidencia_viatico import EvidenciaViatico
@@ -472,12 +472,19 @@ def listar_todos_los_viaticos(
     current_admin: Annotated[Usuario, Depends(get_current_admin)],
     db: Annotated[Session, Depends(get_db)]
 ):
+    # Las colecciones van con selectinload (consulta aparte) y no con
+    # joinedload, para evitar el producto cartesiano
+    # viaticos x evidencias x viaticos-de-la-asignacion.
+    #
+    # asignacion.viaticos se precarga a propósito: _hacer_viatico_admin_response
+    # lo recorre para calcular el total gastado y, sin precargarlo, se lanzaba
+    # una consulta por cada viático (N+1).
     stmt = (
         select(Viatico)
         .options(
             joinedload(Viatico.usuario),
-            joinedload(Viatico.evidencias),
-            joinedload(Viatico.asignacion),
+            selectinload(Viatico.evidencias),
+            joinedload(Viatico.asignacion).selectinload(Asignacion.viaticos),
             joinedload(Viatico.cuenta_cobro),
         )
         .order_by(

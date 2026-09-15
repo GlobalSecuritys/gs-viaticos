@@ -17,6 +17,7 @@ from app.models.talento_humano import (
     EmpleadoEvaluacion,
 )
 from app.models.calidad_procesos import ProcesoCalidad, ProcesoCalidadResponsable, ProcesoCalidadDocumento
+from app.models.bitacora_backup import BitacoraBackup
 
 __all__ = [
     "Base",
@@ -38,4 +39,5 @@ __all__ = [
     "ProcesoCalidad",
     "ProcesoCalidadResponsable",
     "ProcesoCalidadDocumento",
+    "BitacoraBackup",
 ]
