@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
-from typing import Annotated, List
+from typing import Annotated, List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload
@@ -294,10 +294,13 @@ def _viaticos_de_asignacion(asignacion_id: int, db: Session) -> list:
 def descargar_todas_las_asignaciones(
     current_admin: Annotated[Usuario, Depends(get_current_admin)],
     db: Annotated[Session, Depends(get_db)],
+    tecnico_id: Optional[int] = Query(None, description="Filtra por ID de técnico"),
 ):
     """
     Descarga un ZIP con una subcarpeta por cada asignación FINALIZADA
     (Excel + Fotos + Descripcion.txt).
+
+    Si se indica `tecnico_id`, sólo se incluyen las asignaciones de ese técnico.
 
     Las asignaciones se procesan de una en una y el ZIP se emite por streaming,
     de modo que la memoria usada no crece con el tamaño del historial.
@@ -307,15 +310,19 @@ def descargar_todas_las_asignaciones(
     """
     purgar_asignaciones_eliminadas(db)
 
+    filtros = [
+        Asignacion.eliminado_en.is_(None),
+        or_(
+            Asignacion.cerrada_en.is_not(None),
+            Asignacion.estado == "finalizada",
+        ),
+    ]
+    if tecnico_id is not None:
+        filtros.append(Asignacion.tecnico_id == tecnico_id)
+
     stmt_ids = (
         select(Asignacion.id)
-        .where(
-            Asignacion.eliminado_en.is_(None),
-            or_(
-                Asignacion.cerrada_en.is_not(None),
-                Asignacion.estado == "finalizada",
-            ),
-        )
+        .where(*filtros)
         .order_by(Asignacion.fecha_inicio.desc())
     )
     ids = db.scalars(stmt_ids).all()

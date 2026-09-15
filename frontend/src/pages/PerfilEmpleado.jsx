@@ -261,11 +261,11 @@ export default function PerfilEmpleado() {
         }
     }
 
-    // Descarga todo el historial: un ZIP con una subcarpeta por asignación finalizada.
+    // Descarga el historial del técnico actual: un ZIP con una subcarpeta por asignación finalizada.
     async function handleDescargarHistorialCompleto() {
         setDescargandoHistorial(true);
         try {
-            const res = await descargarTodasLasAsignaciones();
+            const res = await descargarTodasLasAsignaciones(id);
             const fecha = new Date().toISOString().slice(0, 10);
             descargarBlob(res.data, `Historial_Asignaciones_${fecha}.zip`);
         } catch {

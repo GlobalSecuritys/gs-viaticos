@@ -68,9 +68,11 @@ export function descargarCarpetaAsignacion(asignacionId) {
   });
 }
 
-// Descarga todo el historial: un ZIP con una subcarpeta por asignación finalizada.
-export function descargarTodasLasAsignaciones() {
+// Descarga el historial de un técnico: un ZIP con una subcarpeta por asignación finalizada.
+// Si se pasa `tecnicoId`, sólo se incluyen las asignaciones de ese técnico.
+export function descargarTodasLasAsignaciones(tecnicoId) {
   return api.get('/admin/asignaciones/descargar-todas', {
+    params: tecnicoId ? { tecnico_id: tecnicoId } : {},
     responseType: 'blob',
     timeout: 900000, // 15 min
   });
