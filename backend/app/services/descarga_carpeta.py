@@ -102,6 +102,38 @@ def _formato_fecha(valor) -> str:
     return str(valor or "—")
 
 
+MESES_CORTO = {
+    1: "Ene", 2: "Feb", 3: "Mar", 4: "Abr", 5: "May", 6: "Jun",
+    7: "Jul", 8: "Ago", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dic",
+}
+
+
+def _formato_fecha_corta(valor) -> str:
+    if isinstance(valor, (date, datetime)):
+        mes_txt = MESES_CORTO.get(valor.month, valor.strftime("%b"))
+        return f"{valor.day}{mes_txt}"
+    if isinstance(valor, str) and valor:
+        try:
+            partes = valor.split("-")
+            if len(partes) == 3:
+                dia = int(partes[2])
+                mes = int(partes[1])
+                return f"{dia}{MESES_CORTO.get(mes, '')}"
+        except Exception:
+            pass
+        return slug(valor)
+    return ""
+
+
+def slug_legible(texto: Optional[str], por_defecto: str = "") -> str:
+    """Convierte texto en formato CamelCase/Capitalizado sin caracteres especiales."""
+    if not texto:
+        return por_defecto
+    limpio = slug(texto, por_defecto)
+    palabras = [p.capitalize() for p in limpio.split("_") if p]
+    return "".join(palabras) if palabras else por_defecto
+
+
 def _formato_money(valor) -> str:
     try:
         return f"${Decimal(str(valor or 0)):,.2f}"
@@ -119,14 +151,18 @@ def nombre_zip_asignacion(asignacion: "Asignacion") -> str:
 
 def nombre_carpeta_asignacion(asignacion: "Asignacion", numero: int = 0) -> str:
     """Nombre de la subcarpeta dentro del ZIP general. Si se indica `numero`, se
-    antepone como prefijo con cero a la izquierda para facilitar el orden."""
-    base = (
-        f"Asignacion_{slug(asignacion.cliente, 'cliente')}"
-        f"_{_formato_fecha(asignacion.fecha_inicio)}_{asignacion.id}"
-    )
+    antepone como prefijo con 2 dígitos (01, 02... 18) para que el orden alfabético
+    del explorador de archivos coincida con el orden numérico y visual del Historial."""
+    cliente = slug_legible(asignacion.cliente, "Cliente")
+    ciudad = slug_legible(asignacion.ciudad, "")
+    fecha = _formato_fecha_corta(asignacion.fecha_inicio) or _formato_fecha(asignacion.fecha_inicio)
+
+    partes = [p for p in [cliente, ciudad, fecha] if p]
+    cuerpo = "_".join(partes)
+
     if numero > 0:
-        return f"{numero:02d}_{slug(asignacion.cliente, 'cliente')}_{_formato_fecha(asignacion.fecha_inicio)}"
-    return base
+        return f"{numero:02d}_{cuerpo}"
+    return f"Asignacion_{cuerpo}_{asignacion.id}"
 
 
 def _construir_descripcion(

@@ -75,7 +75,15 @@ export function obtenerAsignacionesFinalizadasDeTecnico(asignaciones, tecnicoId)
             String(a.tecnico_id) === String(tecnicoId) &&
             (a.estado === 'finalizada' || a.estado === 'cancelada')
     );
-    return [...delTecnico].sort((a, b) => (b.fecha_fin || b.fecha_inicio || '').localeCompare(a.fecha_fin || a.fecha_inicio || ''));
+    return [...delTecnico].sort((a, b) => {
+        const fechaB = b.fecha_fin || b.fecha_inicio || '';
+        const fechaA = a.fecha_fin || a.fecha_inicio || '';
+        const cmp = fechaB.localeCompare(fechaA);
+        if (cmp !== 0) return cmp;
+        const cmpInicio = (b.fecha_inicio || '').localeCompare(a.fecha_inicio || '');
+        if (cmpInicio !== 0) return cmpInicio;
+        return (b.id || 0) - (a.id || 0);
+    });
 }
 
 /**

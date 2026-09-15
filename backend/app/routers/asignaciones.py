@@ -3,7 +3,7 @@ from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.security import get_current_admin, get_current_user
@@ -243,6 +243,7 @@ def listar_asignaciones(
     db: Annotated[Session, Depends(get_db)],
 ):
     purgar_asignaciones_eliminadas(db)
+    criterio_fecha = func.coalesce(Asignacion.fecha_fin, Asignacion.fecha_inicio)
     stmt = (
         select(Asignacion)
         .options(
@@ -252,7 +253,11 @@ def listar_asignaciones(
             joinedload(Asignacion.cuenta_cobro),
         )
         .where(Asignacion.eliminado_en.is_(None))
-        .order_by(Asignacion.fecha_inicio.desc())
+        .order_by(
+            criterio_fecha.desc(),
+            Asignacion.fecha_inicio.desc(),
+            Asignacion.id.desc(),
+        )
     )
     asignaciones = db.execute(stmt).unique().scalars().all()
     return [_a_response(a) for a in asignaciones]
@@ -315,15 +320,21 @@ def descargar_todas_las_asignaciones(
         or_(
             Asignacion.cerrada_en.is_not(None),
             Asignacion.estado == "finalizada",
+            Asignacion.estado == "cancelada",
         ),
     ]
     if tecnico_id is not None:
         filtros.append(Asignacion.tecnico_id == tecnico_id)
 
+    criterio_fecha = func.coalesce(Asignacion.fecha_fin, Asignacion.fecha_inicio)
     stmt_ids = (
         select(Asignacion.id)
         .where(*filtros)
-        .order_by(Asignacion.fecha_inicio.desc())
+        .order_by(
+            criterio_fecha.desc(),
+            Asignacion.fecha_inicio.desc(),
+            Asignacion.id.desc(),
+        )
     )
     ids = db.scalars(stmt_ids).all()
 
