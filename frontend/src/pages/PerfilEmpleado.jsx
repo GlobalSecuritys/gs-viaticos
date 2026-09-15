@@ -1005,7 +1005,8 @@ export default function PerfilEmpleado() {
 
                                     {asignacionesFinalizadas.length > 0 ? (
                                         <div className="pf-historial-asig-lista">
-                                            {asignacionesFinalizadas.map((asignacion) => {
+                                            {asignacionesFinalizadas.map((asignacion, idx) => {
+                                                const numero = idx + 1;
                                                 const estaExpandida = !!historialAsigExpandidas[asignacion.id];
                                                 // Optimización de rendimiento: Solo filtra y calcula viáticos si la asignación está expandida
                                                 const viaticosDeAsig = estaExpandida ? viaticos.filter((v) => v.asignacion_id === asignacion.id) : [];
@@ -1023,7 +1024,10 @@ export default function PerfilEmpleado() {
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
                                                                 <span className="pf-historial-asig-icon">📁</span>
                                                                 <div style={{ minWidth: 0 }}>
-                                                                    <strong className="pf-historial-asig-title">{asignacion.cliente}</strong>
+                                                                    <strong className="pf-historial-asig-title">
+                                                                        <span style={{ color: '#64748B', fontWeight: 600, marginRight: '0.3rem' }}>{numero}.</span>
+                                                                        {asignacion.cliente}
+                                                                    </strong>
                                                                     <div className="pf-historial-asig-meta">
                                                                         <span>📍 {asignacion.ciudad}</span>
                                                                         <span>• {formatFechaLarga(asignacion.fecha_inicio)}</span>

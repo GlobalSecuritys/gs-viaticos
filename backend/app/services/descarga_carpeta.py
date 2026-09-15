@@ -117,12 +117,16 @@ def nombre_zip_asignacion(asignacion: "Asignacion") -> str:
     )
 
 
-def nombre_carpeta_asignacion(asignacion: "Asignacion") -> str:
-    """Nombre de la subcarpeta dentro del ZIP general."""
-    return (
+def nombre_carpeta_asignacion(asignacion: "Asignacion", numero: int = 0) -> str:
+    """Nombre de la subcarpeta dentro del ZIP general. Si se indica `numero`, se
+    antepone como prefijo con cero a la izquierda para facilitar el orden."""
+    base = (
         f"Asignacion_{slug(asignacion.cliente, 'cliente')}"
         f"_{_formato_fecha(asignacion.fecha_inicio)}_{asignacion.id}"
     )
+    if numero > 0:
+        return f"{numero:02d}_{slug(asignacion.cliente, 'cliente')}_{_formato_fecha(asignacion.fecha_inicio)}"
+    return base
 
 
 def _construir_descripcion(
@@ -302,12 +306,12 @@ def iter_zip_historial(
     with httpx.Client(timeout=TIMEOUT_DESCARGA, follow_redirects=True) as client:
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
             vacio = True
-            for asignacion, viaticos, resumen in asignaciones:
+            for num, (asignacion, viaticos, resumen) in enumerate(asignaciones, start=1):
                 vacio = False
-                carpeta = nombre_carpeta_asignacion(asignacion)
+                carpeta = nombre_carpeta_asignacion(asignacion, numero=num)
                 contador = 2
                 while carpeta in carpetas_usadas:
-                    carpeta = f"{nombre_carpeta_asignacion(asignacion)}_{contador}"
+                    carpeta = f"{carpeta}_{contador}"
                     contador += 1
                 carpetas_usadas.add(carpeta)
 
