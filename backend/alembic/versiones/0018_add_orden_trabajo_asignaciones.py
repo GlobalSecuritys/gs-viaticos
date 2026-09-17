@@ -19,10 +19,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        'asignaciones',
-        sa.Column('orden_trabajo', sa.String(length=50), nullable=True)
-    )
+    # La columna ya puede existir: el arranque de la API la agrega con
+    # ADD COLUMN IF NOT EXISTS (main.py), así que se comprueba antes.
+    columnas = {c["name"] for c in sa.inspect(op.get_bind()).get_columns("asignaciones")}
+    if "orden_trabajo" not in columnas:
+        op.add_column(
+            'asignaciones',
+            sa.Column('orden_trabajo', sa.String(length=50), nullable=True)
+        )
 
 
 def downgrade() -> None:

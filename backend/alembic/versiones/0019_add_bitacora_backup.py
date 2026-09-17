@@ -19,6 +19,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # La tabla ya puede existir: el arranque de la API la crea con checkfirst.
+    if sa.inspect(op.get_bind()).has_table("bitacora_backup"):
+        return
     op.create_table(
         'bitacora_backup',
         sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),

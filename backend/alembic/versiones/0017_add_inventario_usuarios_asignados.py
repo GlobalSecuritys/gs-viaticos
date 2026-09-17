@@ -15,6 +15,14 @@ y la cuenta Master no necesitan filas aquí.
 La tabla nace vacía a propósito: un usuario sin asignaciones conserva el acceso
 plano anterior, de modo que la migración no deja fuera del módulo a nadie que ya
 trabajaba en él.
+
+NOTA (2026-09): el esquema de inventario dejó de vivir en Alembic. Las tablas
+del módulo nuevo (inventario_items, inventario_despachos, inventario_prestamos)
+y el retiro de las del módulo anterior los resuelve
+app/services/inventario_esquema.py en el arranque de la API, igual que el resto
+de módulos recientes. Esta revisión se conserva vacía solo para no romper la
+cadena de revisiones en las bases que aún no la habían aplicado; aplicarla tal
+como estaba chocaría con las tablas que ya existen.
 """
 from typing import Sequence, Union
 
@@ -30,43 +38,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        'inventario_usuarios_asignados',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('usuario_id', sa.Integer(), nullable=False),
-        sa.Column('empresa_id', sa.Integer(), nullable=False),
-        sa.Column('cliente_id', sa.Integer(), nullable=True),
-        sa.Column('nivel', sa.String(length=20), server_default='lector', nullable=False),
-        sa.Column('creado_en', sa.DateTime(timezone=False), server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(['usuario_id'], ['usuarios.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['empresa_id'], ['inventario_empresas.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['cliente_id'], ['inventario_clientes.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id'),
-    )
-    op.create_index(
-        op.f('ix_inventario_usuarios_asignados_usuario_id'),
-        'inventario_usuarios_asignados', ['usuario_id'],
-    )
-    op.create_index(
-        op.f('ix_inventario_usuarios_asignados_empresa_id'),
-        'inventario_usuarios_asignados', ['empresa_id'],
-    )
-    # Índice de expresión y no UNIQUE: en Postgres dos NULL son distintos, y
-    # cliente_id es NULL en todo el inventario directo de una caja.
-    op.execute(
-        "CREATE UNIQUE INDEX uq_inventario_acceso_usuario_entidad "
-        "ON inventario_usuarios_asignados (usuario_id, empresa_id, COALESCE(cliente_id, 0))"
-    )
+    """No-op: ver la nota del encabezado."""
 
 
 def downgrade() -> None:
-    op.execute('DROP INDEX IF EXISTS uq_inventario_acceso_usuario_entidad')
-    op.drop_index(
-        op.f('ix_inventario_usuarios_asignados_empresa_id'),
-        table_name='inventario_usuarios_asignados',
-    )
-    op.drop_index(
-        op.f('ix_inventario_usuarios_asignados_usuario_id'),
-        table_name='inventario_usuarios_asignados',
-    )
-    op.drop_table('inventario_usuarios_asignados')
+    """No-op: ver la nota del encabezado."""
