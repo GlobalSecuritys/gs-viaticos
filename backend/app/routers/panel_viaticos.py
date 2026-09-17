@@ -287,10 +287,13 @@ def listar_tecnicos_gastos_totales(
             "nombre": r.nombre,
             "codigo_empleado": r.codigo_empleado,
             "correo": r.correo,
-            "total_gastado": Decimal(r.total_gastado or 0),
+            "total_gastado": float(r.total_gastado or 0),
         }
         for r in db.execute(stmt).all()
     ]
+
+
+@router.get("/tecnicos-indicadores", response_model=TecnicosIndicadoresResponse)
 def tecnicos_indicadores(
     current_admin: Annotated[Usuario, Depends(get_current_admin)],
     db: Annotated[Session, Depends(get_db)],
