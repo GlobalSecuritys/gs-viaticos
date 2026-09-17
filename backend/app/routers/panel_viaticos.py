@@ -256,31 +256,35 @@ def listar_tecnicos_gastos_totales(
 ):
     """
     Listado de todos los técnicos registrados con la cantidad de dinero gastado.
+    Usa subquery para compatibilidad con SQLAlchemy 1.4 y 2.x.
     """
+    # Subconsulta: suma del gasto por técnico (sin rechazados)
+    sub = (
+        select(
+            Viatico.usuario_id,
+            func.coalesce(func.sum(Viatico.valor), 0).label("total"),
+        )
+        .where(Viatico.estado != ESTADO_NO_COMPUTA_GASTO)
+        .group_by(Viatico.usuario_id)
+        .subquery()
+    )
+
     stmt = (
         select(
             Usuario.id,
             Usuario.nombre,
             Usuario.codigo_empleado,
             Usuario.correo,
-            func.coalesce(
-                func.sum(
-                    case(
-                        (Viatico.estado != ESTADO_NO_COMPUTA_GASTO, Viatico.valor),
-                        else_=0,
-                    )
-                ),
-                0,
-            ).label("total_gastado"),
+            func.coalesce(sub.c.total, 0).label("total_gastado"),
         )
-        .outerjoin(Viatico, Viatico.usuario_id == Usuario.id)
+        .outerjoin(sub, sub.c.usuario_id == Usuario.id)
         .where(
             Usuario.rol == "tecnico",
             Usuario.activo.is_(True),
         )
-        .group_by(Usuario.id, Usuario.nombre, Usuario.codigo_empleado, Usuario.correo)
         .order_by(desc("total_gastado"), Usuario.nombre.asc())
     )
+
     return [
         {
             "id": r.id,
