@@ -1,0 +1,239 @@
+/* Modal Gastos Totales por Técnico */
+.mgtt-modal-box {
+    max-width: 580px;
+    width: 92%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    border-radius: 18px;
+    background: #FFFFFF;
+    box-shadow: 0 20px 40px rgba(7, 13, 30, 0.25);
+    border: 1px solid rgba(11, 23, 45, 0.1);
+}
+
+.mgtt-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.mgtt-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #0B172D;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.mgtt-subtitle {
+    font-size: 0.8rem;
+    color: #64748B;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.mgtt-close-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    color: #94A3B8;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.mgtt-close-btn:hover {
+    color: #0F172A;
+    background: #F1F5F9;
+}
+
+.mgtt-search-wrap {
+    position: relative;
+    margin: 0.85rem 0;
+}
+
+.mgtt-search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.85rem;
+    color: #94A3B8;
+    pointer-events: none;
+}
+
+.mgtt-search-input {
+    width: 100%;
+    padding: 0.6rem 2rem 0.6rem 2.2rem;
+    border-radius: 8px;
+    border: 1px solid #CBD5E1;
+    font-size: 0.85rem;
+    color: #0F172A;
+    background: #F8FAFC;
+    transition: all 0.2s ease;
+}
+
+.mgtt-search-input:focus {
+    outline: none;
+    border-color: #1D63C8;
+    background: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(29, 99, 200, 0.12);
+}
+
+.mgtt-clear-btn {
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #94A3B8;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.mgtt-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    min-height: 220px;
+}
+
+.mgtt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.mgtt-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    background: #F8FAFC;
+    border: 1px solid #EDF2F7;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.mgtt-row:hover {
+    background: #EFF6FF;
+    border-color: #BFDBFE;
+    transform: translateX(2px);
+}
+
+.mgtt-rank {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #94A3B8;
+    width: 22px;
+    text-align: center;
+}
+
+.mgtt-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #0B172D;
+    color: #D4AF37;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.mgtt-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.mgtt-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #0F172A;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mgtt-meta {
+    font-size: 0.72rem;
+    color: #64748B;
+}
+
+.mgtt-amount {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.mgtt-amount-val {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #0B172D;
+    font-feature-settings: 'tnum';
+}
+
+.mgtt-loading,
+.mgtt-empty,
+.mgtt-error {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: #64748B;
+    font-size: 0.88rem;
+}
+
+.mgtt-error {
+    color: #DC2626;
+}
+
+.mgtt-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1rem;
+    margin-top: 0.75rem;
+    border-top: 1px solid #E2E8F0;
+}
+
+.mgtt-total-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.mgtt-total-lbl {
+    font-size: 0.72rem;
+    color: #64748B;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.mgtt-total-val {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #1D63C8;
+}
+
+.mgtt-btn-close {
+    padding: 0.55rem 1.25rem;
+    border-radius: 8px;
+    background: #0B172D;
+    color: #FFFFFF;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mgtt-btn-close:hover {
+    background: #1D63C8;
+}

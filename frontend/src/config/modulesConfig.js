@@ -58,11 +58,8 @@ export const MODULES_CONFIG = [
       return (user?.rol === 'admin' || user?.rol === 'superadmin') && user?.acceso_viaticos !== false;
     },
     sidebarNav: [
-      { id: 'inicio', label: 'Resumen General', icon: '🏠', path: '/admin', sectionId: 'top' },
-      { id: 'gastos', label: 'Gastos & Comprobantes', icon: '💳', path: '/admin', sectionId: 'gastos' },
       { id: 'tecnicos', label: 'Asignaciones & Técnicos', icon: '👷', path: '/admin', sectionId: 'tecnicos' },
-      { id: 'cuentas-cobro', label: 'Cuentas de Cobro', icon: '💵', path: '/admin/cuentas-cobro' },
-      { id: 'reportes', label: 'Reportes & Exportación', icon: '📊', path: '/admin', sectionId: 'reportes' },
+      { id: 'gastos-totales', label: 'Dinero Gastado por Técnico', icon: '💰', path: '/admin', sectionId: 'gastos-totales' },
     ],
   },
   {

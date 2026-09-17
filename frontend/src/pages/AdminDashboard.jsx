@@ -10,6 +10,7 @@ import InstallPwaPrompt from '../components/InstallPwaPrompt';
 import ModalAsignacionesTecnico from '../components/ModalAsignacionesTecnico';
 import ModalCuentasCobroTecnico from '../components/ModalCuentasCobroTecnico';
 import ModalCrearUsuario from '../components/ModalCrearUsuario';
+import ModalGastosTotalesTecnicos from '../components/ModalGastosTotalesTecnicos';
 import { obtenerNombreUsuario } from '../utils/personal';
 import { esLectorSeccion } from '../utils/permisos';
 import './AdminDashboard.css';
@@ -99,7 +100,7 @@ export default function AdminDashboard() {
     const [cargandoAccion, setCargandoAccion] = useState(true);
     const [menuUsuarioAbierto, setMenuUsuarioAbierto] = useState(false);
     const [sidebarAbierto, setSidebarAbierto] = useState(false);
-    const [itemMenuActivo, setItemMenuActivo] = useState('inicio');
+    const [itemMenuActivo, setItemMenuActivo] = useState('tecnicos');
 
     const [busquedaTecnico, setBusquedaTecnico] = useState('');
     // "Expandir todos" es ahora una acción manual: trae el listado completo
@@ -124,6 +125,7 @@ export default function AdminDashboard() {
 
     // Referencias para scroll suave desde el sidebar
     const seccionTecnicosRef = useRef(null);
+    const [mostrarModalGastosTotales, setMostrarModalGastosTotales] = useState(false);
 
     const cargarPerfil = useCallback(async () => {
         try {
@@ -234,14 +236,8 @@ export default function AdminDashboard() {
     const [mensajeFeedback, setMensajeFeedback] = useState('');
 
     const NAV_ITEMS = [
-        { id: 'inicio', label: 'Resumen & Liquidaciones', icon: '🏠', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
-        { id: 'gastos', label: 'Gastos & Comprobantes', icon: '💳', action: () => {
-            const el = document.querySelector('.gsb-filter-strip') || document.querySelector('.gsb-table-card');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-        } },
         { id: 'tecnicos', label: 'Asignaciones & Técnicos', icon: '👷', action: () => seccionTecnicosRef.current?.scrollIntoView({ behavior: 'smooth' }) },
-        { id: 'cuentas-cobro', label: 'Cuentas de Cobro', icon: '💵', action: () => navigate('/admin/cuentas-cobro') },
-        { id: 'reportes', label: 'Reportes & Exportación', icon: '📊', action: () => setMostrarModalExportar(true) },
+        { id: 'gastos-totales', label: 'Dinero Gastado por Técnico', icon: '💰', action: () => setMostrarModalGastosTotales(true) },
     ];
 
     return (
@@ -879,6 +875,17 @@ export default function AdminDashboard() {
                         setMostrarCrearUsuario(false);
                         setMensajeFeedback(`✅ Usuario "${nuevo.nombre}" creado exitosamente.`);
                         recargarPanel();
+                    }}
+                />
+            )}
+
+            {/* Modal Dinero Gastado por Técnico */}
+            {mostrarModalGastosTotales && (
+                <ModalGastosTotalesTecnicos
+                    onClose={() => setMostrarModalGastosTotales(false)}
+                    onVerPerfil={(id) => {
+                        setMostrarModalGastosTotales(false);
+                        navigate(`/admin/personal/${id}`);
                     }}
                 />
             )}

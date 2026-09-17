@@ -75,3 +75,17 @@ class TecnicoDashboardResponse(BaseModel):
     total_gastado: Decimal
     asignacion_activa: TecnicoAsignacionResumen | None = None
     asignaciones: list[TecnicoAsignacionResumen] = []
+
+
+class TecnicoIndicadorItem(BaseModel):
+    id: int
+    nombre: str
+    codigo_empleado: str | None = None
+    metrica_principal: int | Decimal
+    metrica_secundaria: Decimal | int | None = None
+
+
+class TecnicosIndicadoresResponse(BaseModel):
+    mas_viaticos: list[TecnicoIndicadorItem]
+    mas_asignaciones: list[TecnicoIndicadorItem]
+    mayor_gasto: list[TecnicoIndicadorItem]

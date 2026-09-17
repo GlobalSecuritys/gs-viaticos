@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_admin
@@ -28,6 +28,8 @@ from app.schemas.dashboard import (
     ResumenGastosResponse,
     TecnicoAsignacionResumen,
     TecnicoDashboardResponse,
+    TecnicoIndicadorItem,
+    TecnicosIndicadoresResponse,
 )
 
 router = APIRouter(prefix="/admin", tags=["Panel Viáticos"])
@@ -245,3 +247,150 @@ def listar_tecnicos_dashboard(
             )
         )
     return respuesta
+
+
+@router.get("/tecnicos-gastos-totales")
+def listar_tecnicos_gastos_totales(
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Listado de todos los técnicos registrados con la cantidad de dinero gastado.
+    """
+    stmt = (
+        select(
+            Usuario.id,
+            Usuario.nombre,
+            Usuario.codigo_empleado,
+            Usuario.correo,
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Viatico.estado != ESTADO_NO_COMPUTA_GASTO, Viatico.valor),
+                        else_=0,
+                    )
+                ),
+                0,
+            ).label("total_gastado"),
+        )
+        .outerjoin(Viatico, Viatico.usuario_id == Usuario.id)
+        .where(
+            Usuario.rol == "tecnico",
+            Usuario.activo.is_(True),
+        )
+        .group_by(Usuario.id, Usuario.nombre, Usuario.codigo_empleado, Usuario.correo)
+        .order_by(desc("total_gastado"), Usuario.nombre.asc())
+    )
+    return [
+        {
+            "id": r.id,
+            "nombre": r.nombre,
+            "codigo_empleado": r.codigo_empleado,
+            "correo": r.correo,
+            "total_gastado": Decimal(r.total_gastado or 0),
+        }
+        for r in db.execute(stmt).all()
+    ]
+def tecnicos_indicadores(
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Métricas indicativas de técnicos destacados:
+    - Mayor cantidad de viáticos registrados
+    - Mayor número de asignaciones
+    - Mayor valor total de viáticos / gasto gestionado
+    """
+    # 1. Top viáticos subidos
+    stmt_viaticos = (
+        select(
+            Usuario.id,
+            Usuario.nombre,
+            Usuario.codigo_empleado,
+            func.count(Viatico.id).label("cant"),
+            func.coalesce(func.sum(Viatico.valor), 0).label("monto"),
+        )
+        .join(Viatico, Viatico.usuario_id == Usuario.id)
+        .where(
+            Usuario.rol == "tecnico",
+            Usuario.activo.is_(True),
+            Viatico.estado != ESTADO_NO_COMPUTA_GASTO,
+        )
+        .group_by(Usuario.id, Usuario.nombre, Usuario.codigo_empleado)
+        .order_by(desc("cant"))
+        .limit(5)
+    )
+    top_viaticos = [
+        TecnicoIndicadorItem(
+            id=r.id,
+            nombre=r.nombre,
+            codigo_empleado=r.codigo_empleado,
+            metrica_principal=r.cant or 0,
+            metrica_secundaria=Decimal(r.monto or 0),
+        )
+        for r in db.execute(stmt_viaticos).all()
+    ]
+
+    # 2. Top asignaciones
+    stmt_asig = (
+        select(
+            Usuario.id,
+            Usuario.nombre,
+            Usuario.codigo_empleado,
+            func.count(Asignacion.id).label("cant"),
+        )
+        .join(Asignacion, Asignacion.tecnico_id == Usuario.id)
+        .where(
+            Usuario.rol == "tecnico",
+            Usuario.activo.is_(True),
+            Asignacion.eliminado_en.is_(None),
+        )
+        .group_by(Usuario.id, Usuario.nombre, Usuario.codigo_empleado)
+        .order_by(desc("cant"))
+        .limit(5)
+    )
+    top_asig = [
+        TecnicoIndicadorItem(
+            id=r.id,
+            nombre=r.nombre,
+            codigo_empleado=r.codigo_empleado,
+            metrica_principal=r.cant or 0,
+        )
+        for r in db.execute(stmt_asig).all()
+    ]
+
+    # 3. Top mayor gasto
+    stmt_gasto = (
+        select(
+            Usuario.id,
+            Usuario.nombre,
+            Usuario.codigo_empleado,
+            func.coalesce(func.sum(Viatico.valor), 0).label("monto"),
+            func.count(Viatico.id).label("cant"),
+        )
+        .join(Viatico, Viatico.usuario_id == Usuario.id)
+        .where(
+            Usuario.rol == "tecnico",
+            Usuario.activo.is_(True),
+            Viatico.estado != ESTADO_NO_COMPUTA_GASTO,
+        )
+        .group_by(Usuario.id, Usuario.nombre, Usuario.codigo_empleado)
+        .order_by(desc("monto"))
+        .limit(5)
+    )
+    top_gasto = [
+        TecnicoIndicadorItem(
+            id=r.id,
+            nombre=r.nombre,
+            codigo_empleado=r.codigo_empleado,
+            metrica_principal=Decimal(r.monto or 0),
+            metrica_secundaria=r.cant or 0,
+        )
+        for r in db.execute(stmt_gasto).all()
+    ]
+
+    return TecnicosIndicadoresResponse(
+        mas_viaticos=top_viaticos,
+        mas_asignaciones=top_asig,
+        mayor_gasto=top_gasto,
+    )
