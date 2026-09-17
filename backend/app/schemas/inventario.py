@@ -200,6 +200,31 @@ class PrestamoResponse(BaseModel):
 
 
 # -----------------------------------------------------------------------------
+# RESUMEN POR UNIÓN TEMPORAL (tarjetas de entrada del módulo)
+# -----------------------------------------------------------------------------
+class ResumenInventario(BaseModel):
+    """Cifras de una unión temporal, o de todo el inventario si es el global."""
+
+    clave: str
+    union_temporal: Optional[UnionTemporalLiteral] = None
+    nombre: str
+    total_items: int = 0
+    total_unidades: int = 0
+    total_despachos: int = 0
+    total_prestamos: int = 0
+    por_estado: dict[str, int] = {}
+    # Despachos que piden atención: pendientes de instalar, en alerta o dañados.
+    pendientes: int = 0
+
+
+class ResumenResponse(BaseModel):
+    uniones: List[ResumenInventario]
+    global_: ResumenInventario = Field(alias="global")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+# -----------------------------------------------------------------------------
 # LECTURA DE TÉCNICOS Y ASIGNACIONES (para el formulario de despacho)
 # -----------------------------------------------------------------------------
 class TecnicoOpcion(BaseModel):

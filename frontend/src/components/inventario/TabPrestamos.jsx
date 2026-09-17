@@ -13,7 +13,7 @@ import ModalInventario, { ModalConfirmar } from './ModalInventario';
 const VACIO = { union_temporal: '', descripcion: '', cantidad: 1 };
 
 /** Vista de préstamos: equivalente a la hoja PRESTAMOS (descripción + cantidad). */
-export default function TabPrestamos({ unionTemporal, puedeEditar, avisar }) {
+export default function TabPrestamos({ unionTemporal, mostrarUnion, puedeEditar, avisar }) {
     const [q, setQ] = useState('');
     const [prestamos, setPrestamos] = useState([]);
     const [cargando, setCargando] = useState(true);
@@ -89,18 +89,10 @@ export default function TabPrestamos({ unionTemporal, puedeEditar, avisar }) {
 
     return (
         <>
-            <section className="sgc-inv-kpis">
-                <article className="sgc-inv-kpi">
-                    <span className="sgc-inv-kpi-label">Registros</span>
-                    <strong className="sgc-inv-kpi-valor">{prestamos.length}</strong>
-                </article>
-                <article className="sgc-inv-kpi">
-                    <span className="sgc-inv-kpi-label">Unidades prestadas</span>
-                    <strong className="sgc-inv-kpi-valor">{total}</strong>
-                </article>
-            </section>
-
-            <div className="sgc-inv-filtros">
+            <div className="sgc-inv-toolbar">
+                <span className="sgc-inv-toolbar-dato">
+                    {prestamos.length} registro{prestamos.length === 1 ? '' : 's'} · {total} unidades prestadas
+                </span>
                 <input
                     type="search"
                     className="sgc-inv-input"
@@ -110,7 +102,7 @@ export default function TabPrestamos({ unionTemporal, puedeEditar, avisar }) {
                 />
                 {puedeEditar && (
                     <button type="button" className="sgc-inv-btn sgc-inv-btn--primary" onClick={() => abrir(null)}>
-                        + Nuevo préstamo
+                        Nuevo préstamo
                     </button>
                 )}
             </div>
@@ -122,21 +114,21 @@ export default function TabPrestamos({ unionTemporal, puedeEditar, avisar }) {
                     <thead>
                         <tr>
                             <th>Descripción</th>
-                            <th>UT</th>
+                            {mostrarUnion && <th>Inventario</th>}
                             <th className="sgc-inv-num">Cantidad</th>
                             {puedeEditar && <th className="sgc-inv-acciones-col">Acciones</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {cargando && prestamos.length === 0 ? (
-                            <tr><td colSpan={4} className="sgc-inv-tabla-vacio">Cargando préstamos…</td></tr>
+                            <tr><td colSpan={2 + (mostrarUnion ? 1 : 0) + (puedeEditar ? 1 : 0)} className="sgc-inv-tabla-vacio">Cargando préstamos…</td></tr>
                         ) : prestamos.length === 0 ? (
-                            <tr><td colSpan={4} className="sgc-inv-tabla-vacio">No hay préstamos registrados.</td></tr>
+                            <tr><td colSpan={2 + (mostrarUnion ? 1 : 0) + (puedeEditar ? 1 : 0)} className="sgc-inv-tabla-vacio">No hay préstamos registrados.</td></tr>
                         ) : (
                             prestamos.map((p) => (
                                 <tr key={p.id}>
                                     <td className="sgc-inv-td-desc">{p.descripcion}</td>
-                                    <td>{etiquetaUnion(p.union_temporal)}</td>
+                                    {mostrarUnion && <td>{etiquetaUnion(p.union_temporal)}</td>}
                                     <td className="sgc-inv-num">{p.cantidad}</td>
                                     {puedeEditar && (
                                         <td className="sgc-inv-acciones-col">

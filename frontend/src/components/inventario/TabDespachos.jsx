@@ -12,7 +12,7 @@ import { EstadoBadge, ModalConfirmar } from './ModalInventario';
 const SIN_TECNICO = 'sin';
 
 /** Vista de despachos: equivalente a la hoja SALIDAS. */
-export default function TabDespachos({ unionTemporal, tecnicos, puedeEditar, version, onNuevo, onEditar, avisar }) {
+export default function TabDespachos({ unionTemporal, mostrarUnion, tecnicos, puedeEditar, version, onNuevo, onEditar, avisar }) {
     const [tecnico, setTecnico] = useState('');
     const [oficina, setOficina] = useState('');
     const [estado, setEstado] = useState('');
@@ -87,29 +87,29 @@ export default function TabDespachos({ unionTemporal, tecnicos, puedeEditar, ver
 
     return (
         <>
-            <section className="sgc-inv-planillas-resumen">
+            <section className="sgc-inv-chips" role="group" aria-label="Filtrar por estado">
                 <button
                     type="button"
-                    className={`sgc-inv-planilla-chip ${estado === '' ? 'sgc-inv-planilla-chip--activa' : ''}`}
+                    className={`sgc-inv-chip ${estado === '' ? 'sgc-inv-chip--activo' : ''}`}
                     onClick={() => setEstado('')}
                 >
-                    <span className="sgc-inv-planilla-nombre">Todos</span>
-                    <span className="sgc-inv-planilla-meta">{totalSinFiltroEstado} despachos</span>
+                    <span className="sgc-inv-chip-texto">Todos</span>
+                    <span className="sgc-inv-chip-conteo">{totalSinFiltroEstado}</span>
                 </button>
                 {ESTADOS_DESPACHO.map((e) => (
                     <button
                         key={e.valor}
                         type="button"
-                        className={`sgc-inv-planilla-chip ${estado === e.valor ? 'sgc-inv-planilla-chip--activa' : ''}`}
+                        className={`sgc-inv-chip ${estado === e.valor ? 'sgc-inv-chip--activo' : ''}`}
                         onClick={() => setEstado(estado === e.valor ? '' : e.valor)}
                     >
                         <EstadoBadge estado={e.valor} />
-                        <span className="sgc-inv-planilla-meta">{datos.por_estado[e.valor] ?? 0} despachos</span>
+                        <span className="sgc-inv-chip-conteo">{datos.por_estado[e.valor] ?? 0}</span>
                     </button>
                 ))}
             </section>
 
-            <div className="sgc-inv-filtros">
+            <div className="sgc-inv-toolbar">
                 <select className="sgc-inv-input sgc-inv-input--select" value={tecnico} onChange={(e) => setTecnico(e.target.value)}>
                     <option value="">Todos los técnicos</option>
                     <option value={SIN_TECNICO}>— Sin técnico vinculado —</option>
@@ -133,7 +133,7 @@ export default function TabDespachos({ unionTemporal, tecnicos, puedeEditar, ver
                 />
                 {puedeEditar && (
                     <button type="button" className="sgc-inv-btn sgc-inv-btn--primary" onClick={onNuevo}>
-                        + Nuevo despacho
+                        Nuevo despacho
                     </button>
                 )}
             </div>
@@ -166,7 +166,9 @@ export default function TabDespachos({ unionTemporal, tecnicos, puedeEditar, ver
                                     <td>
                                         <div>{d.fecha_despacho || '—'}</div>
                                         <div className="sgc-inv-sub">
-                                            {etiquetaUnion(d.union_temporal)}{d.cantidad > 1 ? ` · ${d.cantidad} und.` : ''}
+                                            {[mostrarUnion && etiquetaUnion(d.union_temporal), d.cantidad > 1 && `${d.cantidad} und.`]
+                                                .filter(Boolean)
+                                                .join(' · ')}
                                         </div>
                                     </td>
                                     <td className="sgc-inv-td-desc">

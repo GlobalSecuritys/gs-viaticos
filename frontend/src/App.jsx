@@ -254,9 +254,20 @@ export default function App() {
             }
           />
 
-          {/* Inventario: stock, despachos y préstamos (técnicos bloqueados) */}
+          {/* Inventario: tarjetas por inventario y, dentro, stock/despachos/
+              préstamos de ese alcance (técnicos bloqueados) */}
           <Route
             path="/inventario"
+            element={
+              <PrivateRoute>
+                <NoTecnicoRoute>
+                  <Inventario />
+                </NoTecnicoRoute>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/inventario/:alcance"
             element={
               <PrivateRoute>
                 <NoTecnicoRoute>

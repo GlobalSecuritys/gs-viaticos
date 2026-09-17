@@ -32,6 +32,14 @@ function limpiar(params) {
 }
 
 // -----------------------------------------------------------------------------
+// RESUMEN (tarjetas de entrada)
+// -----------------------------------------------------------------------------
+export async function obtenerResumen() {
+  const res = await api.get('/inventario/resumen');
+  return res.data;
+}
+
+// -----------------------------------------------------------------------------
 // ÍTEMS (stock)
 // -----------------------------------------------------------------------------
 export async function listarItems({ unionTemporal, q, soloConStock, limit = 500, offset = 0 } = {}) {

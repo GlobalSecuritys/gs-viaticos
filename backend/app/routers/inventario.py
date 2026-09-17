@@ -47,6 +47,8 @@ from app.schemas.inventario import (
     PrestamoCreate,
     PrestamoResponse,
     PrestamoUpdate,
+    ResumenInventario,
+    ResumenResponse,
     TecnicoOpcion,
     UnionTemporalLiteral,
 )
@@ -536,6 +538,73 @@ def eliminar_prestamo(prestamo_id: int, db: DB, current_user: AdminIN):
         raise HTTPException(status_code=404, detail="Préstamo no encontrado.")
     db.delete(prestamo)
     db.commit()
+
+
+# -----------------------------------------------------------------------------
+# RESUMEN (tarjetas de entrada del módulo)
+# -----------------------------------------------------------------------------
+NOMBRES_UNION = {
+    UnionTemporal.RTC: "Unión Temporal RTC",
+    UnionTemporal.MANTENIMIENTO: "Unión Temporal Mantenimiento GSB_SDSS",
+}
+
+# Estados que piden atención de alguien (los que no están instalados ni son
+# suministro de oficina).
+ESTADOS_PENDIENTES = {
+    EstadoDespacho.pendiente_instalacion,
+    EstadoDespacho.alerta_seguimiento,
+    EstadoDespacho.danado,
+}
+
+
+@router.get("/resumen", response_model=ResumenResponse)
+def resumen(db: DB, current_user: LectorIN):
+    items = {
+        ut: (n, unidades)
+        for ut, n, unidades in db.execute(
+            select(
+                InventarioItem.union_temporal,
+                func.count(),
+                func.coalesce(func.sum(InventarioItem.cantidad_stock), 0),
+            ).group_by(InventarioItem.union_temporal)
+        ).all()
+    }
+    prestamos = dict(
+        db.execute(
+            select(InventarioPrestamo.union_temporal, func.count()).group_by(
+                InventarioPrestamo.union_temporal
+            )
+        ).all()
+    )
+    despachos: dict[UnionTemporal, dict[str, int]] = {}
+    for ut, estado, n in db.execute(
+        select(InventarioDespacho.union_temporal, InventarioDespacho.estado, func.count()).group_by(
+            InventarioDespacho.union_temporal, InventarioDespacho.estado
+        )
+    ).all():
+        despachos.setdefault(ut, {})[estado.value] = n
+
+    def armar(clave: str, nombre: str, uts: list[UnionTemporal], ut_propia=None) -> ResumenInventario:
+        por_estado = {e.value: 0 for e in EstadoDespacho}
+        for ut in uts:
+            for estado, n in despachos.get(ut, {}).items():
+                por_estado[estado] += n
+        return ResumenInventario(
+            clave=clave,
+            union_temporal=ut_propia.value if ut_propia else None,
+            nombre=nombre,
+            total_items=sum(items.get(ut, (0, 0))[0] for ut in uts),
+            total_unidades=sum(items.get(ut, (0, 0))[1] for ut in uts),
+            total_despachos=sum(por_estado.values()),
+            total_prestamos=sum(prestamos.get(ut, 0) for ut in uts),
+            por_estado=por_estado,
+            pendientes=sum(por_estado[e.value] for e in ESTADOS_PENDIENTES),
+        )
+
+    return ResumenResponse(
+        uniones=[armar(ut.value, NOMBRES_UNION[ut], [ut], ut) for ut in UnionTemporal],
+        **{"global": armar("GLOBAL", "Inventario global", list(UnionTemporal))},
+    )
 
 
 # -----------------------------------------------------------------------------

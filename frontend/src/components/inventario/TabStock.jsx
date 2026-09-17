@@ -23,7 +23,7 @@ const ITEM_VACIO = {
 };
 
 /** Vista de stock: equivalente a la hoja INVENTARIO GENERAL. */
-export default function TabStock({ unionTemporal, puedeEditar, version, onDespachar, avisar }) {
+export default function TabStock({ unionTemporal, mostrarUnion, puedeEditar, version, onDespachar, avisar }) {
     const [q, setQ] = useState('');
     const [soloConStock, setSoloConStock] = useState(true);
     const [datos, setDatos] = useState({ total: 0, total_unidades: 0, items: [] });
@@ -105,21 +105,11 @@ export default function TabStock({ unionTemporal, puedeEditar, version, onDespac
     }
 
     const campo = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) });
+    const columnas = 8 + (mostrarUnion ? 1 : 0) + (puedeEditar ? 1 : 0);
 
     return (
         <>
-            <section className="sgc-inv-kpis">
-                <article className="sgc-inv-kpi">
-                    <span className="sgc-inv-kpi-label">Ítems</span>
-                    <strong className="sgc-inv-kpi-valor">{datos.total}</strong>
-                </article>
-                <article className="sgc-inv-kpi">
-                    <span className="sgc-inv-kpi-label">Unidades en stock</span>
-                    <strong className="sgc-inv-kpi-valor">{datos.total_unidades}</strong>
-                </article>
-            </section>
-
-            <div className="sgc-inv-filtros">
+            <div className="sgc-inv-toolbar">
                 <input
                     type="search"
                     className="sgc-inv-input"
@@ -133,7 +123,7 @@ export default function TabStock({ unionTemporal, puedeEditar, version, onDespac
                 </label>
                 {puedeEditar && (
                     <button type="button" className="sgc-inv-btn sgc-inv-btn--primary" onClick={() => abrir(null)}>
-                        + Nuevo ítem
+                        Nuevo ítem
                     </button>
                 )}
             </div>
@@ -145,7 +135,7 @@ export default function TabStock({ unionTemporal, puedeEditar, version, onDespac
                     <thead>
                         <tr>
                             <th>Descripción</th>
-                            <th>UT</th>
+                            {mostrarUnion && <th>Inventario</th>}
                             <th>Código de barras</th>
                             <th>Serial GSB</th>
                             <th>ID. equipo</th>
@@ -158,14 +148,14 @@ export default function TabStock({ unionTemporal, puedeEditar, version, onDespac
                     </thead>
                     <tbody>
                         {cargando && datos.items.length === 0 ? (
-                            <tr><td colSpan={10} className="sgc-inv-tabla-vacio">Cargando stock…</td></tr>
+                            <tr><td colSpan={columnas} className="sgc-inv-tabla-vacio">Cargando stock…</td></tr>
                         ) : datos.items.length === 0 ? (
-                            <tr><td colSpan={10} className="sgc-inv-tabla-vacio">No hay ítems que coincidan con el filtro.</td></tr>
+                            <tr><td colSpan={columnas} className="sgc-inv-tabla-vacio">No hay ítems que coincidan con el filtro.</td></tr>
                         ) : (
                             datos.items.map((it) => (
                                 <tr key={it.id}>
                                     <td className="sgc-inv-td-desc">{it.descripcion}</td>
-                                    <td>{etiquetaUnion(it.union_temporal)}</td>
+                                    {mostrarUnion && <td>{etiquetaUnion(it.union_temporal)}</td>}
                                     <td className="sgc-inv-mono">{it.codigo_barras || '—'}</td>
                                     <td className="sgc-inv-mono">{it.serial_gsb || '—'}</td>
                                     <td className="sgc-inv-mono">{it.id_equipo || '—'}</td>
