@@ -76,7 +76,11 @@ def crear_viatico(
         info_limite = calcular_limite_subida_asignacion(asig)
         if not info_limite["puede_subir_viaticos"]:
             limite_dt = info_limite.get("limite_subida_viaticos")
-            limite_str = limite_dt.strftime("%d/%m/%Y a las %I:%M %p") if limite_dt else "el plazo asignado"
+            if limite_dt:
+                limite_cot = limite_dt - timedelta(hours=5)
+                limite_str = limite_cot.strftime("%d/%m/%Y a las %I:%M %p")
+            else:
+                limite_str = "el plazo asignado"
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=(

@@ -156,6 +156,19 @@ export function derivarLugarDesdeTipoAsignacion(tipoAsignacion) {
 }
 
 /**
+ * Parsea una fecha ISO que provenga de la API sin offset ni 'Z' (UTC naive)
+ * asegurando que el navegador la interprete en UTC y la convierta a hora local.
+ */
+export function parsearFechaUtc(fechaStr) {
+    if (!fechaStr) return null;
+    if (fechaStr instanceof Date) return fechaStr;
+    if (typeof fechaStr === 'string' && fechaStr.includes('T') && !fechaStr.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(fechaStr)) {
+        return new Date(fechaStr + 'Z');
+    }
+    return new Date(fechaStr);
+}
+
+/**
  * Calcula el estado de gracia de 24 horas de una asignación.
  * Regla:
  * Si la asignación se cierra (finalizada por admin o al término de su fecha final),
@@ -195,14 +208,18 @@ export function calcularEstadoGraciaAsignacion(asignacion) {
 
     // 1. Asignación marcada como finalizada por el administrador
     if (estado === 'finalizada') {
-        const fechaCierreBase = asignacion.cerrada_en || asignacion.updated_at;
-        let fechaCierre = fechaCierreBase ? new Date(fechaCierreBase) : null;
-        if (!fechaCierre || isNaN(fechaCierre.getTime())) {
-            fechaCierre = new Date(asignacion.fecha_fin + 'T23:59:59');
+        let limiteGracia = null;
+        if (asignacion.limite_subida_viaticos) {
+            limiteGracia = parsearFechaUtc(asignacion.limite_subida_viaticos);
+        } else {
+            const fechaCierreBase = asignacion.cerrada_en || asignacion.updated_at;
+            let fechaCierre = parsearFechaUtc(fechaCierreBase);
+            if (!fechaCierre || isNaN(fechaCierre.getTime())) {
+                fechaCierre = new Date(asignacion.fecha_fin + 'T23:59:59');
+            }
+            limiteGracia = new Date(fechaCierre.getTime() + 24 * 60 * 60 * 1000);
         }
 
-        // Exactamente 24 horas a partir del cierre
-        const limiteGracia = new Date(fechaCierre.getTime() + 24 * 60 * 60 * 1000);
         const msRestantes = limiteGracia.getTime() - ahora.getTime();
 
         if (msRestantes > 0) {
@@ -233,7 +250,12 @@ export function calcularEstadoGraciaAsignacion(asignacion) {
 
     // 2. Asignación pendiente o en curso
     const fechaFin = new Date(asignacion.fecha_fin + 'T23:59:59');
-    const limiteConGracia = new Date(fechaFin.getTime() + 24 * 60 * 60 * 1000);
+    let limiteConGracia = null;
+    if (asignacion.limite_subida_viaticos) {
+        limiteConGracia = parsearFechaUtc(asignacion.limite_subida_viaticos);
+    } else {
+        limiteConGracia = new Date(fechaFin.getTime() + 24 * 60 * 60 * 1000);
+    }
     const msRestantes = limiteConGracia.getTime() - ahora.getTime();
 
     // Ya pasó la fecha fin oficial, pero está dentro de las 24 horas de gracia

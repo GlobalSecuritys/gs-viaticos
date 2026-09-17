@@ -38,22 +38,28 @@ router_tecnico = APIRouter(prefix="/asignaciones", tags=["Asignaciones"])
 
 
 from decimal import Decimal
+from datetime import timezone
+
+# Zona horaria legal de Colombia (UTC-5, sin horario de verano)
+COLOMBIA_TZ_OFFSET = timedelta(hours=-5)
 
 
 def calcular_limite_subida_asignacion(a: Asignacion) -> dict:
     """
     Calcula los límites de cierre y período de gracia de 24 horas para la subida de viáticos.
     Regla:
-    Si la asignación se cierra (ej: hoy 2 sep a las 12pm), el técnico tiene 24 horas (hasta 3 sep 12pm)
+    Si la asignación se cierra (ej: hoy a las 12pm), el técnico tiene 24 horas (hasta mañana 12pm)
     para terminar de subir o corregir sus viáticos.
+    Todas las fechas límite se alinean estrictamente con la hora legal de Colombia (UTC-5).
     """
-    ahora = datetime.utcnow()
+    ahora_utc = datetime.utcnow()
     estado = (a.estado or "").lower()
 
     if estado == "cancelada":
+        limite_utc = a.cerrada_en or a.updated_at or ahora_utc
         return {
             "cerrada_en": a.cerrada_en,
-            "limite_subida_viaticos": a.cerrada_en or a.updated_at,
+            "limite_subida_viaticos": limite_utc,
             "puede_subir_viaticos": False,
             "en_periodo_gracia": False,
             "horas_restantes_cierre": 0.0,
@@ -62,12 +68,14 @@ def calcular_limite_subida_asignacion(a: Asignacion) -> dict:
 
     # Caso 1: Asignación marcada como finalizada por el admin
     if estado == "finalizada":
-        fecha_cierre = a.cerrada_en or a.updated_at
-        if not fecha_cierre:
-            fecha_cierre = datetime.combine(a.fecha_fin, datetime.min.time()) + timedelta(hours=23, minutes=59)
+        fecha_cierre_utc = a.cerrada_en or a.updated_at
+        if not fecha_cierre_utc:
+            # Fin del día de fecha_fin en Colombia (23:59:59 COT) convertido a UTC (+5h)
+            fin_cot = datetime.combine(a.fecha_fin, datetime.min.time()) + timedelta(hours=23, minutes=59, seconds=59)
+            fecha_cierre_utc = fin_cot - COLOMBIA_TZ_OFFSET
 
-        limite = fecha_cierre + timedelta(hours=24)
-        delta = limite - ahora
+        limite_utc = fecha_cierre_utc + timedelta(hours=24)
+        delta = limite_utc - ahora_utc
         segundos_restantes = delta.total_seconds()
 
         if segundos_restantes > 0:
@@ -75,8 +83,8 @@ def calcular_limite_subida_asignacion(a: Asignacion) -> dict:
             minutos = int((segundos_restantes % 3600) // 60)
             tiempo_str = f"{horas}h {minutos}m" if horas > 0 else f"{minutos} min"
             return {
-                "cerrada_en": fecha_cierre,
-                "limite_subida_viaticos": limite,
+                "cerrada_en": fecha_cierre_utc,
+                "limite_subida_viaticos": limite_utc,
                 "puede_subir_viaticos": True,
                 "en_periodo_gracia": True,
                 "horas_restantes_cierre": round(segundos_restantes / 3600.0, 2),
@@ -84,8 +92,8 @@ def calcular_limite_subida_asignacion(a: Asignacion) -> dict:
             }
         else:
             return {
-                "cerrada_en": fecha_cierre,
-                "limite_subida_viaticos": limite,
+                "cerrada_en": fecha_cierre_utc,
+                "limite_subida_viaticos": limite_utc,
                 "puede_subir_viaticos": False,
                 "en_periodo_gracia": False,
                 "horas_restantes_cierre": 0.0,
@@ -93,18 +101,20 @@ def calcular_limite_subida_asignacion(a: Asignacion) -> dict:
             }
 
     # Caso 2: Asignación pendiente o en curso
-    # El fin de asignación oficial es el final del día de fecha_fin
-    fin_oficial = datetime.combine(a.fecha_fin, datetime.min.time()) + timedelta(hours=23, minutes=59, seconds=59)
-    limite = fin_oficial + timedelta(hours=24)
-    delta = limite - ahora
+    # El fin de asignación oficial es el final del día de fecha_fin en hora colombiana (23:59:59 COT)
+    # Convertido a UTC (+5h) para comparación homogénea con ahora_utc:
+    fin_oficial_cot = datetime.combine(a.fecha_fin, datetime.min.time()) + timedelta(hours=23, minutes=59, seconds=59)
+    fin_oficial_utc = fin_oficial_cot - COLOMBIA_TZ_OFFSET
+    limite_utc = fin_oficial_utc + timedelta(hours=24)
+    delta = limite_utc - ahora_utc
     segundos_restantes = delta.total_seconds()
 
-    if ahora > fin_oficial and segundos_restantes > 0:
+    if ahora_utc > fin_oficial_utc and segundos_restantes > 0:
         horas = int(segundos_restantes // 3600)
         minutos = int((segundos_restantes % 3600) // 60)
         return {
             "cerrada_en": a.cerrada_en,
-            "limite_subida_viaticos": limite,
+            "limite_subida_viaticos": limite_utc,
             "puede_subir_viaticos": True,
             "en_periodo_gracia": True,
             "horas_restantes_cierre": round(segundos_restantes / 3600.0, 2),
@@ -114,7 +124,7 @@ def calcular_limite_subida_asignacion(a: Asignacion) -> dict:
     if segundos_restantes <= 0:
         return {
             "cerrada_en": a.cerrada_en,
-            "limite_subida_viaticos": limite,
+            "limite_subida_viaticos": limite_utc,
             "puede_subir_viaticos": False,
             "en_periodo_gracia": False,
             "horas_restantes_cierre": 0.0,
@@ -122,12 +132,12 @@ def calcular_limite_subida_asignacion(a: Asignacion) -> dict:
         }
 
     # Período normal vigente
-    delta_fin = fin_oficial - ahora
+    delta_fin = fin_oficial_utc - ahora_utc
     horas_fin = delta_fin.total_seconds() / 3600.0
     tiempo_str = f"Cierra hoy ({int(horas_fin)}h)" if horas_fin <= 24 else "Vigente"
     return {
         "cerrada_en": a.cerrada_en,
-        "limite_subida_viaticos": limite,
+        "limite_subida_viaticos": limite_utc,
         "puede_subir_viaticos": True,
         "en_periodo_gracia": False,
         "horas_restantes_cierre": round(segundos_restantes / 3600.0, 2),
@@ -187,14 +197,14 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
         estado_legalizacion=estado_legalizacion,
         estado=a.estado,
         cuenta_cobro=cuenta_cobro_resp,
-        cerrada_en=info_gracia["cerrada_en"],
-        limite_subida_viaticos=info_gracia["limite_subida_viaticos"],
+        cerrada_en=info_gracia["cerrada_en"].replace(tzinfo=timezone.utc) if info_gracia["cerrada_en"] else None,
+        limite_subida_viaticos=info_gracia["limite_subida_viaticos"].replace(tzinfo=timezone.utc) if info_gracia["limite_subida_viaticos"] else None,
         puede_subir_viaticos=info_gracia["puede_subir_viaticos"],
         en_periodo_gracia=info_gracia["en_periodo_gracia"],
         horas_restantes_cierre=info_gracia["horas_restantes_cierre"],
         tiempo_restante_str=info_gracia["tiempo_restante_str"],
-        created_at=a.created_at,
-        updated_at=a.updated_at,
+        created_at=a.created_at.replace(tzinfo=timezone.utc) if a.created_at else None,
+        updated_at=a.updated_at.replace(tzinfo=timezone.utc) if a.updated_at else None,
     )
 
 
@@ -582,6 +592,14 @@ def extender_fecha_asignacion(
         )
 
     asignacion.fecha_fin = datos.fecha_fin
+
+    # Si la asignación estaba finalizada y se amplía la fecha a hoy o posterior,
+    # reactivarla a 'en_curso' y limpiar cerrada_en para habilitar la carga de viáticos:
+    hoy_cot = (datetime.utcnow() + COLOMBIA_TZ_OFFSET).date()
+    if asignacion.estado == "finalizada" and datos.fecha_fin >= hoy_cot:
+        asignacion.estado = "en_curso"
+        asignacion.cerrada_en = None
+
     db.commit()
     asignacion = _obtener_o_404(id, db)
     return _a_response(asignacion)
