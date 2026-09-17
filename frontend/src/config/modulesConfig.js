@@ -378,42 +378,34 @@ export const MODULOS_SGC_ASOCIADOS = {
       badge: 'INVENTARIO',
       colorTheme: 'blue',
       colorHex: '#3B82F6',
-      descripcion: 'Control de stock por planillas, kardex de entradas y salidas de material, y consolidado de bodega.',
+      descripcion: 'Stock por unión temporal, despachos de material a técnicos con su estado de instalación, y préstamos.',
       ruta: '/inventario',
       botonTexto: 'Ingresar a Inventario',
       chips: [
         {
-          label: 'Stock por Planilla',
+          label: 'Stock',
           icon: '📦',
           path: '/inventario',
           badge: 'BODEGA',
-          descripcion: 'Existencias vigentes agrupadas por línea de trabajo (mantenimiento, RTC, ...).',
+          descripcion: 'Existencias por unión temporal (RTC y Mantenimiento) con serial GSB y código de barras.',
         },
         {
-          label: 'Entradas & Salidas',
+          label: 'Despachos',
+          icon: '🚚',
+          path: '/inventario',
+          badge: 'SALIDAS',
+          descripcion: 'Salidas de material a técnicos, vinculadas a su asignación, con estado de instalación.',
+        },
+        {
+          label: 'Préstamos',
           icon: '🔁',
           path: '/inventario',
-          badge: 'MOVIMIENTOS',
-          descripcion: 'Registro de salidas a servicio, devoluciones a bodega e ingresos por compra.',
-        },
-        {
-          label: 'Kardex por Ítem',
-          icon: '📒',
-          path: '/inventario',
-          badge: 'TRAZABILIDAD',
-          descripcion: 'Historial completo de cada elemento con responsable y stock resultante.',
-        },
-        {
-          label: 'Consolidado',
-          icon: '📊',
-          path: '/inventario',
-          badge: 'REPORTES',
-          descripcion: 'Totales por planilla, unidades en stock y alerta de elementos agotados.',
+          badge: 'PRÉSTAMOS',
+          descripcion: 'Registro de material prestado por unión temporal.',
         },
       ],
-      // El módulo es accesible para todo usuario autenticado: cualquier técnico
-      // registra sus propios movimientos. El nivel de accesos_procesos['IN']
-      // decide adentro si ve el panel de supervisión o la vista de captura.
+      // La tarjeta se muestra a todos; la ruta bloquea a los técnicos y el
+      // nivel de accesos_procesos['IN'] decide adentro si edita o solo consulta.
       puedeAcceder: () => true,
       lockReason: '',
     },

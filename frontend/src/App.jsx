@@ -24,8 +24,7 @@ import CalidadProcesos from './pages/CalidadProcesos';
 import CalidadCategoria from './pages/CalidadCategoria';
 import CalidadDetalleProceso from './pages/CalidadDetalleProceso';
 import SeccionEnConstruccion from './pages/SeccionEnConstruccion';
-import InventarioNavegacion from './pages/InventarioNavegacion';
-import InventarioAccesos from './pages/InventarioAccesos';
+import Inventario from './pages/Inventario';
 
 export default function App() {
   return (
@@ -255,43 +254,13 @@ export default function App() {
             }
           />
 
-          {/* Navegación jerárquica del inventario (exclusivo para personal administrativo/supervisión, técnicos bloqueados) */}
+          {/* Inventario: stock, despachos y préstamos (técnicos bloqueados) */}
           <Route
             path="/inventario"
             element={
               <PrivateRoute>
                 <NoTecnicoRoute>
-                  <InventarioNavegacion />
-                </NoTecnicoRoute>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/inventario/accesos"
-            element={
-              <PrivateRoute>
-                <NoTecnicoRoute>
-                  <InventarioAccesos />
-                </NoTecnicoRoute>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/inventario/:empresaId"
-            element={
-              <PrivateRoute>
-                <NoTecnicoRoute>
-                  <InventarioNavegacion />
-                </NoTecnicoRoute>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/inventario/:empresaId/:clienteId"
-            element={
-              <PrivateRoute>
-                <NoTecnicoRoute>
-                  <InventarioNavegacion />
+                  <Inventario />
                 </NoTecnicoRoute>
               </PrivateRoute>
             }

@@ -1,25 +1,17 @@
 /* ---------------------------------------------------------------------------
-   Módulo Inventario (proceso CI del Mapa SGC).
+   Módulo Inventario (proceso IN del Mapa SGC).
    Sin paleta propia: todo sale de las variables globales de index.css, para que
    el módulo se vea como el resto del ecosistema GS-Viáticos.
    Namespacing: sgc-inv-*
 --------------------------------------------------------------------------- */
 
-.sgc-inv-page {
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 4px 0 40px;
-}
-
 .sgc-inv-panel {
     max-width: 1320px;
     margin: 0 auto;
-    /* El padding inferior deja pasar el botón flotante sin tapar la última fila. */
-    padding: 24px 20px 104px;
+    padding: 24px 20px 48px;
 }
 
 /* ── Encabezados ── */
-.sgc-inv-header,
 .sgc-inv-panel-header {
     display: flex;
     align-items: flex-start;
@@ -89,10 +81,6 @@
     box-shadow: var(--color-shadow-sm);
 }
 
-.sgc-inv-kpi--alerta .sgc-inv-kpi-valor {
-    color: var(--color-pendiente);
-}
-
 .sgc-inv-kpi-label {
     font-size: 11px;
     letter-spacing: 0.06em;
@@ -107,7 +95,7 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* ── Chips de planillas ── */
+/* ── Chips de estado (vista de despachos) ── */
 .sgc-inv-planillas-resumen {
     display: flex;
     flex-wrap: wrap;
@@ -297,83 +285,6 @@
     border-radius: 8px;
 }
 
-/* ── Lista de ítems (vista técnico) ── */
-.sgc-inv-lista {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.sgc-inv-card {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-secondary);
-    box-shadow: var(--color-shadow-sm);
-}
-
-.sgc-inv-card-main {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-}
-
-.sgc-inv-card-desc {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-text);
-    word-break: break-word;
-}
-
-.sgc-inv-card-meta {
-    font-size: 12px;
-    color: var(--color-text-muted);
-}
-
-.sgc-inv-stock {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex-shrink: 0;
-    min-width: 62px;
-    padding: 6px 10px;
-    border-radius: 10px;
-    background: var(--color-aprobado-bg);
-    color: var(--color-aprobado);
-}
-
-.sgc-inv-stock strong {
-    font-size: 19px;
-    font-variant-numeric: tabular-nums;
-}
-
-.sgc-inv-stock span {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.sgc-inv-stock--cero {
-    background: var(--color-rechazado-bg);
-    color: var(--color-rechazado);
-}
-
-.sgc-inv-card-acciones {
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
 .sgc-inv-conteo {
     margin: 12px 0;
     font-size: 12px;
@@ -434,21 +345,9 @@
 }
 
 .sgc-inv-td-desc {
-    display: flex;
-    align-items: center;
-    gap: 10px;
     font-weight: 600;
     color: var(--color-text);
-    min-width: 260px;
-}
-
-.sgc-inv-thumb {
-    width: 34px;
-    height: 34px;
-    border-radius: 7px;
-    object-fit: cover;
-    border: 1px solid var(--color-border);
-    flex-shrink: 0;
+    min-width: 240px;
 }
 
 .sgc-inv-mono {
@@ -552,39 +451,7 @@
     margin-top: 18px;
 }
 
-/* ── Gestión de planillas ── */
-.sgc-inv-planillas-lista {
-    list-style: none;
-    margin: 0 0 16px;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.sgc-inv-planilla-fila {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-tertiary);
-    font-size: 13px;
-}
-
-.sgc-inv-planilla-fila .sgc-inv-planilla-meta {
-    display: block;
-    margin-top: 2px;
-}
-
-.sgc-inv-planilla-form {
-    display: flex;
-    gap: 8px;
-}
-
-/* ── Campo con acción adosada (código + regenerar) ── */
+/* ── Campo con acción adosada (ítem elegido + cambiar) ── */
 .sgc-inv-campo-accion {
     display: flex;
     gap: 8px;
@@ -603,80 +470,10 @@
     font-size: 15px;
 }
 
-/* ── Botón flotante de alta ── */
-.sgc-inv-fab {
-    position: fixed;
-    right: 26px;
-    bottom: 26px;
-    z-index: 900;
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    padding: 14px 22px;
-    border: none;
-    border-radius: 999px;
-    background: var(--color-accent-blue);
-    color: var(--color-text-inverse);
-    font-size: 14px;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
-    box-shadow: var(--color-shadow-lg);
-    transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-.sgc-inv-fab:hover {
-    background: var(--color-accent-blue-hover);
-    transform: translateY(-2px);
-    box-shadow: var(--color-shadow-navy);
-}
-
-.sgc-inv-fab:active {
-    transform: translateY(0);
-}
-
-.sgc-inv-fab-icono {
-    font-size: 21px;
-    line-height: 1;
-    font-weight: 400;
-}
-
 /* ── Responsive ── */
 @media (max-width: 720px) {
-    /* En móvil el FAB se reduce a un círculo para no tapar la tabla. */
-    .sgc-inv-fab {
-        right: 16px;
-        bottom: 16px;
-        padding: 0;
-        width: 54px;
-        height: 54px;
-        justify-content: center;
-        gap: 0;
-    }
-
-    .sgc-inv-fab-texto {
-        display: none;
-    }
-
-    .sgc-inv-fab-icono {
-        font-size: 27px;
-    }
-
     .sgc-inv-grid2 {
         grid-template-columns: 1fr;
-    }
-
-    .sgc-inv-card {
-        flex-wrap: wrap;
-    }
-
-    .sgc-inv-card-main {
-        flex: 1 1 100%;
-    }
-
-    .sgc-inv-card-acciones {
-        flex: 1 1 100%;
-        justify-content: flex-start;
     }
 
     .sgc-inv-panel {
@@ -688,7 +485,7 @@
     }
 }
 
-/* ── Pestañas Inventario / Traspasos ── */
+/* ── Pestañas Stock / Despachos / Préstamos ── */
 .sgc-inv-tabs {
     display: flex;
     gap: 4px;
@@ -717,4 +514,139 @@
 .sgc-inv-tab--activa {
     color: var(--color-accent-blue);
     border-bottom-color: var(--color-accent-blue);
+}
+
+.sgc-inv-barra {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sgc-inv-barra .sgc-inv-tabs {
+    margin-bottom: 0;
+    border-bottom: none;
+}
+
+.sgc-inv-ut {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.sgc-inv-ut .sgc-inv-input {
+    width: auto;
+    padding: 7px 10px;
+    font-size: 13px;
+}
+
+/* ── Celdas ── */
+.sgc-inv-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.sgc-inv-neg {
+    color: var(--color-rechazado);
+    font-weight: 700;
+}
+
+.sgc-inv-sub {
+    margin-top: 2px;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--color-text-muted);
+}
+
+.sgc-inv-sin-vinculo {
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+.sgc-inv-input--sm {
+    width: auto;
+    padding: 5px 8px;
+    font-size: 12px;
+    border-radius: 8px;
+    margin-right: 6px;
+}
+
+.sgc-inv-input--fijo {
+    display: flex;
+    align-items: center;
+    background: var(--color-bg-subtle);
+    font-family: inherit !important;
+    font-size: 13px;
+    letter-spacing: normal !important;
+}
+
+/* ── Selector de ítem (formulario de despacho) ── */
+.sgc-inv-opciones {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.sgc-inv-opcion {
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+
+.sgc-inv-opcion:hover {
+    border-color: var(--color-accent-blue);
+    background: var(--color-accent-blue-light);
+}
+
+/* ── Estado del despacho ──
+   Sin paleta nueva: base .estado-badge (AdminUsuarios.css) y los mismos tokens
+   de estado que usa la app (Activo/Inactivo, Pendiente, rol técnico). */
+.sgc-inv-estado {
+    white-space: nowrap;
+}
+
+.sgc-inv-estado--instalado {
+    background-color: var(--color-aprobado-bg);
+    color: var(--color-aprobado);
+    border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.sgc-inv-estado--pendiente_instalacion {
+    background-color: var(--color-pendiente-bg);
+    color: var(--color-pendiente);
+    border: 1px solid rgba(217, 119, 6, 0.2);
+}
+
+.sgc-inv-estado--alerta_seguimiento {
+    background-color: var(--color-rechazado-bg);
+    color: var(--color-rechazado);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.sgc-inv-estado--danado {
+    background-color: var(--color-bg-subtle);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border-hover);
+}
+
+.sgc-inv-estado--suministro_oficina {
+    background-color: var(--color-accent-blue-light);
+    color: var(--color-accent-blue);
+    border: 1px solid rgba(30, 64, 175, 0.2);
 }
