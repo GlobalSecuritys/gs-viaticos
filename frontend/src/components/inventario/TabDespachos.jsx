@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatApiError } from '../../utils/formatError';
 import {
     ESTADOS_DESPACHO,
@@ -12,11 +12,15 @@ import { EstadoBadge, ModalConfirmar } from './ModalInventario';
 const SIN_TECNICO = 'sin';
 
 /** Vista de despachos: equivalente a la hoja SALIDAS. */
-export default function TabDespachos({ unionTemporal, mostrarUnion, tecnicos, puedeEditar, version, onNuevo, onEditar, avisar }) {
+export default function TabDespachos({ unionTemporal, mostrarUnion, tecnicos, puedeEditar, version, onNuevo, onEditar, onIrATecnicos, avisar }) {
     const [tecnico, setTecnico] = useState('');
     const [oficina, setOficina] = useState('');
     const [estado, setEstado] = useState('');
     const [q, setQ] = useState('');
+    const [filtroFechaTipo, setFiltroFechaTipo] = useState('despacho');
+    const [filtroRango, setFiltroRango] = useState('todos');
+    const [fechaDesde, setFechaDesde] = useState('');
+    const [fechaHasta, setFechaHasta] = useState('');
     const [datos, setDatos] = useState({ total: 0, por_estado: {}, despachos: [] });
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState('');
@@ -24,6 +28,27 @@ export default function TabDespachos({ unionTemporal, mostrarUnion, tecnicos, pu
     const [borrando, setBorrando] = useState(null);
     const [ocupado, setOcupado] = useState(false);
     const [errorBorrado, setErrorBorrado] = useState('');
+
+    const fechasCalculadas = useMemo(() => {
+        if (filtroRango === 'todos') return { inicio: null, fin: null };
+        const hoy = new Date();
+        const hoyStr = hoy.toISOString().slice(0, 10);
+        if (filtroRango === 'hoy') return { inicio: hoyStr, fin: hoyStr };
+        if (filtroRango === 'semana') {
+            const diaSemana = hoy.getDay() || 7;
+            const primerDia = new Date(hoy);
+            primerDia.setDate(hoy.getDate() - diaSemana + 1);
+            return { inicio: primerDia.toISOString().slice(0, 10), fin: hoyStr };
+        }
+        if (filtroRango === 'mes') {
+            const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            return { inicio: primerDia.toISOString().slice(0, 10), fin: hoyStr };
+        }
+        if (filtroRango === 'custom') {
+            return { inicio: fechaDesde || null, fin: fechaHasta || null };
+        }
+        return { inicio: null, fin: null };
+    }, [filtroRango, fechaDesde, fechaHasta]);
 
     const cargar = useCallback(async () => {
         setCargando(true);
@@ -35,6 +60,9 @@ export default function TabDespachos({ unionTemporal, mostrarUnion, tecnicos, pu
                     sinTecnico: tecnico === SIN_TECNICO,
                     estado,
                     oficina: oficina.trim(),
+                    fechaInicio: fechasCalculadas.inicio,
+                    fechaFin: fechasCalculadas.fin,
+                    tipoFecha: filtroFechaTipo,
                     q: q.trim(),
                 })
             );
@@ -44,7 +72,7 @@ export default function TabDespachos({ unionTemporal, mostrarUnion, tecnicos, pu
         } finally {
             setCargando(false);
         }
-    }, [unionTemporal, tecnico, estado, oficina, q]);
+    }, [unionTemporal, tecnico, estado, oficina, q, fechasCalculadas, filtroFechaTipo]);
 
     useEffect(() => {
         const t = setTimeout(cargar, 250);
@@ -138,6 +166,90 @@ export default function TabDespachos({ unionTemporal, mostrarUnion, tecnicos, pu
                 )}
             </div>
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)' }}>
+                    📅 Filtrar por:
+                </span>
+                <select
+                    className="sgc-inv-input sgc-inv-input--select"
+                    style={{ width: 'auto', padding: '3px 8px', fontSize: '12px' }}
+                    value={filtroFechaTipo}
+                    onChange={(e) => setFiltroFechaTipo(e.target.value)}
+                >
+                    <option value="despacho">Fecha de despacho</option>
+                    <option value="instalacion">Fecha de instalación</option>
+                </select>
+                <div className="sgc-inv-chips" style={{ margin: 0 }}>
+                    {[
+                        { id: 'todos', label: 'Todas' },
+                        { id: 'hoy', label: 'Hoy' },
+                        { id: 'semana', label: 'Esta semana' },
+                        { id: 'mes', label: 'Este mes' },
+                        { id: 'custom', label: 'Rango…' },
+                    ].map((btn) => (
+                        <button
+                            key={btn.id}
+                            type="button"
+                            className={`sgc-inv-chip ${filtroRango === btn.id ? 'sgc-inv-chip--activo' : ''}`}
+                            style={{ padding: '3px 9px', fontSize: '12px' }}
+                            onClick={() => setFiltroRango(btn.id)}
+                        >
+                            {btn.label}
+                        </button>
+                    ))}
+                </div>
+                {filtroRango === 'custom' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                            type="date"
+                            className="sgc-inv-input"
+                            style={{ width: 'auto', padding: '3px 6px', fontSize: '12px' }}
+                            value={fechaDesde}
+                            onChange={(e) => setFechaDesde(e.target.value)}
+                        />
+                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>a</span>
+                        <input
+                            type="date"
+                            className="sgc-inv-input"
+                            style={{ width: 'auto', padding: '3px 6px', fontSize: '12px' }}
+                            value={fechaHasta}
+                            onChange={(e) => setFechaHasta(e.target.value)}
+                        />
+                    </div>
+                )}
+            </div>
+
+            {tecnico && tecnico !== SIN_TECNICO && (
+                <div
+                    style={{
+                        padding: '10px 14px',
+                        background: 'var(--color-bg-secondary)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        marginBottom: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                    }}
+                >
+                    <span>
+                        Mostrando el <strong>historial de despachos/instalaciones</strong>. Para consultar el <strong>inventario en poder del técnico</strong> (hoja individual del Excel), consulta la pestaña <strong>Técnicos</strong>.
+                    </span>
+                    {onIrATecnicos && (
+                        <button
+                            type="button"
+                            className="sgc-inv-btn sgc-inv-btn--ghost sgc-inv-btn--sm"
+                            onClick={onIrATecnicos}
+                            style={{ whiteSpace: 'nowrap' }}
+                        >
+                            Ver inventario del técnico →
+                        </button>
+                    )}
+                </div>
+            )}
+
             {error && <div className="sgc-inv-alerta sgc-inv-alerta--err">{error}</div>}
 
             <div className="sgc-inv-tabla-wrap">
@@ -159,7 +271,42 @@ export default function TabDespachos({ unionTemporal, mostrarUnion, tecnicos, pu
                         {cargando && datos.despachos.length === 0 ? (
                             <tr><td colSpan={9} className="sgc-inv-tabla-vacio">Cargando despachos…</td></tr>
                         ) : datos.despachos.length === 0 ? (
-                            <tr><td colSpan={9} className="sgc-inv-tabla-vacio">No hay despachos que coincidan con el filtro.</td></tr>
+                            <tr>
+                                <td colSpan={9} className="sgc-inv-tabla-vacio" style={{ padding: '36px 16px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '28px', marginBottom: '8px' }}>🚚</div>
+                                    <div style={{ fontWeight: 600, color: 'var(--color-text, #ffffff)', marginBottom: '4px', fontSize: '15px' }}>
+                                        {filtroRango !== 'todos'
+                                            ? `No se encontraron despachos en el rango de fechas seleccionado (${filtroFechaTipo === 'instalacion' ? 'instalación' : 'despacho'}).`
+                                            : q.trim()
+                                            ? `No se encontraron despachos para "${q.trim()}".`
+                                            : 'No hay despachos registrados para los filtros seleccionados.'}
+                                    </div>
+                                    <div style={{ fontSize: '13px', color: 'var(--color-text-muted, #94a3b8)', marginTop: '6px' }}>
+                                        {filtroRango !== 'todos' ? (
+                                            <span>
+                                                Prueba con otro intervalo o{' '}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setFiltroRango('todos'); setFechaDesde(''); setFechaHasta(''); }}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--color-gold-bright, #c5a059)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+                                                >
+                                                    Mostrar todas las fechas
+                                                </button>
+                                            </span>
+                                        ) : q.trim() ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setQ('')}
+                                                style={{ background: 'none', border: 'none', color: 'var(--color-gold-bright, #c5a059)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+                                            >
+                                                Limpiar búsqueda
+                                            </button>
+                                        ) : (
+                                            'Los despachos y salidas a técnicos aparecerán listados aquí.'
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
                         ) : (
                             datos.despachos.map((d) => (
                                 <tr key={d.id}>

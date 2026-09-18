@@ -144,7 +144,7 @@ def listar_empleados(
     Lista todos los empleados con su información básica y conteo de documentos.
     Disponible para Administradores y Super Administradores.
     """
-    stmt = select(Usuario).order_by(Usuario.nombre.asc())
+    stmt = select(Usuario).where(Usuario.solo_inventario == False).order_by(Usuario.nombre.asc())  # noqa: E712
     usuarios = db.scalars(stmt).all()
 
     items = []
@@ -782,7 +782,7 @@ def exportar_excel_talento_humano(
     """
     Genera y descarga la planilla ejecutiva de Talento Humano en formato Excel (.xlsx).
     """
-    stmt = select(Usuario).order_by(Usuario.nombre.asc())
+    stmt = select(Usuario).where(Usuario.solo_inventario == False).order_by(Usuario.nombre.asc())  # noqa: E712
     usuarios = db.scalars(stmt).all()
 
     data_empleados = []

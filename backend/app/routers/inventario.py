@@ -15,6 +15,7 @@ Los despachos migrados ya estaban descontados en el Excel (la unidad salió de
 INVENTARIO GENERAL), así que siguen la misma regla al editarse o eliminarse.
 """
 
+from datetime import date
 from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -29,6 +30,7 @@ from app.models.inventario import (
     InventarioDespacho,
     InventarioItem,
     InventarioPrestamo,
+    InventarioTecnicoItem,
     UnionTemporal,
 )
 from app.models.usuario import Usuario
@@ -40,6 +42,9 @@ from app.schemas.inventario import (
     DespachoResponse,
     DespachoUpdate,
     EstadoDespachoLiteral,
+    InventarioTecnicoItemCreate,
+    InventarioTecnicoItemResponse,
+    InventarioTecnicoItemUpdate,
     ItemCreate,
     ItemListResponse,
     ItemResponse,
@@ -49,6 +54,7 @@ from app.schemas.inventario import (
     PrestamoUpdate,
     ResumenInventario,
     ResumenResponse,
+    TecnicoInventarioResumen,
     TecnicoOpcion,
     UnionTemporalLiteral,
 )
@@ -155,7 +161,7 @@ def _obtener_despacho(db: Session, despacho_id: int) -> InventarioDespacho:
 
 def _validar_tecnico(db: Session, tecnico_id: int) -> Usuario:
     tecnico = db.get(Usuario, tecnico_id)
-    if tecnico is None or tecnico.rol != "tecnico":
+    if tecnico is None or (tecnico.rol != "tecnico" and not tecnico.solo_inventario):
         raise HTTPException(status_code=422, detail="El técnico seleccionado no existe.")
     return tecnico
 
@@ -206,13 +212,19 @@ def listar_items(
     union_temporal: Optional[UnionTemporalLiteral] = None,
     q: Optional[str] = Query(default=None, max_length=100),
     solo_con_stock: bool = False,
+    fecha_inicio: Optional[date] = None,
+    fecha_fin: Optional[date] = None,
     limit: int = Query(default=200, ge=1, le=2000),
     offset: int = Query(default=0, ge=0),
 ):
     filtros = []
     if union_temporal:
         filtros.append(InventarioItem.union_temporal == UnionTemporal(union_temporal))
-    if q and q.strip():
+    if fecha_inicio:
+        filtros.append(InventarioItem.fecha_compra >= fecha_inicio)
+    if fecha_fin:
+        filtros.append(InventarioItem.fecha_compra <= fecha_fin)
+    if isinstance(q, str) and q.strip():
         patron = f"%{q.strip()}%"
         filtros.append(
             or_(
@@ -221,6 +233,8 @@ def listar_items(
                 InventarioItem.serial_gsb.ilike(patron),
                 InventarioItem.id_equipo.ilike(patron),
                 InventarioItem.factura.ilike(patron),
+                InventarioItem.no_sds.ilike(patron),
+                InventarioItem.numero_articulo.ilike(patron),
             )
         )
     if solo_con_stock:
@@ -321,6 +335,9 @@ def listar_despachos(
     estado: Optional[EstadoDespachoLiteral] = None,
     oficina: Optional[str] = Query(default=None, max_length=120),
     item_id: Optional[int] = None,
+    fecha_inicio: Optional[date] = None,
+    fecha_fin: Optional[date] = None,
+    tipo_fecha: str = Query(default="despacho", pattern="^(despacho|instalacion)$"),
     q: Optional[str] = Query(default=None, max_length=100),
     limit: int = Query(default=200, ge=1, le=2000),
     offset: int = Query(default=0, ge=0),
@@ -328,6 +345,12 @@ def listar_despachos(
     filtros = []
     if union_temporal:
         filtros.append(InventarioDespacho.union_temporal == UnionTemporal(union_temporal))
+    if fecha_inicio:
+        col_f = InventarioDespacho.fecha_instalacion if tipo_fecha == "instalacion" else InventarioDespacho.fecha_despacho
+        filtros.append(col_f >= fecha_inicio)
+    if fecha_fin:
+        col_f = InventarioDespacho.fecha_instalacion if tipo_fecha == "instalacion" else InventarioDespacho.fecha_despacho
+        filtros.append(col_f <= fecha_fin)
     if tecnico_id:
         filtros.append(InventarioDespacho.tecnico_id == tecnico_id)
     elif sin_tecnico:
@@ -342,7 +365,7 @@ def listar_despachos(
         )
     if item_id:
         filtros.append(InventarioDespacho.item_id == item_id)
-    if q and q.strip():
+    if isinstance(q, str) and q.strip():
         patron = f"%{q.strip()}%"
         filtros.append(
             or_(
@@ -546,6 +569,7 @@ def eliminar_prestamo(prestamo_id: int, db: DB, current_user: AdminIN):
 NOMBRES_UNION = {
     UnionTemporal.RTC: "Unión Temporal RTC",
     UnionTemporal.MANTENIMIENTO: "Unión Temporal Mantenimiento GSB_SDSS",
+    UnionTemporal.PROYECTO_ZEUS: "Proyecto Zeus",
 }
 
 # Estados que piden atención de alguien (los que no están instalados ni son
@@ -576,6 +600,13 @@ def resumen(db: DB, current_user: LectorIN):
             )
         ).all()
     )
+    items_tecnicos = dict(
+        db.execute(
+            select(InventarioTecnicoItem.union_temporal, func.count()).group_by(
+                InventarioTecnicoItem.union_temporal
+            )
+        ).all()
+    )
     despachos: dict[UnionTemporal, dict[str, int]] = {}
     for ut, estado, n in db.execute(
         select(InventarioDespacho.union_temporal, InventarioDespacho.estado, func.count()).group_by(
@@ -597,6 +628,7 @@ def resumen(db: DB, current_user: LectorIN):
             total_unidades=sum(items.get(ut, (0, 0))[1] for ut in uts),
             total_despachos=sum(por_estado.values()),
             total_prestamos=sum(prestamos.get(ut, 0) for ut in uts),
+            total_items_tecnicos=sum(items_tecnicos.get(ut, 0) for ut in uts),
             por_estado=por_estado,
             pendientes=sum(por_estado[e.value] for e in ESTADOS_PENDIENTES),
         )
@@ -612,6 +644,10 @@ def resumen(db: DB, current_user: LectorIN):
 # -----------------------------------------------------------------------------
 @router.get("/tecnicos", response_model=List[TecnicoOpcion])
 def listar_tecnicos(db: DB, current_user: LectorIN):
+    """Devuelve técnicos con rol='tecnico' (incluye los solo_inventario).
+    Ordenados por nombre. Se incluyen activos e inactivos para no perder
+    referencias históricas en despachos migrados.
+    """
     return db.scalars(
         select(Usuario).where(Usuario.rol == "tecnico").order_by(Usuario.nombre)
     ).all()
@@ -648,3 +684,178 @@ def listar_asignaciones_tecnico(
         )
         for a in asignaciones
     ]
+
+
+# -----------------------------------------------------------------------------
+# INVENTARIO EN PODER DE TÉCNICOS (Hojas individuales de técnicos)
+# -----------------------------------------------------------------------------
+@router.get("/tecnicos-resumen", response_model=List[TecnicoInventarioResumen])
+def listar_resumen_tecnicos_inventario(
+    db: DB,
+    current_user: LectorIN,
+    union_temporal: Optional[UnionTemporalLiteral] = None,
+):
+    """Devuelve el resumen de inventario en poder de cada técnico.
+    Agrupa por técnico con conteo de ítems y unidades.
+    Técnicos con inventario aparecen primero.
+    """
+    tecnicos = db.scalars(
+        select(Usuario).where(Usuario.rol == "tecnico").order_by(Usuario.nombre)
+    ).all()
+
+    filtros = []
+    if union_temporal:
+        filtros.append(InventarioTecnicoItem.union_temporal == UnionTemporal(union_temporal))
+
+    stats_stmt = (
+        select(
+            InventarioTecnicoItem.tecnico_id,
+            func.count(InventarioTecnicoItem.id).label("total_items"),
+            func.coalesce(func.sum(InventarioTecnicoItem.cantidad), 0).label("total_unidades"),
+        )
+        .where(*filtros)
+        .group_by(InventarioTecnicoItem.tecnico_id)
+    )
+    conteos = {row.tecnico_id: (row.total_items, row.total_unidades) for row in db.execute(stats_stmt).all()}
+
+    res = []
+    for t in tecnicos:
+        tot_items, tot_unidades = conteos.get(t.id, (0, 0))
+        res.append(
+            TecnicoInventarioResumen(
+                tecnico_id=t.id,
+                tecnico_nombre=t.nombre,
+                activo=t.activo,
+                solo_inventario=t.solo_inventario,
+                total_items=tot_items,
+                total_unidades=tot_unidades,
+            )
+        )
+
+    res.sort(key=lambda x: (-x.total_items, x.tecnico_nombre.lower()))
+    return res
+
+
+@router.get("/tecnicos/{tecnico_id}/items", response_model=List[InventarioTecnicoItemResponse])
+def listar_items_tecnico(
+    tecnico_id: int,
+    db: DB,
+    current_user: LectorIN,
+    union_temporal: Optional[UnionTemporalLiteral] = None,
+    fecha_inicio: Optional[date] = None,
+    fecha_fin: Optional[date] = None,
+    tipo_fecha: str = Query(default="despacho", pattern="^(despacho|compra|instalacion)$"),
+    q: Optional[str] = Query(default=None, max_length=100),
+):
+    """Devuelve los ítems de inventario asignados a un técnico (su hoja de inventario)."""
+    filtros = [InventarioTecnicoItem.tecnico_id == tecnico_id]
+    if union_temporal:
+        filtros.append(InventarioTecnicoItem.union_temporal == UnionTemporal(union_temporal))
+    tipo_fecha_str = tipo_fecha if isinstance(tipo_fecha, str) else "despacho"
+    if fecha_inicio:
+        col_t = (
+            InventarioTecnicoItem.fecha_compra
+            if tipo_fecha_str == "compra"
+            else InventarioTecnicoItem.fecha_instalacion
+            if tipo_fecha_str == "instalacion"
+            else InventarioTecnicoItem.fecha_despacho
+        )
+        filtros.append(col_t >= fecha_inicio)
+    if fecha_fin:
+        col_t = (
+            InventarioTecnicoItem.fecha_compra
+            if tipo_fecha_str == "compra"
+            else InventarioTecnicoItem.fecha_instalacion
+            if tipo_fecha_str == "instalacion"
+            else InventarioTecnicoItem.fecha_despacho
+        )
+        filtros.append(col_t <= fecha_fin)
+    if isinstance(q, str) and q.strip():
+        patron = f"%{q.strip()}%"
+        filtros.append(
+            or_(
+                InventarioTecnicoItem.descripcion.ilike(patron),
+                InventarioTecnicoItem.codigo_barras.ilike(patron),
+                InventarioTecnicoItem.serial_gsb.ilike(patron),
+                InventarioTecnicoItem.id_equipo.ilike(patron),
+                InventarioTecnicoItem.oficina.ilike(patron),
+                InventarioTecnicoItem.numero_orden.ilike(patron),
+                InventarioTecnicoItem.oficina_instalada.ilike(patron),
+                InventarioTecnicoItem.factura.ilike(patron),
+                InventarioTecnicoItem.observacion.ilike(patron),
+            )
+        )
+
+    stmt = select(InventarioTecnicoItem).where(*filtros).order_by(InventarioTecnicoItem.id.asc())
+    return db.scalars(stmt).all()
+
+
+@router.post("/tecnicos/{tecnico_id}/items", response_model=InventarioTecnicoItemResponse, status_code=status.HTTP_201_CREATED)
+def crear_item_tecnico(
+    tecnico_id: int,
+    datos: InventarioTecnicoItemCreate,
+    db: DB,
+    current_user: AdminIN,
+):
+    """Registra un nuevo ítem asignado al inventario del técnico."""
+    tecnico = _validar_tecnico(db, tecnico_id)
+    item = InventarioTecnicoItem(
+        union_temporal=UnionTemporal(datos.union_temporal),
+        tecnico_id=tecnico.id,
+        tecnico_nombre=tecnico.nombre,
+        descripcion=datos.descripcion.strip(),
+        cantidad=datos.cantidad,
+        codigo_barras=datos.codigo_barras.strip() if datos.codigo_barras else None,
+        serial_gsb=datos.serial_gsb.strip() if datos.serial_gsb else None,
+        id_equipo=datos.id_equipo.strip() if datos.id_equipo else None,
+        factura=datos.factura.strip() if datos.factura else None,
+        fecha_compra=datos.fecha_compra,
+        oficina=datos.oficina.strip() if datos.oficina else None,
+        concatenado=datos.concatenado.strip() if datos.concatenado else None,
+        fecha_despacho=datos.fecha_despacho,
+        observacion=datos.observacion.strip() if datos.observacion else None,
+        numero_orden=datos.numero_orden.strip() if datos.numero_orden else None,
+        oficina_instalada=datos.oficina_instalada.strip() if datos.oficina_instalada else None,
+        fecha_instalacion=datos.fecha_instalacion,
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.put("/tecnicos/items/{item_id}", response_model=InventarioTecnicoItemResponse)
+def actualizar_item_tecnico(
+    item_id: int,
+    datos: InventarioTecnicoItemUpdate,
+    db: DB,
+    current_user: AdminIN,
+):
+    """Actualiza los datos de un ítem en inventario de técnico."""
+    item = db.get(InventarioTecnicoItem, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="El ítem no existe.")
+
+    campos = datos.model_dump(exclude_unset=True)
+    for k, v in campos.items():
+        if isinstance(v, str):
+            v = v.strip() or None
+        setattr(item, k, v)
+
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.delete("/tecnicos/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_item_tecnico(
+    item_id: int,
+    db: DB,
+    current_user: AdminIN,
+):
+    """Elimina un ítem del inventario del técnico."""
+    item = db.get(InventarioTecnicoItem, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="El ítem no existe.")
+    db.delete(item)
+    db.commit()

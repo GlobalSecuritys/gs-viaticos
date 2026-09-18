@@ -3,13 +3,18 @@ from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func, or_, select
+from pydantic import BaseModel
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.security import get_current_admin, get_current_user
 from app.database import get_db
 from app.models.asignacion import Asignacion
 from app.models.cuenta_cobro import CuentaCobro
+from app.models.cuenta_cobro_asignacion import CuentaCobroAsignacion
+from app.models.estadistica_asignacion_archivada import EstadisticaAsignacionArchivada
+from app.models.evidencia_viatico import EvidenciaViatico
+from app.models.inventario import InventarioDespacho
 from app.models.usuario import Usuario
 from app.models.viatico import Viatico
 from app.schemas.asignacion import (
@@ -19,7 +24,30 @@ from app.schemas.asignacion import (
     AsignacionResponse,
     AsignacionUpdate,
 )
+
+
+class AsignacionesEliminarVariasRequest(BaseModel):
+    asignacion_ids: Optional[List[int]] = None
+    tecnico_id: Optional[int] = None
+    eliminar_todas_finalizadas: bool = False
+    confirmar_ya_descargado: bool = False
+
+
+class DetalleExclusion(BaseModel):
+    id: int
+    cliente: Optional[str] = None
+    ciudad: Optional[str] = None
+    motivo: str
+
+
+class AsignacionesEliminarVariasResponse(BaseModel):
+    eliminadas_count: int
+    eliminadas_ids: List[int]
+    excluidas_count: int
+    excluidas_detalles: List[DetalleExclusion]
+    mensaje: str
 from app.schemas.cuenta_cobro_asignacion import CuentaCobroAsignacionResponse
+from app.services.auditoria import registrar_auditoria
 from app.services.cuenta_cobro_asignacion import guardar_cuenta_cobro_asignacion
 from app.services.descarga_carpeta import (
     iter_zip_asignacion,
@@ -198,6 +226,7 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
         estado=a.estado,
         cuenta_cobro=cuenta_cobro_resp,
         cerrada_en=info_gracia["cerrada_en"].replace(tzinfo=timezone.utc) if info_gracia["cerrada_en"] else None,
+        descargada_en=a.descargada_en.replace(tzinfo=timezone.utc) if getattr(a, "descargada_en", None) else None,
         limite_subida_viaticos=info_gracia["limite_subida_viaticos"].replace(tzinfo=timezone.utc) if info_gracia["limite_subida_viaticos"] else None,
         puede_subir_viaticos=info_gracia["puede_subir_viaticos"],
         en_periodo_gracia=info_gracia["en_periodo_gracia"],
@@ -225,6 +254,143 @@ def purgar_asignaciones_eliminadas(db: Session) -> None:
     except Exception as e:
         db.rollback()
         print(f"Advertencia al purgar asignaciones vencidas: {e}")
+
+
+def _archivar_y_eliminar_asignacion_permanente(
+    asignacion: Asignacion,
+    db: Session,
+    admin_id: int,
+) -> EstadisticaAsignacionArchivada:
+    """
+    1. Calcula y persiste agregados históricos de la asignación y sus viáticos en
+       `estadisticas_asignaciones_archivadas`.
+    2. Realiza borrado físico (hard delete) en cascada de evidencias, viáticos,
+       cuentas de cobro asociadas y la asignación misma.
+    3. Registra la auditoría correspondiente.
+    """
+    # 1. Obtener viáticos con evidencias
+    stmt_v = (
+        select(Viatico)
+        .options(joinedload(Viatico.evidencias))
+        .where(Viatico.asignacion_id == asignacion.id)
+    )
+    viaticos = db.execute(stmt_v).unique().scalars().all()
+
+    total_gastado = Decimal("0.0")
+    total_hospedaje = Decimal("0.0")
+    total_transporte = Decimal("0.0")
+    total_alimentacion = Decimal("0.0")
+    total_materiales = Decimal("0.0")
+    total_alquiler_escalera = Decimal("0.0")
+    total_otros = Decimal("0.0")
+
+    desglose = []
+    for v in viaticos:
+        val = Decimal(str(v.valor or 0))
+        total_gastado += val
+        tg = (v.tipo_gasto or "").lower()
+        if tg == "hospedaje":
+            total_hospedaje += val
+        elif tg == "transporte":
+            total_transporte += val
+        elif tg == "alimentacion":
+            total_alimentacion += val
+        elif tg == "materiales":
+            total_materiales += val
+        elif tg == "alquiler_escalera":
+            total_alquiler_escalera += val
+        else:
+            total_otros += val
+
+        desglose.append({
+            "id": v.id,
+            "tipo_gasto": v.tipo_gasto,
+            "valor": float(val),
+            "fecha": v.fecha.isoformat() if v.fecha else None,
+            "ot": v.ot,
+            "descripcion": v.descripcion,
+            "cantidad_evidencias": len(v.evidencias) if v.evidencias else 0,
+        })
+
+    # Verificar si ya existe registro histórico para evitar duplicados
+    stmt_est = select(EstadisticaAsignacionArchivada).where(
+        EstadisticaAsignacionArchivada.asignacion_id == asignacion.id
+    )
+    est = db.scalar(stmt_est)
+    if not est:
+        est = EstadisticaAsignacionArchivada(
+            asignacion_id=asignacion.id,
+            tecnico_id=asignacion.tecnico_id,
+            cliente=asignacion.cliente or "",
+            empresa=asignacion.empresa,
+            ciudad=asignacion.ciudad or "",
+            tipo=asignacion.tipo or "preventivo",
+            fecha_inicio=asignacion.fecha_inicio,
+            fecha_fin=asignacion.fecha_fin,
+            monto_anticipo=Decimal(str(asignacion.monto_anticipo or 0)),
+            total_gastado=total_gastado,
+            total_hospedaje=total_hospedaje,
+            total_transporte=total_transporte,
+            total_alimentacion=total_alimentacion,
+            total_materiales=total_materiales,
+            total_alquiler_escalera=total_alquiler_escalera,
+            total_otros=total_otros,
+            cantidad_viaticos=len(viaticos),
+            desglose_viaticos=desglose,
+            eliminada_por_id=admin_id,
+            eliminada_en=datetime.utcnow(),
+        )
+        db.add(est)
+        db.flush()
+
+    # 2. Hard delete de evidencias y viáticos
+    viatico_ids = [v.id for v in viaticos]
+    if viatico_ids:
+        db.execute(
+            delete(EvidenciaViatico).where(EvidenciaViatico.viatico_id.in_(viatico_ids))
+        )
+        db.execute(
+            delete(Viatico).where(Viatico.id.in_(viatico_ids))
+        )
+
+    # 3. Eliminar cuentas de cobro vinculadas
+    db.execute(
+        delete(CuentaCobroAsignacion).where(CuentaCobroAsignacion.asignacion_id == asignacion.id)
+    )
+
+    # 4. Desvincular de inventario
+    db.execute(
+        update(InventarioDespacho)
+        .where(InventarioDespacho.asignacion_id == asignacion.id)
+        .values(asignacion_id=None)
+    )
+
+    # 5. Borrar la asignación
+    asig_id = asignacion.id
+    cliente_nombre = asignacion.cliente
+    ciudad_nombre = asignacion.ciudad
+    tecnico_id = asignacion.tecnico_id
+
+    db.delete(asignacion)
+    db.flush()
+
+    # 6. Registrar en auditoría
+    registrar_auditoria(
+        db,
+        usuario_id=admin_id,
+        modulo="asignaciones",
+        accion="eliminar_carpeta_finalizada",
+        entidad_id=asig_id,
+        detalles={
+            "cliente": cliente_nombre,
+            "ciudad": ciudad_nombre,
+            "tecnico_id": tecnico_id,
+            "cantidad_viaticos": len(viaticos),
+            "total_gastado": float(total_gastado),
+        },
+    )
+
+    return est
 
 
 def _obtener_o_404(id: int, db: Session) -> Asignacion:
@@ -349,6 +515,13 @@ def descargar_todas_las_asignaciones(
         )
     )
     ids = db.scalars(stmt_ids).all()
+    if ids:
+        db.execute(
+            update(Asignacion)
+            .where(Asignacion.id.in_(ids))
+            .values(descargada_en=datetime.utcnow())
+        )
+        db.commit()
 
     def generar_una_a_una():
         """Generador perezoso: carga y libera una asignación por vez."""
@@ -406,6 +579,9 @@ def descargar_carpeta_asignacion(
             ),
         )
 
+    asignacion.descargada_en = datetime.utcnow()
+    db.commit()
+
     viaticos = _viaticos_de_asignacion(id, db)
     resumen = _resumen_para_descripcion(asignacion)
     filename = nombre_zip_asignacion(asignacion)
@@ -415,6 +591,122 @@ def descargar_carpeta_asignacion(
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/tecnico/{tecnico_id}/estadisticas-historicas")
+def obtener_estadisticas_historicas_tecnico(
+    tecnico_id: int,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Retorna los agregados históricos archivados de asignaciones borradas de un técnico,
+    para que la vista de Perfil y Dashboard conserven sus totales intactos.
+    """
+    stmt = select(EstadisticaAsignacionArchivada).where(
+        EstadisticaAsignacionArchivada.tecnico_id == tecnico_id
+    )
+    registros = db.scalars(stmt).all()
+
+    total_gastado = sum((r.total_gastado or Decimal("0.0")) for r in registros)
+    total_anticipos = sum((r.monto_anticipo or Decimal("0.0")) for r in registros)
+    cantidad_viaticos = sum(r.cantidad_viaticos for r in registros)
+
+    conceptos = {
+        "hospedaje": float(sum((r.total_hospedaje or Decimal("0.0")) for r in registros)),
+        "transporte": float(sum((r.total_transporte or Decimal("0.0")) for r in registros)),
+        "alimentacion": float(sum((r.total_alimentacion or Decimal("0.0")) for r in registros)),
+        "materiales": float(sum((r.total_materiales or Decimal("0.0")) for r in registros)),
+        "alquiler_escalera": float(sum((r.total_alquiler_escalera or Decimal("0.0")) for r in registros)),
+        "otros": float(sum((r.total_otros or Decimal("0.0")) for r in registros)),
+    }
+
+    return {
+        "tecnico_id": tecnico_id,
+        "cantidad_asignaciones_archivadas": len(registros),
+        "total_gastado": float(total_gastado),
+        "total_anticipos": float(total_anticipos),
+        "cantidad_viaticos_archivados": cantidad_viaticos,
+        "distribucion_conceptos": conceptos,
+    }
+
+
+@router.post("/eliminar-varias", response_model=AsignacionesEliminarVariasResponse)
+@router.delete("/eliminar-varias", response_model=AsignacionesEliminarVariasResponse)
+def eliminar_asignaciones_varias(
+    datos: AsignacionesEliminarVariasRequest,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Eliminación masiva o por lotes de carpetas de asignaciones finalizadas.
+    Salvaguradas obligatorias:
+    - Solo elimina asignaciones que estén finalizadas (nunca activas ni pendientes).
+    - Solo elimina carpetas con descarga previa registrada (descargada_en != None).
+    - Excluye y reporta con detalle las carpetas que no cumplan los criterios.
+    - Archiva previamente todas las estadísticas y métricas para preservar el dashboard.
+    """
+    candidatos = []
+    if datos.eliminar_todas_finalizadas:
+        stmt = select(Asignacion).where(
+            or_(
+                Asignacion.estado == "finalizada",
+                Asignacion.cerrada_en.isnot(None),
+            )
+        )
+        if datos.tecnico_id is not None:
+            stmt = stmt.where(Asignacion.tecnico_id == datos.tecnico_id)
+        candidatos = db.scalars(stmt).all()
+    elif datos.asignacion_ids:
+        stmt = select(Asignacion).where(Asignacion.id.in_(datos.asignacion_ids))
+        candidatos = db.scalars(stmt).all()
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Debe especificar una lista de asignacion_ids o activar eliminar_todas_finalizadas.",
+        )
+
+    eliminadas_ids = []
+    excluidas_detalles = []
+
+    for asig in candidatos:
+        # Salvaguarda 1: Debe estar finalizada
+        if not _esta_finalizada(asig):
+            excluidas_detalles.append({
+                "id": asig.id,
+                "cliente": asig.cliente,
+                "ciudad": asig.ciudad,
+                "motivo": "La asignación está activa o pendiente. Por seguridad, no se puede eliminar.",
+            })
+            continue
+
+        # Salvaguarda 2: Debe haber sido descargada previamente (a menos que el admin confirme que ya la descargó)
+        if not asig.descargada_en and not datos.confirmar_ya_descargado:
+            excluidas_detalles.append({
+                "id": asig.id,
+                "cliente": asig.cliente,
+                "ciudad": asig.ciudad,
+                "motivo": "La carpeta no ha sido descargada previamente. Debe descargarse antes de eliminar o confirmar que ya fue descargada.",
+            })
+            continue
+
+        # Procede a archivar y eliminar en cascada
+        _archivar_y_eliminar_asignacion_permanente(asig, db, current_admin.id)
+        eliminadas_ids.append(asig.id)
+
+    db.commit()
+
+    mensaje = f"Se eliminaron permanentemente {len(eliminadas_ids)} carpeta(s)."
+    if excluidas_detalles:
+        mensaje += f" Se excluyeron {len(excluidas_detalles)} carpeta(s) por no haber sido descargadas o no estar finalizadas."
+
+    return {
+        "eliminadas_count": len(eliminadas_ids),
+        "eliminadas_ids": eliminadas_ids,
+        "excluidas_count": len(excluidas_detalles),
+        "excluidas_detalles": excluidas_detalles,
+        "mensaje": mensaje,
+    }
 
 
 @router.get("/{id}", response_model=AsignacionResponse)
@@ -605,16 +897,43 @@ def extender_fecha_asignacion(
     return _a_response(asignacion)
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{id}")
 def eliminar_asignacion(
     id: int,
     current_admin: Annotated[Usuario, Depends(get_current_admin)],
     db: Annotated[Session, Depends(get_db)],
+    confirmar_ya_descargado: bool = Query(default=False),
 ):
+    """
+    Elimina permanentemente (hard delete) una carpeta de asignación finalizada:
+    1. Verifica que la asignación esté finalizada (nunca activa ni pendiente).
+    2. Verifica que tenga una descarga previa registrada (descargada_en) o que el admin confirme que ya la descargó.
+    3. Guarda los agregados financieros e históricos en `estadisticas_asignaciones_archivadas`.
+    4. Elimina en cascada evidencias, viáticos y asignación.
+    """
     asignacion = _obtener_o_404(id, db)
-    asignacion.eliminado_en = datetime.utcnow()
+
+    # Salvaguarda 1: Solo asignaciones finalizadas
+    if not _esta_finalizada(asignacion):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se pueden eliminar permanentemente asignaciones finalizadas. Las asignaciones activas o pendientes no pueden ser eliminadas.",
+        )
+
+    # Salvaguarda 2: Descarga obligatoria previa (a menos que el admin confirme que ya la descargó)
+    if not asignacion.descargada_en and not confirmar_ya_descargado:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Esta carpeta no ha sido descargada previamente. Por seguridad, debes descargar la carpeta de la asignación antes de poder eliminarla o marcar la casilla de confirmación.",
+        )
+
+    _archivar_y_eliminar_asignacion_permanente(asignacion, db, current_admin.id)
     db.commit()
-    return None
+
+    return {
+        "id": id,
+        "mensaje": "Carpeta de asignación eliminada permanentemente. Estadísticas históricas preservadas en el sistema.",
+    }
 
 
 # --- Endpoint de solo lectura para el técnico -------------------------------

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatApiError } from '../../utils/formatError';
 import {
     UNIONES_TEMPORALES,
@@ -17,6 +17,8 @@ const ITEM_VACIO = {
     serial_gsb: '',
     id_equipo: '',
     no_sds: '',
+    numero_articulo: '',
+    tiempo_entrega: '',
     factura: '',
     fecha_compra: '',
     cantidad_stock: 0,
@@ -26,6 +28,9 @@ const ITEM_VACIO = {
 export default function TabStock({ unionTemporal, mostrarUnion, puedeEditar, version, onDespachar, avisar }) {
     const [q, setQ] = useState('');
     const [soloConStock, setSoloConStock] = useState(true);
+    const [filtroRango, setFiltroRango] = useState('todos');
+    const [fechaDesde, setFechaDesde] = useState('');
+    const [fechaHasta, setFechaHasta] = useState('');
     const [datos, setDatos] = useState({ total: 0, total_unidades: 0, items: [] });
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState('');
@@ -36,17 +41,46 @@ export default function TabStock({ unionTemporal, mostrarUnion, puedeEditar, ver
     const [errorForm, setErrorForm] = useState('');
     const [borrando, setBorrando] = useState(null);
 
+    const fechasCalculadas = useMemo(() => {
+        if (filtroRango === 'todos') return { inicio: null, fin: null };
+        const hoy = new Date();
+        const hoyStr = hoy.toISOString().slice(0, 10);
+        if (filtroRango === 'hoy') return { inicio: hoyStr, fin: hoyStr };
+        if (filtroRango === 'semana') {
+            const diaSemana = hoy.getDay() || 7;
+            const primerDia = new Date(hoy);
+            primerDia.setDate(hoy.getDate() - diaSemana + 1);
+            return { inicio: primerDia.toISOString().slice(0, 10), fin: hoyStr };
+        }
+        if (filtroRango === 'mes') {
+            const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            return { inicio: primerDia.toISOString().slice(0, 10), fin: hoyStr };
+        }
+        if (filtroRango === 'custom') {
+            return { inicio: fechaDesde || null, fin: fechaHasta || null };
+        }
+        return { inicio: null, fin: null };
+    }, [filtroRango, fechaDesde, fechaHasta]);
+
     const cargar = useCallback(async () => {
         setCargando(true);
         try {
-            setDatos(await listarItems({ unionTemporal, q: q.trim(), soloConStock }));
+            setDatos(
+                await listarItems({
+                    unionTemporal,
+                    q: q.trim(),
+                    soloConStock,
+                    fechaInicio: fechasCalculadas.inicio,
+                    fechaFin: fechasCalculadas.fin,
+                })
+            );
             setError('');
         } catch (err) {
             setError(formatApiError(err, 'No se pudo cargar el stock.'));
         } finally {
             setCargando(false);
         }
-    }, [unionTemporal, q, soloConStock]);
+    }, [unionTemporal, q, soloConStock, fechasCalculadas]);
 
     useEffect(() => {
         const t = setTimeout(cargar, 250);
@@ -128,6 +162,50 @@ export default function TabStock({ unionTemporal, mostrarUnion, puedeEditar, ver
                 )}
             </div>
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)' }}>
+                    📅 Fecha compra:
+                </span>
+                <div className="sgc-inv-chips" style={{ margin: 0 }}>
+                    {[
+                        { id: 'todos', label: 'Todas' },
+                        { id: 'hoy', label: 'Hoy' },
+                        { id: 'semana', label: 'Esta semana' },
+                        { id: 'mes', label: 'Este mes' },
+                        { id: 'custom', label: 'Rango…' },
+                    ].map((btn) => (
+                        <button
+                            key={btn.id}
+                            type="button"
+                            className={`sgc-inv-chip ${filtroRango === btn.id ? 'sgc-inv-chip--activo' : ''}`}
+                            style={{ padding: '3px 9px', fontSize: '12px' }}
+                            onClick={() => setFiltroRango(btn.id)}
+                        >
+                            {btn.label}
+                        </button>
+                    ))}
+                </div>
+                {filtroRango === 'custom' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                            type="date"
+                            className="sgc-inv-input"
+                            style={{ width: 'auto', padding: '3px 6px', fontSize: '12px' }}
+                            value={fechaDesde}
+                            onChange={(e) => setFechaDesde(e.target.value)}
+                        />
+                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>a</span>
+                        <input
+                            type="date"
+                            className="sgc-inv-input"
+                            style={{ width: 'auto', padding: '3px 6px', fontSize: '12px' }}
+                            value={fechaHasta}
+                            onChange={(e) => setFechaHasta(e.target.value)}
+                        />
+                    </div>
+                )}
+            </div>
+
             {error && <div className="sgc-inv-alerta sgc-inv-alerta--err">{error}</div>}
 
             <div className="sgc-inv-tabla-wrap">
@@ -150,11 +228,55 @@ export default function TabStock({ unionTemporal, mostrarUnion, puedeEditar, ver
                         {cargando && datos.items.length === 0 ? (
                             <tr><td colSpan={columnas} className="sgc-inv-tabla-vacio">Cargando stock…</td></tr>
                         ) : datos.items.length === 0 ? (
-                            <tr><td colSpan={columnas} className="sgc-inv-tabla-vacio">No hay ítems que coincidan con el filtro.</td></tr>
+                            <tr>
+                                <td colSpan={columnas} className="sgc-inv-tabla-vacio" style={{ padding: '36px 16px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '28px', marginBottom: '8px' }}>📦</div>
+                                    <div style={{ fontWeight: 600, color: 'var(--color-text, #ffffff)', marginBottom: '4px', fontSize: '15px' }}>
+                                        {filtroRango !== 'todos'
+                                            ? 'No se encontraron ítems en el rango de fechas seleccionado.'
+                                            : q.trim()
+                                            ? `No se encontraron ítems para "${q.trim()}".`
+                                            : 'No hay ítems registrados en este inventario.'}
+                                    </div>
+                                    <div style={{ fontSize: '13px', color: 'var(--color-text-muted, #94a3b8)', marginTop: '6px' }}>
+                                        {filtroRango !== 'todos' ? (
+                                            <span>
+                                                En este periodo no hay registros con fecha de compra.{' '}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setFiltroRango('todos'); setFechaDesde(''); setFechaHasta(''); }}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--color-gold-bright, #c5a059)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+                                                >
+                                                    Mostrar todas las fechas
+                                                </button>
+                                            </span>
+                                        ) : q.trim() ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setQ('')}
+                                                style={{ background: 'none', border: 'none', color: 'var(--color-gold-bright, #c5a059)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+                                            >
+                                                Limpiar búsqueda
+                                            </button>
+                                        ) : (
+                                            'Los ítems en existencia aparecerán listados aquí.'
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
                         ) : (
                             datos.items.map((it) => (
                                 <tr key={it.id}>
-                                    <td className="sgc-inv-td-desc">{it.descripcion}</td>
+                                    <td className="sgc-inv-td-desc">
+                                        <div>{it.descripcion}</div>
+                                        {(it.numero_articulo || it.tiempo_entrega || it.no_sds) && (
+                                            <div className="sgc-inv-subtexto">
+                                                {it.numero_articulo && <span className="sgc-inv-subtexto-tag">Art. #{it.numero_articulo}</span>}
+                                                {it.no_sds && <span className="sgc-inv-subtexto-tag">{it.no_sds}</span>}
+                                                {it.tiempo_entrega && <span>Entrega: {it.tiempo_entrega}</span>}
+                                            </div>
+                                        )}
+                                    </td>
                                     {mostrarUnion && <td>{etiquetaUnion(it.union_temporal)}</td>}
                                     <td className="sgc-inv-mono">{it.codigo_barras || '—'}</td>
                                     <td className="sgc-inv-mono">{it.serial_gsb || '—'}</td>
@@ -246,8 +368,16 @@ export default function TabStock({ unionTemporal, mostrarUnion, puedeEditar, ver
                                 <input className="sgc-inv-input" maxLength={60} {...campo('no_sds')} />
                             </label>
                             <label className="sgc-inv-label">
+                                No. Artículo <span className="sgc-inv-opcional">opcional</span>
+                                <input className="sgc-inv-input" maxLength={60} {...campo('numero_articulo')} />
+                            </label>
+                            <label className="sgc-inv-label">
                                 Factura <span className="sgc-inv-opcional">opcional</span>
                                 <input className="sgc-inv-input" maxLength={60} {...campo('factura')} />
+                            </label>
+                            <label className="sgc-inv-label">
+                                Tiempo entrega / notas <span className="sgc-inv-opcional">opcional</span>
+                                <input className="sgc-inv-input" maxLength={80} {...campo('tiempo_entrega')} />
                             </label>
                             <label className="sgc-inv-label">
                                 Fecha de compra <span className="sgc-inv-opcional">opcional</span>

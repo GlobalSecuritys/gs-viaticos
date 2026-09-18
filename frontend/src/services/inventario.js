@@ -6,6 +6,7 @@ import api from './api';
 export const UNIONES_TEMPORALES = [
   { valor: 'RTC', etiqueta: 'Unión Temporal RTC' },
   { valor: 'MANTENIMIENTO', etiqueta: 'Unión Temporal Mantenimiento GSB_SDSS' },
+  { valor: 'PROYECTO_ZEUS', etiqueta: 'Proyecto Zeus' },
 ];
 
 export const ESTADOS_DESPACHO = [
@@ -21,7 +22,9 @@ export function etiquetaEstado(valor) {
 }
 
 export function etiquetaUnion(valor) {
-  return valor === 'MANTENIMIENTO' ? 'Mantenimiento' : valor;
+  if (valor === 'MANTENIMIENTO') return 'Mantenimiento';
+  if (valor === 'PROYECTO_ZEUS') return 'Proyecto Zeus';
+  return valor;
 }
 
 /** Quita claves vacías para no mandar filtros "" al backend. */
@@ -42,9 +45,17 @@ export async function obtenerResumen() {
 // -----------------------------------------------------------------------------
 // ÍTEMS (stock)
 // -----------------------------------------------------------------------------
-export async function listarItems({ unionTemporal, q, soloConStock, limit = 500, offset = 0 } = {}) {
+export async function listarItems({ unionTemporal, q, soloConStock, fechaInicio, fechaFin, limit = 500, offset = 0 } = {}) {
   const res = await api.get('/inventario/items', {
-    params: limpiar({ union_temporal: unionTemporal, q, solo_con_stock: soloConStock, limit, offset }),
+    params: limpiar({
+      union_temporal: unionTemporal,
+      q,
+      solo_con_stock: soloConStock,
+      fecha_inicio: fechaInicio,
+      fecha_fin: fechaFin,
+      limit,
+      offset,
+    }),
   });
   return res.data;
 }
@@ -72,6 +83,9 @@ export async function listarDespachos({
   sinTecnico,
   estado,
   oficina,
+  fechaInicio,
+  fechaFin,
+  tipoFecha = 'despacho',
   q,
   limit = 500,
   offset = 0,
@@ -83,6 +97,9 @@ export async function listarDespachos({
       sin_tecnico: sinTecnico,
       estado,
       oficina,
+      fecha_inicio: fechaInicio,
+      fecha_fin: fechaFin,
+      tipo_fecha: tipoFecha,
       q,
       limit,
       offset,
@@ -150,4 +167,44 @@ export async function listarAsignacionesTecnico(tecnicoId, incluirId = null) {
     params: limpiar({ incluir_id: incluirId }),
   });
   return res.data;
+}
+
+// -----------------------------------------------------------------------------
+// Inventario en poder de técnicos (hojas individuales de técnicos)
+// -----------------------------------------------------------------------------
+export async function listarResumenTecnicosInventario(unionTemporal = null) {
+  const res = await api.get('/inventario/tecnicos-resumen', {
+    params: limpiar({ union_temporal: unionTemporal }),
+  });
+  return res.data;
+}
+
+export async function listarItemsTecnico(
+  tecnicoId,
+  { unionTemporal = null, q = '', fechaInicio = null, fechaFin = null, tipoFecha = 'despacho' } = {}
+) {
+  const res = await api.get(`/inventario/tecnicos/${tecnicoId}/items`, {
+    params: limpiar({
+      union_temporal: unionTemporal,
+      q: q?.trim() || undefined,
+      fecha_inicio: fechaInicio,
+      fecha_fin: fechaFin,
+      tipo_fecha: tipoFecha,
+    }),
+  });
+  return res.data;
+}
+
+export async function crearItemTecnico(tecnicoId, datos) {
+  const res = await api.post(`/inventario/tecnicos/${tecnicoId}/items`, datos);
+  return res.data;
+}
+
+export async function actualizarItemTecnico(itemId, datos) {
+  const res = await api.put(`/inventario/tecnicos/items/${itemId}`, datos);
+  return res.data;
+}
+
+export async function eliminarItemTecnico(itemId) {
+  await api.delete(`/inventario/tecnicos/items/${itemId}`);
 }

@@ -83,6 +83,13 @@ class Asignacion(Base):
         index=True,
     )
 
+    descargada_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+        default=None,
+        index=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         nullable=False,

@@ -10,7 +10,13 @@ import api, {
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { puedeGestionarUsuario } from '../utils/permisos';
-import { listarAsignaciones, finalizarAsignacion, eliminarAsignacion } from '../services/asignaciones';
+import {
+    listarAsignaciones,
+    finalizarAsignacion,
+    eliminarAsignacion,
+    eliminarAsignacionesMasivo,
+    obtenerEstadisticasHistoricasTecnico,
+} from '../services/asignaciones';
 import {
     LABEL_TIPO_ASIGNACION,
     obtenerAsignacionesActivasDeTecnico,
@@ -151,6 +157,7 @@ export default function PerfilEmpleado() {
     const [descargandoCarpetaId, setDescargandoCarpetaId] = useState(null);
     const [descargandoHistorial, setDescargandoHistorial] = useState(false);
     const [mostrarViaticosIndependientes, setMostrarViaticosIndependientes] = useState(false);
+    const [statsHistoricas, setStatsHistoricas] = useState(null);
 
     useEffect(() => {
         async function cargar() {
@@ -180,6 +187,13 @@ export default function PerfilEmpleado() {
             } catch {
                 setAsignaciones([]);
             }
+
+            try {
+                const resHist = await obtenerEstadisticasHistoricasTecnico(id);
+                setStatsHistoricas(resHist.data || null);
+            } catch {
+                setStatsHistoricas(null);
+            }
         }
         cargar();
     }, [id]);
@@ -200,8 +214,10 @@ export default function PerfilEmpleado() {
     };
 
     const totalGastadoViaticos = useMemo(() => {
-        return viaticos.reduce((sum, v) => sum + Number(v.valor || 0), 0);
-    }, [viaticos]);
+        const enVivo = viaticos.reduce((sum, v) => sum + Number(v.valor || 0), 0);
+        const archivado = Number(statsHistoricas?.total_gastado || 0);
+        return enVivo + archivado;
+    }, [viaticos, statsHistoricas]);
 
     const cuentasCobroGeneradas = useMemo(() => {
         return asignaciones.filter((a) => {
@@ -254,6 +270,10 @@ export default function PerfilEmpleado() {
             const res = await descargarCarpetaAsignacion(asignacion.id);
             const cliente = String(asignacion.cliente || 'cliente').replace(/[^A-Za-z0-9]+/g, '_');
             descargarBlob(res.data, `Asignacion_${cliente}_${asignacion.fecha_inicio}.zip`);
+            const ahoraIso = new Date().toISOString();
+            setAsignaciones((prev) =>
+                prev.map((a) => (a.id === asignacion.id ? { ...a, descargada_en: ahoraIso } : a))
+            );
         } catch {
             alert('No se pudo descargar la carpeta de la asignación.');
         } finally {
@@ -268,10 +288,109 @@ export default function PerfilEmpleado() {
             const res = await descargarTodasLasAsignaciones(id);
             const fecha = new Date().toISOString().slice(0, 10);
             descargarBlob(res.data, `Historial_Asignaciones_${fecha}.zip`);
+            const ahoraIso = new Date().toISOString();
+            setAsignaciones((prev) =>
+                prev.map((a) => {
+                    const pertenece = (a.tecnicos || []).some((t) => String(t.id || t.usuario_id) === id) || String(a.tecnico_id) === id;
+                    if (pertenece && (a.estado === 'finalizada' || a.cerrada_en)) {
+                        return { ...a, descargada_en: ahoraIso };
+                    }
+                    return a;
+                })
+            );
         } catch {
             alert('No se pudo descargar el historial completo.');
         } finally {
             setDescargandoHistorial(false);
+        }
+    }
+
+    const [eliminandoCarpetaId, setEliminandoCarpetaId] = useState(null);
+    const [eliminandoTodoHistorial, setEliminandoTodoHistorial] = useState(false);
+    const [modalEliminarCarpetas, setModalEliminarCarpetas] = useState(null);
+
+    function abrirModalEliminarCarpeta(asignacion, e) {
+        if (e) e.stopPropagation();
+        setModalEliminarCarpetas({
+            tipo: 'individual',
+            asignacion,
+            descargadasCount: asignacion.descargada_en ? 1 : 0,
+            noDescargadasCount: asignacion.descargada_en ? 0 : 1,
+            totalCount: 1,
+        });
+    }
+
+    function abrirModalEliminarTodoHistorial() {
+        if (asignacionesFinalizadas.length === 0) {
+            alert('No hay asignaciones finalizadas en el historial para eliminar.');
+            return;
+        }
+        const descargadas = asignacionesFinalizadas.filter((a) => !!a.descargada_en);
+        const noDescargadas = asignacionesFinalizadas.filter((a) => !a.descargada_en);
+        setModalEliminarCarpetas({
+            tipo: 'masivo',
+            descargadasCount: descargadas.length,
+            noDescargadasCount: noDescargadas.length,
+            totalCount: asignacionesFinalizadas.length,
+        });
+    }
+
+    async function handleConfirmarEliminacion(yaDescargado) {
+        if (!modalEliminarCarpetas) return;
+
+        if (modalEliminarCarpetas.tipo === 'individual') {
+            const asig = modalEliminarCarpetas.asignacion;
+            setEliminandoCarpetaId(asig.id);
+            try {
+                await eliminarAsignacion(asig.id, { confirmarYaDescargado: yaDescargado });
+                setAsignaciones((prev) => prev.filter((a) => a.id !== asig.id));
+                setViaticos((prev) => prev.filter((v) => v.asignacion_id !== asig.id));
+
+                try {
+                    const resHist = await obtenerEstadisticasHistoricasTecnico(id);
+                    setStatsHistoricas(resHist.data || null);
+                } catch {}
+
+                setMensajeFeedback('✅ Carpeta eliminada permanentemente. Las estadísticas históricas se preservaron intactas.');
+                setModalEliminarCarpetas(null);
+            } catch (err) {
+                alert(formatApiError(err, 'No se pudo eliminar la carpeta.'));
+            } finally {
+                setEliminandoCarpetaId(null);
+            }
+        } else if (modalEliminarCarpetas.tipo === 'masivo') {
+            setEliminandoTodoHistorial(true);
+            try {
+                const targets = yaDescargado
+                    ? asignacionesFinalizadas
+                    : asignacionesFinalizadas.filter((a) => !!a.descargada_en);
+
+                const payload = {
+                    tecnico_id: Number(id),
+                    asignacion_ids: targets.map((a) => a.id),
+                    confirmar_ya_descargado: yaDescargado,
+                };
+                const res = await eliminarAsignacionesMasivo(payload);
+                const data = res.data;
+
+                const eliminadasSet = new Set(data.eliminadas_ids || targets.map((a) => a.id));
+                setAsignaciones((prev) => prev.filter((a) => !eliminadasSet.has(a.id)));
+                setViaticos((prev) => prev.filter((v) => !eliminadasSet.has(v.asignacion_id)));
+
+                try {
+                    const resHist = await obtenerEstadisticasHistoricasTecnico(id);
+                    setStatsHistoricas(resHist.data || null);
+                } catch {}
+
+                setMensajeFeedback(
+                    `✅ Se eliminaron permanentemente ${data.eliminadas_count || eliminadasSet.size} carpeta(s) finalizada(s). Las estadísticas y el Total Gastado continúan preservados.`
+                );
+                setModalEliminarCarpetas(null);
+            } catch (err) {
+                alert(formatApiError(err, 'No se pudo realizar la eliminación del historial.'));
+            } finally {
+                setEliminandoTodoHistorial(false);
+            }
         }
     }
 
@@ -280,13 +399,17 @@ export default function PerfilEmpleado() {
     }, [viaticos]);
 
     async function handleBorrarAsignacion(asignacionId) {
-        if (!window.confirm('¿Deseas borrar esta asignación? Se ocultará del sistema y se eliminará permanentemente de la base de datos en 24 horas.')) return;
+        const asig = asignaciones.find((a) => a.id === asignacionId);
+        if (asig && (asig.estado === 'finalizada' || asig.cerrada_en)) {
+            return handleEliminarCarpetaFinalizada(asig);
+        }
+        if (!window.confirm('¿Deseas borrar esta asignación?')) return;
         try {
             await eliminarAsignacion(asignacionId);
             setAsignaciones((prev) => prev.filter((a) => a.id !== asignacionId));
             setMensajeFeedback('✅ Asignación borrada correctamente.');
-        } catch {
-            alert('No se pudo borrar la asignación.');
+        } catch (err) {
+            alert(formatApiError(err, 'No se pudo borrar la asignación.'));
         }
     }
 
@@ -974,33 +1097,61 @@ export default function PerfilEmpleado() {
 
                                 {/* ── HISTORIAL DE ASIGNACIONES (FINALIZADAS) CON CARGA DIFERIDA ── */}
                                 <div style={{ marginTop: '2.5rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
                                         <h2 className="pf-section-title" style={{ margin: 0 }}>
                                             Historial de asignaciones ({asignacionesFinalizadas.length})
                                         </h2>
-                                        <button
-                                            type="button"
-                                            style={{
-                                                background: descargandoHistorial ? '#E2E8F0' : '#EFF6FF',
-                                                border: '1px solid #BAE6FD',
-                                                color: descargandoHistorial ? '#64748B' : '#0284C7',
-                                                padding: '0.45rem 0.9rem',
-                                                borderRadius: '6px',
-                                                fontSize: '0.8rem',
-                                                fontWeight: 700,
-                                                cursor: descargandoHistorial ? 'wait' : 'pointer',
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '0.35rem',
-                                            }}
-                                            onClick={handleDescargarHistorialCompleto}
-                                            disabled={descargandoHistorial}
-                                            title="Descargar un ZIP con una carpeta por cada asignación finalizada"
-                                        >
-                                            {descargandoHistorial
-                                                ? '⌛ Generando ZIP... esto puede tardar'
-                                                : '📦 Descargar todo el historial'}
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                            <button
+                                                type="button"
+                                                style={{
+                                                    background: descargandoHistorial ? '#E2E8F0' : '#EFF6FF',
+                                                    border: '1px solid #BAE6FD',
+                                                    color: descargandoHistorial ? '#64748B' : '#0284C7',
+                                                    padding: '0.45rem 0.9rem',
+                                                    borderRadius: '6px',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: 700,
+                                                    cursor: descargandoHistorial ? 'wait' : 'pointer',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.35rem',
+                                                }}
+                                                onClick={handleDescargarHistorialCompleto}
+                                                disabled={descargandoHistorial || eliminandoTodoHistorial}
+                                                title="Descargar un ZIP con una carpeta por cada asignación finalizada"
+                                            >
+                                                {descargandoHistorial
+                                                    ? '⌛ Generando ZIP... esto puede tardar'
+                                                    : '📦 Descargar todo el historial'}
+                                            </button>
+                                            {asignacionesFinalizadas.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    id="btn-eliminar-todo-historial"
+                                                    style={{
+                                                        background: eliminandoTodoHistorial ? '#E2E8F0' : '#FEF2F2',
+                                                        border: '1px solid #FECACA',
+                                                        color: eliminandoTodoHistorial ? '#64748B' : '#DC2626',
+                                                        padding: '0.45rem 0.9rem',
+                                                        borderRadius: '6px',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 700,
+                                                        cursor: eliminandoTodoHistorial ? 'wait' : 'pointer',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.35rem',
+                                                    }}
+                                                    onClick={abrirModalEliminarTodoHistorial}
+                                                    disabled={eliminandoTodoHistorial || descargandoHistorial}
+                                                    title="Eliminar permanentemente las carpetas finalizadas del historial"
+                                                >
+                                                    {eliminandoTodoHistorial
+                                                        ? '⌛ Eliminando...'
+                                                        : '🗑️ Eliminar todo el historial'}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {asignacionesFinalizadas.length > 0 ? (
@@ -1036,10 +1187,33 @@ export default function PerfilEmpleado() {
                                                                 </div>
                                                             </div>
 
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                                 <span className="pf-badge-finalizada">
                                                                     FINALIZADA
                                                                 </span>
+                                                                <button
+                                                                    type="button"
+                                                                    id={`btn-eliminar-carpeta-${asignacion.id}`}
+                                                                    style={{
+                                                                        background: eliminandoCarpetaId === asignacion.id ? '#E2E8F0' : (asignacion.descargada_en ? '#FEF2F2' : '#FFF7ED'),
+                                                                        border: `1px solid ${asignacion.descargada_en ? '#FECACA' : '#FED7AA'}`,
+                                                                        color: eliminandoCarpetaId === asignacion.id ? '#94A3B8' : (asignacion.descargada_en ? '#DC2626' : '#92400E'),
+                                                                        padding: '0.25rem 0.55rem',
+                                                                        borderRadius: '5px',
+                                                                        fontSize: '0.82rem',
+                                                                        fontWeight: 700,
+                                                                        cursor: eliminandoCarpetaId === asignacion.id ? 'wait' : 'pointer',
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '0.2rem',
+                                                                        lineHeight: 1,
+                                                                    }}
+                                                                    onClick={(e) => abrirModalEliminarCarpeta(asignacion, e)}
+                                                                    disabled={eliminandoCarpetaId === asignacion.id}
+                                                                    title={asignacion.descargada_en ? 'Eliminar permanentemente esta carpeta (descargada)' : 'Eliminar permanentemente esta carpeta (permite confirmar descarga)'}
+                                                                >
+                                                                    {eliminandoCarpetaId === asignacion.id ? '⌛' : (asignacion.descargada_en ? '🗑️' : '🔒 🗑️')}
+                                                                </button>
                                                                 <button
                                                                     type="button"
                                                                     className={`pf-historial-asig-chevron ${estaExpandida ? 'pf-historial-asig-chevron--open' : ''}`}
@@ -1155,22 +1329,23 @@ export default function PerfilEmpleado() {
                                                                         <button
                                                                             type="button"
                                                                             style={{
-                                                                                background: '#FEF2F2',
+                                                                                background: (!asignacion.descargada_en || eliminandoCarpetaId === asignacion.id) ? '#F1F5F9' : '#FEF2F2',
                                                                                 border: '1px solid #FECACA',
-                                                                                color: '#DC2626',
+                                                                                color: (!asignacion.descargada_en || eliminandoCarpetaId === asignacion.id) ? '#94A3B8' : '#DC2626',
                                                                                 padding: '0.4rem 0.85rem',
                                                                                 borderRadius: '6px',
                                                                                 fontSize: '0.78rem',
                                                                                 fontWeight: 700,
-                                                                                cursor: 'pointer',
+                                                                                cursor: eliminandoCarpetaId === asignacion.id ? 'wait' : 'pointer',
                                                                                 display: 'inline-flex',
                                                                                 alignItems: 'center',
                                                                                 gap: '0.25rem',
                                                                             }}
-                                                                            onClick={() => handleBorrarAsignacion(asignacion.id)}
-                                                                            title="Borrar asignación"
+                                                                            onClick={(e) => abrirModalEliminarCarpeta(asignacion, e)}
+                                                                            disabled={eliminandoCarpetaId === asignacion.id}
+                                                                            title="Eliminar permanentemente esta carpeta"
                                                                         >
-                                                                            🗑️ Borrar
+                                                                            {eliminandoCarpetaId === asignacion.id ? '⌛ Eliminando...' : '🗑️ Eliminar carpeta'}
                                                                         </button>
                                                                     </div>
                                                                 </div>
@@ -1485,6 +1660,254 @@ export default function PerfilEmpleado() {
                     onClose={() => setTecnicoParaCuentasCobro(null)}
                 />
             )}
+
+            {modalEliminarCarpetas && (
+                <ModalConfirmarEliminacionCarpetas
+                    info={modalEliminarCarpetas}
+                    onCerrar={() => setModalEliminarCarpetas(null)}
+                    onConfirmar={handleConfirmarEliminacion}
+                    cargando={eliminandoTodoHistorial || !!eliminandoCarpetaId}
+                />
+            )}
+        </div>
+    );
+}
+
+function ModalConfirmarEliminacionCarpetas({ info, onCerrar, onConfirmar, cargando }) {
+    const [casillaYaDescargado, setCasillaYaDescargado] = useState(false);
+
+    if (!info) return null;
+
+    const tieneNoDescargadas = info.noDescargadasCount > 0;
+    const puedeProceder = !tieneNoDescargadas || casillaYaDescargado;
+
+    return (
+        <div
+            style={{
+                position: 'fixed',
+                inset: 0,
+                backgroundColor: 'rgba(15, 23, 42, 0.75)',
+                backdropFilter: 'blur(4px)',
+                zIndex: 9999,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '1rem',
+            }}
+            onClick={(e) => {
+                if (e.target === e.currentTarget && !cargando) onCerrar();
+            }}
+        >
+            <div
+                style={{
+                    background: '#ffffff',
+                    borderRadius: '14px',
+                    maxWidth: '520px',
+                    width: '100%',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                    border: '1px solid #E2E8F0',
+                    overflow: 'hidden',
+                }}
+            >
+                {/* Cabecera modal */}
+                <div
+                    style={{
+                        padding: '1.25rem 1.5rem',
+                        borderBottom: '1px solid #F1F5F9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: '#FFF5F5',
+                    }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <span style={{ fontSize: '1.4rem' }}>🗑️</span>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#991B1B' }}>
+                                {info.tipo === 'masivo'
+                                    ? 'Eliminar todo el historial finalizado'
+                                    : 'Eliminar carpeta finalizada'}
+                            </h3>
+                            <span style={{ fontSize: '0.75rem', color: '#B91C1C' }}>
+                                Acción permanente e irreversible
+                            </span>
+                        </div>
+                    </div>
+                    {!cargando && (
+                        <button
+                            type="button"
+                            onClick={onCerrar}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                fontSize: '1.25rem',
+                                color: '#94A3B8',
+                                cursor: 'pointer',
+                                padding: '0.2rem',
+                                lineHeight: 1,
+                            }}
+                        >
+                            ✕
+                        </button>
+                    )}
+                </div>
+
+                {/* Cuerpo modal */}
+                <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {info.tipo === 'individual' ? (
+                        <div style={{ fontSize: '0.9rem', color: '#334155', lineHeight: 1.5 }}>
+                            Estás a punto de eliminar permanentemente la carpeta de{' '}
+                            <strong>{info.asignacion?.cliente}</strong> ({info.asignacion?.ciudad}), junto con todos sus
+                            viáticos asociados y fotos de evidencia.
+                        </div>
+                    ) : (
+                        <div style={{ fontSize: '0.9rem', color: '#334155', lineHeight: 1.5 }}>
+                            Estás a punto de eliminar permanentemente de la base de datos las{' '}
+                            <strong>{info.totalCount} carpetas finalizadas</strong> de este técnico, junto con todos sus
+                            viáticos asociados y evidencias fotográficas.
+                        </div>
+                    )}
+
+                    <div
+                        style={{
+                            background: '#F8FAFC',
+                            border: '1px solid #E2E8F0',
+                            borderRadius: '8px',
+                            padding: '0.85rem 1rem',
+                            fontSize: '0.82rem',
+                            color: '#475569',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.35rem',
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, color: '#0F172A' }}>
+                            <span>🛡️</span> Preservación de métricas financieras:
+                        </div>
+                        <div>
+                            El histórico acumulado, el <strong>Total Gastado</strong> y los gráficos del dashboard se conservarán intactos en las estadísticas archivadas del sistema.
+                        </div>
+                    </div>
+
+                    {/* Estado de descargas */}
+                    {tieneNoDescargadas ? (
+                        <div
+                            style={{
+                                background: '#FFFBEB',
+                                border: '1px solid #FDE68A',
+                                borderRadius: '8px',
+                                padding: '0.85rem 1rem',
+                                fontSize: '0.82rem',
+                                color: '#92400E',
+                            }}
+                        >
+                            <strong>⚠️ Estado de respaldo:</strong>{' '}
+                            {info.tipo === 'individual'
+                                ? 'Esta carpeta aún no registra una descarga previa en el sistema.'
+                                : `${info.noDescargadasCount} de las ${info.totalCount} carpetas no registran descarga previa en el sistema.`}
+                        </div>
+                    ) : (
+                        <div
+                            style={{
+                                background: '#F0FDF4',
+                                border: '1px solid #BBF7D0',
+                                borderRadius: '8px',
+                                padding: '0.85rem 1rem',
+                                fontSize: '0.82rem',
+                                color: '#166534',
+                            }}
+                        >
+                            <strong>✅ Respaldo verificado:</strong> Todas las carpetas seleccionadas ya registran descarga previa en el sistema.
+                        </div>
+                    )}
+
+                    {/* CASILLA REQUERIDA POR EL USUARIO */}
+                    <label
+                        style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '0.75rem',
+                            padding: '0.9rem 1rem',
+                            background: casillaYaDescargado ? '#FEF2F2' : '#F8FAFC',
+                            border: `1.5px solid ${casillaYaDescargado ? '#DC2626' : '#CBD5E1'}`,
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            transition: 'all 0.15s ease',
+                        }}
+                    >
+                        <input
+                            type="checkbox"
+                            checked={casillaYaDescargado}
+                            onChange={(e) => setCasillaYaDescargado(e.target.checked)}
+                            disabled={cargando}
+                            style={{
+                                width: '18px',
+                                height: '18px',
+                                marginTop: '0.15rem',
+                                accentColor: '#DC2626',
+                                cursor: 'pointer',
+                            }}
+                        />
+                        <span style={{ fontSize: '0.9rem', color: '#1E293B', fontWeight: 600, lineHeight: 1.4 }}>
+                            Ya lo descargué, sí borremos todo
+                            <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: 400, color: '#64748B', marginTop: '2px' }}>
+                                Confirmo que ya tengo copia de respaldo o descargué las carpetas y autorizo su eliminación definitiva.
+                            </span>
+                        </span>
+                    </label>
+
+                    {tieneNoDescargadas && !casillaYaDescargado && (
+                        <p style={{ margin: 0, fontSize: '0.78rem', color: '#DC2626', textAlign: 'center' }}>
+                            ℹ️ Para proceder con carpetas sin registro de descarga, marca la casilla superior.
+                        </p>
+                    )}
+                </div>
+
+                {/* Botones pie modal */}
+                <div
+                    style={{
+                        padding: '1rem 1.5rem',
+                        borderTop: '1px solid #F1F5F9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        gap: '0.75rem',
+                        background: '#FAFAFA',
+                    }}
+                >
+                    <button
+                        type="button"
+                        onClick={onCerrar}
+                        disabled={cargando}
+                        className="pf-btn pf-btn-secondary"
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onConfirmar(casillaYaDescargado)}
+                        disabled={!puedeProceder || cargando}
+                        style={{
+                            background: !puedeProceder || cargando ? '#CBD5E1' : '#DC2626',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '0.5rem 1.25rem',
+                            borderRadius: '6px',
+                            fontSize: '0.85rem',
+                            fontWeight: 700,
+                            cursor: !puedeProceder || cargando ? 'not-allowed' : 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            transition: 'background 0.15s ease',
+                        }}
+                    >
+                        {cargando ? '⌛ Eliminando...' : '🗑️ Sí, eliminar permanentemente'}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

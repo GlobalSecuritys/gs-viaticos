@@ -3,7 +3,7 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-UnionTemporalLiteral = Literal["RTC", "MANTENIMIENTO"]
+UnionTemporalLiteral = Literal["RTC", "MANTENIMIENTO", "PROYECTO_ZEUS"]
 EstadoDespachoLiteral = Literal[
     "instalado",
     "pendiente_instalacion",
@@ -30,8 +30,18 @@ class ItemBase(BaseModel):
     factura: Optional[str] = Field(default=None, max_length=60)
     no_sds: Optional[str] = Field(default=None, max_length=60)
     id_equipo: Optional[str] = Field(default=None, max_length=60)
+    numero_articulo: Optional[str] = Field(default=None, max_length=60)
+    tiempo_entrega: Optional[str] = Field(default=None, max_length=80)
 
-    @field_validator("codigo_barras", "serial_gsb", "factura", "no_sds", "id_equipo")
+    @field_validator(
+        "codigo_barras",
+        "serial_gsb",
+        "factura",
+        "no_sds",
+        "id_equipo",
+        "numero_articulo",
+        "tiempo_entrega",
+    )
     @classmethod
     def limpiar(cls, v: Optional[str]) -> Optional[str]:
         v = _texto_opcional(v)
@@ -71,6 +81,8 @@ class ItemResponse(BaseModel):
     factura: Optional[str] = None
     no_sds: Optional[str] = None
     id_equipo: Optional[str] = None
+    numero_articulo: Optional[str] = None
+    tiempo_entrega: Optional[str] = None
     total_despachos: int = 0
     creado_en: datetime
     actualizado_en: datetime
@@ -168,6 +180,7 @@ class PrestamoCreate(BaseModel):
     union_temporal: UnionTemporalLiteral
     descripcion: str = Field(min_length=1, max_length=255)
     cantidad: int = Field(gt=0)
+    fecha_prestamo: Optional[date] = None
     item_id: Optional[int] = None
 
     @field_validator("descripcion")
@@ -180,6 +193,7 @@ class PrestamoUpdate(BaseModel):
     union_temporal: Optional[UnionTemporalLiteral] = None
     descripcion: Optional[str] = Field(default=None, min_length=1, max_length=255)
     cantidad: Optional[int] = Field(default=None, gt=0)
+    fecha_prestamo: Optional[date] = None
     item_id: Optional[int] = None
 
     @field_validator("descripcion")
@@ -193,6 +207,7 @@ class PrestamoResponse(BaseModel):
     union_temporal: UnionTemporalLiteral
     descripcion: str
     cantidad: int
+    fecha_prestamo: Optional[date] = None
     item_id: Optional[int] = None
     migrado: bool = False
     creado_en: datetime
@@ -212,6 +227,7 @@ class ResumenInventario(BaseModel):
     total_unidades: int = 0
     total_despachos: int = 0
     total_prestamos: int = 0
+    total_items_tecnicos: int = 0
     por_estado: dict[str, int] = {}
     # Despachos que piden atención: pendientes de instalar, en alerta o dañados.
     pendientes: int = 0
@@ -231,6 +247,7 @@ class TecnicoOpcion(BaseModel):
     id: int
     nombre: str
     activo: bool
+    solo_inventario: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -241,3 +258,64 @@ class AsignacionOpcion(BaseModel):
     estado: str
     fecha_inicio: date
     fecha_fin: date
+
+
+# -----------------------------------------------------------------------------
+# INVENTARIO EN PODER DE TÉCNICOS (Hojas de técnicos en Excel)
+# -----------------------------------------------------------------------------
+class InventarioTecnicoItemBase(BaseModel):
+    union_temporal: UnionTemporalLiteral = "MANTENIMIENTO"
+    tecnico_id: int
+    descripcion: str
+    cantidad: int = 1
+    codigo_barras: Optional[str] = None
+    serial_gsb: Optional[str] = None
+    id_equipo: Optional[str] = None
+    factura: Optional[str] = None
+    fecha_compra: Optional[date] = None
+    oficina: Optional[str] = None
+    concatenado: Optional[str] = None
+    fecha_despacho: Optional[date] = None
+    observacion: Optional[str] = None
+    numero_orden: Optional[str] = None
+    oficina_instalada: Optional[str] = None
+    fecha_instalacion: Optional[date] = None
+
+
+class InventarioTecnicoItemCreate(InventarioTecnicoItemBase):
+    pass
+
+
+class InventarioTecnicoItemUpdate(BaseModel):
+    descripcion: Optional[str] = None
+    cantidad: Optional[int] = None
+    codigo_barras: Optional[str] = None
+    serial_gsb: Optional[str] = None
+    id_equipo: Optional[str] = None
+    factura: Optional[str] = None
+    fecha_compra: Optional[date] = None
+    oficina: Optional[str] = None
+    concatenado: Optional[str] = None
+    fecha_despacho: Optional[date] = None
+    observacion: Optional[str] = None
+    numero_orden: Optional[str] = None
+    oficina_instalada: Optional[str] = None
+    fecha_instalacion: Optional[date] = None
+
+
+class InventarioTecnicoItemResponse(InventarioTecnicoItemBase):
+    id: int
+    tecnico_nombre: str
+    creado_en: datetime
+    actualizado_en: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TecnicoInventarioResumen(BaseModel):
+    tecnico_id: int
+    tecnico_nombre: str
+    activo: bool
+    solo_inventario: bool = False
+    total_items: int
+    total_unidades: int

@@ -23,6 +23,15 @@ class ResumenGastosFila(BaseModel):
     cantidad: int
 
 
+class DistribucionConceptos(BaseModel):
+    hospedaje: Decimal = Decimal("0.00")
+    transporte: Decimal = Decimal("0.00")
+    alimentacion: Decimal = Decimal("0.00")
+    materiales: Decimal = Decimal("0.00")
+    alquiler_escalera: Decimal = Decimal("0.00")
+    otros: Decimal = Decimal("0.00")
+
+
 class ResumenGastosResponse(BaseModel):
     """
     Fuente ÚNICA del "total gastado" del panel. `total` corresponde al periodo
@@ -41,6 +50,8 @@ class ResumenGastosResponse(BaseModel):
     total: Decimal
     total_historico: Decimal
     total_rechazado: Decimal
+    total_viaticos_registrados: int = 0
+    distribucion_conceptos: DistribucionConceptos | None = None
     filas: list[ResumenGastosFila]
 
 

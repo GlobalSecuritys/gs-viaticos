@@ -40,8 +40,18 @@ export function finalizarAsignacion(id) {
     return api.put(`/admin/asignaciones/${id}/finalizar`);
 }
 
-export function eliminarAsignacion(id) {
-    return api.delete(`/admin/asignaciones/${id}`);
+export function eliminarAsignacion(id, { confirmarYaDescargado = false } = {}) {
+    return api.delete(`/admin/asignaciones/${id}`, {
+        params: { confirmar_ya_descargado: confirmarYaDescargado },
+    });
+}
+
+export function eliminarAsignacionesMasivo(payload) {
+    return api.post('/admin/asignaciones/eliminar-varias', payload);
+}
+
+export function obtenerEstadisticasHistoricasTecnico(tecnicoId) {
+    return api.get(`/admin/asignaciones/tecnico/${tecnicoId}/estadisticas-historicas`);
 }
 
 // --- Vista del técnico (no admin) -------------------------------------------

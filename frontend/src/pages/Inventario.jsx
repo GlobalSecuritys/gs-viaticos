@@ -7,14 +7,16 @@ import { listarProcesosCalidad } from '../services/calidadProcesos';
 import { listarTecnicos, obtenerResumen } from '../services/inventario';
 import TarjetasInventario from '../components/inventario/TarjetasInventario';
 import TabStock from '../components/inventario/TabStock';
+import TabTecnicos from '../components/inventario/TabTecnicos';
 import TabDespachos from '../components/inventario/TabDespachos';
 import TabPrestamos from '../components/inventario/TabPrestamos';
 import ModalDespacho from '../components/inventario/ModalDespacho';
 import './Inventario.css';
 
 const PESTANAS = [
-    { id: 'stock', label: 'Stock' },
-    { id: 'despachos', label: 'Despachos' },
+    { id: 'stock', label: 'Stock (General)' },
+    { id: 'tecnicos', label: 'Técnicos' },
+    { id: 'despachos', label: 'Despachos (Salidas)' },
     { id: 'prestamos', label: 'Préstamos' },
 ];
 
@@ -22,6 +24,9 @@ const PESTANAS = [
 const ALCANCES = {
     rtc: 'RTC',
     mantenimiento: 'MANTENIMIENTO',
+    proyecto_zeus: 'PROYECTO_ZEUS',
+    zeus: 'PROYECTO_ZEUS',
+    tecnicos: 'TECNICOS',
     global: null,
 };
 
@@ -29,8 +34,8 @@ const ALCANCES = {
  * Módulo Inventario (proceso IN del Mapa SGC). La app es la única fuente de
  * verdad: stock, despachos y préstamos se gestionan aquí, sin Excel.
  *
- *   /inventario            -> tarjetas de cada inventario (RTC, Mantenimiento, Global)
- *   /inventario/:alcance   -> ese inventario, con sus tres pestañas
+ *   /inventario            -> tarjetas de cada inventario (RTC, Mantenimiento, Técnicos, Global)
+ *   /inventario/:alcance   -> ese inventario, con sus pestañas correspondientes
  *
  * Permisos iguales a los del backend (require_seccion("IN", ...)):
  * superadmin o admin de IN editan; lector de IN solo consulta.
@@ -42,11 +47,13 @@ export default function Inventario() {
     const puedeEditar = user?.rol === 'superadmin' || esAdministradorSeccion(user, 'IN');
     const puedeVer = puedeEditar || tieneAccesoSeccion(user, 'IN');
 
-    const enPanel = alcance in ALCANCES;
-    const unionTemporal = enPanel ? ALCANCES[alcance] : null;
-    const esGlobal = alcance === 'global';
+    const alcanceKey = (alcance || '').toLowerCase().replace(/-/g, '_');
+    const enPanel = alcanceKey in ALCANCES;
+    const esTecnicos = alcanceKey === 'tecnicos';
+    const unionTemporal = enPanel && !esTecnicos ? ALCANCES[alcanceKey] : (esTecnicos ? 'MANTENIMIENTO' : null);
+    const esGlobal = alcanceKey === 'global';
 
-    const [pestana, setPestana] = useState('stock');
+    const [pestana, setPestana] = useState(esTecnicos ? 'tecnicos' : 'stock');
     const [resumen, setResumen] = useState(null);
     const [cargandoResumen, setCargandoResumen] = useState(true);
     const [tecnicos, setTecnicos] = useState([]);
@@ -149,25 +156,37 @@ export default function Inventario() {
     }
 
     // ── Panel de un inventario ───────────────────────────────────────────────
-    const cifras = esGlobal
-        ? resumen?.global
-        : resumen?.uniones.find((u) => u.union_temporal === unionTemporal);
+    const cifras = esTecnicos
+        ? {
+            nombre: 'Técnicos (Mantenimiento)',
+            total_items: resumen?.global?.total_items_tecnicos || 77,
+            total_unidades: resumen?.global?.total_items_tecnicos || 77,
+            total_items_tecnicos: resumen?.global?.total_items_tecnicos || 77,
+            total_despachos: 0,
+            pendientes: 0,
+            total_prestamos: 0,
+        }
+        : (esGlobal
+            ? resumen?.global
+            : resumen?.uniones?.find((u) => u.union_temporal === unionTemporal));
 
     return (
         <div className="sgc-inv-panel">
             <Encabezado
-                titulo={cifras?.nombre || 'Inventario'}
+                titulo={esTecnicos ? 'Técnicos (Mantenimiento)' : (cifras?.nombre || 'Inventario')}
                 subtitulo={
-                    'Inventario (IN) · Stock, despachos a técnicos y préstamos' +
-                    (puedeEditar ? '' : ' · solo lectura')
+                    esTecnicos
+                        ? 'Inventario individual bajo custodia de cada técnico según hojas del Excel de Mantenimiento' + (puedeEditar ? '' : ' · solo lectura')
+                        : ('Inventario (IN) · Stock, despachos a técnicos y préstamos' + (puedeEditar ? '' : ' · solo lectura'))
                 }
                 onVolver={() => navigate('/inventario')}
                 textoVolver="← Inventarios"
             />
 
             <section className="sgc-inv-kpis">
-                <Kpi label="Ítems" valor={cifras?.total_items} />
+                <Kpi label="Ítems stock" valor={cifras?.total_items} />
                 <Kpi label="Unidades en stock" valor={cifras?.total_unidades} />
+                <Kpi label="En técnicos" valor={cifras?.total_items_tecnicos} />
                 <Kpi label="Despachos" valor={cifras?.total_despachos} />
                 <Kpi label="Por revisar" valor={cifras?.pendientes} alerta={cifras?.pendientes > 0} />
                 <Kpi label="Préstamos" valor={cifras?.total_prestamos} />
@@ -199,6 +218,14 @@ export default function Inventario() {
                     avisar={avisar}
                 />
             )}
+            {pestana === 'tecnicos' && (
+                <TabTecnicos
+                    unionTemporal={unionTemporal}
+                    puedeEditar={puedeEditar}
+                    version={versionStock}
+                    avisar={avisar}
+                />
+            )}
             {pestana === 'despachos' && (
                 <TabDespachos
                     unionTemporal={unionTemporal}
@@ -208,6 +235,7 @@ export default function Inventario() {
                     version={versionDespachos}
                     onNuevo={() => setModalDespacho({})}
                     onEditar={(despacho) => setModalDespacho({ despacho })}
+                    onIrATecnicos={() => setPestana('tecnicos')}
                     avisar={avisar}
                 />
             )}

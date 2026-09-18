@@ -101,6 +101,7 @@ class AsignacionResponse(AsignacionBase):
     estado_legalizacion: str = "sin_gastos"
     cuenta_cobro: CuentaCobroAsignacionResponse | None = None
     cerrada_en: datetime | None = None
+    descargada_en: datetime | None = None
     limite_subida_viaticos: datetime | None = None
     puede_subir_viaticos: bool = True
     en_periodo_gracia: bool = False

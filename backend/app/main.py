@@ -34,6 +34,7 @@ from app.models.calidad_procesos import (
     ProcesoCalidadAccesoAdmin,
 )
 from app.models.bitacora_backup import BitacoraBackup
+from app.models.estadistica_asignacion_archivada import EstadisticaAsignacionArchivada
 
 app = FastAPI(
     title="GS Viáticos API",
@@ -48,15 +49,18 @@ def startup_db_check():
             conn.execute(text("ALTER TABLE viaticos ADD COLUMN IF NOT EXISTS comentario_admin TEXT;"))
             conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS eliminado_en TIMESTAMP WITHOUT TIME ZONE;"))
             conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS cerrada_en TIMESTAMP WITHOUT TIME ZONE;"))
+            conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS descargada_en TIMESTAMP WITHOUT TIME ZONE;"))
             conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS orden_trabajo VARCHAR(50);"))
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_admin_calidad BOOLEAN DEFAULT FALSE;"))
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS acceso_mapa BOOLEAN DEFAULT TRUE;"))
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol_mapa VARCHAR(20) DEFAULT 'lector';"))
+            conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS solo_inventario BOOLEAN NOT NULL DEFAULT FALSE;"))
             conn.execute(text("UPDATE usuarios SET rol_mapa = 'lector' WHERE rol_mapa IS NULL OR rol_mapa = '';"))
             conn.execute(text("UPDATE usuarios SET es_admin_calidad = TRUE, rol_mapa = 'editor' WHERE LOWER(TRIM(correo)) = 'pilaradmin@gsbank.com';"))
             conn.commit()
         CuentaCobro.__table__.create(bind=engine, checkfirst=True)
         CuentaCobroAsignacion.__table__.create(bind=engine, checkfirst=True)
+        EstadisticaAsignacionArchivada.__table__.create(bind=engine, checkfirst=True)
         EmpleadoPerfil.__table__.create(bind=engine, checkfirst=True)
         EmpleadoDocumento.__table__.create(bind=engine, checkfirst=True)
         EmpleadoHistorial.__table__.create(bind=engine, checkfirst=True)
@@ -87,6 +91,8 @@ def _asegurar_inventario() -> None:
         renombradas = asegurar_esquema_inventario(engine)
         if renombradas:
             print(f"[STARTUP] Inventario anterior retirado (renombrado a inventario_legacy_*): {renombradas}")
+        from app.models.inventario import InventarioTecnicoItem
+        InventarioTecnicoItem.__table__.create(bind=engine, checkfirst=True)
     except Exception as e:
         print(f"[STARTUP] Advertencia al preparar las tablas de inventario: {e}")
 

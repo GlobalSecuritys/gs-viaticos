@@ -39,6 +39,7 @@ if TYPE_CHECKING:
 class UnionTemporal(str, enum.Enum):
     RTC = "RTC"
     MANTENIMIENTO = "MANTENIMIENTO"
+    PROYECTO_ZEUS = "PROYECTO_ZEUS"
 
 
 class EstadoDespacho(str, enum.Enum):
@@ -78,6 +79,13 @@ class InventarioItem(Base):
     descripcion: Mapped[str] = mapped_column(String(255), nullable=False)
     serial_gsb: Mapped[Optional[str]] = mapped_column(String(60), nullable=True, index=True)
     cantidad_stock: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0", default=0)
+
+    # Referencia del fabricante (ej. "ANV-L7082R") — viene de la columna
+    # "Número de artículo" de los Excel de inventario.
+    numero_articulo: Mapped[Optional[str]] = mapped_column(String(60), nullable=True, index=True)
+
+    # Tiempo estimado de entrega libre (ej. "EN STOCK", "8 a 10 Dias")
+    tiempo_entrega: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
 
     # Columnas de origen del Excel (FECHA / FECHA COMPRA EQUIPO, FACTURA, No SDS,
     # ID. EQUIPO). Se conservan porque el Excel deja de existir como fuente.
@@ -176,6 +184,7 @@ class InventarioPrestamo(Base):
     )
     descripcion: Mapped[str] = mapped_column(String(255), nullable=False)
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
+    fecha_prestamo: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     clave_migracion: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True)
 
     creado_en: Mapped[datetime] = mapped_column(
@@ -186,3 +195,39 @@ class InventarioPrestamo(Base):
     )
 
     item: Mapped[Optional["InventarioItem"]] = relationship("InventarioItem")
+
+
+class InventarioTecnicoItem(Base):
+    """Ítems de inventario asignados a un técnico (hojas de técnicos en Excel de Mantenimiento)."""
+
+    __tablename__ = "inventario_tecnicos_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    union_temporal: Mapped[UnionTemporal] = mapped_column(UnionTemporalDB, nullable=False, index=True)
+    tecnico_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    tecnico_nombre: Mapped[str] = mapped_column(String(120), nullable=False)
+    descripcion: Mapped[str] = mapped_column(String(255), nullable=False)
+    cantidad: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1", default=1)
+    codigo_barras: Mapped[Optional[str]] = mapped_column(String(60), nullable=True, index=True)
+    serial_gsb: Mapped[Optional[str]] = mapped_column(String(60), nullable=True, index=True)
+    id_equipo: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    factura: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    fecha_compra: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    oficina: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    concatenado: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    fecha_despacho: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)
+    observacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    numero_orden: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    oficina_instalada: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    fecha_instalacion: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), nullable=False, server_default=func.now()
+    )
+    actualizado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+    tecnico: Mapped["Usuario"] = relationship("Usuario")
