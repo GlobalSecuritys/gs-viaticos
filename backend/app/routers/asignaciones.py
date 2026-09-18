@@ -259,14 +259,16 @@ def purgar_asignaciones_eliminadas(db: Session) -> None:
 def _archivar_y_eliminar_asignacion_permanente(
     asignacion: Asignacion,
     db: Session,
-    admin_id: int,
-) -> EstadisticaAsignacionArchivada:
+    admin: Usuario,
+) -> tuple[EstadisticaAsignacionArchivada, dict]:
     """
     1. Calcula y persiste agregados históricos de la asignación y sus viáticos en
        `estadisticas_asignaciones_archivadas`.
     2. Realiza borrado físico (hard delete) en cascada de evidencias, viáticos,
        cuentas de cobro asociadas y la asignación misma.
-    3. Registra la auditoría correspondiente.
+    3. Devuelve, junto al registro histórico, los datos de auditoría para que el
+       endpoint los registre DESPUÉS del commit (registrar_auditoria hace su
+       propio commit y no debe partir la transacción del borrado).
     """
     # 1. Obtener viáticos con evidencias
     stmt_v = (
@@ -337,7 +339,7 @@ def _archivar_y_eliminar_asignacion_permanente(
             total_otros=total_otros,
             cantidad_viaticos=len(viaticos),
             desglose_viaticos=desglose,
-            eliminada_por_id=admin_id,
+            eliminada_por_id=admin.id,
             eliminada_en=datetime.utcnow(),
         )
         db.add(est)
@@ -374,23 +376,38 @@ def _archivar_y_eliminar_asignacion_permanente(
     db.delete(asignacion)
     db.flush()
 
-    # 6. Registrar en auditoría
-    registrar_auditoria(
-        db,
-        usuario_id=admin_id,
-        modulo="asignaciones",
-        accion="eliminar_carpeta_finalizada",
-        entidad_id=asig_id,
-        detalles={
-            "cliente": cliente_nombre,
-            "ciudad": ciudad_nombre,
-            "tecnico_id": tecnico_id,
-            "cantidad_viaticos": len(viaticos),
-            "total_gastado": float(total_gastado),
-        },
-    )
+    # 6. Datos de auditoría (se registran tras el commit del endpoint)
+    auditoria = {
+        "tecnico_id": tecnico_id,
+        "detalle": (
+            f"Eliminación permanente de la carpeta #{asig_id} "
+            f"({cliente_nombre or 'sin cliente'} / {ciudad_nombre or 'sin ciudad'}): "
+            f"{len(viaticos)} viático(s), total gastado ${float(total_gastado):,.2f}."
+        ),
+    }
 
-    return est
+    return est, auditoria
+
+
+def _registrar_auditoria_eliminacion(db: Session, admin: Usuario, auditoria: dict) -> None:
+    """
+    Registra en el log de auditoría una eliminación ya confirmada. Se invoca
+    después del commit: si fallara, el borrado no debe deshacerse ni devolver
+    error al admin, por eso el fallo solo se reporta por consola.
+    """
+    try:
+        tecnico = db.get(Usuario, auditoria["tecnico_id"]) if auditoria.get("tecnico_id") else None
+        registrar_auditoria(
+            db,
+            actor=admin,
+            usuario_objetivo=tecnico,
+            accion="eliminar_carpeta_finalizada",
+            detalle=auditoria["detalle"],
+            resultado="exitoso",
+        )
+    except Exception as e:
+        db.rollback()
+        print(f"[AUDITORIA] No se pudo registrar la eliminación de carpeta: {e}")
 
 
 def _obtener_o_404(id: int, db: Session) -> Asignacion:
@@ -668,6 +685,7 @@ def eliminar_asignaciones_varias(
 
     eliminadas_ids = []
     excluidas_detalles = []
+    auditorias_pendientes = []
 
     for asig in candidatos:
         # Salvaguarda 1: Debe estar finalizada
@@ -691,10 +709,14 @@ def eliminar_asignaciones_varias(
             continue
 
         # Procede a archivar y eliminar en cascada
-        _archivar_y_eliminar_asignacion_permanente(asig, db, current_admin.id)
+        _, auditoria = _archivar_y_eliminar_asignacion_permanente(asig, db, current_admin)
+        auditorias_pendientes.append(auditoria)
         eliminadas_ids.append(asig.id)
 
     db.commit()
+
+    for auditoria in auditorias_pendientes:
+        _registrar_auditoria_eliminacion(db, current_admin, auditoria)
 
     mensaje = f"Se eliminaron permanentemente {len(eliminadas_ids)} carpeta(s)."
     if excluidas_detalles:
@@ -927,8 +949,10 @@ def eliminar_asignacion(
             detail="Esta carpeta no ha sido descargada previamente. Por seguridad, debes descargar la carpeta de la asignación antes de poder eliminarla o marcar la casilla de confirmación.",
         )
 
-    _archivar_y_eliminar_asignacion_permanente(asignacion, db, current_admin.id)
+    _, auditoria = _archivar_y_eliminar_asignacion_permanente(asignacion, db, current_admin)
     db.commit()
+
+    _registrar_auditoria_eliminacion(db, current_admin, auditoria)
 
     return {
         "id": id,

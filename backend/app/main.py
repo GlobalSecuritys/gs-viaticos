@@ -57,7 +57,22 @@ def startup_db_check():
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS solo_inventario BOOLEAN NOT NULL DEFAULT FALSE;"))
             conn.execute(text("UPDATE usuarios SET rol_mapa = 'lector' WHERE rol_mapa IS NULL OR rol_mapa = '';"))
             conn.execute(text("UPDATE usuarios SET es_admin_calidad = TRUE, rol_mapa = 'editor' WHERE LOWER(TRIM(correo)) = 'pilaradmin@gsbank.com';"))
+            # ── Inventario: columnas nuevas de técnicos e ítems (migración auto) ──
+            conn.execute(text("ALTER TABLE inventario_tecnicos_items ADD COLUMN IF NOT EXISTS fecha_despacho DATE;"))
+            conn.execute(text("ALTER TABLE inventario_tecnicos_items ADD COLUMN IF NOT EXISTS numero_orden VARCHAR(60);"))
+            conn.execute(text("ALTER TABLE inventario_tecnicos_items ADD COLUMN IF NOT EXISTS oficina_instalada VARCHAR(120);"))
+            conn.execute(text("ALTER TABLE inventario_tecnicos_items ADD COLUMN IF NOT EXISTS fecha_instalacion DATE;"))
+            conn.execute(text("ALTER TABLE inventario_prestamos ADD COLUMN IF NOT EXISTS fecha_prestamo DATE;"))
+            # ── Inventario: columnas Proyecto Zeus en inventario_items ──
+            conn.execute(text("ALTER TABLE inventario_items ADD COLUMN IF NOT EXISTS numero_articulo VARCHAR(60);"))
+            conn.execute(text("ALTER TABLE inventario_items ADD COLUMN IF NOT EXISTS tiempo_entrega VARCHAR(80);"))
             conn.commit()
+        # ── ENUM PROYECTO_ZEUS: debe correr fuera de transacción (restricción de Postgres) ──
+        try:
+            with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn_ac:
+                conn_ac.execute(text("ALTER TYPE inventario_union_temporal ADD VALUE IF NOT EXISTS 'PROYECTO_ZEUS';"))
+        except Exception as e_enum:
+            print(f"[STARTUP] Enum PROYECTO_ZEUS (puede ya existir o tabla no existe aún): {e_enum}")
         CuentaCobro.__table__.create(bind=engine, checkfirst=True)
         CuentaCobroAsignacion.__table__.create(bind=engine, checkfirst=True)
         EstadisticaAsignacionArchivada.__table__.create(bind=engine, checkfirst=True)
