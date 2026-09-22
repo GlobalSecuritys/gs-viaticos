@@ -98,16 +98,14 @@ def startup_db_check():
 
 def _asegurar_inventario() -> None:
     """Retira las tablas del inventario anterior (renombradas a
-    inventario_legacy_*) y crea las de ítems, despachos y préstamos.
+    inventario_legacy_*) y crea la tabla de inventario_salidas_registro.
 
     En su propio try para que un fallo aquí no impida el resto del arranque.
     """
     try:
         renombradas = asegurar_esquema_inventario(engine)
         if renombradas:
-            print(f"[STARTUP] Inventario anterior retirado (renombrado a inventario_legacy_*): {renombradas}")
-        from app.models.inventario import InventarioTecnicoItem
-        InventarioTecnicoItem.__table__.create(bind=engine, checkfirst=True)
+            print(f"[STARTUP] Tablas de inventario retiradas (renombradas a inventario_legacy_*): {renombradas}")
     except Exception as e:
         print(f"[STARTUP] Advertencia al preparar las tablas de inventario: {e}")
 

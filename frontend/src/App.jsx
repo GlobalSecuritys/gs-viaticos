@@ -254,8 +254,7 @@ export default function App() {
             }
           />
 
-          {/* Inventario: tarjetas por inventario y, dentro, stock/despachos/
-              préstamos de ese alcance (técnicos bloqueados) */}
+          {/* Inventario: visor del Excel, filtros, búsqueda y salidas */}
           <Route
             path="/inventario"
             element={
@@ -266,16 +265,7 @@ export default function App() {
               </PrivateRoute>
             }
           />
-          <Route
-            path="/inventario/:alcance"
-            element={
-              <PrivateRoute>
-                <NoTecnicoRoute>
-                  <Inventario />
-                </NoTecnicoRoute>
-              </PrivateRoute>
-            }
-          />
+          <Route path="/inventario/:alcance" element={<Navigate to="/inventario" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </AuthProvider>

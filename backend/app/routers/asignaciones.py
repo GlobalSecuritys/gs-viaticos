@@ -360,12 +360,16 @@ def _archivar_y_eliminar_asignacion_permanente(
         delete(CuentaCobroAsignacion).where(CuentaCobroAsignacion.asignacion_id == asignacion.id)
     )
 
-    # 4. Desvincular de inventario
-    db.execute(
-        update(InventarioDespacho)
-        .where(InventarioDespacho.asignacion_id == asignacion.id)
-        .values(asignacion_id=None)
-    )
+    # 4. Desvincular de inventario (si la tabla anterior existe)
+    try:
+        from app.models.inventario import InventarioDespacho
+        db.execute(
+            update(InventarioDespacho)
+            .where(InventarioDespacho.asignacion_id == asignacion.id)
+            .values(asignacion_id=None)
+        )
+    except Exception:
+        pass
 
     # 5. Borrar la asignación
     asig_id = asignacion.id

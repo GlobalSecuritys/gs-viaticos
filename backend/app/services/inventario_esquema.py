@@ -76,10 +76,73 @@ def renombrar_tablas_legacy(engine: Engine) -> list[str]:
     return renombradas
 
 
-def asegurar_esquema_inventario(engine: Engine) -> list[str]:
-    """Retira las tablas legacy (si existen) y crea las tablas nuevas si faltan."""
-    renombradas = renombrar_tablas_legacy(engine)
-    # Orden importante: despachos y préstamos referencian ítems.
-    for modelo in (InventarioItem, InventarioDespacho, InventarioPrestamo):
-        modelo.__table__.create(bind=engine, checkfirst=True)
+TABLAS_ANTERIORES_A_RETIRAR = [
+    # Mapeo: tabla_actual -> tabla_destino_legacy
+    ("inventario_tecnicos_items", "inventario_legacy_tecnicos_items"),
+    ("inventario_prestamos", "inventario_legacy_prestamos"),
+    ("inventario_despachos", "inventario_legacy_despachos"),
+    ("inventario_items", "inventario_legacy_items_v2"),
+]
+
+
+def retirar_tablas_inventario_anterior(engine: Engine) -> list[str]:
+    """Renombra las tablas del inventario anterior (items, despachos, prestamos, tecnicos_items).
+
+    No borra datos (sin DROP). Renombra tablas, índices y secuencias.
+    """
+    renombradas: list[str] = []
+    with engine.begin() as conn:
+        insp = inspect(conn)
+        for origen, destino in TABLAS_ANTERIORES_A_RETIRAR:
+            if not insp.has_table(origen):
+                continue
+            if insp.has_table(destino):
+                # Si la tabla destino ya existe (ej. corrida previa), no intentar sobreescribir
+                continue
+
+            indices = conn.execute(
+                text("SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename = :t"),
+                {"t": origen},
+            ).scalars().all()
+            secuencias = conn.execute(
+                text(
+                    "SELECT pg_get_serial_sequence(:t, a.attname) FROM pg_attribute a "
+                    "WHERE a.attrelid = CAST(:t AS regclass) AND a.attnum > 0 AND NOT a.attisdropped"
+                ),
+                {"t": origen},
+            ).scalars().all()
+
+            conn.execute(text(f'ALTER TABLE "{origen}" RENAME TO "{destino}"'))
+            for indice in indices:
+                nuevo = indice.replace("inventario_", "inventario_legacy_", 1)[:63]
+                if nuevo != indice:
+                    try:
+                        conn.execute(text(f'ALTER INDEX "{indice}" RENAME TO "{nuevo}"'))
+                    except Exception:
+                        pass
+            for secuencia in filter(None, secuencias):
+                nombre_seq = secuencia.split(".")[-1].strip('"')
+                nuevo_seq = nombre_seq.replace("inventario_", "inventario_legacy_", 1)[:63]
+                if nuevo_seq != nombre_seq:
+                    try:
+                        conn.execute(
+                            text(f'ALTER SEQUENCE {secuencia} RENAME TO "{nuevo_seq}"')
+                        )
+                    except Exception:
+                        pass
+            renombradas.append(f"{origen} -> {destino}")
     return renombradas
+
+
+def asegurar_esquema_inventario(engine: Engine) -> list[str]:
+    """Retira las tablas legacy (si existen) y crea la tabla de registro de salidas."""
+    # 1. Retiro de tablas legacy de v1 si quedaba alguna
+    renombradas_v1 = renombrar_tablas_legacy(engine)
+    # 2. Retiro de las 4 tablas de la versión anterior de uniones temporales
+    renombradas_v2 = retirar_tablas_inventario_anterior(engine)
+
+    # 3. Crear la nueva tabla simple de registro de salidas
+    from app.models.inventario_salida import InventarioSalidaRegistro
+    InventarioSalidaRegistro.__table__.create(bind=engine, checkfirst=True)
+
+    return renombradas_v1 + renombradas_v2

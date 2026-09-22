@@ -1,348 +1,734 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { esAdministradorSeccion, tieneAccesoSeccion } from '../utils/permisos';
 import { formatApiError } from '../utils/formatError';
 import { listarProcesosCalidad } from '../services/calidadProcesos';
-import { listarTecnicos, obtenerResumen } from '../services/inventario';
-import TarjetasInventario from '../components/inventario/TarjetasInventario';
-import TabStock from '../components/inventario/TabStock';
-import TabTecnicos from '../components/inventario/TabTecnicos';
-import TabDespachos from '../components/inventario/TabDespachos';
-import TabPrestamos from '../components/inventario/TabPrestamos';
-import ModalDespacho from '../components/inventario/ModalDespacho';
-import VistaMantenimiento from '../components/inventario/mantenimiento/VistaMantenimiento';
-import VistaRTC from '../components/inventario/rtc/VistaRTC';
-import VistaZeus from '../components/inventario/zeus/VistaZeus';
-import VistaGlobal from '../components/inventario/global/VistaGlobal';
+import {
+  obtenerDatosExcel,
+  buscarEnExcel,
+  guardarSalidaRegistro,
+} from '../services/inventario';
 import './Inventario.css';
 
-const PESTANAS = [
-    { id: 'stock', label: 'Stock (General)' },
-    { id: 'tecnicos', label: 'Técnicos' },
-    { id: 'despachos', label: 'Despachos (Salidas)' },
-    { id: 'prestamos', label: 'Préstamos' },
-];
-
-// Segmento de la URL -> unión temporal. 'global' no filtra: es el consolidado.
-const ALCANCES = {
-    rtc: 'RTC',
-    mantenimiento: 'MANTENIMIENTO',
-    proyecto_zeus: 'PROYECTO_ZEUS',
-    zeus: 'PROYECTO_ZEUS',
-    tecnicos: 'TECNICOS',
-    global: null,
-};
-
-/**
- * Módulo Inventario (proceso IN del Mapa SGC). La app es la única fuente de
- * verdad: stock, despachos y préstamos se gestionan aquí, sin Excel.
- *
- *   /inventario            -> tarjetas de cada inventario (RTC, Mantenimiento, Técnicos, Global)
- *   /inventario/:alcance   -> ese inventario, con sus pestañas correspondientes
- *
- * Permisos iguales a los del backend (require_seccion("IN", ...)):
- * superadmin o admin de IN editan; lector de IN solo consulta.
- */
 export default function Inventario() {
-    const navigate = useNavigate();
-    const { alcance } = useParams();
-    const { user } = useAuth();
-    const puedeEditar = user?.rol === 'superadmin' || esAdministradorSeccion(user, 'IN');
-    const puedeVer = puedeEditar || tieneAccesoSeccion(user, 'IN');
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const puedeEditar = user?.rol === 'superadmin' || esAdministradorSeccion(user, 'IN');
+  const puedeVer = puedeEditar || tieneAccesoSeccion(user, 'IN');
 
-    const alcanceKey = (alcance || '').toLowerCase().replace(/-/g, '_');
-    const enPanel = alcanceKey in ALCANCES;
-    const esTecnicos = alcanceKey === 'tecnicos';
-    const esMantenimiento = alcanceKey === 'mantenimiento';
-    const esRTC = alcanceKey === 'rtc';
-    const esZeus = alcanceKey === 'zeus' || alcanceKey === 'proyecto_zeus';
-    const unionTemporal = enPanel && !esTecnicos ? ALCANCES[alcanceKey] : (esTecnicos ? 'MANTENIMIENTO' : null);
-    const esGlobal = alcanceKey === 'global';
+  const [rutaFichaIN, setRutaFichaIN] = useState('/calidad-de-procesos');
+  const [feedback, setFeedback] = useState('');
+  const [error, setError] = useState('');
 
-    const [pestana, setPestana] = useState(esTecnicos ? 'tecnicos' : 'stock');
-    const [resumen, setResumen] = useState(null);
-    const [cargandoResumen, setCargandoResumen] = useState(true);
-    const [tecnicos, setTecnicos] = useState([]);
-    const [feedback, setFeedback] = useState('');
-    const [error, setError] = useState('');
-    const [rutaFichaIN, setRutaFichaIN] = useState('/calidad-de-procesos');
+  // ── Vista activa: 'excel' | 'buscar' | 'salida' ───────────────────────────
+  const [vistaActiva, setVistaActiva] = useState('excel');
+  const [panelFiltroAbierto, setPanelFiltroAbierto] = useState(false);
 
-    // null | { despacho } | { itemInicial } | {}
-    const [modalDespacho, setModalDespacho] = useState(null);
-    const [versionDespachos, setVersionDespachos] = useState(0);
-    const [versionStock, setVersionStock] = useState(0);
+  // ── Datos Excel ───────────────────────────────────────────────────────────
+  const [cargandoExcel, setCargandoExcel] = useState(false);
+  const [excelData, setExcelData] = useState({
+    existe: false,
+    archivo: 'inventario_general.xlsx',
+    hojas: [],
+    hoja_activa: null,
+    columnas: [],
+    total_filas: 0,
+    filas: [],
+  });
+  const [hojaSeleccionada, setHojaSeleccionada] = useState('');
 
-    const cargarResumen = useCallback(async () => {
-        if (!puedeVer) return;
-        try {
-            setResumen(await obtenerResumen());
-        } catch (err) {
-            setError(formatApiError(err, 'No se pudo cargar el resumen de inventario.'));
-        } finally {
-            setCargandoResumen(false);
-        }
-    }, [puedeVer]);
+  // Filtros dinámicos sobre la tabla del Excel
+  const [filtroTextoGlobal, setFiltroTextoGlobal] = useState('');
+  const [filtrosColumnas, setFiltrosColumnas] = useState({});
 
-    const avisar = useCallback(
-        (mensaje) => {
-            setFeedback(mensaje);
-            cargarResumen();
-            setTimeout(() => setFeedback(''), 4500);
-        },
-        [cargarResumen]
-    );
+  // ── Formulario 1: Buscar equipo ──────────────────────────────────────────
+  const [formBuscar, setFormBuscar] = useState({
+    serial: '',
+    oficina: '',
+    tecnico: '',
+    fecha: '',
+  });
+  const [busquedaEjecutada, setBusquedaEjecutada] = useState(false);
+  const [buscando, setBuscando] = useState(false);
+  const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
+  const [avisoBusqueda, setAvisoBusqueda] = useState('');
 
-    useEffect(() => {
-        cargarResumen();
-    }, [cargarResumen]);
+  // ── Formulario 2: Salida ──────────────────────────────────────────────────
+  const [formSalida, setFormSalida] = useState({
+    orden: '',
+    oficina_instalada: '',
+    fecha: new Date().toISOString().split('T')[0],
+  });
+  const [guardandoSalida, setGuardandoSalida] = useState(false);
+  const [mensajeExitoSalida, setMensajeExitoSalida] = useState('');
 
-    useEffect(() => {
-        if (!puedeVer) return;
-        listarTecnicos()
-            .then(setTecnicos)
-            .catch((err) => setError(formatApiError(err, 'No se pudo cargar la lista de técnicos.')));
-    }, [puedeVer]);
+  // ── Cargar ficha SGC para botón Volver ─────────────────────────────────────
+  useEffect(() => {
+    listarProcesosCalidad()
+      .then((procesos) => {
+        const proceso = procesos.find((p) => p.codigo === 'IN');
+        if (proceso) setRutaFichaIN('/calidad-de-procesos/proceso/' + proceso.id);
+      })
+      .catch(() => {});
+  }, []);
 
-    useEffect(() => {
-        // Si falla, Volver lleva al mapa completo.
-        listarProcesosCalidad()
-            .then((procesos) => {
-                const proceso = procesos.find((p) => p.codigo === 'IN');
-                if (proceso) setRutaFichaIN(`/calidad-de-procesos/proceso/${proceso.id}`);
-            })
-            .catch(() => {});
-    }, []);
-
-    // Alcance inexistente en la URL: se vuelve a las tarjetas.
-    useEffect(() => {
-        if (alcance && !enPanel) navigate('/inventario', { replace: true });
-    }, [alcance, enPanel, navigate]);
-
-    function despachoGuardado(despacho, editado) {
-        setModalDespacho(null);
-        avisar(editado ? `Despacho #${despacho.id} actualizado.` : `Despacho #${despacho.id} registrado.`);
-        setVersionDespachos((v) => v + 1);
-        setVersionStock((v) => v + 1);
-        if (!editado) setPestana('despachos');
+  // ── Cargar datos del Excel ────────────────────────────────────────────────
+  const cargarExcel = useCallback(async (hoja = '') => {
+    setCargandoExcel(true);
+    setError('');
+    try {
+      const data = await obtenerDatosExcel({ hoja, limit: 1500 });
+      setExcelData(data);
+      if (data.hoja_activa) {
+        setHojaSeleccionada(data.hoja_activa);
+      }
+    } catch (err) {
+      setError(formatApiError(err, 'No se pudo leer el archivo Excel en el servidor.'));
+    } finally {
+      setCargandoExcel(false);
     }
+  }, []);
 
-    if (!puedeVer) {
-        return (
-            <div className="sgc-inv-panel">
-                <Encabezado titulo="Inventario" subtitulo="Inventario (IN)" onVolver={() => navigate(rutaFichaIN)} />
-                <p className="sgc-inv-vacio">
-                    No tienes permisos sobre el proceso Inventario (IN). Solicítalos a la Administradora Master del
-                    Mapa de Procesos SGC.
-                </p>
-            </div>
+  useEffect(() => {
+    if (puedeVer) {
+      cargarExcel();
+    }
+  }, [puedeVer, cargarExcel]);
+
+  const cambiarHoja = (nombreHoja) => {
+    setHojaSeleccionada(nombreHoja);
+    setFiltroTextoGlobal('');
+    setFiltrosColumnas({});
+    cargarExcel(nombreHoja);
+  };
+
+  // ── Filas filtradas de la tabla Excel según panel de filtros ──────────────
+  const filasFiltradas = useMemo(() => {
+    if (!excelData.filas) return [];
+    return excelData.filas.filter((fila) => {
+      // Filtro global
+      if (filtroTextoGlobal.trim()) {
+        const q = filtroTextoGlobal.toLowerCase();
+        const coincideGlobal = Object.values(fila).some((val) =>
+          String(val || '').toLowerCase().includes(q)
         );
+        if (!coincideGlobal) return false;
+      }
+      // Filtros por columna
+      for (const [col, valFiltro] of Object.entries(filtrosColumnas)) {
+        if (!valFiltro || !valFiltro.trim()) continue;
+        const qCol = valFiltro.toLowerCase();
+        const valCelda = String(fila[col] || '').toLowerCase();
+        if (!valCelda.includes(qCol)) return false;
+      }
+      return true;
+    });
+  }, [excelData.filas, filtroTextoGlobal, filtrosColumnas]);
+
+  // ── Manejo de Búsqueda de Equipo ──────────────────────────────────────────
+  const handleBuscar = async (e) => {
+    if (e) e.preventDefault();
+    setAvisoBusqueda('');
+    setError('');
+
+    const tieneAlMenosUno =
+      formBuscar.serial.trim() ||
+      formBuscar.oficina.trim() ||
+      formBuscar.tecnico.trim() ||
+      formBuscar.fecha.trim();
+
+    if (!tieneAlMenosUno) {
+      setAvisoBusqueda('Por favor diligencia al menos un campo para realizar la búsqueda (Serial, Oficina, Técnico o Fecha).');
+      return;
     }
 
-    // ── Pantalla de entrada: una tarjeta por inventario ──────────────────────
-    if (!enPanel) {
-        return (
-            <div className="sgc-inv-panel">
-                <Encabezado
-                    titulo="Inventario"
-                    subtitulo={
-                        'Inventario (IN) · Elige el inventario que quieres gestionar' +
-                        (puedeEditar ? '' : ' · solo lectura')
-                    }
-                    onVolver={() => navigate(rutaFichaIN)}
-                    textoVolver="← Mapa SGC"
-                />
-                {error && <div className="sgc-inv-alerta sgc-inv-alerta--err">{error}</div>}
-                <TarjetasInventario
-                    resumen={resumen}
-                    cargando={cargandoResumen}
-                    onAbrir={(t) => navigate(`/inventario/${t.clave.toLowerCase()}`)}
-                />
-            </div>
-        );
+    setBuscando(true);
+    setBusquedaEjecutada(true);
+    try {
+      const resp = await buscarEnExcel({
+        hoja: hojaSeleccionada,
+        serial: formBuscar.serial,
+        oficina: formBuscar.oficina,
+        tecnico: formBuscar.tecnico,
+        fecha: formBuscar.fecha,
+      });
+      setResultadosBusqueda(resp.resultados || []);
+    } catch (err) {
+      setError(formatApiError(err, 'Error al buscar en el inventario.'));
+    } finally {
+      setBuscando(false);
     }
+  };
 
-    // ── Panel de un inventario ───────────────────────────────────────────────
-    const cifras = esTecnicos
-        ? {
-            nombre: 'Técnicos (Mantenimiento)',
-            total_items: resumen?.global?.total_items_tecnicos || 77,
-            total_unidades: resumen?.global?.total_items_tecnicos || 77,
-            total_items_tecnicos: resumen?.global?.total_items_tecnicos || 77,
-            total_despachos: 0,
-            pendientes: 0,
-            total_prestamos: 0,
-        }
-        : (esGlobal
-            ? resumen?.global
-            : resumen?.uniones?.find((u) => u.union_temporal === unionTemporal));
+  const irASalidaDesdeFila = (fila) => {
+    setFormBuscar((prev) => ({
+      ...prev,
+      serial: fila['Serial'] || fila['SERIAL'] || fila['ID. EQUIPO'] || fila['Código'] || prev.serial,
+      oficina: fila['Oficina'] || fila['OFICINA'] || fila['Destino'] || fila['Sede'] || prev.oficina,
+      tecnico: fila['Técnico'] || fila['TECNICO'] || fila['Responsable'] || prev.tecnico,
+      fecha: fila['Fecha'] || fila['FECHA'] || prev.fecha,
+    }));
+    setVistaActiva('salida');
+  };
 
-    const tituloPanel = esTecnicos
-        ? 'Técnicos (Mantenimiento)'
-        : esMantenimiento
-            ? 'Unión Temporal Mantenimiento GSB_SDSS'
-            : esRTC
-                ? 'RTC American Global'
-                : esZeus
-                    ? 'Proyecto Zeus'
-                    : (cifras?.nombre || 'Inventario');
+  // ── Manejo de Guardar y Generar Orden (Salida) ────────────────────────────
+  const handleGuardarSalida = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    setMensajeExitoSalida('');
+    setGuardandoSalida(true);
 
-    const subtituloPanel = esTecnicos
-        ? 'Inventario individual bajo custodia de cada técnico según hojas del Excel de Mantenimiento' + (puedeEditar ? '' : ' · solo lectura')
-        : esMantenimiento
-            ? 'Inventario (IN) · Equipos, movimientos a técnicos, custodia y KPIs' + (puedeEditar ? '' : ' · solo lectura')
-            : esRTC
-                ? 'Inventario (IN) · Equipos, movimientos, técnicos y ventas' + (puedeEditar ? '' : ' · solo lectura')
-                : esZeus
-                    ? 'Inventario (IN) · Equipos por orden de compra (ODC)' + (puedeEditar ? '' : ' · solo lectura')
-                    : ('Inventario (IN) · Stock, despachos a técnicos y préstamos' + (puedeEditar ? '' : ' · solo lectura'));
+    try {
+      await guardarSalidaRegistro({
+        serial: formBuscar.serial || null,
+        oficina: formBuscar.oficina || null,
+        tecnico: formBuscar.tecnico || null,
+        fecha_busqueda: formBuscar.fecha || null,
+        orden: formSalida.orden || null,
+        oficina_instalada: formSalida.oficina_instalada || null,
+        fecha: formSalida.fecha || null,
+      });
 
+      setMensajeExitoSalida(
+        '✓ Registro de salida guardado correctamente. La generación del documento de orden se habilitará próximamente.'
+      );
+      setFormSalida({
+        orden: '',
+        oficina_instalada: '',
+        fecha: new Date().toISOString().split('T')[0],
+      });
+    } catch (err) {
+      setError(formatApiError(err, 'No se pudo guardar el registro de salida.'));
+    } finally {
+      setGuardandoSalida(false);
+    }
+  };
+
+  if (!puedeVer) {
     return (
-        <div className="sgc-inv-panel">
-            <Encabezado
-                titulo={tituloPanel}
-                subtitulo={subtituloPanel}
-                onVolver={() => navigate('/inventario')}
-                textoVolver="← Inventarios"
-            />
-
-            {feedback && <div className="sgc-inv-alerta sgc-inv-alerta--ok">{feedback}</div>}
-            {error && <div className="sgc-inv-alerta sgc-inv-alerta--err">{error}</div>}
-
-            {esMantenimiento ? (
-                <VistaMantenimiento
-                    datosResumen={cifras}
-                    puedeEditar={puedeEditar}
-                    version={versionStock + versionDespachos}
-                    avisar={avisar}
-                    onDespachar={(item) => setModalDespacho({ itemInicial: item })}
-                    onNuevoDespacho={() => setModalDespacho({})}
-                    onEditarDespacho={(despacho) => setModalDespacho({ despacho })}
-                />
-            ) : esRTC ? (
-                <VistaRTC
-                    datosResumen={cifras}
-                    puedeEditar={puedeEditar}
-                    version={versionStock + versionDespachos}
-                    avisar={avisar}
-                    onDespachar={(item) => setModalDespacho({ itemInicial: item })}
-                    onNuevoDespacho={() => setModalDespacho({})}
-                    onEditarDespacho={(despacho) => setModalDespacho({ despacho })}
-                />
-            ) : esZeus ? (
-                <VistaZeus
-                    datosResumen={cifras}
-                    puedeEditar={puedeEditar}
-                    version={versionStock + versionDespachos}
-                    avisar={avisar}
-                />
-            ) : esGlobal ? (
-                <VistaGlobal
-                    datosResumen={resumen?.global}
-                    resumenUniones={resumen?.uniones}
-                    onIrA={(clave) => navigate(`/inventario/${clave}`)}
-                />
-            ) : (
-                <>
-                    <section className="sgc-inv-kpis">
-                        <Kpi label="Ítems stock" valor={cifras?.total_items} />
-                        <Kpi label="Unidades en stock" valor={cifras?.total_unidades} />
-                        <Kpi label="En técnicos" valor={cifras?.total_items_tecnicos} />
-                        <Kpi label="Despachos" valor={cifras?.total_despachos} />
-                        <Kpi label="Por revisar" valor={cifras?.pendientes} alerta={cifras?.pendientes > 0} />
-                        <Kpi label="Préstamos" valor={cifras?.total_prestamos} />
-                    </section>
-
-                    <nav className="sgc-inv-tabs">
-                        {PESTANAS.map((p) => (
-                            <button
-                                key={p.id}
-                                type="button"
-                                className={`sgc-inv-tab ${pestana === p.id ? 'sgc-inv-tab--activa' : ''}`}
-                                onClick={() => setPestana(p.id)}
-                            >
-                                {p.label}
-                            </button>
-                        ))}
-                    </nav>
-
-                    {pestana === 'stock' && (
-                        <TabStock
-                            unionTemporal={unionTemporal}
-                            mostrarUnion={false}
-                            puedeEditar={puedeEditar}
-                            version={versionStock}
-                            onDespachar={(item) => setModalDespacho({ itemInicial: item })}
-                            avisar={avisar}
-                        />
-                    )}
-                    {pestana === 'tecnicos' && (
-                        <TabTecnicos
-                            unionTemporal={unionTemporal}
-                            puedeEditar={puedeEditar}
-                            version={versionStock}
-                            avisar={avisar}
-                        />
-                    )}
-                    {pestana === 'despachos' && (
-                        <TabDespachos
-                            unionTemporal={unionTemporal}
-                            mostrarUnion={false}
-                            tecnicos={tecnicos}
-                            puedeEditar={puedeEditar}
-                            version={versionDespachos}
-                            onNuevo={() => setModalDespacho({})}
-                            onEditar={(despacho) => setModalDespacho({ despacho })}
-                            onIrATecnicos={() => setPestana('tecnicos')}
-                            avisar={avisar}
-                        />
-                    )}
-                    {pestana === 'prestamos' && (
-                        <TabPrestamos
-                            unionTemporal={unionTemporal}
-                            mostrarUnion={false}
-                            puedeEditar={puedeEditar}
-                            avisar={avisar}
-                        />
-                    )}
-                </>
-            )}
-
-            {modalDespacho && (
-                <ModalDespacho
-                    despacho={modalDespacho.despacho}
-                    itemInicial={modalDespacho.itemInicial}
-                    unionTemporal={unionTemporal}
-                    tecnicos={tecnicos}
-                    onCerrar={() => setModalDespacho(null)}
-                    onGuardado={despachoGuardado}
-                />
-            )}
-        </div>
-    );
-}
-
-function Encabezado({ titulo, subtitulo, onVolver, textoVolver = '← Volver' }) {
-    return (
+      <div className="sgc-inv-panel">
         <header className="sgc-inv-panel-header">
-            <button type="button" className="sgc-inv-btn sgc-inv-btn--ghost sgc-inv-btn--sm" onClick={onVolver}>
-                {textoVolver}
-            </button>
-            <div>
-                <h1 className="sgc-inv-title">{titulo}</h1>
-                <p className="sgc-inv-subtitle">{subtitulo}</p>
-            </div>
+          <button type="button" className="sgc-inv-btn sgc-inv-btn--ghost" onClick={() => navigate(rutaFichaIN)}>
+            ← Mapa SGC
+          </button>
+          <div>
+            <h1 className="sgc-inv-title">Inventario</h1>
+            <p className="sgc-inv-subtitle">Inventario (IN)</p>
+          </div>
         </header>
+        <p className="sgc-inv-vacio">
+          No tienes permisos sobre el proceso Inventario (IN). Solicítalos al Administrador del Mapa de Procesos SGC.
+        </p>
+      </div>
     );
-}
+  }
 
-function Kpi({ label, valor, alerta = false }) {
-    return (
-        <article className={`sgc-inv-kpi ${alerta ? 'sgc-inv-kpi--alerta' : ''}`}>
-            <span className="sgc-inv-kpi-label">{label}</span>
-            <strong className="sgc-inv-kpi-valor">
-                {valor === undefined || valor === null ? '—' : valor.toLocaleString('es-CO')}
-            </strong>
-        </article>
-    );
+  return (
+    <div className="sgc-inv-panel">
+      {/* ── Encabezado principal ── */}
+      <header className="sgc-inv-panel-header">
+        <button
+          type="button"
+          className="sgc-inv-btn sgc-inv-btn--ghost sgc-inv-btn--sm"
+          onClick={() => navigate(rutaFichaIN)}
+        >
+          ← Mapa SGC
+        </button>
+        <div className="sgc-inv-header-text">
+          <h1 className="sgc-inv-title">Inventario General</h1>
+          <p className="sgc-inv-subtitle">
+            Proceso Inventario (IN) · Visualización y gestión en tiempo real desde archivo maestro
+          </p>
+        </div>
+      </header>
+
+      {/* ── Avisos globales ── */}
+      {feedback && <div className="sgc-inv-alerta sgc-inv-alerta--ok">{feedback}</div>}
+      {error && <div className="sgc-inv-alerta sgc-inv-alerta--err">{error}</div>}
+
+      {/* ── BARRA DE HERRAMIENTAS PRINCIPAL: EXCEL, FILTRO, BUSCAR/SALIDA ── */}
+      <section className="sgc-inv-toolbar-container">
+        <div className="sgc-inv-toolbar-left">
+          {/* Botón 1: Excel */}
+          <button
+            type="button"
+            className={`sgc-inv-btn-accion ${vistaActiva === 'excel' ? 'sgc-inv-btn-accion--activo' : ''}`}
+            onClick={() => setVistaActiva('excel')}
+            title="Visualizar el contenido del archivo Excel maestro"
+          >
+            <span className="sgc-inv-btn-icon">📊</span>
+            <span>Excel</span>
+          </button>
+
+          {/* Botón 2: Filtro */}
+          <button
+            type="button"
+            className={`sgc-inv-btn-accion ${panelFiltroAbierto ? 'sgc-inv-btn-accion--filtro-activo' : ''}`}
+            onClick={() => {
+              setVistaActiva('excel');
+              setPanelFiltroAbierto((prev) => !prev);
+            }}
+            title="Abrir u ocultar panel de filtros sobre la tabla del Excel"
+          >
+            <span className="sgc-inv-btn-icon">🔍</span>
+            <span>Filtro {Object.values(filtrosColumnas).filter(Boolean).length > 0 || filtroTextoGlobal ? '(Activo)' : ''}</span>
+          </button>
+
+          {/* Botón 3: Buscar equipo / Salida */}
+          <button
+            type="button"
+            className={`sgc-inv-btn-accion ${vistaActiva === 'buscar' || vistaActiva === 'salida' ? 'sgc-inv-btn-accion--activo' : ''}`}
+            onClick={() => setVistaActiva('buscar')}
+            title="Abrir formulario de búsqueda de equipo y gestión de salida"
+          >
+            <span className="sgc-inv-btn-icon">🔎</span>
+            <span>Buscar equipo / Salida</span>
+          </button>
+        </div>
+
+        {/* Info archivo cargado */}
+        <div className="sgc-inv-toolbar-right">
+          <span className="sgc-inv-badge-archivo">
+            📁 {excelData.archivo || 'inventario_general.xlsx'}
+          </span>
+          {excelData.existe && (
+            <span className="sgc-inv-badge-filas">
+              {excelData.total_filas} registros
+            </span>
+          )}
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          VISTA 1: EXCEL (TABLA, HOJAS Y PANEL DE FILTROS)
+         ══════════════════════════════════════════════════════════════════════ */}
+      {vistaActiva === 'excel' && (
+        <section className="sgc-inv-seccion-excel">
+          {/* Selector de Hojas si existen */}
+          {excelData.hojas && excelData.hojas.length > 0 && (
+            <div className="sgc-inv-hojas-bar">
+              <span className="sgc-inv-hojas-label">Hojas del Excel:</span>
+              <div className="sgc-inv-hojas-pills">
+                {excelData.hojas.map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    className={`sgc-inv-hoja-pill ${hojaSeleccionada === h ? 'sgc-inv-hoja-pill--activa' : ''}`}
+                    onClick={() => cambiarHoja(h)}
+                  >
+                    📄 {h}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Panel de Filtros retráctil */}
+          {panelFiltroAbierto && (
+            <div className="sgc-inv-panel-filtros animate-slide-down">
+              <div className="sgc-inv-filtros-head">
+                <h3 className="sgc-inv-filtros-titulo">Filtros sobre Hoja: {hojaSeleccionada}</h3>
+                {(filtroTextoGlobal || Object.values(filtrosColumnas).some(Boolean)) && (
+                  <button
+                    type="button"
+                    className="sgc-inv-btn-limpiar"
+                    onClick={() => {
+                      setFiltroTextoGlobal('');
+                      setFiltrosColumnas({});
+                    }}
+                  >
+                    ✕ Limpiar filtros
+                  </button>
+                )}
+              </div>
+
+              {/* Búsqueda rápida general */}
+              <div className="sgc-inv-filtro-global-box">
+                <input
+                  type="text"
+                  placeholder="Buscar texto en cualquier columna de esta hoja..."
+                  value={filtroTextoGlobal}
+                  onChange={(e) => setFiltroTextoGlobal(e.target.value)}
+                  className="sgc-inv-input sgc-inv-input--global"
+                />
+              </div>
+
+              {/* Filtros específicos por columna real */}
+              <div className="sgc-inv-filtros-grid">
+                {excelData.columnas.slice(0, 8).map((col) => (
+                  <div key={col} className="sgc-inv-filtro-col-item">
+                    <label className="sgc-inv-filtro-col-label">{col}</label>
+                    <input
+                      type="text"
+                      placeholder={`Filtrar por ${col}...`}
+                      value={filtrosColumnas[col] || ''}
+                      onChange={(e) =>
+                        setFiltrosColumnas((prev) => ({
+                          ...prev,
+                          [col]: e.target.value,
+                        }))
+                      }
+                      className="sgc-inv-input sgc-inv-input--sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Contenido de la Tabla */}
+          {cargandoExcel ? (
+            <div className="sgc-inv-cargando-box">
+              <div className="sgc-inv-spinner" />
+              <p>Leyendo datos desde el servidor...</p>
+            </div>
+          ) : !excelData.existe ? (
+            <div className="sgc-inv-vacio-box">
+              <span className="sgc-inv-vacio-icono">📁</span>
+              <h3>Archivo no disponible en servidor</h3>
+              <p>
+                No se encontró <code>backend/data/inventario/inventario_general.xlsx</code>.
+                Coloca el archivo Excel en la carpeta del servidor para visualizarlo aquí.
+              </p>
+              <button
+                type="button"
+                className="sgc-inv-btn sgc-inv-btn--primary"
+                onClick={() => cargarExcel()}
+              >
+                Reintentar lectura
+              </button>
+            </div>
+          ) : (
+            <div className="sgc-inv-tabla-card">
+              <div className="sgc-inv-tabla-meta">
+                <span>
+                  Mostrando <strong>{filasFiltradas.length}</strong> de{' '}
+                  <strong>{excelData.total_filas}</strong> registros en{' '}
+                  <strong>{hojaSeleccionada}</strong>
+                </span>
+                <button
+                  type="button"
+                  className="sgc-inv-btn-recargar"
+                  onClick={() => cargarExcel(hojaSeleccionada)}
+                  title="Recargar archivo si fue actualizado en disco"
+                >
+                  ↻ Refrescar datos
+                </button>
+              </div>
+
+              <div className="sgc-inv-table-wrapper">
+                <table className="sgc-inv-table">
+                  <thead>
+                    <tr>
+                      <th className="sgc-inv-th-num">#</th>
+                      {excelData.columnas.map((col) => (
+                        <th key={col}>{col}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filasFiltradas.length === 0 ? (
+                      <tr>
+                        <td colSpan={excelData.columnas.length + 1} className="sgc-inv-td-vacio">
+                          No hay registros que coincidan con los filtros aplicados.
+                        </td>
+                      </tr>
+                    ) : (
+                      filasFiltradas.map((fila, idx) => (
+                        <tr key={idx} className="sgc-inv-tr">
+                          <td className="sgc-inv-td-num">{idx + 1}</td>
+                          {excelData.columnas.map((col) => (
+                            <td key={col} className="sgc-inv-td">
+                              {fila[col] !== undefined && fila[col] !== null ? String(fila[col]) : '—'}
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+      {/* ══════════════════════════════════════════════════════════════════════
+          VISTA 2: BUSCAR EQUIPO / SALIDA (Paso 2 y Paso 3)
+         ══════════════════════════════════════════════════════════════════════ */}
+      {(vistaActiva === 'buscar' || vistaActiva === 'salida') && (
+        <section className="sgc-inv-seccion-gestion animate-fade-in">
+          <div className="sgc-inv-tabs-sub">
+            <button
+              type="button"
+              className={`sgc-inv-tab-sub ${vistaActiva === 'buscar' ? 'sgc-inv-tab-sub--activo' : ''}`}
+              onClick={() => setVistaActiva('buscar')}
+            >
+              1. Buscar equipo
+            </button>
+            <button
+              type="button"
+              className={`sgc-inv-tab-sub ${vistaActiva === 'salida' ? 'sgc-inv-tab-sub--activo' : ''}`}
+              onClick={() => setVistaActiva('salida')}
+            >
+              2. Registro de Salida
+            </button>
+          </div>
+
+          {/* ── Sub-formulario 1: Buscar equipo ── */}
+          {vistaActiva === 'buscar' && (
+            <div className="sgc-inv-form-card">
+              <div className="sgc-inv-form-header">
+                <h3>Búsqueda de Equipo en Inventario</h3>
+                <p>
+                  Completa cualquiera de los campos siguientes para filtrar en el archivo Excel.
+                  Ninguno es obligatorio, pero debes ingresar al menos uno para iniciar la búsqueda.
+                </p>
+              </div>
+
+              {avisoBusqueda && (
+                <div className="sgc-inv-alerta sgc-inv-alerta--aviso">
+                  ⚠️ {avisoBusqueda}
+                </div>
+              )}
+
+              <form onSubmit={handleBuscar} className="sgc-inv-form-grid">
+                <div className="sgc-inv-form-group">
+                  <label htmlFor="b-serial">Serial / Código:</label>
+                  <input
+                    id="b-serial"
+                    type="text"
+                    placeholder="Ej. SN-89218 o número de serie..."
+                    value={formBuscar.serial}
+                    onChange={(e) => setFormBuscar({ ...formBuscar, serial: e.target.value })}
+                    className="sgc-inv-input"
+                  />
+                </div>
+
+                <div className="sgc-inv-form-group">
+                  <label htmlFor="b-oficina">Oficina / Sede / Destino:</label>
+                  <input
+                    id="b-oficina"
+                    type="text"
+                    placeholder="Ej. Oficina Principal, Cali, etc..."
+                    value={formBuscar.oficina}
+                    onChange={(e) => setFormBuscar({ ...formBuscar, oficina: e.target.value })}
+                    className="sgc-inv-input"
+                  />
+                </div>
+
+                <div className="sgc-inv-form-group">
+                  <label htmlFor="b-tecnico">Técnico / Responsable:</label>
+                  <input
+                    id="b-tecnico"
+                    type="text"
+                    placeholder="Ej. Juan Pérez..."
+                    value={formBuscar.tecnico}
+                    onChange={(e) => setFormBuscar({ ...formBuscar, tecnico: e.target.value })}
+                    className="sgc-inv-input"
+                  />
+                </div>
+
+                <div className="sgc-inv-form-group">
+                  <label htmlFor="b-fecha">Fecha:</label>
+                  <input
+                    id="b-fecha"
+                    type="text"
+                    placeholder="Ej. 2026-03-15 o año/mes..."
+                    value={formBuscar.fecha}
+                    onChange={(e) => setFormBuscar({ ...formBuscar, fecha: e.target.value })}
+                    className="sgc-inv-input"
+                  />
+                </div>
+
+                {/* Botones de acción del formulario */}
+                <div className="sgc-inv-form-actions-full">
+                  <button
+                    type="submit"
+                    disabled={buscando}
+                    className="sgc-inv-btn sgc-inv-btn--primary"
+                  >
+                    {buscando ? 'Buscando...' : '🔍 Buscar'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="sgc-inv-btn sgc-inv-btn--salida"
+                    onClick={() => setVistaActiva('salida')}
+                  >
+                    ➜ Salida
+                  </button>
+
+                  {(formBuscar.serial || formBuscar.oficina || formBuscar.tecnico || formBuscar.fecha) && (
+                    <button
+                      type="button"
+                      className="sgc-inv-btn sgc-inv-btn--ghost"
+                      onClick={() => {
+                        setFormBuscar({ serial: '', oficina: '', tecnico: '', fecha: '' });
+                        setResultadosBusqueda([]);
+                        setBusquedaEjecutada(false);
+                        setAvisoBusqueda('');
+                      }}
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              {/* Resultados de la búsqueda */}
+              {busquedaEjecutada && (
+                <div className="sgc-inv-resultados-box">
+                  <div className="sgc-inv-resultados-header">
+                    <h4>Resultados encontrados ({resultadosBusqueda.length})</h4>
+                    <span className="sgc-inv-nota-clic">Haz clic en un registro para transferirlo a Salida</span>
+                  </div>
+
+                  {resultadosBusqueda.length === 0 ? (
+                    <p className="sgc-inv-vacio-msg">
+                      No se encontraron registros con los criterios diligenciados en la hoja actual ({hojaSeleccionada}).
+                    </p>
+                  ) : (
+                    <div className="sgc-inv-table-wrapper sgc-inv-table-wrapper--sm">
+                      <table className="sgc-inv-table">
+                        <thead>
+                          <tr>
+                            <th>Acción</th>
+                            {excelData.columnas.slice(0, 6).map((col) => (
+                              <th key={col}>{col}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {resultadosBusqueda.map((fila, idx) => (
+                            <tr key={idx} className="sgc-inv-tr sgc-inv-tr--clickable" onClick={() => irASalidaDesdeFila(fila)}>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="sgc-inv-btn-usar-salida"
+                                  title="Llevar a formulario de salida"
+                                >
+                                  Usar en Salida →
+                                </button>
+                              </td>
+                              {excelData.columnas.slice(0, 6).map((col) => (
+                                <td key={col}>{fila[col] || '—'}</td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Sub-formulario 2: Salida (Paso 3) ── */}
+          {vistaActiva === 'salida' && (
+            <div className="sgc-inv-form-card animate-fade-in">
+              <div className="sgc-inv-form-header">
+                <h3>Formulario de Salida</h3>
+                <p>
+                  Registra la salida del equipo indicando el número de orden, la oficina donde se instala y la fecha.
+                </p>
+              </div>
+
+              {/* Resumen de datos capturados previamente en búsqueda */}
+              <div className="sgc-inv-resumen-busqueda-previa">
+                <span className="sgc-inv-subtitulo-previa">Datos del equipo capturados:</span>
+                <div className="sgc-inv-chips-previa">
+                  <div className="sgc-inv-chip">
+                    <strong>Serial:</strong> {formBuscar.serial || '—'}
+                  </div>
+                  <div className="sgc-inv-chip">
+                    <strong>Oficina origen:</strong> {formBuscar.oficina || '—'}
+                  </div>
+                  <div className="sgc-inv-chip">
+                    <strong>Técnico:</strong> {formBuscar.tecnico || '—'}
+                  </div>
+                  <div className="sgc-inv-chip">
+                    <strong>Fecha ref:</strong> {formBuscar.fecha || '—'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="sgc-inv-btn-modificar-busqueda"
+                  onClick={() => setVistaActiva('buscar')}
+                >
+                  ✎ Modificar datos del equipo
+                </button>
+              </div>
+
+              {mensajeExitoSalida && (
+                <div className="sgc-inv-alerta sgc-inv-alerta--ok">
+                  {mensajeExitoSalida}
+                </div>
+              )}
+
+              <form onSubmit={handleGuardarSalida} className="sgc-inv-form-grid">
+                <div className="sgc-inv-form-group">
+                  <label htmlFor="s-orden">Orden / N° Orden de Trabajo:</label>
+                  <input
+                    id="s-orden"
+                    type="text"
+                    required
+                    placeholder="Ej. OT-10492 o número de orden..."
+                    value={formSalida.orden}
+                    onChange={(e) => setFormSalida({ ...formSalida, orden: e.target.value })}
+                    className="sgc-inv-input"
+                  />
+                </div>
+
+                <div className="sgc-inv-form-group">
+                  <label htmlFor="s-oficina-inst">Oficina Instalada / Destino Final:</label>
+                  <input
+                    id="s-oficina-inst"
+                    type="text"
+                    required
+                    placeholder="Ej. Sucursal Centro..."
+                    value={formSalida.oficina_instalada}
+                    onChange={(e) => setFormSalida({ ...formSalida, oficina_instalada: e.target.value })}
+                    className="sgc-inv-input"
+                  />
+                </div>
+
+                <div className="sgc-inv-form-group">
+                  <label htmlFor="s-fecha">Fecha de Salida / Instalación:</label>
+                  <input
+                    id="s-fecha"
+                    type="date"
+                    required
+                    value={formSalida.fecha}
+                    onChange={(e) => setFormSalida({ ...formSalida, fecha: e.target.value })}
+                    className="sgc-inv-input"
+                  />
+                </div>
+
+                {/* Botón Guardar y generar orden */}
+                <div className="sgc-inv-form-actions-full">
+                  <button
+                    type="submit"
+                    disabled={guardandoSalida}
+                    className="sgc-inv-btn sgc-inv-btn--gold"
+                  >
+                    {guardandoSalida ? 'Guardando salida...' : '💾 Guardar y generar orden'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="sgc-inv-btn sgc-inv-btn--ghost"
+                    onClick={() => setVistaActiva('buscar')}
+                  >
+                    ← Regresar a búsqueda
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </section>
+      )}
+    </div>
+  );
 }
