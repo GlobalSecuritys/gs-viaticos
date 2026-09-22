@@ -1,0 +1,171 @@
+/* ---------------------------------------------------------------------------
+   Zeus.css — Estilos específicos para la vista Proyecto Zeus
+   Importa Mantenimiento.css para heredar acordeón, paginador y badges base.
+   --------------------------------------------------------------------------- */
+
+/* ── Badges de estado de entrega (Zeus) ── */
+.inv-badge--zeus-en-stock {
+    background: rgba(5, 150, 105, 0.12);
+    color: #059669;
+    border: 1px solid rgba(5, 150, 105, 0.3);
+}
+
+.inv-badge--zeus-en-transito {
+    background: rgba(234, 88, 12, 0.12);
+    color: #ea580c;
+    border: 1px solid rgba(234, 88, 12, 0.3);
+}
+
+.inv-badge--zeus-en-proceso {
+    background: rgba(100, 116, 139, 0.12);
+    color: #64748b;
+    border: 1px solid rgba(100, 116, 139, 0.28);
+}
+
+/* ── Layout principal de Zeus ── */
+.zeus-equipos {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ── Barra de filtros ── */
+.zeus-filtros {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    background: var(--color-bg-subtle, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 10px;
+}
+
+.zeus-filtros-q {
+    flex: 1 1 220px;
+    min-width: 180px;
+    padding: 7px 11px;
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 8px;
+    font-size: 13px;
+    background: var(--color-bg, #fff);
+    color: var(--color-text, #1e293b);
+    outline: none;
+    transition: border-color 0.15s;
+}
+.zeus-filtros-q:focus {
+    border-color: var(--color-primary, #6366f1);
+}
+
+.zeus-filtros-odc {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.zeus-odc-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border, #e2e8f0);
+    background: var(--color-bg, #fff);
+    color: var(--color-text, #1e293b);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.zeus-odc-btn:hover {
+    background: rgba(99, 102, 241, 0.06);
+    border-color: rgba(99, 102, 241, 0.35);
+}
+
+.zeus-odc-btn--activo {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.5);
+    color: #6366f1;
+}
+
+/* ── Detalle del acordeón Zeus ── */
+.zeus-detalle {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px 20px;
+    padding: 4px 0;
+}
+
+.zeus-detalle-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.zeus-detalle-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted, #64748b);
+}
+
+.zeus-detalle-valor {
+    font-size: 13px;
+    color: var(--color-text, #1e293b);
+    font-weight: 500;
+}
+
+/* ── Estado vacío ── */
+.zeus-vacio {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--color-text-muted, #64748b);
+    font-size: 14px;
+}
+
+/* ── KPIs compactos Zeus ── */
+.zeus-kpis {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.zeus-kpi {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 18px;
+    background: var(--color-bg-subtle, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 10px;
+    min-width: 100px;
+}
+
+.zeus-kpi-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted, #94a3b8);
+}
+
+.zeus-kpi-valor {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--color-text, #1e293b);
+    line-height: 1;
+}
+
+.zeus-kpi--en-stock .zeus-kpi-valor { color: #059669; }
+.zeus-kpi--en-transito .zeus-kpi-valor { color: #ea580c; }
+.zeus-kpi--en-proceso .zeus-kpi-valor { color: #64748b; }
+
+/* ── Mensaje de carga ── */
+.zeus-cargando {
+    padding: 32px;
+    text-align: center;
+    color: var(--color-text-muted, #64748b);
+    font-size: 14px;
+}

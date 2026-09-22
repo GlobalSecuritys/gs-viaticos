@@ -27,6 +27,7 @@ from app.database import get_db
 from app.models.asignacion import Asignacion
 from app.models.inventario import (
     EstadoDespacho,
+    EstadoEntrega,
     InventarioDespacho,
     InventarioItem,
     InventarioPrestamo,
@@ -581,8 +582,18 @@ ESTADOS_PENDIENTES = {
 }
 
 
+# Entidades de RTC que son corporativas (no personas). Se excluyen del conteo
+# de técnicos en el resumen global para que los KPIs reflejen solo personas.
+_NOMBRES_CORPORATIVOS = frozenset([
+    "GLOBAL SECURITY BANK",
+    "BANCO AGRARIO",
+    "SDS SMART DEVELOPMENT SYSTEMS CORP",
+])
+
+
 @router.get("/resumen", response_model=ResumenResponse)
 def resumen(db: DB, current_user: LectorIN):
+    # ── Items en stock por unión temporal ─────────────────────────────────────
     items = {
         ut: (n, unidades)
         for ut, n, unidades in db.execute(
@@ -593,6 +604,8 @@ def resumen(db: DB, current_user: LectorIN):
             ).group_by(InventarioItem.union_temporal)
         ).all()
     }
+
+    # ── Préstamos ─────────────────────────────────────────────────────────────
     prestamos = dict(
         db.execute(
             select(InventarioPrestamo.union_temporal, func.count()).group_by(
@@ -600,6 +613,8 @@ def resumen(db: DB, current_user: LectorIN):
             )
         ).all()
     )
+
+    # ── Ítems en poder de técnicos ────────────────────────────────────────────
     items_tecnicos = dict(
         db.execute(
             select(InventarioTecnicoItem.union_temporal, func.count()).group_by(
@@ -607,19 +622,70 @@ def resumen(db: DB, current_user: LectorIN):
             )
         ).all()
     )
+
+    # ── Despachos por unión / estado (solo RTC y Mantenimiento los tienen) ────
     despachos: dict[UnionTemporal, dict[str, int]] = {}
     for ut, estado, n in db.execute(
-        select(InventarioDespacho.union_temporal, InventarioDespacho.estado, func.count()).group_by(
-            InventarioDespacho.union_temporal, InventarioDespacho.estado
-        )
+        select(
+            InventarioDespacho.union_temporal,
+            InventarioDespacho.estado,
+            func.count(),
+        ).group_by(InventarioDespacho.union_temporal, InventarioDespacho.estado)
     ).all():
         despachos.setdefault(ut, {})[estado.value] = n
 
-    def armar(clave: str, nombre: str, uts: list[UnionTemporal], ut_propia=None) -> ResumenInventario:
+    # ── Estado de entrega de Zeus (completamente separado de EstadoDespacho) ──
+    zeus_por_entrega: dict[str, int] = {}
+    for estado_e, n in db.execute(
+        select(
+            InventarioItem.estado_entrega,
+            func.count(),
+        )
+        .where(InventarioItem.union_temporal == UnionTemporal.PROYECTO_ZEUS)
+        .group_by(InventarioItem.estado_entrega)
+    ).all():
+        clave_e = estado_e.value if estado_e else "sin_estado"
+        zeus_por_entrega[clave_e] = n
+
+    # ── Técnicos-persona por unión temporal (excluye entidades corporativas) ──
+    # Los IDs corporativos solo aplican a RTC; se los excluimos de cualquier
+    # conteo global para que las cifras representen personas reales.
+    todos_tecnicos = db.scalars(
+        select(Usuario).where(Usuario.rol == "tecnico")
+    ).all()
+    ids_corporativos: set[int] = {
+        t.id for t in todos_tecnicos if t.nombre.upper() in _NOMBRES_CORPORATIVOS
+    }
+
+    # Técnicos por unión temporal (conteo de filas en InventarioTecnicoItem)
+    # excluyendo los IDs corporativos.
+    tecnicos_por_ut: dict[UnionTemporal, int] = {}
+    for ut, tecnico_id, n in db.execute(
+        select(
+            InventarioTecnicoItem.union_temporal,
+            InventarioTecnicoItem.tecnico_id,
+            func.count(),
+        ).group_by(
+            InventarioTecnicoItem.union_temporal,
+            InventarioTecnicoItem.tecnico_id,
+        )
+    ).all():
+        if tecnico_id not in ids_corporativos:
+            tecnicos_por_ut[ut] = tecnicos_por_ut.get(ut, 0) + 1
+
+    def armar(
+        clave: str,
+        nombre: str,
+        uts: list[UnionTemporal],
+        ut_propia: UnionTemporal | None = None,
+    ) -> ResumenInventario:
         por_estado = {e.value: 0 for e in EstadoDespacho}
         for ut in uts:
             for estado, n in despachos.get(ut, {}).items():
                 por_estado[estado] += n
+
+        # Campos Zeus: solo si el scope incluye PROYECTO_ZEUS
+        incluye_zeus = UnionTemporal.PROYECTO_ZEUS in uts
         return ResumenInventario(
             clave=clave,
             union_temporal=ut_propia.value if ut_propia else None,
@@ -629,8 +695,13 @@ def resumen(db: DB, current_user: LectorIN):
             total_despachos=sum(por_estado.values()),
             total_prestamos=sum(prestamos.get(ut, 0) for ut in uts),
             total_items_tecnicos=sum(items_tecnicos.get(ut, 0) for ut in uts),
+            total_tecnicos=sum(tecnicos_por_ut.get(ut, 0) for ut in uts),
             por_estado=por_estado,
             pendientes=sum(por_estado[e.value] for e in ESTADOS_PENDIENTES),
+            zeus_en_stock=zeus_por_entrega.get(EstadoEntrega.en_stock.value, 0) if incluye_zeus else 0,
+            zeus_en_transito=zeus_por_entrega.get(EstadoEntrega.en_transito.value, 0) if incluye_zeus else 0,
+            zeus_en_proceso=zeus_por_entrega.get(EstadoEntrega.en_proceso.value, 0) if incluye_zeus else 0,
+            zeus_sin_estado=zeus_por_entrega.get("sin_estado", 0) if incluye_zeus else 0,
         )
 
     return ResumenResponse(

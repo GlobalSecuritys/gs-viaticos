@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import api, { exportarViaticosAsignacion, exportarViaticosIndependientes, descargarBlob } from '../services/api';
-import { listarAsignaciones, crearAsignacion, actualizarAsignacion, finalizarAsignacion, eliminarAsignacion, extenderFechaAsignacion } from '../services/asignaciones';
+import { listarAsignaciones, crearAsignacion, actualizarAsignacion, finalizarAsignacion, borrarAsignacionConFlujo, extenderFechaAsignacion } from '../services/asignaciones';
 import { formatCOP, formatFechaCorta, iniciales } from '../utils/personal';
 import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION, CLASE_ESTADO_ASIGNACION } from '../utils/asignaciones';
 import AsignacionForm from './AsignacionForm';
@@ -116,16 +116,17 @@ export default function ModalAsignacionesTecnico({ tecnico, onClose, onAsignacio
         }
     }
 
-    async function handleBorrar(asignacionId) {
-        if (!window.confirm('¿Deseas borrar esta asignación? Se ocultará del sistema y se eliminará permanentemente de la base de datos en 24 horas.')) return;
-        try {
-            await eliminarAsignacion(asignacionId);
-            setMensajeFeedback('✅ Asignación borrada correctamente.');
-            await cargarDatos();
-            if (onAsignacionActualizada) onAsignacionActualizada();
-        } catch {
-            setError('No se pudo borrar la asignación.');
+    async function handleBorrar(asignacion) {
+        setError('');
+        const res = await borrarAsignacionConFlujo(asignacion);
+        if (res.cancelado) return;
+        if (!res.ok) {
+            setError(res.mensaje);
+            return;
         }
+        setMensajeFeedback(res.mensaje);
+        await cargarDatos();
+        if (onAsignacionActualizada) onAsignacionActualizada();
     }
 
     async function handleExportarAsignacion(asignacionId) {
@@ -455,7 +456,7 @@ export default function ModalAsignacionesTecnico({ tecnico, onClose, onAsignacio
                                                 <button
                                                     type="button"
                                                     className="mat-btn-borrar"
-                                                    onClick={() => handleBorrar(a.id)}
+                                                    onClick={() => handleBorrar(a)}
                                                     title="Borrar asignación"
                                                 >
                                                     🗑️ Borrar

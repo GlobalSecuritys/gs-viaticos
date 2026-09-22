@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { listarAsignaciones, eliminarAsignacion } from '../services/asignaciones';
+import { listarAsignaciones, borrarAsignacionConFlujo } from '../services/asignaciones';
 import { TIPOS_ASIGNACION, LABEL_TIPO_ASIGNACION, ESTADOS_ASIGNACION, LABEL_ESTADO_ASIGNACION, filtrarAsignaciones } from '../utils/asignaciones';
 import { formatCOP } from '../utils/personal';
 import { irAtras } from '../utils/navigation';
@@ -42,13 +42,13 @@ export default function Asignaciones() {
     }, []);
 
     async function handleBorrar(asignacion) {
-        if (!window.confirm(`¿Deseas borrar la asignación "${asignacion.cliente}"? Se ocultará del sistema y se eliminará permanentemente de la base de datos en 24 horas.`)) return;
-        try {
-            await eliminarAsignacion(asignacion.id);
-            setAsignaciones((prev) => prev.filter((a) => a.id !== asignacion.id));
-        } catch {
-            alert('No se pudo borrar la asignación.');
+        const res = await borrarAsignacionConFlujo(asignacion);
+        if (res.cancelado) return;
+        if (!res.ok) {
+            alert(res.mensaje);
+            return;
         }
+        setAsignaciones((prev) => prev.filter((a) => a.id !== asignacion.id));
     }
 
     const filtradas = useMemo(

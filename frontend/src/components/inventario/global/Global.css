@@ -1,0 +1,321 @@
+/* ---------------------------------------------------------------------------
+   Global.css — Vista consolidada del Inventario (proceso IN)
+   Las 3 uniones temporales en una sola pantalla de diagnóstico rápido.
+   --------------------------------------------------------------------------- */
+
+/* ── Layout principal ── */
+.inv-global {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* ── KPIs globales ── */
+.inv-global-kpis {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.inv-global-kpi {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 14px 20px;
+    background: var(--color-bg-subtle, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 12px;
+    min-width: 110px;
+    flex: 1 1 110px;
+    transition: box-shadow 0.15s;
+}
+
+.inv-global-kpi:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+
+.inv-global-kpi-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted, #94a3b8);
+    text-align: center;
+}
+
+.inv-global-kpi-valor {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--color-text, #1e293b);
+    line-height: 1;
+}
+
+.inv-global-kpi--alerta .inv-global-kpi-valor {
+    color: #ef4444;
+}
+
+.inv-global-kpi--tecnicos .inv-global-kpi-valor {
+    color: #6366f1;
+}
+
+/* ── Tarjetas de unión temporal (clicables) ── */
+.inv-global-uniones {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.inv-global-tarjeta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px 20px;
+    background: var(--color-bg, #fff);
+    border: 1.5px solid var(--color-border, #e2e8f0);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: border-color 0.18s, box-shadow 0.18s, transform 0.12s;
+    text-align: left;
+}
+
+.inv-global-tarjeta:hover,
+.inv-global-tarjeta:focus-visible {
+    border-color: rgba(99, 102, 241, 0.55);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
+    transform: translateY(-2px);
+    outline: none;
+}
+
+.inv-global-tarjeta:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+}
+
+/* Acento de color por unión temporal */
+.inv-global-tarjeta--rtc {
+    border-left: 4px solid #3b82f6;
+}
+
+.inv-global-tarjeta--mantenimiento {
+    border-left: 4px solid #10b981;
+}
+
+.inv-global-tarjeta--zeus {
+    border-left: 4px solid #8b5cf6;
+}
+
+.inv-global-tarjeta-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.inv-global-tarjeta-icono {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+}
+
+.inv-global-tarjeta--rtc .inv-global-tarjeta-icono {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.inv-global-tarjeta--mantenimiento .inv-global-tarjeta-icono {
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.inv-global-tarjeta--zeus .inv-global-tarjeta-icono {
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.inv-global-tarjeta-nombre {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text, #1e293b);
+    line-height: 1.3;
+}
+
+.inv-global-tarjeta-cifras {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.inv-global-mini-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.inv-global-mini-kpi-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted, #94a3b8);
+}
+
+.inv-global-mini-kpi-valor {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--color-text, #1e293b);
+    line-height: 1;
+}
+
+.inv-global-mini-kpi--alerta .inv-global-mini-kpi-valor {
+    color: #ef4444;
+}
+
+.inv-global-tarjeta-flecha {
+    margin-left: auto;
+    font-size: 16px;
+    color: var(--color-text-muted, #94a3b8);
+    transition: color 0.15s, transform 0.15s;
+    align-self: flex-end;
+}
+
+.inv-global-tarjeta:hover .inv-global-tarjeta-flecha {
+    color: #6366f1;
+    transform: translateX(3px);
+}
+
+/* ── Sección de despachos (RTC + Mantenimiento) ── */
+.inv-global-seccion {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.inv-global-seccion-titulo {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--color-text-muted, #64748b);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inv-global-seccion-titulo::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-border, #e2e8f0);
+}
+
+/* Estados de despacho (RTC + Mantenimiento) */
+.inv-global-estados {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.inv-global-estado {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    min-width: 90px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.inv-global-estado-valor {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.inv-global-estado--instalado {
+    background: rgba(5, 150, 105, 0.08);
+    border-color: rgba(5, 150, 105, 0.2);
+    color: #059669;
+}
+
+.inv-global-estado--pendiente {
+    background: rgba(234, 179, 8, 0.08);
+    border-color: rgba(234, 179, 8, 0.25);
+    color: #b45309;
+}
+
+.inv-global-estado--alerta {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #dc2626;
+}
+
+.inv-global-estado--danado {
+    background: rgba(100, 116, 139, 0.08);
+    border-color: rgba(100, 116, 139, 0.2);
+    color: #475569;
+}
+
+.inv-global-estado--suministro {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.2);
+    color: #4f46e5;
+}
+
+/* Estados de Zeus */
+.inv-global-zeus-estados {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.inv-global-zeus-estado {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    min-width: 90px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.inv-global-zeus-estado-valor {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.inv-global-zeus-estado--en-stock {
+    background: rgba(5, 150, 105, 0.08);
+    border-color: rgba(5, 150, 105, 0.2);
+    color: #059669;
+}
+
+.inv-global-zeus-estado--en-transito {
+    background: rgba(234, 88, 12, 0.08);
+    border-color: rgba(234, 88, 12, 0.2);
+    color: #ea580c;
+}
+
+.inv-global-zeus-estado--en-proceso {
+    background: rgba(100, 116, 139, 0.08);
+    border-color: rgba(100, 116, 139, 0.2);
+    color: #64748b;
+}
+
+.inv-global-zeus-estado--sin-estado {
+    background: rgba(148, 163, 184, 0.08);
+    border-color: rgba(148, 163, 184, 0.2);
+    color: #94a3b8;
+}

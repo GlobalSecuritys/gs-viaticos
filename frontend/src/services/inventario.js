@@ -4,7 +4,7 @@ import api from './api';
 // Catálogos del módulo
 // -----------------------------------------------------------------------------
 export const UNIONES_TEMPORALES = [
-  { valor: 'RTC', etiqueta: 'Unión Temporal RTC' },
+  { valor: 'RTC', etiqueta: 'Unión Temporal RTC American Global' },
   { valor: 'MANTENIMIENTO', etiqueta: 'Unión Temporal Mantenimiento GSB_SDSS' },
   { valor: 'PROYECTO_ZEUS', etiqueta: 'Proyecto Zeus' },
 ];
@@ -22,7 +22,8 @@ export function etiquetaEstado(valor) {
 }
 
 export function etiquetaUnion(valor) {
-  if (valor === 'MANTENIMIENTO') return 'Mantenimiento';
+  if (valor === 'RTC') return 'Unión Temporal RTC American Global';
+  if (valor === 'MANTENIMIENTO') return 'Unión Temporal Mantenimiento GSB_SDSS';
   if (valor === 'PROYECTO_ZEUS') return 'Proyecto Zeus';
   return valor;
 }

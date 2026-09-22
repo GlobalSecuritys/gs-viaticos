@@ -13,7 +13,20 @@ export default function TarjetasInventario({ resumen, cargando, onAbrir }) {
     const totalItemsTecnicos = resumen.uniones.reduce((acc, u) => acc + (u.total_items_tecnicos || 0), 0);
 
     const tarjetas = [
-        ...resumen.uniones.map((u) => ({ ...u, variante: 'union' })),
+        ...resumen.uniones.map((u) => ({
+            ...u,
+            // Normalizar clave para URLs limpias
+            clave: u.union_temporal === 'PROYECTO_ZEUS' ? 'zeus' : u.clave,
+            nombre:
+                u.union_temporal === 'RTC'
+                    ? 'Unión Temporal RTC American Global'
+                    : u.union_temporal === 'MANTENIMIENTO'
+                    ? 'Unión Temporal Mantenimiento GSB_SDSS'
+                    : u.union_temporal === 'PROYECTO_ZEUS'
+                    ? 'Proyecto Zeus'
+                    : u.nombre,
+            variante: 'union',
+        })),
         {
             clave: 'tecnicos',
             nombre: 'Técnicos',

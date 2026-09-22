@@ -11,6 +11,7 @@ EstadoDespachoLiteral = Literal[
     "dañado",
     "suministro_oficina",
 ]
+EstadoEntregaLiteral = Literal["en_stock", "en_transito", "en_proceso"]
 
 
 def _texto_opcional(v: Optional[str]) -> Optional[str]:
@@ -32,6 +33,9 @@ class ItemBase(BaseModel):
     id_equipo: Optional[str] = Field(default=None, max_length=60)
     numero_articulo: Optional[str] = Field(default=None, max_length=60)
     tiempo_entrega: Optional[str] = Field(default=None, max_length=80)
+    # Campos exclusivos de Proyecto Zeus (nulos para RTC y Mantenimiento)
+    orden_compra: Optional[str] = Field(default=None, max_length=20)
+    estado_entrega: Optional[EstadoEntregaLiteral] = None
 
     @field_validator(
         "codigo_barras",
@@ -83,6 +87,9 @@ class ItemResponse(BaseModel):
     id_equipo: Optional[str] = None
     numero_articulo: Optional[str] = None
     tiempo_entrega: Optional[str] = None
+    # Proyecto Zeus
+    orden_compra: Optional[str] = None
+    estado_entrega: Optional[EstadoEntregaLiteral] = None
     total_despachos: int = 0
     creado_en: datetime
     actualizado_en: datetime
@@ -228,9 +235,18 @@ class ResumenInventario(BaseModel):
     total_despachos: int = 0
     total_prestamos: int = 0
     total_items_tecnicos: int = 0
+    # Conteo de técnicos-persona (excluye entidades corporativas de RTC).
+    total_tecnicos: int = 0
     por_estado: dict[str, int] = {}
     # Despachos que piden atención: pendientes de instalar, en alerta o dañados.
     pendientes: int = 0
+
+    # ── Proyecto Zeus (solo se llenan para clave="PROYECTO_ZEUS" y "GLOBAL") ──
+    # Se mantienen separados de por_estado para nunca mezclar con EstadoDespacho.
+    zeus_en_stock: int = 0
+    zeus_en_transito: int = 0
+    zeus_en_proceso: int = 0
+    zeus_sin_estado: int = 0
 
 
 class ResumenResponse(BaseModel):

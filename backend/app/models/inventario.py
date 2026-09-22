@@ -50,6 +50,17 @@ class EstadoDespacho(str, enum.Enum):
     suministro_oficina = "suministro_oficina"
 
 
+class EstadoEntrega(str, enum.Enum):
+    """Estado de entrega de un ítem de Proyecto Zeus (ODC).
+
+    Solo aplica para union_temporal = PROYECTO_ZEUS; es NULL para RTC y
+    Mantenimiento.
+    """
+    en_stock = "en_stock"
+    en_transito = "en_transito"
+    en_proceso = "en_proceso"
+
+
 # ENUM nativos de Postgres: el estado y la unión temporal no admiten texto libre
 # ni siquiera escribiendo directo en la base. Se guardan los `.value`.
 UnionTemporalDB = SAEnum(
@@ -60,6 +71,11 @@ UnionTemporalDB = SAEnum(
 EstadoDespachoDB = SAEnum(
     EstadoDespacho,
     name="inventario_estado_despacho",
+    values_callable=lambda e: [m.value for m in e],
+)
+EstadoEntregaDB = SAEnum(
+    EstadoEntrega,
+    name="inventario_estado_entrega",
     values_callable=lambda e: [m.value for m in e],
 )
 
@@ -86,6 +102,17 @@ class InventarioItem(Base):
 
     # Tiempo estimado de entrega libre (ej. "EN STOCK", "8 a 10 Dias")
     tiempo_entrega: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+
+    # ── Proyecto Zeus (ODC) ──────────────────────────────────────────────────
+    # Orden de compra a la que pertenece el ítem (ej. "ODC178", "ODC179").
+    # NULL para RTC y Mantenimiento.
+    orden_compra: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+
+    # Estado de entrega derivado del texto de tiempo_entrega.
+    # NULL para RTC y Mantenimiento.
+    estado_entrega: Mapped[Optional[EstadoEntrega]] = mapped_column(
+        EstadoEntregaDB, nullable=True
+    )
 
     # Columnas de origen del Excel (FECHA / FECHA COMPRA EQUIPO, FACTURA, No SDS,
     # ID. EQUIPO). Se conservan porque el Excel deja de existir como fuente.

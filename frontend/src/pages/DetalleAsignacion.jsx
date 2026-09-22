@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { obtenerAsignacion, actualizarAsignacion, finalizarAsignacion, eliminarAsignacion } from '../services/asignaciones';
+import { obtenerAsignacion, actualizarAsignacion, finalizarAsignacion, borrarAsignacionConFlujo } from '../services/asignaciones';
 import { irAtras } from '../utils/navigation';
 import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION } from '../utils/asignaciones';
 import { formatFechaLarga, formatFechaCorta, formatCOP } from '../utils/personal';
@@ -110,16 +110,14 @@ export default function DetalleAsignacion() {
     }
 
     async function handleEliminar() {
-        if (!window.confirm('¿Deseas borrar esta asignación? Se ocultará del sistema y se eliminará permanentemente de la base de datos en 24 horas.')) return;
-        setEnviando(true);
         setError('');
-        try {
-            await eliminarAsignacion(id);
-            navigate('/admin/asignaciones');
-        } catch {
-            setError('No se pudo borrar la asignación.');
-            setEnviando(false);
+        const res = await borrarAsignacionConFlujo(asignacion || id);
+        if (res.cancelado) return;
+        if (!res.ok) {
+            setError(res.mensaje);
+            return;
         }
+        navigate('/admin/asignaciones');
     }
 
     if (loading) {

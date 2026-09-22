@@ -11,6 +11,10 @@ import TabTecnicos from '../components/inventario/TabTecnicos';
 import TabDespachos from '../components/inventario/TabDespachos';
 import TabPrestamos from '../components/inventario/TabPrestamos';
 import ModalDespacho from '../components/inventario/ModalDespacho';
+import VistaMantenimiento from '../components/inventario/mantenimiento/VistaMantenimiento';
+import VistaRTC from '../components/inventario/rtc/VistaRTC';
+import VistaZeus from '../components/inventario/zeus/VistaZeus';
+import VistaGlobal from '../components/inventario/global/VistaGlobal';
 import './Inventario.css';
 
 const PESTANAS = [
@@ -50,6 +54,9 @@ export default function Inventario() {
     const alcanceKey = (alcance || '').toLowerCase().replace(/-/g, '_');
     const enPanel = alcanceKey in ALCANCES;
     const esTecnicos = alcanceKey === 'tecnicos';
+    const esMantenimiento = alcanceKey === 'mantenimiento';
+    const esRTC = alcanceKey === 'rtc';
+    const esZeus = alcanceKey === 'zeus' || alcanceKey === 'proyecto_zeus';
     const unionTemporal = enPanel && !esTecnicos ? ALCANCES[alcanceKey] : (esTecnicos ? 'MANTENIMIENTO' : null);
     const esGlobal = alcanceKey === 'global';
 
@@ -170,82 +177,135 @@ export default function Inventario() {
             ? resumen?.global
             : resumen?.uniones?.find((u) => u.union_temporal === unionTemporal));
 
+    const tituloPanel = esTecnicos
+        ? 'Técnicos (Mantenimiento)'
+        : esMantenimiento
+            ? 'Unión Temporal Mantenimiento GSB_SDSS'
+            : esRTC
+                ? 'RTC American Global'
+                : esZeus
+                    ? 'Proyecto Zeus'
+                    : (cifras?.nombre || 'Inventario');
+
+    const subtituloPanel = esTecnicos
+        ? 'Inventario individual bajo custodia de cada técnico según hojas del Excel de Mantenimiento' + (puedeEditar ? '' : ' · solo lectura')
+        : esMantenimiento
+            ? 'Inventario (IN) · Equipos, movimientos a técnicos, custodia y KPIs' + (puedeEditar ? '' : ' · solo lectura')
+            : esRTC
+                ? 'Inventario (IN) · Equipos, movimientos, técnicos y ventas' + (puedeEditar ? '' : ' · solo lectura')
+                : esZeus
+                    ? 'Inventario (IN) · Equipos por orden de compra (ODC)' + (puedeEditar ? '' : ' · solo lectura')
+                    : ('Inventario (IN) · Stock, despachos a técnicos y préstamos' + (puedeEditar ? '' : ' · solo lectura'));
+
     return (
         <div className="sgc-inv-panel">
             <Encabezado
-                titulo={esTecnicos ? 'Técnicos (Mantenimiento)' : (cifras?.nombre || 'Inventario')}
-                subtitulo={
-                    esTecnicos
-                        ? 'Inventario individual bajo custodia de cada técnico según hojas del Excel de Mantenimiento' + (puedeEditar ? '' : ' · solo lectura')
-                        : ('Inventario (IN) · Stock, despachos a técnicos y préstamos' + (puedeEditar ? '' : ' · solo lectura'))
-                }
+                titulo={tituloPanel}
+                subtitulo={subtituloPanel}
                 onVolver={() => navigate('/inventario')}
                 textoVolver="← Inventarios"
             />
 
-            <section className="sgc-inv-kpis">
-                <Kpi label="Ítems stock" valor={cifras?.total_items} />
-                <Kpi label="Unidades en stock" valor={cifras?.total_unidades} />
-                <Kpi label="En técnicos" valor={cifras?.total_items_tecnicos} />
-                <Kpi label="Despachos" valor={cifras?.total_despachos} />
-                <Kpi label="Por revisar" valor={cifras?.pendientes} alerta={cifras?.pendientes > 0} />
-                <Kpi label="Préstamos" valor={cifras?.total_prestamos} />
-            </section>
-
-            <nav className="sgc-inv-tabs">
-                {PESTANAS.map((p) => (
-                    <button
-                        key={p.id}
-                        type="button"
-                        className={`sgc-inv-tab ${pestana === p.id ? 'sgc-inv-tab--activa' : ''}`}
-                        onClick={() => setPestana(p.id)}
-                    >
-                        {p.label}
-                    </button>
-                ))}
-            </nav>
-
             {feedback && <div className="sgc-inv-alerta sgc-inv-alerta--ok">{feedback}</div>}
             {error && <div className="sgc-inv-alerta sgc-inv-alerta--err">{error}</div>}
 
-            {pestana === 'stock' && (
-                <TabStock
-                    unionTemporal={unionTemporal}
-                    mostrarUnion={esGlobal}
+            {esMantenimiento ? (
+                <VistaMantenimiento
+                    datosResumen={cifras}
                     puedeEditar={puedeEditar}
-                    version={versionStock}
+                    version={versionStock + versionDespachos}
+                    avisar={avisar}
                     onDespachar={(item) => setModalDespacho({ itemInicial: item })}
-                    avisar={avisar}
+                    onNuevoDespacho={() => setModalDespacho({})}
+                    onEditarDespacho={(despacho) => setModalDespacho({ despacho })}
                 />
-            )}
-            {pestana === 'tecnicos' && (
-                <TabTecnicos
-                    unionTemporal={unionTemporal}
+            ) : esRTC ? (
+                <VistaRTC
+                    datosResumen={cifras}
                     puedeEditar={puedeEditar}
-                    version={versionStock}
+                    version={versionStock + versionDespachos}
                     avisar={avisar}
+                    onDespachar={(item) => setModalDespacho({ itemInicial: item })}
+                    onNuevoDespacho={() => setModalDespacho({})}
+                    onEditarDespacho={(despacho) => setModalDespacho({ despacho })}
                 />
-            )}
-            {pestana === 'despachos' && (
-                <TabDespachos
-                    unionTemporal={unionTemporal}
-                    mostrarUnion={esGlobal}
-                    tecnicos={tecnicos}
+            ) : esZeus ? (
+                <VistaZeus
+                    datosResumen={cifras}
                     puedeEditar={puedeEditar}
-                    version={versionDespachos}
-                    onNuevo={() => setModalDespacho({})}
-                    onEditar={(despacho) => setModalDespacho({ despacho })}
-                    onIrATecnicos={() => setPestana('tecnicos')}
+                    version={versionStock + versionDespachos}
                     avisar={avisar}
                 />
-            )}
-            {pestana === 'prestamos' && (
-                <TabPrestamos
-                    unionTemporal={unionTemporal}
-                    mostrarUnion={esGlobal}
-                    puedeEditar={puedeEditar}
-                    avisar={avisar}
+            ) : esGlobal ? (
+                <VistaGlobal
+                    datosResumen={resumen?.global}
+                    resumenUniones={resumen?.uniones}
+                    onIrA={(clave) => navigate(`/inventario/${clave}`)}
                 />
+            ) : (
+                <>
+                    <section className="sgc-inv-kpis">
+                        <Kpi label="Ítems stock" valor={cifras?.total_items} />
+                        <Kpi label="Unidades en stock" valor={cifras?.total_unidades} />
+                        <Kpi label="En técnicos" valor={cifras?.total_items_tecnicos} />
+                        <Kpi label="Despachos" valor={cifras?.total_despachos} />
+                        <Kpi label="Por revisar" valor={cifras?.pendientes} alerta={cifras?.pendientes > 0} />
+                        <Kpi label="Préstamos" valor={cifras?.total_prestamos} />
+                    </section>
+
+                    <nav className="sgc-inv-tabs">
+                        {PESTANAS.map((p) => (
+                            <button
+                                key={p.id}
+                                type="button"
+                                className={`sgc-inv-tab ${pestana === p.id ? 'sgc-inv-tab--activa' : ''}`}
+                                onClick={() => setPestana(p.id)}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </nav>
+
+                    {pestana === 'stock' && (
+                        <TabStock
+                            unionTemporal={unionTemporal}
+                            mostrarUnion={false}
+                            puedeEditar={puedeEditar}
+                            version={versionStock}
+                            onDespachar={(item) => setModalDespacho({ itemInicial: item })}
+                            avisar={avisar}
+                        />
+                    )}
+                    {pestana === 'tecnicos' && (
+                        <TabTecnicos
+                            unionTemporal={unionTemporal}
+                            puedeEditar={puedeEditar}
+                            version={versionStock}
+                            avisar={avisar}
+                        />
+                    )}
+                    {pestana === 'despachos' && (
+                        <TabDespachos
+                            unionTemporal={unionTemporal}
+                            mostrarUnion={false}
+                            tecnicos={tecnicos}
+                            puedeEditar={puedeEditar}
+                            version={versionDespachos}
+                            onNuevo={() => setModalDespacho({})}
+                            onEditar={(despacho) => setModalDespacho({ despacho })}
+                            onIrATecnicos={() => setPestana('tecnicos')}
+                            avisar={avisar}
+                        />
+                    )}
+                    {pestana === 'prestamos' && (
+                        <TabPrestamos
+                            unionTemporal={unionTemporal}
+                            mostrarUnion={false}
+                            puedeEditar={puedeEditar}
+                            avisar={avisar}
+                        />
+                    )}
+                </>
             )}
 
             {modalDespacho && (

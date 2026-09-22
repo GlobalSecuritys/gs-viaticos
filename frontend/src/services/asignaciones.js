@@ -19,6 +19,7 @@
 // un endpoint por-técnico. Esto evita N+1 llamadas y sigue el patrón ya usado.
 
 import api from './api';
+import { formatApiError } from '../utils/formatError';
 
 export function listarAsignaciones() {
     return api.get('/admin/asignaciones');
@@ -81,4 +82,58 @@ export function guardarOrdenTrabajoAsignacion(id, orden_trabajo) {
 
 export function extenderFechaAsignacion(id, fecha_fin) {
     return api.patch(`/admin/asignaciones/${id}/extender-fecha`, { fecha_fin });
+}
+
+// Flujo completo de borrado usado por las pantallas de admin (modal del técnico,
+// listado y detalle). Centraliza las reglas que aplica el backend para que el
+// usuario vea SIEMPRE el motivo real del fallo en vez de un mensaje genérico:
+//   - Solo se pueden borrar asignaciones finalizadas.
+//   - La carpeta debe haberse descargado antes; si no, se pide confirmación
+//     explícita y se reintenta con confirmar_ya_descargado=true.
+// Devuelve { ok, cancelado, mensaje }.
+export async function borrarAsignacionConFlujo(asignacion) {
+    const id = typeof asignacion === 'object' ? asignacion.id : asignacion;
+    const estado = typeof asignacion === 'object' ? asignacion.estado : null;
+    const cerrada = typeof asignacion === 'object' ? asignacion.cerrada_en : null;
+
+    if (estado && estado !== 'finalizada' && !cerrada) {
+        return {
+            ok: false,
+            cancelado: false,
+            mensaje:
+                'Solo se pueden borrar asignaciones finalizadas. Finaliza primero la asignación y vuelve a intentarlo.',
+        };
+    }
+
+    if (!window.confirm(
+        '¿Deseas borrar esta asignación? Se eliminarán permanentemente sus viáticos y evidencias. ' +
+        'Las estadísticas históricas del técnico se conservan.'
+    )) {
+        return { ok: false, cancelado: true, mensaje: '' };
+    }
+
+    try {
+        await eliminarAsignacion(id);
+        return { ok: true, cancelado: false, mensaje: '✅ Asignación borrada correctamente.' };
+    } catch (err) {
+        const detalle = formatApiError(err, 'No se pudo borrar la asignación.');
+
+        // Caso recuperable: la carpeta nunca se descargó. Se permite continuar
+        // si el admin confirma que ya tiene la información.
+        if (err.response?.status === 400 && /descargad/i.test(detalle)) {
+            if (!window.confirm(
+                `${detalle}\n\n¿Confirmas que ya tienes la información descargada y deseas eliminarla de todos modos?`
+            )) {
+                return { ok: false, cancelado: true, mensaje: '' };
+            }
+            try {
+                await eliminarAsignacion(id, { confirmarYaDescargado: true });
+                return { ok: true, cancelado: false, mensaje: '✅ Asignación borrada correctamente.' };
+            } catch (err2) {
+                return { ok: false, cancelado: false, mensaje: formatApiError(err2, 'No se pudo borrar la asignación.') };
+            }
+        }
+
+        return { ok: false, cancelado: false, mensaje: detalle };
+    }
 }
