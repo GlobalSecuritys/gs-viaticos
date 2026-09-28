@@ -7,7 +7,7 @@ usuario, evidencias, asignación y cuenta de cobro) solo para sumar totales y
 armar el listado de técnicos. Aquí todo se agrega en SQL.
 
 `GET /admin/viaticos` y `GET /admin/usuarios` NO se tocan: los siguen usando
-Auditoría, PerfilEmpleado, AdminViaticos, Asignaciones y NotificationBell.
+Auditoría, PerfilEmpleado, AdminViaticos y Asignaciones.
 """
 
 from datetime import date, timedelta

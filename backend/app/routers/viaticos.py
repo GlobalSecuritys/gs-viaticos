@@ -11,7 +11,6 @@ from app.core.security import get_current_user
 from app.database import get_db
 from app.models.asignacion import Asignacion
 from app.models.evidencia_viatico import EvidenciaViatico
-from app.models.notificacion import Notificacion
 from app.models.usuario import Usuario
 from app.models.viatico import Viatico
 from app.routers.asignaciones import calcular_limite_subida_asignacion
@@ -241,13 +240,6 @@ def eliminar_viatico(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No se puede eliminar un viático cuya asignación está cerrada y con período de gracia de 24 horas expirado.",
             )
-
-    notif = Notificacion(
-        tecnico_nombre=current_user.nombre,
-        valor=viatico.valor,
-        ciudad=viatico.ciudad,
-    )
-    db.add(notif)
 
     db.delete(viatico)
     db.commit()

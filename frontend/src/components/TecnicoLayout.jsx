@@ -12,7 +12,6 @@ function iniciales(nombre = '') {
         .join('');
 }
 
-import NotificationBell from './NotificationBell';
 import InstallPwaPrompt from './InstallPwaPrompt';
 import PanelAlertasCierre from './PanelAlertasCierre';
 import { obtenerNombreUsuario } from '../utils/personal';
@@ -89,7 +88,6 @@ export default function TecnicoLayout({ children }) {
             <main className="tec-content">
                 <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '0.85rem 1.5rem 0', gap: '0.85rem' }}>
                     <InstallPwaPrompt />
-                    <NotificationBell />
                 </div>
                 {children}
             </main>

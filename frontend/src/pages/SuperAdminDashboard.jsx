@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import logoGSB from '../assets/logo-gsb.png';
-import NotificationBell from '../components/NotificationBell';
 import InstallPwaPrompt from '../components/InstallPwaPrompt';
 import { listarAsignaciones } from '../services/asignaciones';
 import {
@@ -36,7 +35,6 @@ const NAV_ITEMS = [
     { id: 'viaticos', label: 'Viáticos', icon: '📋', path: '/admin/viaticos' },
     { id: 'usuarios', label: 'Usuarios', icon: '👥', path: '/admin/usuarios' },
     { id: 'evidencias', label: 'Evidencias', icon: '📎', path: null },
-    { id: 'notificaciones', label: 'Notificaciones', icon: '🔔', path: null },
     { id: 'auditoria', label: 'Auditoría', icon: 'ℹ', path: '/admin/auditoria' },
 ];
 
@@ -188,7 +186,6 @@ export default function SuperAdminDashboard() {
                     <button className="sa-topbar-menu" aria-label="Menu">☰</button>
                     <div className="sa-topbar-right">
                         <InstallPwaPrompt />
-                        <NotificationBell />
                         <div className="sa-topbar-user">
                             <div className="sa-topbar-avatar">
                                 {nombrePerfil[0].toUpperCase()}

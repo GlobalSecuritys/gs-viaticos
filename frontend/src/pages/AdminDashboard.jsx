@@ -5,7 +5,6 @@ import api from '../services/api';
 import { listarAuditoria } from '../services/auditoria';
 import { LABEL_TIPO_ASIGNACION } from '../utils/asignaciones';
 import logoGSB from '../assets/logo-gsb.png';
-import NotificationBell from '../components/NotificationBell';
 import InstallPwaPrompt from '../components/InstallPwaPrompt';
 import ModalAsignacionesTecnico from '../components/ModalAsignacionesTecnico';
 import ModalCuentasCobroTecnico from '../components/ModalCuentasCobroTecnico';
@@ -333,7 +332,6 @@ export default function AdminDashboard() {
 
                     <div className="gsb-topbar-right">
                         <InstallPwaPrompt />
-                        <NotificationBell />
 
                         <div className="gsb-user-menu-wrap">
                             <button

@@ -32,10 +32,8 @@ from app.core.config import settings
 from app.core.security import get_current_admin, get_current_superadmin, get_current_master_admin, hash_password, verificar_autoridad_sobre_usuario
 from app.database import get_db
 from app.models.log_auditoria import LogAuditoria
-from app.models.notificacion import Notificacion
 from app.models.usuario import Usuario
 from app.schemas.log_auditoria import LogAuditoriaResponse
-from app.schemas.notificacion import NotificacionResponse
 from app.services.auditoria import registrar_auditoria
 from app.schemas.usuario import (
     AdminBootstrap,
@@ -829,13 +827,4 @@ def listar_auditoria(
 
     stmt = stmt.order_by(LogAuditoria.created_at.desc()).limit(limit).offset(offset)
 
-    return db.scalars(stmt).all()
-
-
-@router.get("/notificaciones", response_model=List[NotificacionResponse])
-def listar_notificaciones(
-    current_admin: Annotated[Usuario, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)]
-):
-    stmt = select(Notificacion).order_by(Notificacion.created_at.desc())
     return db.scalars(stmt).all()

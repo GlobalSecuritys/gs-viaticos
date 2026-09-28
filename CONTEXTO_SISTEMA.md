@@ -99,7 +99,7 @@ En cada startup (`main.py:45-77`) se crean por `checkfirst` las tablas de Cuenta
 | `cuentas_cobro` | `cuenta_cobro.py` | Cuenta de cobro independiente; `items` como string JSON. |
 | `cuentas_cobro_asignacion` | `cuenta_cobro_asignacion.py` | Cuenta de cobro ligada a una asignación (mig. 0011). |
 | `proveedores` | `proveedor.py` | Importados desde Excel (`scripts/importar_proveedores.py`). |
-| `notificaciones` | `notificacion.py` | Alertas (mig. 0005). |
+| `notificaciones` | `notificacion.py` | **Obsoleta (2026-09-28).** Ya no se lee ni se escribe: se eliminaron la campana `NotificationBell`, `GET /admin/notificaciones` y el INSERT en `DELETE /viaticos/{id}`. La tabla sigue en la BD (mig. 0005) hasta una futura migración de DROP. |
 | `log_auditoria` | `log_auditoria.py` | Auditoría transversal (mig. 0006). |
 | `inventario_planillas` | `inventario.py:18` | Grupo de ítems (hojas MANTENIMIENTO, RTC). Seed inicial `inventario.py:57,60-72`. |
 | `inventario_items` | `inventario.py:41` | Ficha de elemento; `stock_actual` derivado; soft delete `eliminado_en`; foto Cloudinary. |
@@ -165,7 +165,6 @@ Routers registrados en `main.py:138-147`. Prefixes confirmados (`routers/*.py`).
 | `DELETE /admin/viaticos/{id}/evidencias/{evidencia_id}` | `732` | Elimina evidencia si tiene autoridad. |
 | `GET /admin/usuarios` | `787` | Lista todos los usuarios. |
 | `GET /admin/auditoria` | `797` | **Exclusivo SuperAdmin** (`get_current_superadmin`); filtros + paginación. |
-| `GET /admin/notificaciones` | `828` | `get_current_admin`. |
 
 ### 4.5 Cuentas de Cobro — `/cuentas-cobro` (`cuentas_cobro.py`)
 

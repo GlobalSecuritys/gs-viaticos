@@ -8,7 +8,6 @@ import api, {
     descargarBlob,
 } from '../services/api';
 import logoGSB from '../assets/logo-gsb.png';
-import NotificationBell from '../components/NotificationBell';
 import InstallPwaPrompt from '../components/InstallPwaPrompt';
 import { formatCOP, formatFechaLarga, iniciales } from '../utils/personal';
 import { formatApiError } from '../utils/formatError';
@@ -552,7 +551,6 @@ export default function TalentoHumanoAdmin() {
                 {/* ── TOP ACTIONS / HEADER ── */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '0.5rem', gap: '0.85rem' }}>
                     <InstallPwaPrompt />
-                    <NotificationBell />
                 </div>
 
                 <div className="tha-header-bar">

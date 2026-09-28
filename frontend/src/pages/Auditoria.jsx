@@ -5,7 +5,6 @@ import { listarAuditoria } from '../services/auditoria';
 import api from '../services/api';
 import { obtenerNombreUsuario } from '../utils/personal';
 import logoGSB from '../assets/logo-gsb.png';
-import NotificationBell from '../components/NotificationBell';
 import InstallPwaPrompt from '../components/InstallPwaPrompt';
 import {
     BarChart,
@@ -418,7 +417,6 @@ export default function Auditoria() {
                         </div>
 
                         <InstallPwaPrompt />
-                        <NotificationBell />
 
                         <div className="gsb-user-menu-wrap">
                             <button

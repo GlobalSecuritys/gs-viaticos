@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { MODULES_CONFIG, GLOBAL_ADMIN_NAV, isAdminMaster, getAvailableModules } from '../../config/modulesConfig';
-import NotificationBell from '../NotificationBell';
 import { obtenerNombreUsuario } from '../../utils/personal';
 import logoGSB from '../../assets/logo-gsb.png';
 import './GlobalHeader.css';
@@ -121,7 +120,7 @@ export default function GlobalHeader({ currentModuleId, onToggleSidebar, sidebar
         )}
       </div>
 
-      {/* ── DERECHA: ADMIN GLOBAL + NOTIFICACIONES + USER PILL + LOGOUT ── */}
+      {/* ── DERECHA: ADMIN GLOBAL + USER PILL + LOGOUT ── */}
       <div className="gh-right">
         {/* Menú de Administración Global (Transversal) */}
         {(user?.rol === 'admin' || user?.rol === 'superadmin') && (
@@ -173,9 +172,6 @@ export default function GlobalHeader({ currentModuleId, onToggleSidebar, sidebar
             )}
           </div>
         )}
-
-        {/* Campana de Notificaciones */}
-        <NotificationBell />
 
         {/* User Pill */}
         <div className="gh-user-pill" title={user?.correo}>
