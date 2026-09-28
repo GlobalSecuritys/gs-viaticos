@@ -48,12 +48,13 @@ export default function Inventario() {
   const [cargandoExcel, setCargandoExcel] = useState(false);
   const [excelData, setExcelData] = useState({
     existe: false,
-    archivo: 'inventario_general.xlsx',
+    archivo: '',
     hojas: [],
     hoja_activa: null,
     columnas: [],
     total_filas: 0,
     filas: [],
+    mensaje: null,
   });
   const [hojaSeleccionada, setHojaSeleccionada] = useState('');
 
@@ -107,11 +108,17 @@ export default function Inventario() {
   }, [cargarPlanillas]);
 
   // ── Cargar datos del Excel (dentro de una planilla) ───────────────────────
-  const cargarExcel = useCallback(async (hoja = '') => {
+  const cargarExcel = useCallback(async (hoja = '', planilla = null) => {
+    const pl = planilla || planillaSeleccionada;
     setCargandoExcel(true);
     setError('');
     try {
-      const data = await obtenerDatosExcel({ hoja, limit: 1500 });
+      const data = await obtenerDatosExcel({
+        hoja,
+        limit: 1500,
+        planilla_id: pl?.id,
+        planilla_nombre: pl?.nombre,
+      });
       setExcelData(data);
       if (data.hoja_activa) setHojaSeleccionada(data.hoja_activa);
     } catch (err) {
@@ -119,13 +126,13 @@ export default function Inventario() {
     } finally {
       setCargandoExcel(false);
     }
-  }, []);
+  }, [planillaSeleccionada]);
 
   const cambiarHoja = (nombreHoja) => {
     setHojaSeleccionada(nombreHoja);
     setFiltroTextoGlobal('');
     setFiltrosColumnas({});
-    cargarExcel(nombreHoja);
+    cargarExcel(nombreHoja, planillaSeleccionada);
   };
 
   // Filas filtradas
@@ -155,7 +162,8 @@ export default function Inventario() {
     setFiltroTextoGlobal('');
     setFiltrosColumnas({});
     setPanelFiltroAbierto(false);
-    cargarExcel();
+    setHojaSeleccionada('');
+    cargarExcel('', planilla);
   };
 
   const volverAlHome = () => {
@@ -187,6 +195,8 @@ export default function Inventario() {
         oficina: formBuscar.oficina,
         tecnico: formBuscar.tecnico,
         fecha: formBuscar.fecha,
+        planilla_id: planillaSeleccionada?.id,
+        planilla_nombre: planillaSeleccionada?.nombre,
       });
       setResultadosBusqueda(resp.resultados || []);
     } catch (err) {
@@ -434,8 +444,8 @@ export default function Inventario() {
         </div>
 
         <div className="sgc-inv-toolbar-right">
-          <span className="sgc-inv-badge-archivo">
-            📁 {excelData.archivo || 'inventario_general.xlsx'}
+          <span className="sgc-inv-badge-archivo" title={excelData.archivo || ''}>
+            📁 {excelData.archivo || (planillaSeleccionada ? `${planillaSeleccionada.nombre}.xlsx` : 'inventario.xlsx')}
           </span>
           {excelData.existe && (
             <span className="sgc-inv-badge-filas">{excelData.total_filas} registros</span>
@@ -514,10 +524,18 @@ export default function Inventario() {
               <span className="sgc-inv-vacio-icono">📁</span>
               <h3>Archivo no disponible en servidor</h3>
               <p>
-                No se encontró <code>backend/data/inventario/inventario_general.xlsx</code>.
-                Coloca el archivo Excel en la carpeta del servidor para visualizarlo aquí.
+                {excelData.mensaje || (
+                  <>
+                    No se encontró el archivo Excel en <code>backend/data/migracion_inventario/</code>.
+                    Coloca el archivo Excel en la carpeta del servidor para visualizarlo aquí.
+                  </>
+                )}
               </p>
-              <button type="button" className="sgc-inv-btn sgc-inv-btn--primary" onClick={() => cargarExcel()}>
+              <button
+                type="button"
+                className="sgc-inv-btn sgc-inv-btn--primary"
+                onClick={() => cargarExcel(hojaSeleccionada, planillaSeleccionada)}
+              >
                 Reintentar lectura
               </button>
             </div>
