@@ -1,4 +1,22 @@
-﻿import api from './api';
+import api from './api';
+
+/**
+ * Obtiene las planillas de inventario con sus conteos reales desde el kardex.
+ */
+export async function listarPlanillas({ incluirInactivas = false } = {}) {
+  const res = await api.get('/inventario/planillas', {
+    params: incluirInactivas ? { incluir_inactivas: true } : {},
+  });
+  return res.data; // Array de PlanillaResponse
+}
+
+/**
+ * Crea una nueva planilla de inventario (solo admin).
+ */
+export async function crearPlanilla(datos) {
+  const res = await api.post('/inventario/planillas', datos);
+  return res.data;
+}
 
 /**
  * Obtiene el contenido del archivo Excel en el servidor (con hojas y filas de la hoja solicitada).
