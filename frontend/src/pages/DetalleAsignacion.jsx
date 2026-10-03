@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { obtenerAsignacion, actualizarAsignacion, finalizarAsignacion, borrarAsignacionConFlujo } from '../services/asignaciones';
+import { obtenerAsignacion, actualizarAsignacion, finalizarAsignacion, borrarAsignacionConFlujo, toggleGraciaAsignacion } from '../services/asignaciones';
 import { irAtras } from '../utils/navigation';
 import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION } from '../utils/asignaciones';
 import { formatFechaLarga, formatFechaCorta, formatCOP } from '../utils/personal';
@@ -34,7 +34,9 @@ export default function DetalleAsignacion() {
             const [resAsignacion, resUsuarios, resViaticos] = await Promise.all([
                 obtenerAsignacion(id),
                 api.get('/admin/usuarios').catch(() => ({ data: [] })),
-                api.get('/admin/viaticos').catch(() => ({ data: [] })),
+                // Filtramos en el backend para evitar traer los ~300 viáticos completos.
+                // El endpoint acepta ?asignacion_id=N y devuelve solo los de esta asignación.
+                api.get(`/admin/viaticos?asignacion_id=${id}`).catch(() => ({ data: [] })),
             ]);
 
             setAsignacion(resAsignacion.data);
@@ -44,22 +46,9 @@ export default function DetalleAsignacion() {
                 setTecnico(resUsuarios.data.find((u) => String(u.id) === String(resAsignacion.data.tecnico_id)));
             }
 
-            // Filtrar viáticos asociados a esta asignación
-            if (resViaticos.data?.length) {
-                const asigIdNum = Number(id);
-                const vinculados = resViaticos.data.filter((v) => {
-                    if (v.asignacion_id === asigIdNum) return true;
-                    if (v.ot === `ASIG-#${asigIdNum}`) return true;
-                    try {
-                        const parsed = JSON.parse(v.descripcion);
-                        if (Number(parsed?.asignacion_id) === asigIdNum) return true;
-                    } catch {
-                        // no-op
-                    }
-                    return false;
-                });
-                setViaticosVinculados(vinculados);
-            }
+            // El backend ya filtra por asignacion_id y por el campo ot legacy ("ASIG-#N"),
+            // por lo que no es necesario filtrar en cliente.
+            setViaticosVinculados(resViaticos.data || []);
         } catch {
             setError('No se pudo cargar la asignación.');
         } finally {
@@ -118,6 +107,27 @@ export default function DetalleAsignacion() {
             return;
         }
         navigate('/admin/asignaciones');
+    }
+
+    const [cambiandoGracia, setCambiandoGracia] = useState(false);
+
+    async function handleToggleGracia() {
+        const nuevoEstado = !asignacion?.gracia_activada;
+        const confirmMsg = nuevoEstado
+            ? '¿Deseas activar el período de gracia de 24 horas para esta asignación? El técnico dispondrá de 24h tras el cierre para subir o ajustar viáticos.'
+            : '¿Deseas desactivar el período de gracia? Al cerrarse, el técnico quedará bloqueado inmediatamente.';
+        if (!window.confirm(confirmMsg)) return;
+
+        setCambiandoGracia(true);
+        setError('');
+        try {
+            const res = await toggleGraciaAsignacion(asignacion.id, nuevoEstado);
+            setAsignacion(res.data);
+        } catch {
+            setError('No se pudo actualizar el período de gracia de la asignación.');
+        } finally {
+            setCambiandoGracia(false);
+        }
     }
 
     if (loading) {
@@ -368,6 +378,72 @@ export default function DetalleAsignacion() {
                                     </button>
                                 )}
                             </div>
+
+                            {/* Control Admin: Período de Gracia de 24 Horas */}
+                            {esAdmin && (
+                                <div style={{
+                                    marginTop: '1.5rem',
+                                    padding: '1.1rem 1.25rem',
+                                    background: asignacion.gracia_activada ? '#FEF3C7' : '#F8FAFC',
+                                    border: `1.5px solid ${asignacion.gracia_activada ? '#F59E0B' : '#E2E8F0'}`,
+                                    borderRadius: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: '1rem',
+                                    flexWrap: 'wrap',
+                                    boxShadow: asignacion.gracia_activada ? '0 2px 8px rgba(245, 158, 11, 0.1)' : 'none',
+                                }}>
+                                    <div style={{ flex: 1, minWidth: '240px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                            <span style={{ fontSize: '1.25rem' }}>⏱️</span>
+                                            <strong style={{ fontSize: '0.95rem', color: asignacion.gracia_activada ? '#92400E' : '#1E293B' }}>
+                                                Período de Gracia de 24 Horas
+                                            </strong>
+                                            <span style={{
+                                                fontSize: '0.72rem',
+                                                fontWeight: 800,
+                                                padding: '0.15rem 0.5rem',
+                                                borderRadius: '999px',
+                                                background: asignacion.gracia_activada ? '#D97706' : '#E2E8F0',
+                                                color: asignacion.gracia_activada ? '#FFFFFF' : '#64748B',
+                                            }}>
+                                                {asignacion.gracia_activada ? 'ACTIVO' : 'DESACTIVADO'}
+                                            </span>
+                                        </div>
+                                        <p style={{ margin: 0, fontSize: '0.82rem', color: asignacion.gracia_activada ? '#78350F' : '#64748B', lineHeight: 1.4 }}>
+                                            {asignacion.gracia_activada
+                                                ? 'Gracia concedida por el administrador: el técnico puede subir o ajustar viáticos durante 24 horas después del cierre.'
+                                                : 'Desactivado por defecto. Al cerrarse la asignación, el técnico queda bloqueado inmediatamente el mismo día a las 11:59 PM.'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        style={{
+                                            padding: '0.5rem 1rem',
+                                            fontSize: '0.85rem',
+                                            fontWeight: 700,
+                                            background: asignacion.gracia_activada ? '#DC2626' : '#2563EB',
+                                            color: '#FFFFFF',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.4rem',
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                        }}
+                                        onClick={handleToggleGracia}
+                                        disabled={cambiandoGracia}
+                                    >
+                                        {cambiandoGracia
+                                            ? 'Guardando...'
+                                            : asignacion.gracia_activada
+                                                ? '🔒 Desactivar Gracia'
+                                                : '⏱️ Activar Gracia (24h)'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

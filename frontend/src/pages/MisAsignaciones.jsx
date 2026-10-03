@@ -3,18 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import TecnicoLayout from '../components/TecnicoLayout';
 import api from '../services/api';
 import { guardarOrdenTrabajoAsignacion, listarAsignaciones, obtenerMisAsignacionesActivas } from '../services/asignaciones';
-import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION, calcularEstadoGraciaAsignacion } from '../utils/asignaciones';
+import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION, formatearCierreEn, calcularAvisoCierre } from '../utils/asignaciones';
 import { formatFechaLarga, formatCOP } from '../utils/personal';
 import './MisAsignaciones.css';
 
-/**
- * Devuelve true si la asignación puede recibir viáticos (período normal o gracia de 24h).
- */
-function estaEnRango(asignacion) {
-    if (!asignacion) return true;
-    const { puedeSubir } = calcularEstadoGraciaAsignacion(asignacion);
-    return puedeSubir;
-}
 
 /**
  * Normaliza texto (sin tildes, minúsculas) para comparar nombres de cliente.
@@ -286,11 +278,12 @@ export default function MisAsignaciones() {
                                     <OrdenTrabajoAsignacion asignacion={a} onGuardada={actualizarOrdenTrabajo} />
 
                                     {(() => {
-                                         const infoGracia = calcularEstadoGraciaAsignacion(a);
-                                         if (infoGracia.puedeSubir) {
+                                         const puedeSubir = a.puede_subir !== false;
+                                         const aviso = calcularAvisoCierre(a.cierre_en);
+                                         if (puedeSubir) {
                                              return (
                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.75rem' }}>
-                                                     {infoGracia.enGracia && (
+                                                     {aviso.cierra && (
                                                          <div style={{
                                                              display: 'flex',
                                                              alignItems: 'center',
@@ -304,15 +297,15 @@ export default function MisAsignaciones() {
                                                              fontWeight: 600,
                                                          }}>
                                                              <span>⏳</span>
-                                                             <span>Gracia de 24h activa: restan <strong>{infoGracia.tiempoRestanteStr}</strong> para registrar viáticos.</span>
+                                                             <span>¡Cierra pronto! Restan <strong>{aviso.tiempoStr}</strong> para registrar viáticos.</span>
                                                          </div>
                                                      )}
                                                      <button
                                                          className="mac-btn-viatico"
-                                                         style={infoGracia.enGracia ? { background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)' } : {}}
+                                                         style={aviso.cierra ? { background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)' } : {}}
                                                          onClick={() => navigate(`/nuevo-viatico?asignacion_id=${a.id}`)}
                                                      >
-                                                         {infoGracia.enGracia ? '⏳ Registrar viático (Gracia 24h activa) →' : '📝 Registrar viático para esta asignación →'}
+                                                         {aviso.cierra ? '⏳ Registrar viático (cierra pronto) →' : '📝 Registrar viático para esta asignación →'}
                                                      </button>
                                                  </div>
                                              );
@@ -322,12 +315,12 @@ export default function MisAsignaciones() {
                                                      <button
                                                          className="mac-btn-viatico mac-btn-viatico--bloqueado"
                                                          disabled
-                                                         title={`Período y gracia expirados`}
+                                                         title={a.cierre_en ? `Cerró el ${formatearCierreEn(a.cierre_en)}` : 'Asignación cerrada'}
                                                      >
                                                          🔒 Registro bloqueado
                                                      </button>
                                                      <p className="mac-fuera-rango-msg">
-                                                         ⚠️ Esta asignación se encuentra cerrada y su período de gracia de 24 horas para subir viáticos ha finalizado.
+                                                         ⚠️ Esta asignación está cerrada y ya no acepta nuevos viáticos.
                                                          Contacta al administrador para extender la asignación si requieres legalizaciones adicionales.
                                                      </p>
                                                  </div>

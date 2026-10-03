@@ -169,135 +169,38 @@ export function parsearFechaUtc(fechaStr) {
 }
 
 /**
- * Calcula el estado de gracia de 24 horas de una asignación.
- * Regla:
- * Si la asignación se cierra (finalizada por admin o al término de su fecha final),
- * el técnico cuenta con exactamente 24 horas adicionales de gracia para subir y
- * corregir sus viáticos antes del bloqueo definitivo.
- * 
- * @param {Object} asignacion
- * @returns {Object} { puedeSubir, enGracia, tiempoRestanteStr, limiteDate, cerrada, horasRestantes, nivelUrgencia }
+ * Formatea cierre_en (ISO con offset) a texto amigable en hora Colombia.
+ * @param {string|null} cierreEn - Datetime ISO con offset
+ * @returns {string}
  */
-export function calcularEstadoGraciaAsignacion(asignacion) {
-    if (!asignacion) {
-        return {
-            puedeSubir: true,
-            enGracia: false,
-            tiempoRestanteStr: '',
-            limiteDate: null,
-            cerrada: false,
-            horasRestantes: null,
-            nivelUrgencia: 'normal',
-        };
-    }
+export function formatearCierreEn(cierreEn) {
+    if (!cierreEn) return '';
+    const d = parsearFechaUtc(cierreEn);
+    if (!d || isNaN(d.getTime())) return '';
+    const dia = String(d.getDate()).padStart(2, '0');
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const anio = d.getFullYear();
+    let h = d.getHours();
+    const min = String(d.getMinutes()).padStart(2, '0');
+    const ampm = h >= 12 ? 'p. m.' : 'a. m.';
+    h = h % 12 || 12;
+    return `${dia}/${mes}/${anio} a las ${h}:${min} ${ampm} (hora Colombia)`;
+}
 
-    const ahora = new Date();
-    const estado = (asignacion.estado || '').toLowerCase();
-
-    if (estado === 'cancelada') {
-        return {
-            puedeSubir: false,
-            enGracia: false,
-            tiempoRestanteStr: 'Asignación cancelada',
-            limiteDate: null,
-            cerrada: true,
-            horasRestantes: 0,
-            nivelUrgencia: 'bloqueada',
-        };
-    }
-
-    // 1. Asignación marcada como finalizada por el administrador
-    if (estado === 'finalizada') {
-        let limiteGracia = null;
-        if (asignacion.limite_subida_viaticos) {
-            limiteGracia = parsearFechaUtc(asignacion.limite_subida_viaticos);
-        } else {
-            const fechaCierreBase = asignacion.cerrada_en || asignacion.updated_at;
-            let fechaCierre = parsearFechaUtc(fechaCierreBase);
-            if (!fechaCierre || isNaN(fechaCierre.getTime())) {
-                fechaCierre = new Date(asignacion.fecha_fin + 'T23:59:59');
-            }
-            limiteGracia = new Date(fechaCierre.getTime() + 24 * 60 * 60 * 1000);
-        }
-
-        const msRestantes = limiteGracia.getTime() - ahora.getTime();
-
-        if (msRestantes > 0) {
-            const horas = Math.floor(msRestantes / (1000 * 60 * 60));
-            const minutos = Math.floor((msRestantes % (1000 * 60 * 60)) / (1000 * 60));
-            const tiempoRestanteStr = horas > 0 ? `${horas}h ${minutos}m` : `${minutos} min`;
-            return {
-                puedeSubir: true,
-                enGracia: true,
-                tiempoRestanteStr,
-                limiteDate: limiteGracia,
-                cerrada: true,
-                horasRestantes: msRestantes / (1000 * 60 * 60),
-                nivelUrgencia: horas < 6 ? 'urgente' : 'advertencia',
-            };
-        } else {
-            return {
-                puedeSubir: false,
-                enGracia: false,
-                tiempoRestanteStr: 'Plazo vencido (24h de gracia expiradas)',
-                limiteDate: limiteGracia,
-                cerrada: true,
-                horasRestantes: 0,
-                nivelUrgencia: 'bloqueada',
-            };
-        }
-    }
-
-    // 2. Asignación pendiente o en curso
-    const fechaFin = new Date(asignacion.fecha_fin + 'T23:59:59');
-    let limiteConGracia = null;
-    if (asignacion.limite_subida_viaticos) {
-        limiteConGracia = parsearFechaUtc(asignacion.limite_subida_viaticos);
-    } else {
-        limiteConGracia = new Date(fechaFin.getTime() + 24 * 60 * 60 * 1000);
-    }
-    const msRestantes = limiteConGracia.getTime() - ahora.getTime();
-
-    // Ya pasó la fecha fin oficial, pero está dentro de las 24 horas de gracia
-    if (ahora > fechaFin && msRestantes > 0) {
-        const horas = Math.floor(msRestantes / (1000 * 60 * 60));
-        const minutos = Math.floor((msRestantes % (1000 * 60 * 60)) / (1000 * 60));
-        const tiempoRestanteStr = horas > 0 ? `${horas}h ${minutos}m` : `${minutos} min`;
-        return {
-            puedeSubir: true,
-            enGracia: true,
-            tiempoRestanteStr,
-            limiteDate: limiteConGracia,
-            cerrada: false,
-            horasRestantes: msRestantes / (1000 * 60 * 60),
-            nivelUrgencia: horas < 6 ? 'urgente' : 'advertencia',
-        };
-    }
-
-    // Pasaron tanto la fecha fin como las 24h de gracia
-    if (msRestantes <= 0) {
-        return {
-            puedeSubir: false,
-            enGracia: false,
-            tiempoRestanteStr: 'Plazo y gracia finalizados',
-            limiteDate: limiteConGracia,
-            cerrada: true,
-            horasRestantes: 0,
-            nivelUrgencia: 'bloqueada',
-        };
-    }
-
-    // Está dentro del período normal
-    const msHastaFin = fechaFin.getTime() - ahora.getTime();
-    const horasHastaFin = msHastaFin / (1000 * 60 * 60);
-    return {
-        puedeSubir: true,
-        enGracia: false,
-        tiempoRestanteStr: horasHastaFin <= 24 ? `Cierra hoy (${Math.max(1, Math.round(horasHastaFin))}h)` : `Vigente`,
-        limiteDate: limiteConGracia,
-        cerrada: false,
-        horasRestantes: msRestantes / (1000 * 60 * 60),
-        nivelUrgencia: horasHastaFin <= 24 ? 'advertencia' : 'normal',
-    };
+/**
+ * Calcula si la asignación cierra pronto (< 2 horas) usando cierre_en del backend.
+ * @param {string|null} cierreEn - Datetime ISO con offset
+ * @returns {{ cierra: boolean, msRestantes: number, tiempoStr: string }}
+ */
+export function calcularAvisoCierre(cierreEn) {
+    if (!cierreEn) return { cierra: false, msRestantes: Infinity, tiempoStr: '' };
+    const d = parsearFechaUtc(cierreEn);
+    if (!d || isNaN(d.getTime())) return { cierra: false, msRestantes: Infinity, tiempoStr: '' };
+    const msRestantes = d.getTime() - Date.now();
+    if (msRestantes <= 0) return { cierra: false, msRestantes: 0, tiempoStr: '' };
+    const horas = Math.floor(msRestantes / (1000 * 60 * 60));
+    const minutos = Math.floor((msRestantes % (1000 * 60 * 60)) / (1000 * 60));
+    const tiempoStr = horas > 0 ? `${horas}h ${minutos}m` : `${minutos} min`;
+    return { cierra: msRestantes < 2 * 60 * 60 * 1000, msRestantes, tiempoStr };
 }
 

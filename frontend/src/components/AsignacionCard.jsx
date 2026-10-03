@@ -31,9 +31,16 @@ export default function AsignacionCard({ asignacion, onClick, onBorrar }) {
                     <span className="asig-card-tipo">
                         🏷️ {LABEL_TIPO_ASIGNACION[asignacion.tipo] || asignacion.tipo}
                     </span>
-                    <span className={`asig-card-badge ${CLASE_ESTADO_ASIGNACION[asignacion.estado] || ''}`}>
-                        {LABEL_ESTADO_ASIGNACION[asignacion.estado] || asignacion.estado}
-                    </span>
+                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                        {asignacion.gracia_activada && (
+                            <span className="asig-card-badge" style={{ background: '#FEF3C7', color: '#B45309', border: '1px solid #FCD34D', fontSize: '0.72rem' }}>
+                                ⏱️ Gracia 24h
+                            </span>
+                        )}
+                        <span className={`asig-card-badge ${CLASE_ESTADO_ASIGNACION[asignacion.estado] || ''}`}>
+                            {LABEL_ESTADO_ASIGNACION[asignacion.estado] || asignacion.estado}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Técnico Info */}

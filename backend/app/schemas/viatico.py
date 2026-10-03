@@ -28,12 +28,15 @@ class AsignacionResumenViatico(BaseModel):
     saldo_restante: Decimal
     saldo_favor_tecnico: Decimal = Decimal("0.00")
     estado: str | None = None
+    puede_subir: bool = True
+    fecha_fin: date | None = None
+    cierre_en: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ViaticoBase(BaseModel):
-    fecha: date
+    fecha: date | None = None
     cliente: str
     ciudad: str
     ot: str

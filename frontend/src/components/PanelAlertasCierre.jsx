@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
-import { calcularEstadoGraciaAsignacion, LABEL_TIPO_ASIGNACION, parsearFechaUtc } from '../utils/asignaciones';
+import { calcularAvisoCierre, formatearCierreEn, LABEL_TIPO_ASIGNACION, parsearFechaUtc } from '../utils/asignaciones';
 import './PanelAlertasCierre.css';
 
 export default function PanelAlertasCierre() {
@@ -20,6 +20,8 @@ export default function PanelAlertasCierre() {
   useEffect(() => {
     let activo = true;
     async function cargar() {
+      // Guard de visibilidad: no consultar la BD si la pestaña está en segundo plano
+      if (document.visibilityState !== 'visible') return;
       try {
         const res = await obtenerMisAsignacionesActivas();
         if (activo) {
@@ -32,36 +34,43 @@ export default function PanelAlertasCierre() {
       }
     }
     cargar();
-    // Refrescar cada 2 minutos
-    const interval = setInterval(cargar, 120000);
+    // Refrescar cada 5 minutos (era 2 min). El guard de visibilidad evita
+    // peticiones a la BD cuando la pestaña está minimizada o en segundo plano,
+    // permitiendo que Neon duerma tras ~5 min de inactividad real.
+    const interval = setInterval(cargar, 300000);
     return () => {
       activo = false;
       clearInterval(interval);
     };
   }, []);
 
-  // Procesar asignaciones con su estado de gracia calculado
+  // Procesar asignaciones con su estado calculado
   const itemsProcesados = useMemo(() => {
     return asignaciones.map((a) => {
-      const gracia = calcularEstadoGraciaAsignacion(a);
+      const puedeSubir = a.puede_subir !== false;
+      const aviso = calcularAvisoCierre(a.cierre_en);
       return {
         asignacion: a,
-        ...gracia,
+        puedeSubir,
+        cierraPronto: aviso.cierra,
+        tiempoStr: aviso.tiempoStr,
+        msRestantes: aviso.msRestantes,
+        nivelUrgencia: !puedeSubir ? 'bloqueada' : aviso.cierra ? 'urgente' : 'normal',
       };
-    }).sort((a, b) => {
-      // Priorizar asignaciones en gracia o urgentes al tope
-      if (a.enGracia && !b.enGracia) return -1;
-      if (!a.enGracia && b.enGracia) return 1;
-      return (a.horasRestantes || 9999) - (b.horasRestantes || 9999);
-    });
+    }).filter((i) => i.puedeSubir || !i.puedeSubir) // mostrar todas (activas + cerradas)
+      .sort((a, b) => {
+        if (a.cierraPronto && !b.cierraPronto) return -1;
+        if (!a.cierraPronto && b.cierraPronto) return 1;
+        return (a.msRestantes || 9999) - (b.msRestantes || 9999);
+      });
   }, [asignaciones, nowTick]);
 
-  // Contar cuántas asignaciones están en período de gracia o próximas a vencer (< 24h)
+  // Alertas urgentes: asignaciones que cierran en < 2h
   const alertasUrgentes = itemsProcesados.filter(
-    (i) => i.enGracia || i.nivelUrgencia === 'urgente' || i.nivelUrgencia === 'advertencia'
+    (i) => i.puedeSubir && i.cierraPronto
   );
   const conteoAlertas = alertasUrgentes.length;
-  const tieneGraciaActiva = itemsProcesados.some((i) => i.enGracia);
+  const tieneCierrePronto = alertasUrgentes.length > 0;
 
   function formatearFechaHora(fecha) {
     if (!fecha) return '—';
@@ -82,7 +91,7 @@ export default function PanelAlertasCierre() {
       {/* Botón pestaña lateral flotante en el costado derecho */}
       <button
         type="button"
-        className={`pac-tab-btn ${conteoAlertas > 0 ? 'pac-tab-btn--alerta' : ''} ${tieneGraciaActiva ? 'pac-tab-btn--gracia' : ''}`}
+        className={`pac-tab-btn ${conteoAlertas > 0 ? 'pac-tab-btn--alerta' : ''} ${tieneCierrePronto ? 'pac-tab-btn--gracia' : ''}`}
         onClick={() => setAbierto((prev) => !prev)}
         title="Ver alertas de cierre de asignaciones"
         aria-label="Panel de alertas de cierre de asignaciones"
@@ -113,7 +122,7 @@ export default function PanelAlertasCierre() {
             <div>
               <h2 className="pac-header-title">Cierre de Asignaciones</h2>
               <p className="pac-header-sub">
-                Control de plazos y ventana de gracia (24h)
+                Control de plazos activos
               </p>
             </div>
           </div>
@@ -141,9 +150,9 @@ export default function PanelAlertasCierre() {
             </div>
           ) : (
             <div className="pac-list">
-              {itemsProcesados.map(({ asignacion: a, puedeSubir, enGracia, tiempoRestanteStr, limiteDate, nivelUrgencia }) => {
+              {itemsProcesados.map(({ asignacion: a, puedeSubir, cierraPronto, tiempoStr, nivelUrgencia }) => {
                 const tipoLabel = LABEL_TIPO_ASIGNACION[a.tipo] || a.tipo;
-                const limiteFormateado = formatearFechaHora(limiteDate);
+                const cierreFormateado = formatearCierreEn(a.cierre_en);
 
                 return (
                   <div
@@ -155,11 +164,11 @@ export default function PanelAlertasCierre() {
                       <span className="pac-card-tag">
                         {tipoLabel}
                       </span>
-                      {enGracia ? (
+                      {!puedeSubir ? (
                         <span className="pac-card-status pac-card-status--gracia">
-                          ⏳ Gracia 24h Activa
+                          🔒 Cerrada
                         </span>
-                      ) : nivelUrgencia === 'urgente' || nivelUrgencia === 'advertencia' ? (
+                      ) : cierraPronto ? (
                         <span className="pac-card-status pac-card-status--urgente">
                           ⚠️ Cierra Pronto
                         </span>
@@ -181,36 +190,27 @@ export default function PanelAlertasCierre() {
                     </div>
 
                     {/* Alerta de tiempo */}
-                    <div className={`pac-card-alerta pac-card-alerta--${nivelUrgencia}`}>
-                      <div className="pac-card-alerta-icon">
-                        {enGracia ? '🚨' : nivelUrgencia === 'urgente' ? '⏰' : '📅'}
+                    {cierreFormateado && (
+                      <div className={`pac-card-alerta pac-card-alerta--${nivelUrgencia}`}>
+                        <div className="pac-card-alerta-icon">
+                          {!puedeSubir ? '🔒' : cierraPronto ? '⏰' : '📅'}
+                        </div>
+                        <div className="pac-card-alerta-texto">
+                          <strong>{!puedeSubir ? 'Asignación cerrada' : 'Fecha límite de subida'}</strong>
+                          <span>Cierra el <strong>{cierreFormateado}</strong>.</span>
+                        </div>
                       </div>
-                      <div className="pac-card-alerta-texto">
-                        {enGracia ? (
-                          <>
-                            <strong>Asignación cerrada</strong>
-                            <span>
-                              Tienes hasta el <strong>{limiteFormateado}</strong> para subir tus viáticos restantes.
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <strong>Fecha límite de subida</strong>
-                            <span>
-                              Hasta el <strong>{limiteFormateado}</strong> (incluye 24h de gracia tras cierre).
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                    )}
 
-                    {/* Contador regresivo en vivo */}
-                    <div className="pac-card-timer-row">
-                      <span className="pac-card-timer-label">Tiempo restante:</span>
-                      <span className={`pac-card-timer-badge pac-card-timer-badge--${nivelUrgencia}`}>
-                        ⏱️ {tiempoRestanteStr}
-                      </span>
-                    </div>
+                    {/* Contador regresivo en vivo (solo si cierra pronto) */}
+                    {cierraPronto && tiempoStr && (
+                      <div className="pac-card-timer-row">
+                        <span className="pac-card-timer-label">Tiempo restante:</span>
+                        <span className={`pac-card-timer-badge pac-card-timer-badge--${nivelUrgencia}`}>
+                          ⏱️ {tiempoStr}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Acciones */}
                     <div className="pac-card-actions">
@@ -227,7 +227,7 @@ export default function PanelAlertasCierre() {
                         </button>
                       ) : (
                         <span className="pac-bloqueado-tag">
-                          🔒 Carga bloqueada (plazo expirado)
+                          🔒 Carga bloqueada
                         </span>
                       )}
                     </div>
@@ -241,7 +241,7 @@ export default function PanelAlertasCierre() {
         {/* Footer informativo */}
         <div className="pac-footer">
           <span className="pac-footer-info">
-            💡 <strong>Regla Global Security:</strong> Al cerrarse una asignación, dispones de 24 horas continuas para legalizar tus viáticos.
+            💡 <strong>Regla Global Security:</strong> La subida de viáticos está disponible desde el inicio de la asignación hasta las 23:59 del día de cierre (hora Colombia). No hay período de gracia.
           </span>
         </div>
       </aside>

@@ -10,7 +10,7 @@ armar el listado de técnicos. Aquí todo se agrega en SQL.
 Auditoría, PerfilEmpleado, AdminViaticos y Asignaciones.
 """
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, List, Optional
 
@@ -43,9 +43,13 @@ ESTADO_NO_COMPUTA_GASTO = "rechazado"
 PERIODOS_VALIDOS = ("hoy", "semana", "mes", "historico")
 
 
+from zoneinfo import ZoneInfo
+COT = ZoneInfo("America/Bogota")
+
+
 def _rango_periodo(periodo: str) -> tuple[Optional[date], Optional[date]]:
-    """Límites [desde, hasta] inclusivos del periodo. `historico` no filtra."""
-    hoy = date.today()
+    """Límites [desde, hasta] inclusivos del periodo según hora legal de Colombia. `historico` no filtra."""
+    hoy = datetime.now(COT).date()
     if periodo == "hoy":
         return hoy, hoy
     if periodo == "semana":

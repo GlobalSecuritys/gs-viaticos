@@ -58,6 +58,7 @@ def startup_db_check():
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS acceso_mapa BOOLEAN DEFAULT TRUE;"))
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol_mapa VARCHAR(20) DEFAULT 'lector';"))
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS solo_inventario BOOLEAN NOT NULL DEFAULT FALSE;"))
+            conn.execute(text("ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS gracia_activada BOOLEAN NOT NULL DEFAULT FALSE;"))
             conn.execute(text("UPDATE usuarios SET rol_mapa = 'lector' WHERE rol_mapa IS NULL OR rol_mapa = '';"))
             conn.execute(text("UPDATE usuarios SET es_admin_calidad = TRUE, rol_mapa = 'editor' WHERE LOWER(TRIM(correo)) = 'pilaradmin@gsbank.com';"))
             conn.commit()

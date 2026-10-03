@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
 import ModalCuentaCobroCorta from '../components/ModalCuentaCobroCorta';
 import { formatFechaLarga, formatCOP, formatMiles, limpiarNumero } from '../utils/personal';
-import { derivarLugarDesdeTipoAsignacion, calcularEstadoGraciaAsignacion } from '../utils/asignaciones';
+import { derivarLugarDesdeTipoAsignacion, calcularAvisoCierre, formatearCierreEn } from '../utils/asignaciones';
 import './NuevoViatico.css';
 
 const CONCEPTOS = [
@@ -27,17 +27,7 @@ function hoyISO() {
     return `${d.getFullYear()}-${mes}-${dia}`;
 }
 
-/**
- * Devuelve true si la asignación está dentro de su período válido
- * o en su período de gracia de 24 horas tras el cierre.
- */
-function estaEnRango(asignacion) {
-    if (!asignacion) return true; // sin asignación vinculada, siempre permitido
-    const { puedeSubir } = calcularEstadoGraciaAsignacion(asignacion);
-    return puedeSubir;
-}
 
-const CONTEXTO_KEY = 'gs_fecha_anterior_viatico';
 
 function getItemInicial(id) {
     return {
@@ -52,8 +42,7 @@ function getItemInicial(id) {
         origen: '',
         destino: '',
         valor: '',
-        fecha_gasto: '',             // vacío = hereda fecha base global
-        fecha_gasto_modificada: false,// true cuando el usuario cambió la fecha individualmente
+        fecha_gasto: '',             // ignorado — el backend asigna la fecha automáticamente
         doc_tipo: null,              // 'soporte' | 'cuenta_cobro' | null
         cuenta_cobro: null,
         archivo: null,
@@ -85,30 +74,14 @@ export default function NuevoViatico() {
         }
     }, [asignacionIdParam]);
 
-    // 1. Contexto de fecha
-    const fechaGuardada = localStorage.getItem(CONTEXTO_KEY) || hoyISO();
-    const [opcionFecha, setOpcionFecha] = useState('hoy'); // 'hoy' | 'anterior'
-    const [fechaSeleccionada, setFechaSeleccionada] = useState(
-        opcionFecha === 'hoy' ? hoyISO() : fechaGuardada
-    );
-
-    function handleCambiarOpcionFecha(opcion) {
-        setOpcionFecha(opcion);
-        if (opcion === 'hoy') {
-            setFechaSeleccionada(hoyISO());
-        } else {
-            setFechaSeleccionada(fechaGuardada);
-        }
-    }
+    // Fecha informativa (solo para mostrar al usuario; el backend la genera automáticamente)
+    const fechaHoy = hoyISO();
 
     // 2. Lista dinámica de ítems/gastos
     const [gastos, setGastos] = useState([getItemInicial(1)]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [exitoMsg, setExitoMsg] = useState('');
-
-    // Control de edición de fecha individual por gasto
-    const [gastoFechaEditando, setGastoFechaEditando] = useState(null); // gastoId | null
 
     // Autocomplete de proveedores: sugerencias por ítem
     const [sugerencias, setSugerencias] = useState({}); // { [gastoId]: [] }
@@ -230,16 +203,10 @@ export default function NuevoViatico() {
 
         setLoading(true);
         try {
-            // Guardar fecha seleccionada como la fecha anterior para registros consecutivos
-            localStorage.setItem(CONTEXTO_KEY, fechaSeleccionada);
-
-            // Crear cada viático/ítem en el backend
+            // Crear cada viático/ítem en el backend (fecha la asigna el backend automáticamente)
             for (let i = 0; i < gastos.length; i++) {
                 const g = gastos[i];
                 const val = parseFloat(g.valor);
-
-                // Fecha individual del gasto (o la fecha base si no se modificó)
-                const fechaGasto = g.fecha_gasto || fechaSeleccionada;
 
                 // Determinar el NIT final y tipo_identificacion según modo elegido
                 let nitFinal = '';
@@ -279,7 +246,6 @@ export default function NuevoViatico() {
                 });
 
                 const payload = {
-                    fecha: fechaGasto,
                     cliente: g.razon_social || (asignacionDetalle ? asignacionDetalle.cliente : (nitFinal || 'Gasto Operativo')),
                     ciudad: g.destino || (asignacionDetalle ? asignacionDetalle.ciudad : 'N/A'),
                     ot: '',
@@ -348,9 +314,11 @@ export default function NuevoViatico() {
 
     const cedulaUsuario = user?.codigo_empleado || '1.234.567.890';
 
-    // Regla de negocio: bloquear la carga si la fecha actual está fuera del rango
-    // de la asignación vinculada. Solo aplica cuando hay asignación seleccionada.
-    const fueraDeRango = asignacionIdParam && asignacionDetalle && !estaEnRango(asignacionDetalle);
+    // Bloqueo: el backend ya marca puede_subir=false cuando la ventana venció o el admin cerró.
+    const fueraDeRango = asignacionIdParam && asignacionDetalle && asignacionDetalle.puede_subir === false;
+
+    // Aviso de cierre próximo (< 2 horas)
+    const avisoCierre = calcularAvisoCierre(asignacionDetalle?.cierre_en);
 
     return (
         <TecnicoLayout>
@@ -428,7 +396,6 @@ export default function NuevoViatico() {
                 {error && <div className="admin-error-banner">{error}</div>}
                 {exitoMsg && <div className="nv-success-banner">{exitoMsg}</div>}
 
-                {/* Banner de alerta: Período de gracia de 24h activo */}
                 {/* Aviso: la asignación aún no tiene OT diligenciada (campo opcional) */}
                 {asignacionDetalle && !(asignacionDetalle.orden_trabajo || '').trim() && (
                     <div className="nv-aviso-ot">
@@ -446,56 +413,91 @@ export default function NuevoViatico() {
                     </div>
                 )}
 
-                {asignacionDetalle && !fueraDeRango && calcularEstadoGraciaAsignacion(asignacionDetalle).enGracia && (() => {
-                    const infoGracia = calcularEstadoGraciaAsignacion(asignacionDetalle);
-                    const limiteStr = infoGracia.limiteDate
-                        ? `${String(infoGracia.limiteDate.getDate()).padStart(2, '0')}/${String(infoGracia.limiteDate.getMonth() + 1).padStart(2, '0')} a las ${String(infoGracia.limiteDate.getHours() % 12 || 12).padStart(2, '0')}:${String(infoGracia.limiteDate.getMinutes()).padStart(2, '0')} ${infoGracia.limiteDate.getHours() >= 12 ? 'PM' : 'AM'}`
-                        : '';
-                    return (
-                        <div className="nv-gracia-banner" style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '1rem',
-                            padding: '1rem 1.25rem',
-                            marginBottom: '1.25rem',
-                            backgroundColor: '#FEF2F2',
-                            border: '1.5px solid #FCA5A5',
-                            borderRadius: '12px',
-                            color: '#991B1B',
-                            boxShadow: '0 4px 12px rgba(220, 38, 38, 0.08)'
-                        }}>
-                            <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>⏳</span>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                                    <strong style={{ fontSize: '0.95rem' }}>Período de Gracia de 24 Horas Activo</strong>
-                                    <span style={{
-                                        fontSize: '0.72rem',
-                                        fontWeight: 800,
-                                        background: '#DC2626',
-                                        color: '#FFFFFF',
-                                        padding: '0.15rem 0.5rem',
-                                        borderRadius: '999px'
-                                    }}>
-                                        Quedan {infoGracia.tiempoRestanteStr}
-                                    </span>
-                                </div>
-                                <p style={{ margin: 0, fontSize: '0.84rem', color: '#7F1D1D', lineHeight: 1.4 }}>
-                                    Esta asignación fue cerrada. Tienes plazo hasta el <strong>{limiteStr}</strong> para terminar de legalizar y registrar tus viáticos. Pasado este tiempo, la carga quedará bloqueada permanentemente.
-                                </p>
+                {/* Banner de Período de Gracia: solo si el admin activó la gracia y está vigente */}
+                {asignacionDetalle && !fueraDeRango && asignacionDetalle.en_periodo_gracia && (
+                    <div className="nv-gracia-banner" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        padding: '1rem 1.25rem',
+                        marginBottom: '1.25rem',
+                        backgroundColor: '#FEF3C7',
+                        border: '1.5px solid #F59E0B',
+                        borderRadius: '12px',
+                        color: '#92400E',
+                        boxShadow: '0 4px 12px rgba(245, 158, 11, 0.1)'
+                    }}>
+                        <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>⏱️</span>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                                <strong style={{ fontSize: '0.95rem' }}>Período de Gracia de 24 Horas Activo</strong>
+                                <span style={{
+                                    fontSize: '0.72rem',
+                                    fontWeight: 800,
+                                    background: '#D97706',
+                                    color: '#FFFFFF',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: '999px'
+                                }}>
+                                    {asignacionDetalle.tiempo_restante_str || '24h extras'}
+                                </span>
                             </div>
+                            <p style={{ margin: 0, fontSize: '0.84rem', color: '#78350F', lineHeight: 1.4 }}>
+                                El administrador ha habilitado un período de gracia de 24 horas para esta asignación cerrada.
+                                Puedes registrar viáticos hasta el{' '}
+                                <strong>{formatearCierreEn(asignacionDetalle.cierre_en)}</strong>.
+                            </p>
                         </div>
-                    );
-                })()}
+                    </div>
+                )}
 
-                {/* Banner de bloqueo: asignación fuera del período válido y de la gracia */}
+                {/* Aviso de cierre próximo (< 2 horas para que venza la asignación en ventana normal) */}
+                {asignacionDetalle && !fueraDeRango && !asignacionDetalle.en_periodo_gracia && avisoCierre.cierra && (
+                    <div className="nv-gracia-banner" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        padding: '1rem 1.25rem',
+                        marginBottom: '1.25rem',
+                        backgroundColor: '#FEF2F2',
+                        border: '1.5px solid #FCA5A5',
+                        borderRadius: '12px',
+                        color: '#991B1B',
+                        boxShadow: '0 4px 12px rgba(220, 38, 38, 0.08)'
+                    }}>
+                        <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>⏳</span>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                                <strong style={{ fontSize: '0.95rem' }}>¡Asignación cierra pronto!</strong>
+                                <span style={{
+                                    fontSize: '0.72rem',
+                                    fontWeight: 800,
+                                    background: '#DC2626',
+                                    color: '#FFFFFF',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: '999px'
+                                }}>
+                                    Quedan {avisoCierre.tiempoStr}
+                                </span>
+                            </div>
+                            <p style={{ margin: 0, fontSize: '0.84rem', color: '#7F1D1D', lineHeight: 1.4 }}>
+                                La ventana de esta asignación cierra el{' '}
+                                <strong>{formatearCierreEn(asignacionDetalle.cierre_en)}</strong>.{' '}
+                                Registra tus gastos antes de que expire.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Banner de bloqueo: asignación fuera del período válido */}
                 {fueraDeRango && (
                     <div className="nv-fuera-rango-banner">
                         <span className="nv-fuera-rango-icono">🔒</span>
                         <div>
                             <strong>Carga de viáticos bloqueada</strong>
                             <p>
-                                Esta asignación se encuentra cerrada y su plazo de gracia de 24 horas para subir viáticos ha finalizado.{' '}
-                                Si necesitas registrar gastos adicionales, contacta al administrador para que extienda el período de la asignación.
+                                Esta asignación está cerrada y ya no acepta nuevos viáticos.{' '}
+                                Si necesitas registrar gastos adicionales, contacta al administrador para que extienda la fecha de la asignación.
                             </p>
                         </div>
                     </div>
@@ -508,58 +510,20 @@ export default function NuevoViatico() {
                         <div className="nv-card">
                             <h3 className="nv-card-title">1. Fecha del gasto</h3>
                             <p className="nv-card-sub">
-                                Selecciona la fecha que aplicarás para todos los gastos.
+                                La fecha se registra automáticamente como el día de hoy (hora Colombia).
                             </p>
-
-                            <div className="nv-fecha-options">
-                                <label
-                                    className={`nv-fecha-radio ${opcionFecha === 'hoy' ? 'nv-fecha-radio--selected' : ''}`}
-                                    onClick={() => handleCambiarOpcionFecha('hoy')}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="opcionFecha"
-                                        checked={opcionFecha === 'hoy'}
-                                        onChange={() => { }}
-                                    />
-                                    <div>
-                                        <strong>Usar fecha de hoy</strong>
-                                        <span className="nv-fecha-date">{formatFechaLarga(hoyISO())}</span>
-                                    </div>
-                                </label>
-
-                                <label
-                                    className={`nv-fecha-radio ${opcionFecha === 'anterior' ? 'nv-fecha-radio--selected' : ''}`}
-                                    onClick={() => handleCambiarOpcionFecha('anterior')}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="opcionFecha"
-                                        checked={opcionFecha === 'anterior'}
-                                        onChange={() => { }}
-                                    />
-                                    <div style={{ width: '100%' }}>
-                                        <strong>Mantener fecha anterior</strong>
-                                        {opcionFecha === 'anterior' ? (
-                                            <div className="nv-fecha-picker-wrap" onClick={(e) => e.stopPropagation()}>
-                                                <span className="nv-fecha-picker-label">📅 Seleccionar fecha:</span>
-                                                <input
-                                                    type="date"
-                                                    className="nv-fecha-picker-input"
-                                                    value={fechaSeleccionada}
-                                                    onChange={(e) => {
-                                                        setFechaSeleccionada(e.target.value);
-                                                        localStorage.setItem(CONTEXTO_KEY, e.target.value);
-                                                    }}
-                                                />
-                                            </div>
-                                        ) : (
-                                            <span className="nv-fecha-date">
-                                                Última usada: {formatFechaLarga(fechaGuardada)}
-                                            </span>
-                                        )}
-                                    </div>
-                                </label>
+                            <div className="nv-fecha-badge" style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.45rem',
+                                padding: '0.45rem 0.9rem',
+                                background: '#F1F5F9',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem',
+                                fontWeight: 600,
+                                color: '#334155',
+                            }}>
+                                📅 {formatFechaLarga(fechaHoy)}
                             </div>
                         </div>
 
@@ -596,49 +560,7 @@ export default function NuevoViatico() {
                                                 )}
                                             </div>
 
-                                            {/* ── FECHA DEL GASTO (individual) ── */}
-                                            <div className="nv-gasto-section">
-                                                <div className="nv-field-group nv-field-group--full">
-                                                    <div className="nv-label-row">
-                                                        <label>Fecha del gasto</label>
-                                                        {!gasto.fecha_gasto_modificada && (
-                                                            <span className="nv-fecha-hint">Heredada de la fecha base</span>
-                                                        )}
-                                                    </div>
-                                                    {gasto.fecha_gasto_modificada ? (
-                                                        <div className="nv-fecha-gasto-row">
-                                                            <input
-                                                                type="date"
-                                                                value={gasto.fecha_gasto || fechaSeleccionada}
-                                                                onChange={(e) => handleGastoChange(gasto.id, 'fecha_gasto', e.target.value)}
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                className="nv-btn-secondary nv-btn-sm"
-                                                                onClick={() => {
-                                                                    handleGastoChange(gasto.id, 'fecha_gasto_modificada', false);
-                                                                    handleGastoChange(gasto.id, 'fecha_gasto', '');
-                                                                }}
-                                                            >
-                                                                ↩ Usar fecha base
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="nv-fecha-gasto-row">
-                                                            <span className="nv-fecha-badge">
-                                                                📅 {gasto.fecha_gasto || fechaSeleccionada || 'Sin fecha base'}
-                                                            </span>
-                                                            <button
-                                                                type="button"
-                                                                className="nv-btn-secondary nv-btn-sm"
-                                                                onClick={() => handleGastoChange(gasto.id, 'fecha_gasto_modificada', true)}
-                                                            >
-                                                                ✏️ Modificar fecha
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
+
 
                                             {/* ── IDENTIFICACIÓN ── */}
                                             <div className="nv-gasto-section">

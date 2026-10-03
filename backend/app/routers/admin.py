@@ -2,9 +2,9 @@ from datetime import date
 from decimal import Decimal
 from typing import Annotated, List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.viatico import Viatico
@@ -468,7 +468,8 @@ def _hacer_viatico_admin_response(v: Viatico) -> ViaticoAdminResponse:
 @router.get("/viaticos", response_model=List[ViaticoAdminResponse])
 def listar_todos_los_viaticos(
     current_admin: Annotated[Usuario, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)]
+    db: Annotated[Session, Depends(get_db)],
+    asignacion_id: Optional[int] = Query(default=None),
 ):
     # Las colecciones van con selectinload (consulta aparte) y no con
     # joinedload, para evitar el producto cartesiano
@@ -490,6 +491,18 @@ def listar_todos_los_viaticos(
             Viatico.created_at.desc()
         )
     )
+
+    # Si se pasa asignacion_id, filtramos en BD para evitar traer todo el
+    # dataset. El OR sobre `ot` cubre viáticos legacy vinculados por ese campo
+    # (formato "ASIG-#N") en lugar del FK asignacion_id.
+    # Sin este parámetro el comportamiento es idéntico al original.
+    if asignacion_id is not None:
+        stmt = stmt.where(
+            or_(
+                Viatico.asignacion_id == asignacion_id,
+                Viatico.ot == f"ASIG-#{asignacion_id}",
+            )
+        )
 
     viaticos = db.execute(stmt).unique().scalars().all()
     return [_hacer_viatico_admin_response(v) for v in viaticos]

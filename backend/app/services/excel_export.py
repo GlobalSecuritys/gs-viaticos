@@ -399,7 +399,7 @@ def generar_excel_viaticos_independientes(
         bg = C_ROW_ALT if alt else "FFFFFF"
         row_data = [
             i,
-            v.fecha.strftime("%d-%b") if isinstance(v.fecha, date) else str(v.fecha),
+            _formato_fecha_viaje(v.fecha) if isinstance(v.fecha, date) else str(v.fecha),
             v.nit_identificacion or "—",
             v.cliente or "—",
             _formatear_concepto(v.tipo_gasto),

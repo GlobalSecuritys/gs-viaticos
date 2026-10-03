@@ -13,7 +13,7 @@ from app.models.asignacion import Asignacion
 from app.models.evidencia_viatico import EvidenciaViatico
 from app.models.usuario import Usuario
 from app.models.viatico import Viatico
-from app.routers.asignaciones import calcular_limite_subida_asignacion
+from app.services.asignacion_ventana import COT, asignacion_abierta, verificar_asignacion_abierta
 from app.schemas.viatico import (
     AsignacionResumenViatico,
     EvidenciaResponse,
@@ -35,6 +35,7 @@ def _adjuntar_resumen_asignacion(v: Viatico) -> None:
         anticipo = v.asignacion.monto_anticipo or Decimal("0.00")
         saldo = max(Decimal("0.00"), anticipo - tot_gastado)
         saldo_favor_tec = max(Decimal("0.00"), tot_gastado - anticipo)
+        puede_subir, _, cierre_cot = asignacion_abierta(v.asignacion)
         v.asignacion_resumen = AsignacionResumenViatico(
             id=v.asignacion.id,
             cliente=v.asignacion.cliente,
@@ -46,6 +47,9 @@ def _adjuntar_resumen_asignacion(v: Viatico) -> None:
             saldo_restante=saldo,
             saldo_favor_tecnico=saldo_favor_tec,
             estado=v.asignacion.estado,
+            puede_subir=puede_subir,
+            fecha_fin=v.asignacion.fecha_fin,
+            cierre_en=cierre_cot,
         )
 
 
@@ -71,27 +75,17 @@ def crear_viatico(
                 detail="La asignación especificada no pertenece al usuario actual."
             )
 
-        # Validación con ventana de gracia de 24 horas tras el cierre
-        info_limite = calcular_limite_subida_asignacion(asig)
-        if not info_limite["puede_subir_viaticos"]:
-            limite_dt = info_limite.get("limite_subida_viaticos")
-            if limite_dt:
-                limite_cot = limite_dt - timedelta(hours=5)
-                limite_str = limite_cot.strftime("%d/%m/%Y a las %I:%M %p")
-            else:
-                limite_str = "el plazo asignado"
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Esta asignación se encuentra cerrada y el plazo de gracia de 24 horas "
-                    f"para cargar viáticos finalizó el {limite_str}."
-                ),
-            )
+        # Validación estricta con hora legal de Colombia (COT)
+        verificar_asignacion_abierta(asig)
+
+    # La fecha del gasto la genera SIEMPRE el backend con la fecha actual en COT.
+    # El frontend no la envía; si la envía, se ignora.
+    fecha_actual_cot = datetime.now(COT).date()
 
     nuevo_viatico = Viatico(
         usuario_id=current_user.id,
         asignacion_id=viatico_in.asignacion_id,
-        fecha=viatico_in.fecha,
+        fecha=fecha_actual_cot,
         cliente=viatico_in.cliente,
         ciudad=viatico_in.ciudad,
         ot=viatico_in.ot,
@@ -185,16 +179,11 @@ def actualizar_viatico(
         )
 
     if viatico.asignacion_id and viatico.asignacion:
-        info_limite = calcular_limite_subida_asignacion(viatico.asignacion)
-        if not info_limite["puede_subir_viaticos"]:
-            limite_dt = info_limite.get("limite_subida_viaticos")
-            limite_str = limite_dt.strftime("%d/%m/%Y a las %I:%M %p") if limite_dt else "el plazo límite"
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"No se puede editar este viático: el plazo de gracia de 24 horas tras el cierre de la asignación finalizó el {limite_str}.",
-            )
+        verificar_asignacion_abierta(viatico.asignacion)
 
     update_data = viatico_in.model_dump(exclude_unset=True)
+    # Editar un viático no cambia su fecha de registro automática
+    update_data.pop("fecha", None)
     for field, value in update_data.items():
         setattr(viatico, field, value)
 
@@ -234,12 +223,7 @@ def eliminar_viatico(
         )
 
     if viatico.asignacion_id and viatico.asignacion:
-        info_limite = calcular_limite_subida_asignacion(viatico.asignacion)
-        if not info_limite["puede_subir_viaticos"]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No se puede eliminar un viático cuya asignación está cerrada y con período de gracia de 24 horas expirado.",
-            )
+        verificar_asignacion_abierta(viatico.asignacion)
 
     db.delete(viatico)
     db.commit()
@@ -282,14 +266,7 @@ async def subir_evidencias_viatico(
         )
 
     if viatico.asignacion_id and viatico.asignacion:
-        info_limite = calcular_limite_subida_asignacion(viatico.asignacion)
-        if not info_limite["puede_subir_viaticos"]:
-            limite_dt = info_limite.get("limite_subida_viaticos")
-            limite_str = limite_dt.strftime("%d/%m/%Y a las %I:%M %p") if limite_dt else "el plazo asignado"
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"No se pueden adjuntar evidencias: el período de gracia de 24 horas de la asignación finalizó el {limite_str}.",
-            )
+        verificar_asignacion_abierta(viatico.asignacion)
 
     evidencias_existentes = len(viatico.evidencias)
     if not files or len(files) < 1:
@@ -361,12 +338,7 @@ def eliminar_evidencia_tecnico(
         )
 
     if viatico.asignacion_id and viatico.asignacion:
-        info_limite = calcular_limite_subida_asignacion(viatico.asignacion)
-        if not info_limite["puede_subir_viaticos"]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No se pueden eliminar evidencias de un viático cuya asignación está cerrada y con período de gracia de 24 horas expirado.",
-            )
+        verificar_asignacion_abierta(viatico.asignacion)
 
     stmt_ev = select(EvidenciaViatico).where(
         EvidenciaViatico.id == evidencia_id,

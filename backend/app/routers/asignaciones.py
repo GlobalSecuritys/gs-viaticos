@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -20,6 +20,7 @@ from app.models.viatico import Viatico
 from app.schemas.asignacion import (
     AsignacionCreate,
     AsignacionExtenderFecha,
+    AsignacionGraciaToggle,
     AsignacionOrdenTrabajo,
     AsignacionResponse,
     AsignacionUpdate,
@@ -66,117 +67,20 @@ router_tecnico = APIRouter(prefix="/asignaciones", tags=["Asignaciones"])
 
 
 from decimal import Decimal
-from datetime import timezone
 
-# Zona horaria legal de Colombia (UTC-5, sin horario de verano)
-COLOMBIA_TZ_OFFSET = timedelta(hours=-5)
+from app.services.asignacion_ventana import (
+    COT,
+    asignacion_abierta,
+    format_cot_datetime,
+    verificar_asignacion_abierta,
+)
 
-
-def calcular_limite_subida_asignacion(a: Asignacion) -> dict:
-    """
-    Calcula los límites de cierre y período de gracia de 24 horas para la subida de viáticos.
-    Regla:
-    Si la asignación se cierra (ej: hoy a las 12pm), el técnico tiene 24 horas (hasta mañana 12pm)
-    para terminar de subir o corregir sus viáticos.
-    Todas las fechas límite se alinean estrictamente con la hora legal de Colombia (UTC-5).
-    """
-    ahora_utc = datetime.utcnow()
-    estado = (a.estado or "").lower()
-
-    if estado == "cancelada":
-        limite_utc = a.cerrada_en or a.updated_at or ahora_utc
-        return {
-            "cerrada_en": a.cerrada_en,
-            "limite_subida_viaticos": limite_utc,
-            "puede_subir_viaticos": False,
-            "en_periodo_gracia": False,
-            "horas_restantes_cierre": 0.0,
-            "tiempo_restante_str": "Asignación cancelada",
-        }
-
-    # Caso 1: Asignación marcada como finalizada por el admin
-    if estado == "finalizada":
-        fecha_cierre_utc = a.cerrada_en or a.updated_at
-        if not fecha_cierre_utc:
-            # Fin del día de fecha_fin en Colombia (23:59:59 COT) convertido a UTC (+5h)
-            fin_cot = datetime.combine(a.fecha_fin, datetime.min.time()) + timedelta(hours=23, minutes=59, seconds=59)
-            fecha_cierre_utc = fin_cot - COLOMBIA_TZ_OFFSET
-
-        limite_utc = fecha_cierre_utc + timedelta(hours=24)
-        delta = limite_utc - ahora_utc
-        segundos_restantes = delta.total_seconds()
-
-        if segundos_restantes > 0:
-            horas = int(segundos_restantes // 3600)
-            minutos = int((segundos_restantes % 3600) // 60)
-            tiempo_str = f"{horas}h {minutos}m" if horas > 0 else f"{minutos} min"
-            return {
-                "cerrada_en": fecha_cierre_utc,
-                "limite_subida_viaticos": limite_utc,
-                "puede_subir_viaticos": True,
-                "en_periodo_gracia": True,
-                "horas_restantes_cierre": round(segundos_restantes / 3600.0, 2),
-                "tiempo_restante_str": tiempo_str,
-            }
-        else:
-            return {
-                "cerrada_en": fecha_cierre_utc,
-                "limite_subida_viaticos": limite_utc,
-                "puede_subir_viaticos": False,
-                "en_periodo_gracia": False,
-                "horas_restantes_cierre": 0.0,
-                "tiempo_restante_str": "Plazo vencido (24h de gracia terminadas)",
-            }
-
-    # Caso 2: Asignación pendiente o en curso
-    # El fin de asignación oficial es el final del día de fecha_fin en hora colombiana (23:59:59 COT)
-    # Convertido a UTC (+5h) para comparación homogénea con ahora_utc:
-    fin_oficial_cot = datetime.combine(a.fecha_fin, datetime.min.time()) + timedelta(hours=23, minutes=59, seconds=59)
-    fin_oficial_utc = fin_oficial_cot - COLOMBIA_TZ_OFFSET
-    limite_utc = fin_oficial_utc + timedelta(hours=24)
-    delta = limite_utc - ahora_utc
-    segundos_restantes = delta.total_seconds()
-
-    if ahora_utc > fin_oficial_utc and segundos_restantes > 0:
-        horas = int(segundos_restantes // 3600)
-        minutos = int((segundos_restantes % 3600) // 60)
-        return {
-            "cerrada_en": a.cerrada_en,
-            "limite_subida_viaticos": limite_utc,
-            "puede_subir_viaticos": True,
-            "en_periodo_gracia": True,
-            "horas_restantes_cierre": round(segundos_restantes / 3600.0, 2),
-            "tiempo_restante_str": f"{horas}h {minutos}m",
-        }
-
-    if segundos_restantes <= 0:
-        return {
-            "cerrada_en": a.cerrada_en,
-            "limite_subida_viaticos": limite_utc,
-            "puede_subir_viaticos": False,
-            "en_periodo_gracia": False,
-            "horas_restantes_cierre": 0.0,
-            "tiempo_restante_str": "Plazo finalizado",
-        }
-
-    # Período normal vigente
-    delta_fin = fin_oficial_utc - ahora_utc
-    horas_fin = delta_fin.total_seconds() / 3600.0
-    tiempo_str = f"Cierra hoy ({int(horas_fin)}h)" if horas_fin <= 24 else "Vigente"
-    return {
-        "cerrada_en": a.cerrada_en,
-        "limite_subida_viaticos": limite_utc,
-        "puede_subir_viaticos": True,
-        "en_periodo_gracia": False,
-        "horas_restantes_cierre": round(segundos_restantes / 3600.0, 2),
-        "tiempo_restante_str": tiempo_str,
-    }
 
 
 def _a_response(a: Asignacion) -> AsignacionResponse:
     """Arma el AsignacionResponse resolviendo tecnico_nombre/creado_por_nombre
     a partir de las relaciones ya cargadas, además de calcular las métricas
-    financieras de la asignación y las ventanas de gracia de 24h para viáticos."""
+    financieras de la asignación y el estado de ventana estricta en COT."""
     viaticos_vinculados = a.viaticos if hasattr(a, "viaticos") and a.viaticos else []
     total_gastado = (
         sum(v.valor for v in viaticos_vinculados if v.estado != "rechazado")
@@ -201,7 +105,17 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
     if hasattr(a, "cuenta_cobro") and a.cuenta_cobro:
         cuenta_cobro_resp = CuentaCobroAsignacionResponse.model_validate(a.cuenta_cobro)
 
-    info_gracia = calcular_limite_subida_asignacion(a)
+    puede_subir, tiempo_restante_str, cierre_cot, en_gracia = asignacion_abierta(a)
+    ahora_cot = datetime.now(COT)
+    horas_restantes = max(0.0, round((cierre_cot - ahora_cot).total_seconds() / 3600.0, 2)) if puede_subir else 0.0
+
+    cerrada_en_iso = None
+    if a.cerrada_en:
+        cerrada_en_iso = a.cerrada_en.replace(tzinfo=timezone.utc)
+
+    descargada_en_iso = None
+    if getattr(a, "descargada_en", None):
+        descargada_en_iso = a.descargada_en.replace(tzinfo=timezone.utc)
 
     return AsignacionResponse(
         id=a.id,
@@ -225,13 +139,16 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
         estado_legalizacion=estado_legalizacion,
         estado=a.estado,
         cuenta_cobro=cuenta_cobro_resp,
-        cerrada_en=info_gracia["cerrada_en"].replace(tzinfo=timezone.utc) if info_gracia["cerrada_en"] else None,
-        descargada_en=a.descargada_en.replace(tzinfo=timezone.utc) if getattr(a, "descargada_en", None) else None,
-        limite_subida_viaticos=info_gracia["limite_subida_viaticos"].replace(tzinfo=timezone.utc) if info_gracia["limite_subida_viaticos"] else None,
-        puede_subir_viaticos=info_gracia["puede_subir_viaticos"],
-        en_periodo_gracia=info_gracia["en_periodo_gracia"],
-        horas_restantes_cierre=info_gracia["horas_restantes_cierre"],
-        tiempo_restante_str=info_gracia["tiempo_restante_str"],
+        cerrada_en=cerrada_en_iso,
+        descargada_en=descargada_en_iso,
+        limite_subida_viaticos=cierre_cot,
+        puede_subir=puede_subir,
+        puede_subir_viaticos=puede_subir,
+        cierre_en=cierre_cot,
+        en_periodo_gracia=en_gracia,
+        gracia_activada=getattr(a, "gracia_activada", False) is True,
+        horas_restantes_cierre=horas_restantes,
+        tiempo_restante_str=tiempo_restante_str,
         created_at=a.created_at.replace(tzinfo=timezone.utc) if a.created_at else None,
         updated_at=a.updated_at.replace(tzinfo=timezone.utc) if a.updated_at else None,
     )
@@ -913,13 +830,43 @@ def extender_fecha_asignacion(
 
     # Si la asignación estaba finalizada y se amplía la fecha a hoy o posterior,
     # reactivarla a 'en_curso' y limpiar cerrada_en para habilitar la carga de viáticos:
-    hoy_cot = (datetime.utcnow() + COLOMBIA_TZ_OFFSET).date()
+    hoy_cot = datetime.now(COT).date()
     if asignacion.estado == "finalizada" and datos.fecha_fin >= hoy_cot:
         asignacion.estado = "en_curso"
         asignacion.cerrada_en = None
 
     db.commit()
     asignacion = _obtener_o_404(id, db)
+    return _a_response(asignacion)
+
+
+@router.patch("/{id}/gracia", response_model=AsignacionResponse)
+def toggle_gracia_asignacion(
+    id: int,
+    datos: AsignacionGraciaToggle,
+    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Permite al administrador activar o desactivar explícitamente el período
+    de gracia de 24 horas para una asignación específica.
+    """
+    asignacion = _obtener_o_404(id, db)
+    asignacion.gracia_activada = datos.gracia_activada
+    db.commit()
+    asignacion = _obtener_o_404(id, db)
+    registrar_auditoria(
+        db,
+        usuario_id=current_admin.id,
+        accion="ACTIVAR_GRACIA" if datos.gracia_activada else "DESACTIVAR_GRACIA",
+        modulo="asignaciones",
+        registro_id=asignacion.id,
+        detalles={
+            "cliente": asignacion.cliente,
+            "tecnico_id": asignacion.tecnico_id,
+            "gracia_activada": datos.gracia_activada,
+        },
+    )
     return _a_response(asignacion)
 
 
@@ -993,9 +940,8 @@ def listar_mis_asignaciones_activas(
     todas = db.execute(stmt).unique().scalars().all()
     activas = []
     for a in todas:
-        info_gracia = calcular_limite_subida_asignacion(a)
-        # Incluir si está pendiente/en_curso o si es finalizada pero con gracia de 24h activa
-        if a.estado in ("pendiente", "en_curso") or (a.estado == "finalizada" and info_gracia["puede_subir_viaticos"]):
+        puede_subir, _, _, _ = asignacion_abierta(a)
+        if a.estado in ("pendiente", "en_curso") or puede_subir:
             activas.append(_a_response(a))
     return activas
 

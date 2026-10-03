@@ -103,14 +103,23 @@ class AsignacionResponse(AsignacionBase):
     cerrada_en: datetime | None = None
     descargada_en: datetime | None = None
     limite_subida_viaticos: datetime | None = None
+    puede_subir: bool = True
     puede_subir_viaticos: bool = True
+    cierre_en: datetime | None = None
     en_periodo_gracia: bool = False
+    gracia_activada: bool = False
     horas_restantes_cierre: float | None = None
     tiempo_restante_str: str | None = None
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AsignacionGraciaToggle(BaseModel):
+    """Payload para activar/desactivar explícitamente el período de gracia de 24 horas."""
+
+    gracia_activada: bool
 
 
 class AsignacionExtenderFecha(BaseModel):

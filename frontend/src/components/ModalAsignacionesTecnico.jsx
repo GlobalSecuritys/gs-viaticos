@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import api, { exportarViaticosAsignacion, exportarViaticosIndependientes, descargarBlob } from '../services/api';
-import { listarAsignaciones, crearAsignacion, actualizarAsignacion, finalizarAsignacion, borrarAsignacionConFlujo, extenderFechaAsignacion } from '../services/asignaciones';
+import { listarAsignaciones, crearAsignacion, actualizarAsignacion, finalizarAsignacion, borrarAsignacionConFlujo, extenderFechaAsignacion, toggleGraciaAsignacion } from '../services/asignaciones';
 import { formatCOP, formatFechaCorta, iniciales } from '../utils/personal';
 import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION, CLASE_ESTADO_ASIGNACION } from '../utils/asignaciones';
 import AsignacionForm from './AsignacionForm';
@@ -168,6 +168,23 @@ export default function ModalAsignacionesTecnico({ tecnico, onClose, onAsignacio
         } catch (err) {
             const detail = err.response?.data?.detail;
             setError(detail || 'No se pudo extender la fecha.');
+        }
+    }
+
+    async function handleToggleGracia(a) {
+        const nuevo = !a.gracia_activada;
+        const msg = nuevo
+            ? `¿Activar período de gracia de 24 horas para la asignación de ${a.cliente}? El técnico podrá registrar viáticos durante 24h tras el cierre.`
+            : `¿Desactivar el período de gracia para ${a.cliente}? Al cerrarse, el técnico quedará bloqueado de inmediato.`;
+        if (!window.confirm(msg)) return;
+
+        try {
+            await toggleGraciaAsignacion(a.id, nuevo);
+            setMensajeFeedback(`✅ Período de gracia ${nuevo ? 'activado' : 'desactivado'} correctamente.`);
+            await cargarDatos();
+            if (onAsignacionActualizada) onAsignacionActualizada();
+        } catch {
+            setError('No se pudo modificar el período de gracia.');
         }
     }
 
@@ -452,6 +469,27 @@ export default function ModalAsignacionesTecnico({ tecnico, onClose, onAsignacio
                                                         📅 Extender fecha
                                                     </button>
                                                 )}
+
+                                                {/* Control Período de Gracia 24 Horas */}
+                                                <button
+                                                    type="button"
+                                                    className="mat-btn-gracia"
+                                                    style={{
+                                                        padding: '0.45rem 0.75rem',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 700,
+                                                        borderRadius: '6px',
+                                                        border: '1px solid',
+                                                        cursor: 'pointer',
+                                                        background: a.gracia_activada ? '#FEF3C7' : '#F8FAFC',
+                                                        borderColor: a.gracia_activada ? '#F59E0B' : '#CBD5E1',
+                                                        color: a.gracia_activada ? '#B45309' : '#475569',
+                                                    }}
+                                                    onClick={() => handleToggleGracia(a)}
+                                                    title={a.gracia_activada ? 'Período de gracia de 24h activo (clic para desactivar)' : 'Activar período de gracia de 24h tras el cierre'}
+                                                >
+                                                    ⏱️ {a.gracia_activada ? 'Gracia 24h Activa' : 'Activar Gracia (24h)'}
+                                                </button>
 
                                                 <button
                                                     type="button"

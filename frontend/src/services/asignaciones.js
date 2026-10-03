@@ -84,6 +84,10 @@ export function extenderFechaAsignacion(id, fecha_fin) {
     return api.patch(`/admin/asignaciones/${id}/extender-fecha`, { fecha_fin });
 }
 
+export function toggleGraciaAsignacion(id, gracia_activada) {
+    return api.patch(`/admin/asignaciones/${id}/gracia`, { gracia_activada });
+}
+
 // Flujo completo de borrado usado por las pantallas de admin (modal del técnico,
 // listado y detalle). Centraliza las reglas que aplica el backend para que el
 // usuario vea SIEMPRE el motivo real del fallo en vez de un mensaje genérico:

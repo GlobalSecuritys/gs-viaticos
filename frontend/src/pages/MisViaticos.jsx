@@ -5,7 +5,7 @@ import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import TecnicoLayout from '../components/TecnicoLayout';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
 import { LABEL_TIPO_GASTO, formatCOP, formatFechaLarga, formatMiles, limpiarNumero } from '../utils/personal';
-import { LABEL_TIPO_ASIGNACION, calcularEstadoGraciaAsignacion } from '../utils/asignaciones';
+import { LABEL_TIPO_ASIGNACION } from '../utils/asignaciones';
 import { irAtras } from '../utils/navigation';
 import './Forms.css';
 import './MisViaticos.css';
@@ -67,7 +67,6 @@ export default function MisViaticos() {
     descripcion: '',
     fecha: '',
   });
-  const [mostrarFechaEdit, setMostrarFechaEdit] = useState(false);
   const [guardandoEdit, setGuardandoEdit] = useState(false);
   const [errorEdit, setErrorEdit] = useState('');
 
@@ -169,14 +168,14 @@ export default function MisViaticos() {
   /**
    * Determina si la asignación vinculada al viático está disponible para edición.
    * Si no tiene asignación (independiente), siempre está disponible.
-   * Si tiene asignación, verifica si está en período válido o dentro de las 24h de gracia.
+   * Si tiene asignación, usa el campo puede_subir que devuelve el backend.
    */
   function esAsignacionDisponible(resumen, asigObj, v) {
     if (!v?.asignacion_id) return true;
     const asignacion = asigObj || resumen || v?.asignacion_resumen;
     if (!asignacion) return true;
-    const { puedeSubir } = calcularEstadoGraciaAsignacion(asignacion);
-    return puedeSubir;
+    // Usar puede_subir del backend (fuente única de verdad)
+    return asignacion.puede_subir !== false;
   }
 
   function abrirEditar(v, grupoResumen, grupoAsigObj) {
@@ -193,7 +192,6 @@ export default function MisViaticos() {
     setViaticoEditando(v);
     setErrorEdit('');
     setErrorFotos('');
-    setMostrarFechaEdit(false);
     setEvidenciasExistentes(v.evidencias ? [...v.evidencias] : []);
     setEvidenciasAEliminar(new Set());
     setNuevasFotos([]);
@@ -223,7 +221,7 @@ export default function MisViaticos() {
 
   function abrirEliminar(v, grupoResumen, grupoAsigObj) {
     if (!esAsignacionDisponible(grupoResumen, grupoAsigObj, v)) {
-      alert('Esta asignación se encuentra finalizada o cancelada y sus viáticos no pueden ser eliminados.');
+      alert('Esta asignación está cerrada y sus viáticos no pueden ser eliminados.');
       return;
     }
     setViaticoEliminando(v);
@@ -304,7 +302,7 @@ export default function MisViaticos() {
         valor: parseFloat(editForm.valor),
         descripcion: editForm.descripcion || null,
       };
-      if (mostrarFechaEdit && editForm.fecha) payload.fecha = editForm.fecha;
+      // fecha NO se modifica: el backend la dejó fija al momento de crear el viático
 
       await api.put(`/viaticos/${viaticoEditando.id}`, payload);
 

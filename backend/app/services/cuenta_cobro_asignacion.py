@@ -6,6 +6,7 @@ from app.core.cloudinary import upload_cuenta_cobro
 from app.models.asignacion import Asignacion
 from app.models.cuenta_cobro_asignacion import CuentaCobroAsignacion
 from app.models.usuario import Usuario
+from app.services.asignacion_ventana import verificar_asignacion_abierta
 
 
 async def guardar_cuenta_cobro_asignacion(
@@ -33,6 +34,9 @@ async def guardar_cuenta_cobro_asignacion(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Esta asignación no te pertenece.",
         )
+
+    # Validación estricta de ventana de asignación
+    verificar_asignacion_abierta(asignacion)
 
     # Subir archivo a Cloudinary
     upload_result = await upload_cuenta_cobro(file)
