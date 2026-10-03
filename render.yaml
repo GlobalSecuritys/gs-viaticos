@@ -4,7 +4,7 @@ services:
     name: gs-viaticos-backend
     runtime: python
     rootDir: backend
-    buildCommand: pip install -r requirements.txt && alembic upgrade head
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 65
     envVars:
       - key: DATABASE_URL
