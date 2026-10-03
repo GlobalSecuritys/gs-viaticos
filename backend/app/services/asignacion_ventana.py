@@ -30,7 +30,7 @@ def asignacion_abierta(
     (crear, editar, eliminar viáticos o evidencias, y subir cuenta de cobro).
 
     Regla:
-    - Abierta desde 00:00:00 COT de fecha_inicio hasta 23:59:59 COT de fecha_fin.
+    - Abierta desde su creación hasta 23:59:59 COT de fecha_fin.
     - Si gracia_activada es False (defecto): al cerrarse (expirar fecha_fin o finalizarse),
       el técnico queda bloqueado inmediatamente el mismo día a las 11:59 PM (o al momento de finalizar).
     - Si gracia_activada es True (control explícito admin): se concede un período de gracia de 24 horas
@@ -49,8 +49,6 @@ def asignacion_abierta(
     fin_cot = datetime.combine(asignacion.fecha_fin, datetime.min.time(), tzinfo=COT) + timedelta(
         hours=23, minutes=59, seconds=59
     )
-    # Inicio oficial: 00:00:00 COT de fecha_inicio
-    inicio_cot = datetime.combine(asignacion.fecha_inicio, datetime.min.time(), tzinfo=COT)
 
     gracia_activada = getattr(asignacion, "gracia_activada", False) is True
 
@@ -92,11 +90,7 @@ def asignacion_abierta(
                 False,
             )
 
-    # 3. Aún no ha iniciado
-    if ahora_cot < inicio_cot:
-        return False, f"La asignación aún no ha iniciado. Inicia el {format_cot_datetime(inicio_cot)} (hora Colombia).", fin_cot, False
-
-    # 4. Expiró fecha_fin
+    # 3. Expiró fecha_fin
     if ahora_cot > fin_cot:
         if gracia_activada:
             limite_gracia = fin_cot + timedelta(hours=24)
@@ -121,7 +115,7 @@ def asignacion_abierta(
                 False,
             )
 
-    # 5. Abierta y vigente
+    # 4. Abierta y vigente
     delta = fin_cot - ahora_cot
     horas_restantes = delta.total_seconds() / 3600.0
     if horas_restantes <= 24:
