@@ -35,7 +35,7 @@ def _adjuntar_resumen_asignacion(v: Viatico) -> None:
         anticipo = v.asignacion.monto_anticipo or Decimal("0.00")
         saldo = max(Decimal("0.00"), anticipo - tot_gastado)
         saldo_favor_tec = max(Decimal("0.00"), tot_gastado - anticipo)
-        puede_subir, _, cierre_cot = asignacion_abierta(v.asignacion)
+        puede_subir, _, cierre_cot, _ = asignacion_abierta(v.asignacion)
         v.asignacion_resumen = AsignacionResumenViatico(
             id=v.asignacion.id,
             cliente=v.asignacion.cliente,
