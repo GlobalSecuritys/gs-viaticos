@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 from app.core.config import settings
 
-# pool_pre_ping=True y pool_recycle=300 aseguran reconexión automática en servicios serverless como Neon
+# pool_pre_ping=True y pool_recycle=1800 aseguran reconexión automática en servicios serverless como Neon
 #
 # Tamaño del pool: FastAPI ejecuta los endpoints síncronos (def) en un
 # threadpool de 40 hilos, así que puede haber hasta 40 peticiones pidiendo
@@ -14,13 +14,13 @@ from app.core.config import settings
 #
 # Es seguro: la instancia de Neon admite max_connections=901 y se conecta a
 # través del endpoint -pooler (pgbouncer), pensado para muchos clientes.
-POOL_SIZE = 20
-MAX_OVERFLOW = 20  # 20 + 20 = 40, el máximo de hilos del threadpool
+POOL_SIZE = 8
+MAX_OVERFLOW = 12  # 8 + 12 = 20 conexiones máx — suficiente para ~31 usuarios internos con tráfico bajo
 
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
-    pool_recycle=300,
+    pool_recycle=1800,  # 30 min (era 5 min) — reduce reconexiones innecesarias para que Neon pueda dormir
     pool_size=POOL_SIZE,
     max_overflow=MAX_OVERFLOW,
     pool_timeout=30,
