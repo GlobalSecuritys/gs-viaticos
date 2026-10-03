@@ -70,16 +70,27 @@ def startup_db_check():
     _sql_opcionales = [
         # inventario_planillas
         "ALTER TABLE inventario_planillas ADD COLUMN IF NOT EXISTS orden INTEGER DEFAULT 1;",
-        # inventario_tecnicos_items (tabla legacy; puede no existir aún)
-        "ALTER TABLE inventario_tecnicos_items ADD COLUMN IF NOT EXISTS fecha_despacho DATE;",
-        "ALTER TABLE inventario_tecnicos_items ADD COLUMN IF NOT EXISTS numero_orden VARCHAR(60);",
-        "ALTER TABLE inventario_tecnicos_items ADD COLUMN IF NOT EXISTS oficina_instalada VARCHAR(120);",
-        "ALTER TABLE inventario_tecnicos_items ADD COLUMN IF NOT EXISTS fecha_instalacion DATE;",
-        # inventario_prestamos (tabla legacy; puede no existir aún)
-        "ALTER TABLE inventario_prestamos ADD COLUMN IF NOT EXISTS fecha_prestamo DATE;",
         # inventario_items
         "ALTER TABLE inventario_items ADD COLUMN IF NOT EXISTS numero_articulo VARCHAR(60);",
         "ALTER TABLE inventario_items ADD COLUMN IF NOT EXISTS tiempo_entrega VARCHAR(80);",
+        # inventario_mapeo_legacy: mapeo union_temporal → planilla_id para conteo legacy
+        """
+        CREATE TABLE IF NOT EXISTS inventario_mapeo_legacy (
+            id SERIAL PRIMARY KEY,
+            union_temporal VARCHAR(50) NOT NULL UNIQUE,
+            planilla_id INTEGER NOT NULL UNIQUE
+                REFERENCES inventario_planillas(id) ON DELETE CASCADE
+        );
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_inventario_mapeo_legacy_planilla_id ON inventario_mapeo_legacy(planilla_id);",
+        # Semillas del mapeo (idempotente con ON CONFLICT DO NOTHING)
+        """
+        INSERT INTO inventario_mapeo_legacy (union_temporal, planilla_id) VALUES
+            ('PROYECTO_ZEUS', 4),
+            ('MANTENIMIENTO', 1),
+            ('RTC', 3)
+        ON CONFLICT DO NOTHING;
+        """,
     ]
     for sql_alt in _sql_opcionales:
         try:

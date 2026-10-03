@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
-from sqlalchemy import case, distinct, func, or_, select
+from sqlalchemy import case, distinct, func, or_, select, text
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.cloudinary import eliminar_archivo_cloudinary, upload_foto_inventario
@@ -184,6 +184,25 @@ def _conteo_planilla(db: Session, planilla_id: int) -> tuple[int, int]:
                 InventarioItem.eliminado_en.is_(None),
             )
         ) or 0
+
+    # Suma condicional legacy si la planilla tiene mapeo
+    ut_legacy = db.scalar(
+        text("SELECT union_temporal FROM inventario_mapeo_legacy WHERE planilla_id = :pid"),
+        {"pid": planilla_id},
+    )
+    if ut_legacy:
+        legacy_stats = db.execute(
+            text("""
+                SELECT 
+                    COUNT(id) AS cant_items,
+                    COALESCE(SUM(cantidad_stock), 0) AS cant_unidades
+                FROM inventario_legacy_items_v2
+                WHERE union_temporal::text = :ut
+            """),
+            {"ut": ut_legacy},
+        ).one()
+        total_items += int(legacy_stats.cant_items or 0)
+        total_unidades += int(legacy_stats.cant_unidades or 0)
 
     return int(total_items), int(total_unidades)
 
