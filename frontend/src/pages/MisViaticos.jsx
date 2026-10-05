@@ -76,6 +76,7 @@ export default function MisViaticos() {
   const [nuevasFotos, setNuevasFotos] = useState([]);
   const [errorFotos, setErrorFotos] = useState('');
   const [dragActivo, setDragActivo] = useState(false);
+  const [mostrarFechaEdit, setMostrarFechaEdit] = useState(false);
 
   // Estado de eliminación de viático completo
   const [viaticoEliminando, setViaticoEliminando] = useState(null);
@@ -196,6 +197,7 @@ export default function MisViaticos() {
     setEvidenciasAEliminar(new Set());
     setNuevasFotos([]);
     setDragActivo(false);
+    setMostrarFechaEdit(false);
 
     setEditForm({
       cliente: v.cliente || '',
@@ -217,6 +219,7 @@ export default function MisViaticos() {
     setViaticoEditando(null);
     setErrorEdit('');
     setErrorFotos('');
+    setMostrarFechaEdit(false);
   }
 
   function abrirEliminar(v, grupoResumen, grupoAsigObj) {
@@ -701,17 +704,16 @@ export default function MisViaticos() {
                   <textarea rows={2} value={editForm.descripcion} onChange={(e) => setEditForm({ ...editForm, descripcion: e.target.value })} />
                 </div>
 
-                <div className="mv-fecha-colapsable">
-                  <button type="button" className="mv-btn-colapsable" onClick={() => setMostrarFechaEdit((v) => !v)}>
-                    <span>Editar fecha (opcional)</span>
-                    <span>{mostrarFechaEdit ? '▴' : '▾'}</span>
-                  </button>
-                  {mostrarFechaEdit && (
-                    <div className="mv-fecha-input-wrap">
-                      <label>Nueva fecha</label>
-                      <input type="date" value={editForm.fecha} onChange={(e) => setEditForm({ ...editForm, fecha: e.target.value })} />
-                    </div>
-                  )}
+                <div className="mv-form-field">
+                  <label style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
+                    Fecha del gasto (no modificable)
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.fecha || ''}
+                    disabled
+                    style={{ background: '#F1F5F9', color: '#64748B', cursor: 'not-allowed' }}
+                  />
                 </div>
 
                 {/* ── GESTIÓN DE FOTOGRAFÍAS / EVIDENCIAS ── */}
