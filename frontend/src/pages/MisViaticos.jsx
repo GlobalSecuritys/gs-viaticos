@@ -304,8 +304,8 @@ export default function MisViaticos() {
         tipo_gasto: editForm.tipo_gasto,
         valor: parseFloat(editForm.valor),
         descripcion: editForm.descripcion || null,
+        ...(editForm.fecha ? { fecha: editForm.fecha } : {}),
       };
-      // fecha NO se modifica: el backend la dejó fija al momento de crear el viático
 
       await api.put(`/viaticos/${viaticoEditando.id}`, payload);
 
@@ -705,15 +705,37 @@ export default function MisViaticos() {
                 </div>
 
                 <div className="mv-form-field">
-                  <label style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
-                    Fecha del gasto (no modificable)
-                  </label>
-                  <input
-                    type="text"
-                    value={editForm.fecha || ''}
-                    disabled
-                    style={{ background: '#F1F5F9', color: '#64748B', cursor: 'not-allowed' }}
-                  />
+                  {(() => {
+                    const asigEdit = viaticoEditando?.asignacion_id
+                      ? asignacionesMap.get(viaticoEditando.asignacion_id)
+                      : null;
+                    const fechaMin = asigEdit?.fecha_inicio || undefined;
+                    const fechaMax = asigEdit?.fecha_fin || undefined;
+                    return (
+                      <>
+                        <label>
+                          Fecha del gasto
+                          {fechaMin && fechaMax && (
+                            <span style={{ fontSize: '0.78rem', fontWeight: 400, color: '#64748B', marginLeft: '0.4rem' }}>
+                              ({fechaMin} → {fechaMax})
+                            </span>
+                          )}
+                        </label>
+                        <input
+                          type="date"
+                          value={editForm.fecha || ''}
+                          min={fechaMin}
+                          max={fechaMax}
+                          onChange={(e) => setEditForm({ ...editForm, fecha: e.target.value })}
+                        />
+                        {fechaMin && fechaMax && (
+                          <span style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
+                            Debe estar dentro del rango de la oficina.
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* ── GESTIÓN DE FOTOGRAFÍAS / EVIDENCIAS ── */}

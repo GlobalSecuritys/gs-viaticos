@@ -156,11 +156,12 @@ def nombre_carpeta_asignacion(asignacion: "Asignacion", numero: int = 0) -> str:
     """Nombre de la subcarpeta dentro del ZIP general. Si se indica `numero`, se
     antepone como prefijo con 2 dígitos (01, 02... 18) para que el orden alfabético
     del explorador de archivos coincida con el orden numérico y visual del Historial."""
+    empresa = slug_legible(getattr(asignacion, "empresa", None), "")
     cliente = slug_legible(asignacion.cliente, "Cliente")
     ciudad = slug_legible(asignacion.ciudad, "")
     fecha = _formato_fecha_corta(asignacion.fecha_inicio) or _formato_fecha(asignacion.fecha_inicio)
 
-    partes = [p for p in [cliente, ciudad, fecha] if p]
+    partes = [p for p in [empresa, cliente, ciudad, fecha] if p]
     cuerpo = "_".join(partes)
 
     if numero > 0:

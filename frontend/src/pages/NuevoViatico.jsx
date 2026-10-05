@@ -42,7 +42,7 @@ function getItemInicial(id) {
         origen: '',
         destino: '',
         valor: '',
-        fecha_gasto: '',             // ignorado — el backend asigna la fecha automáticamente
+        fecha_gasto: '',             // fecha seleccionada por el técnico (YYYY-MM-DD); si vacía el backend usa hoy
         doc_tipo: null,              // 'soporte' | 'cuenta_cobro' | null
         cuenta_cobro: null,
         archivo: null,
@@ -203,7 +203,8 @@ export default function NuevoViatico() {
 
         setLoading(true);
         try {
-            // Crear cada viático/ítem en el backend (fecha la asigna el backend automáticamente)
+            // Crear cada viático/ítem en el backend
+            // Si fecha_gasto viene vacía, el backend usará la fecha actual (COT) como default.
             for (let i = 0; i < gastos.length; i++) {
                 const g = gastos[i];
                 const val = parseFloat(g.valor);
@@ -255,6 +256,7 @@ export default function NuevoViatico() {
                     asignacion_id: asignacionIdParam ? Number(asignacionIdParam) : null,
                     tipo_identificacion: tipoId,
                     nit_identificacion: nitFinal,
+                    ...(g.fecha_gasto ? { fecha: g.fecha_gasto } : {}),
                 };
 
                 // 1. Crear el registro del viático
@@ -509,22 +511,18 @@ export default function NuevoViatico() {
                         {/* ── 1. FECHA DEL GASTO ── */}
                         <div className="nv-card">
                             <h3 className="nv-card-title">1. Fecha del gasto</h3>
-                            <p className="nv-card-sub">
-                                La fecha se registra automáticamente como el día de hoy (hora Colombia).
-                            </p>
-                            <div className="nv-fecha-badge" style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.45rem',
-                                padding: '0.45rem 0.9rem',
-                                background: '#F1F5F9',
-                                borderRadius: '8px',
-                                fontSize: '0.9rem',
-                                fontWeight: 600,
-                                color: '#334155',
-                            }}>
-                                📅 {formatFechaLarga(fechaHoy)}
-                            </div>
+                            {asignacionDetalle?.fecha_inicio && asignacionDetalle?.fecha_fin ? (
+                                <p className="nv-card-sub">
+                                    Elige la fecha dentro del rango de la oficina:
+                                    {' '}<strong>{asignacionDetalle.fecha_inicio}</strong>{' '}al{' '}
+                                    <strong>{asignacionDetalle.fecha_fin}</strong>.
+                                    Si no seleccionas fecha, se usará la de hoy.
+                                </p>
+                            ) : (
+                                <p className="nv-card-sub">
+                                    Selecciona la fecha del gasto. Si la dejas en blanco se usará la de hoy (hora Colombia).
+                                </p>
+                            )}
                         </div>
 
                         {/* ── 2. GASTOS DEL VIAJE (ÍTEMS) ── */}
@@ -740,6 +738,33 @@ export default function NuevoViatico() {
                                                             handleGastoChange(gasto.id, 'destino', e.target.value)
                                                         }
                                                     />
+                                                </div>
+
+                                                {/* Fecha del gasto */}
+                                                <div className="nv-field-group">
+                                                    <label>
+                                                        Fecha del gasto
+                                                        {asignacionDetalle?.fecha_inicio && asignacionDetalle?.fecha_fin && (
+                                                            <span style={{ fontSize: '0.78rem', fontWeight: 400, color: '#64748B', marginLeft: '0.4rem' }}>
+                                                                ({asignacionDetalle.fecha_inicio} → {asignacionDetalle.fecha_fin})
+                                                            </span>
+                                                        )}
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        value={gasto.fecha_gasto}
+                                                        min={asignacionDetalle?.fecha_inicio || undefined}
+                                                        max={asignacionDetalle?.fecha_fin || undefined}
+                                                        onChange={(e) =>
+                                                            handleGastoChange(gasto.id, 'fecha_gasto', e.target.value)
+                                                        }
+                                                        placeholder={fechaHoy}
+                                                    />
+                                                    {!gasto.fecha_gasto && (
+                                                        <span style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
+                                                            Si queda en blanco, se usará la fecha de hoy ({fechaHoy})
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 {/* Valor del gasto */}

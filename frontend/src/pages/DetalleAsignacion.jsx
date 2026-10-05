@@ -63,7 +63,7 @@ export default function DetalleAsignacion() {
 
     const esSuperAdmin = user?.rol === 'superadmin';
     const esAdmin = user?.rol === 'admin' || esSuperAdmin;
-    const puedeEliminar = esSuperAdmin || (user?.rol === 'admin' && asignacion?.estado === 'pendiente');
+    const puedeEliminar = esAdmin;
     const puedeFinalizar = esAdmin && asignacion && !['finalizada', 'cancelada'].includes(asignacion.estado);
 
     const tecnicosParaForm = useMemo(() => {

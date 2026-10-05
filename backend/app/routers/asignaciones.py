@@ -870,7 +870,7 @@ def toggle_gracia_asignacion(
     return _a_response(asignacion)
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", status_code=status.HTTP_200_OK)
 def eliminar_asignacion(
     id: int,
     current_admin: Annotated[Usuario, Depends(get_current_admin)],
@@ -878,36 +878,34 @@ def eliminar_asignacion(
     confirmar_ya_descargado: bool = Query(default=False),
 ):
     """
-    Elimina permanentemente (hard delete) una carpeta de asignación finalizada:
-    1. Verifica que la asignación esté finalizada (nunca activa ni pendiente).
-    2. Verifica que tenga una descarga previa registrada (descargada_en) o que el admin confirme que ya la descargó.
-    3. Guarda los agregados financieros e históricos en `estadisticas_asignaciones_archivadas`.
-    4. Elimina en cascada evidencias, viáticos y asignación.
+    Borrado suave (soft delete) de asignación mediante el campo `eliminado_en`.
+    Permite al administrador borrar una asignación en cualquier estado (pendiente,
+    en_curso o finalizada) sin exigir descarga ni finalización previa.
     """
     asignacion = _obtener_o_404(id, db)
-
-    # Salvaguarda 1: Solo asignaciones finalizadas
-    if not _esta_finalizada(asignacion):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Solo se pueden eliminar permanentemente asignaciones finalizadas. Las asignaciones activas o pendientes no pueden ser eliminadas.",
-        )
-
-    # Salvaguarda 2: Descarga obligatoria previa (a menos que el admin confirme que ya la descargó)
-    if not asignacion.descargada_en and not confirmar_ya_descargado:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Esta carpeta no ha sido descargada previamente. Por seguridad, debes descargar la carpeta de la asignación antes de poder eliminarla o marcar la casilla de confirmación.",
-        )
-
-    _, auditoria = _archivar_y_eliminar_asignacion_permanente(asignacion, db, current_admin)
+    asignacion.eliminado_en = datetime.utcnow()
     db.commit()
 
-    _registrar_auditoria_eliminacion(db, current_admin, auditoria)
+    try:
+        tecnico = db.get(Usuario, asignacion.tecnico_id) if asignacion.tecnico_id else None
+        registrar_auditoria(
+            db,
+            actor=current_admin,
+            usuario_objetivo=tecnico,
+            accion="ELIMINAR_ASIGNACION",
+            detalle=(
+                f"Eliminación (soft delete) de la asignación #{asignacion.id} "
+                f"({asignacion.cliente or 'sin cliente'} / {asignacion.ciudad or 'sin ciudad'}) "
+                f"en estado '{asignacion.estado}'."
+            ),
+            resultado="exitoso",
+        )
+    except Exception as e:
+        print(f"[AUDITORIA] No se pudo registrar la auditoría de eliminación: {e}")
 
     return {
         "id": id,
-        "mensaje": "Carpeta de asignación eliminada permanentemente. Estadísticas históricas preservadas en el sistema.",
+        "mensaje": "Asignación borrada correctamente.",
     }
 
 

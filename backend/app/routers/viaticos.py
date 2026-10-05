@@ -78,14 +78,31 @@ def crear_viatico(
         # Validación estricta con hora legal de Colombia (COT)
         verificar_asignacion_abierta(asig)
 
-    # La fecha del gasto la genera SIEMPRE el backend con la fecha actual en COT.
-    # El frontend no la envía; si la envía, se ignora.
+    # ── Determinar la fecha del gasto ──────────────────────────────────────
+    # Si el frontend envía una fecha y hay asignación vinculada, validar que
+    # esté dentro del rango [fecha_inicio, fecha_fin] de esa asignación.
+    # Si no hay asignación, se acepta cualquier fecha sin restricción de rango.
+    # Si no se envía fecha, se usa la fecha actual en COT como default.
     fecha_actual_cot = datetime.now(COT).date()
+    if viatico_in.fecha is not None:
+        if viatico_in.asignacion_id and asig:
+            if not (asig.fecha_inicio <= viatico_in.fecha <= asig.fecha_fin):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"La fecha del viático debe estar entre "
+                        f"{asig.fecha_inicio} y {asig.fecha_fin} "
+                        f"(rango de la oficina)."
+                    )
+                )
+        fecha_viatico = viatico_in.fecha
+    else:
+        fecha_viatico = fecha_actual_cot
 
     nuevo_viatico = Viatico(
         usuario_id=current_user.id,
         asignacion_id=viatico_in.asignacion_id,
-        fecha=fecha_actual_cot,
+        fecha=fecha_viatico,
         cliente=viatico_in.cliente,
         ciudad=viatico_in.ciudad,
         ot=viatico_in.ot,
@@ -182,8 +199,24 @@ def actualizar_viatico(
         verificar_asignacion_abierta(viatico.asignacion)
 
     update_data = viatico_in.model_dump(exclude_unset=True)
-    # Editar un viático no cambia su fecha de registro automática
-    update_data.pop("fecha", None)
+
+    # Si el técnico intenta cambiar la fecha y el viático tiene asignación,
+    # validar que la nueva fecha esté dentro del rango [fecha_inicio, fecha_fin]
+    # de esa asignación. Sin asignación, la fecha es libre.
+    if "fecha" in update_data and update_data["fecha"] is not None:
+        if viatico.asignacion_id and viatico.asignacion:
+            asig = viatico.asignacion
+            nueva_fecha = update_data["fecha"]
+            if not (asig.fecha_inicio <= nueva_fecha <= asig.fecha_fin):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"La fecha del viático debe estar entre "
+                        f"{asig.fecha_inicio} y {asig.fecha_fin} "
+                        f"(rango de la oficina)."
+                    )
+                )
+
     for field, value in update_data.items():
         setattr(viatico, field, value)
 

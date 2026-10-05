@@ -1177,7 +1177,7 @@ export default function PerfilEmpleado() {
                                                                 <div style={{ minWidth: 0 }}>
                                                                     <strong className="pf-historial-asig-title">
                                                                         <span style={{ color: '#64748B', fontWeight: 600, marginRight: '0.3rem' }}>{numero}.</span>
-                                                                        {asignacion.cliente}
+                                                                        {asignacion.empresa?.trim() ? `${asignacion.empresa.trim()} - ` : ''}{asignacion.cliente}
                                                                     </strong>
                                                                     <div className="pf-historial-asig-meta">
                                                                         <span>📍 {asignacion.ciudad}</span>
