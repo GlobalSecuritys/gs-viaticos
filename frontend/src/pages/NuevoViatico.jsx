@@ -1038,7 +1038,7 @@ export default function NuevoViatico() {
                     gasto={gastos.find((g) => g.id === modalCCGastoId)}
                     asignacion={asignacionDetalle}
                     user={user}
-                    fechaSeleccionada={fechaSeleccionada}
+                    fechaSeleccionada={fechaHoy}
                     initialData={gastos.find((g) => g.id === modalCCGastoId)?.cuenta_cobro}
                 />
             )}
