@@ -12,6 +12,7 @@ from app.database import get_db
 from app.models.asignacion import Asignacion
 from app.models.evidencia_viatico import EvidenciaViatico
 from app.models.usuario import Usuario
+from app.models.viatico import Viatico
 from app.services.asignacion_ventana import (
     COT,
     asignacion_abierta,
