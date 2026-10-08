@@ -110,6 +110,7 @@ class AsignacionResponse(AsignacionBase):
     gracia_activada: bool = False
     horas_restantes_cierre: float | None = None
     tiempo_restante_str: str | None = None
+    fecha_min_viatico: date | None = None
     created_at: datetime
     updated_at: datetime
 

@@ -57,6 +57,9 @@ from app.services.inventario_excel import (
     buscar_en_excel,
     obtener_datos_inventario_excel,
 )
+from app.services.inventario_lectura_inteligente import (
+    obtener_lectura_inteligente_mantenimiento,
+)
 
 router = APIRouter(prefix="/inventario", tags=["Inventario (IN)"])
 
@@ -901,3 +904,16 @@ def listar_salidas_registradas(
         .limit(limit)
     )
     return db.scalars(stmt).all()
+
+
+@router.get("/planillas/{planilla_id}/lectura-inteligente")
+def lectura_inteligente_planilla(
+    planilla_id: int,
+    db: DB,
+    current_user: LectorIN,
+):
+    """
+    Lectura inteligente determinística del estado del inventario.
+    Piloto controlado: activo exclusivamente para CI FR - INVENTARIO MANTENIMIENTO 2026 (planilla_id = 1).
+    """
+    return obtener_lectura_inteligente_mantenimiento(db, planilla_id)

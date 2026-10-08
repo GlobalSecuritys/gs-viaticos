@@ -9,6 +9,7 @@ import {
   obtenerDatosExcel,
   buscarEnExcel,
   guardarSalidaRegistro,
+  obtenerLecturaInteligente,
 } from '../services/inventario';
 import './Inventario.css';
 
@@ -39,6 +40,13 @@ export default function Inventario() {
   const [planillas, setPlanillas] = useState([]);
   const [cargandoPlanillas, setCargandoPlanillas] = useState(false);
   const [planillaSeleccionada, setPlanillaSeleccionada] = useState(null); // null = home
+
+  // ── Piloto Lectura Inteligente (exclusivo Mantenimiento 2026: planilla_id = 1) ─
+  const [lecturaInteligente, setLecturaInteligente] = useState(null);
+  const [cargandoLectura, setCargandoLectura] = useState(false);
+  // ── Stock por producto: filtros UI ──────────────────────────────────────────
+  const [busquedaProducto, setBusquedaProducto] = useState('');
+  const [filtroStockProductos, setFiltroStockProductos] = useState('con_stock'); // 'con_stock' | 'sin_stock' | 'todos'
 
   // ── Vista activa: 'excel' | 'buscar' | 'salida' (dentro de una planilla) ─
   const [vistaActiva, setVistaActiva] = useState('excel');
@@ -164,10 +172,22 @@ export default function Inventario() {
     setPanelFiltroAbierto(false);
     setHojaSeleccionada('');
     cargarExcel('', planilla);
+
+    // Piloto: Lectura inteligente exclusiva para CI FR - INVENTARIO MANTENIMIENTO 2026 (id = 1)
+    if (planilla.id === 1) {
+      setCargandoLectura(true);
+      obtenerLecturaInteligente(1)
+        .then((data) => setLecturaInteligente(data))
+        .catch((err) => console.error('Error cargando lectura inteligente:', err))
+        .finally(() => setCargandoLectura(false));
+    } else {
+      setLecturaInteligente(null);
+    }
   };
 
   const volverAlHome = () => {
     setPlanillaSeleccionada(null);
+    setLecturaInteligente(null);
     setVistaActiva('excel');
     setError('');
     setFeedback('');
@@ -405,6 +425,190 @@ export default function Inventario() {
       {/* ── Avisos globales ── */}
       {feedback && <div className="sgc-inv-alerta sgc-inv-alerta--ok">{feedback}</div>}
       {error && <div className="sgc-inv-alerta sgc-inv-alerta--err">{error}</div>}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+           PILOTO: STOCK ACTUAL POR PRODUCTO
+           Exclusivo para CI FR - INVENTARIO MANTENIMIENTO 2026 (planilla_id = 1)
+           Datos 100% provenientes del backend — sin valores hardcodeados.
+      ══════════════════════════════════════════════════════════════════════ */}
+      {planillaSeleccionada?.id === 1 && (
+        <section className="sgc-stock-section" aria-label="Stock actual por producto">
+          {/* ── Encabezado de la sección ── */}
+          <div className="sgc-stock-section-header">
+            <div className="sgc-stock-section-title-row">
+              <span className="sgc-stock-section-icon">📦</span>
+              <h2 className="sgc-stock-section-title">Stock actual por producto</h2>
+              <span className="sgc-stock-section-badge">Piloto · Lectura Inteligente</span>
+            </div>
+            <p className="sgc-stock-section-subtitle">
+              Datos calculados determinísticamente desde las fuentes de inventario Kardex y Legacy.
+            </p>
+          </div>
+
+          {cargandoLectura ? (
+            <div className="sgc-stock-loading">
+              <div className="sgc-inv-spinner" />
+              <span>Analizando fuentes determinísticas del inventario...</span>
+            </div>
+          ) : lecturaInteligente ? (() => {
+            const stock = lecturaInteligente.stock_por_producto;
+            const productosCon = stock?.productos ?? [];
+            const productosSin = stock?.productos_sin_stock ?? [];
+            const totalUnidades = stock?.total_unidades ?? 0;
+            const totalCon = stock?.total_productos_con_stock ?? productosCon.length;
+            const totalSin = stock?.total_productos_sin_stock ?? productosSin.length;
+            const totalRefs = stock?.total_referencias ?? (totalCon + totalSin);
+
+            const listaActiva = filtroStockProductos === 'con_stock'
+              ? productosCon
+              : filtroStockProductos === 'sin_stock'
+              ? productosSin
+              : [...productosCon, ...productosSin];
+
+            const listaFiltrada = busquedaProducto.trim()
+              ? listaActiva.filter(p =>
+                  p.nombre.toLowerCase().includes(busquedaProducto.toLowerCase())
+                )
+              : listaActiva;
+
+            return (
+              <>
+                {/* ── KPI resumen ── */}
+                <div className="sgc-stock-kpi-row">
+                  <div className="sgc-stock-kpi">
+                    <span className="sgc-stock-kpi-val sgc-stock-kpi-val--green">
+                      {Number(totalUnidades).toLocaleString('es-CO')}
+                    </span>
+                    <span className="sgc-stock-kpi-lbl">Unidades en stock</span>
+                  </div>
+                  <div className="sgc-stock-kpi">
+                    <span className="sgc-stock-kpi-val">{totalCon}</span>
+                    <span className="sgc-stock-kpi-lbl">Productos con stock</span>
+                  </div>
+                  <div className="sgc-stock-kpi">
+                    <span className="sgc-stock-kpi-val sgc-stock-kpi-val--muted">{totalSin}</span>
+                    <span className="sgc-stock-kpi-lbl">Productos sin stock</span>
+                  </div>
+                  <div className="sgc-stock-kpi">
+                    <span className="sgc-stock-kpi-val">{totalRefs}</span>
+                    <span className="sgc-stock-kpi-lbl">Referencias únicas</span>
+                  </div>
+                </div>
+
+                {/* ── Controles: filtro y búsqueda ── */}
+                <div className="sgc-stock-controls">
+                  <div className="sgc-stock-pills">
+                    <button
+                      type="button"
+                      className={`sgc-stock-pill ${filtroStockProductos === 'con_stock' ? 'sgc-stock-pill--activa' : ''}`}
+                      onClick={() => { setFiltroStockProductos('con_stock'); setBusquedaProducto(''); }}
+                    >
+                      Con stock ({totalCon})
+                    </button>
+                    <button
+                      type="button"
+                      className={`sgc-stock-pill ${filtroStockProductos === 'sin_stock' ? 'sgc-stock-pill--sin-stock' : ''}`}
+                      onClick={() => { setFiltroStockProductos('sin_stock'); setBusquedaProducto(''); }}
+                    >
+                      Sin stock ({totalSin})
+                    </button>
+                    <button
+                      type="button"
+                      className={`sgc-stock-pill ${filtroStockProductos === 'todos' ? 'sgc-stock-pill--activa' : ''}`}
+                      onClick={() => { setFiltroStockProductos('todos'); setBusquedaProducto(''); }}
+                    >
+                      Todos ({totalRefs})
+                    </button>
+                  </div>
+                  <div className="sgc-stock-search-wrap">
+                    <span className="sgc-stock-search-icon">🔍</span>
+                    <input
+                      id="stock-busqueda-producto"
+                      type="text"
+                      className="sgc-stock-search"
+                      placeholder="Buscar producto..."
+                      value={busquedaProducto}
+                      onChange={e => setBusquedaProducto(e.target.value)}
+                    />
+                    {busquedaProducto && (
+                      <button
+                        type="button"
+                        className="sgc-stock-search-clear"
+                        onClick={() => setBusquedaProducto('')}
+                        title="Limpiar búsqueda"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Tabla de productos ── */}
+                {listaFiltrada.length === 0 ? (
+                  <div className="sgc-stock-vacio">
+                    {busquedaProducto
+                      ? `Sin resultados para "${busquedaProducto}" en ${filtroStockProductos === 'con_stock' ? 'productos con stock' : filtroStockProductos === 'sin_stock' ? 'productos sin stock' : 'todos los productos'}.`
+                      : 'No hay productos en esta categoría.'}
+                  </div>
+                ) : (
+                  <div className="sgc-stock-tabla-wrapper">
+                    <table className="sgc-stock-tabla">
+                      <thead>
+                        <tr>
+                          <th className="sgc-stock-th sgc-stock-th--num">#</th>
+                          <th className="sgc-stock-th">Producto / Descripción</th>
+                          <th className="sgc-stock-th sgc-stock-th--fuente">Fuente</th>
+                          <th className="sgc-stock-th sgc-stock-th--registros">Registros</th>
+                          <th className="sgc-stock-th sgc-stock-th--cantidad">Cantidad</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {listaFiltrada.map((prod, idx) => (
+                          <tr
+                            key={prod.nombre}
+                            className={`sgc-stock-tr ${prod.cantidad === 0 ? 'sgc-stock-tr--sin-stock' : ''}`}
+                          >
+                            <td className="sgc-stock-td sgc-stock-td--num">{idx + 1}</td>
+                            <td className="sgc-stock-td sgc-stock-td--nombre">{prod.nombre}</td>
+                            <td className="sgc-stock-td sgc-stock-td--fuente">
+                              <span className={`sgc-stock-fuente-badge sgc-stock-fuente-badge--${prod.fuente}`}>
+                                {prod.fuente === 'kardex' ? 'Kardex' : prod.fuente === 'legacy' ? 'Legacy' : 'Mixta'}
+                              </span>
+                            </td>
+                            <td className="sgc-stock-td sgc-stock-td--registros">{prod.total_registros ?? 1}</td>
+                            <td className="sgc-stock-td sgc-stock-td--cantidad">
+                              <span className={`sgc-stock-cantidad ${prod.cantidad > 0 ? 'sgc-stock-cantidad--ok' : 'sgc-stock-cantidad--cero'}`}>
+                                {Number(prod.cantidad).toLocaleString('es-CO')}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* ── Pie de sección ── */}
+                <div className="sgc-stock-footer">
+                  {busquedaProducto && (
+                    <span className="sgc-stock-footer-filtro">
+                      Mostrando {listaFiltrada.length} de {listaActiva.length} productos
+                    </span>
+                  )}
+                  <span className="sgc-stock-footer-total">
+                    Total validado: <strong>{Number(totalUnidades).toLocaleString('es-CO')} unidades físicas</strong>
+                  </span>
+                  <span className="sgc-stock-footer-fuentes">
+                    Kardex: {Number(lecturaInteligente.desglose_fuentes?.kardex_activo?.unidades ?? 0).toLocaleString('es-CO')} u.
+                    &nbsp;·&nbsp;
+                    Legacy: {Number(lecturaInteligente.desglose_fuentes?.historico_legacy?.unidades ?? 0).toLocaleString('es-CO')} u.
+                  </span>
+                </div>
+              </>
+            );
+          })() : null}
+        </section>
+      )}
 
       {/* ── BARRA DE HERRAMIENTAS ── */}
       <section className="sgc-inv-toolbar-container">

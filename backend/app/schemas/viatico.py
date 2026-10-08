@@ -30,6 +30,8 @@ class AsignacionResumenViatico(BaseModel):
     estado: str | None = None
     puede_subir: bool = True
     fecha_fin: date | None = None
+    fecha_inicio: date | None = None
+    fecha_min_viatico: date | None = None
     cierre_en: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)

@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
 import ModalCuentaCobroCorta from '../components/ModalCuentaCobroCorta';
 import { formatFechaLarga, formatCOP, formatMiles, limpiarNumero } from '../utils/personal';
-import { derivarLugarDesdeTipoAsignacion, calcularAvisoCierre, formatearCierreEn } from '../utils/asignaciones';
+import { derivarLugarDesdeTipoAsignacion, calcularAvisoCierre, formatearCierreEn, obtenerFechaMinViatico } from '../utils/asignaciones';
 import './NuevoViatico.css';
 
 const CONCEPTOS = [
@@ -321,6 +321,7 @@ export default function NuevoViatico() {
 
     // Aviso de cierre próximo (< 2 horas)
     const avisoCierre = calcularAvisoCierre(asignacionDetalle?.cierre_en);
+    const fechaMinGasto = obtenerFechaMinViatico(asignacionDetalle);
 
     return (
         <TecnicoLayout>
@@ -511,10 +512,10 @@ export default function NuevoViatico() {
                         {/* ── 1. FECHA DEL GASTO ── */}
                         <div className="nv-card">
                             <h3 className="nv-card-title">1. Fecha del gasto</h3>
-                            {asignacionDetalle?.fecha_inicio && asignacionDetalle?.fecha_fin ? (
+                            {asignacionDetalle?.fecha_fin ? (
                                 <p className="nv-card-sub">
-                                    Elige la fecha dentro del rango de la oficina:
-                                    {' '}<strong>{asignacionDetalle.fecha_inicio}</strong>{' '}al{' '}
+                                    Elige la fecha dentro del rango permitido:
+                                    {' '}<strong>{fechaMinGasto || asignacionDetalle.fecha_inicio}</strong>{' '}al{' '}
                                     <strong>{asignacionDetalle.fecha_fin}</strong>.
                                     Si no seleccionas fecha, se usará la de hoy.
                                 </p>
@@ -744,16 +745,16 @@ export default function NuevoViatico() {
                                                 <div className="nv-field-group">
                                                     <label>
                                                         Fecha del gasto
-                                                        {asignacionDetalle?.fecha_inicio && asignacionDetalle?.fecha_fin && (
+                                                        {asignacionDetalle?.fecha_fin && (
                                                             <span style={{ fontSize: '0.78rem', fontWeight: 400, color: '#64748B', marginLeft: '0.4rem' }}>
-                                                                ({asignacionDetalle.fecha_inicio} → {asignacionDetalle.fecha_fin})
+                                                                ({fechaMinGasto || asignacionDetalle.fecha_inicio} → {asignacionDetalle.fecha_fin})
                                                             </span>
                                                         )}
                                                     </label>
                                                     <input
                                                         type="date"
                                                         value={gasto.fecha_gasto}
-                                                        min={asignacionDetalle?.fecha_inicio || undefined}
+                                                        min={fechaMinGasto || undefined}
                                                         max={asignacionDetalle?.fecha_fin || undefined}
                                                         onChange={(e) =>
                                                             handleGastoChange(gasto.id, 'fecha_gasto', e.target.value)

@@ -12,8 +12,12 @@ from app.database import get_db
 from app.models.asignacion import Asignacion
 from app.models.evidencia_viatico import EvidenciaViatico
 from app.models.usuario import Usuario
-from app.models.viatico import Viatico
-from app.services.asignacion_ventana import COT, asignacion_abierta, verificar_asignacion_abierta
+from app.services.asignacion_ventana import (
+    COT,
+    asignacion_abierta,
+    obtener_fecha_min_viatico,
+    verificar_asignacion_abierta,
+)
 from app.schemas.viatico import (
     AsignacionResumenViatico,
     EvidenciaResponse,
@@ -36,6 +40,7 @@ def _adjuntar_resumen_asignacion(v: Viatico) -> None:
         saldo = max(Decimal("0.00"), anticipo - tot_gastado)
         saldo_favor_tec = max(Decimal("0.00"), tot_gastado - anticipo)
         puede_subir, _, cierre_cot, _ = asignacion_abierta(v.asignacion)
+        fecha_min = obtener_fecha_min_viatico(v.asignacion)
         v.asignacion_resumen = AsignacionResumenViatico(
             id=v.asignacion.id,
             cliente=v.asignacion.cliente,
@@ -49,6 +54,8 @@ def _adjuntar_resumen_asignacion(v: Viatico) -> None:
             estado=v.asignacion.estado,
             puede_subir=puede_subir,
             fecha_fin=v.asignacion.fecha_fin,
+            fecha_inicio=v.asignacion.fecha_inicio,
+            fecha_min_viatico=fecha_min,
             cierre_en=cierre_cot,
         )
 
@@ -80,19 +87,21 @@ def crear_viatico(
 
     # ── Determinar la fecha del gasto ──────────────────────────────────────
     # Si el frontend envía una fecha y hay asignación vinculada, validar que
-    # esté dentro del rango [fecha_inicio, fecha_fin] de esa asignación.
+    # esté dentro del rango [fecha_min, fecha_fin] de esa asignación.
+    # Los técnicos pueden subir viáticos desde el día en que se crea la asignación.
     # Si no hay asignación, se acepta cualquier fecha sin restricción de rango.
     # Si no se envía fecha, se usa la fecha actual en COT como default.
     fecha_actual_cot = datetime.now(COT).date()
     if viatico_in.fecha is not None:
         if viatico_in.asignacion_id and asig:
-            if not (asig.fecha_inicio <= viatico_in.fecha <= asig.fecha_fin):
+            fecha_min = obtener_fecha_min_viatico(asig)
+            if not (fecha_min <= viatico_in.fecha <= asig.fecha_fin):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=(
                         f"La fecha del viático debe estar entre "
-                        f"{asig.fecha_inicio} y {asig.fecha_fin} "
-                        f"(rango de la oficina)."
+                        f"{fecha_min} y {asig.fecha_fin} "
+                        f"(desde la creación de la asignación hasta el fin de la oficina)."
                     )
                 )
         fecha_viatico = viatico_in.fecha
@@ -201,19 +210,20 @@ def actualizar_viatico(
     update_data = viatico_in.model_dump(exclude_unset=True)
 
     # Si el técnico intenta cambiar la fecha y el viático tiene asignación,
-    # validar que la nueva fecha esté dentro del rango [fecha_inicio, fecha_fin]
+    # validar que la nueva fecha esté dentro del rango [fecha_min, fecha_fin]
     # de esa asignación. Sin asignación, la fecha es libre.
     if "fecha" in update_data and update_data["fecha"] is not None:
         if viatico.asignacion_id and viatico.asignacion:
             asig = viatico.asignacion
             nueva_fecha = update_data["fecha"]
-            if not (asig.fecha_inicio <= nueva_fecha <= asig.fecha_fin):
+            fecha_min = obtener_fecha_min_viatico(asig)
+            if not (fecha_min <= nueva_fecha <= asig.fecha_fin):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=(
                         f"La fecha del viático debe estar entre "
-                        f"{asig.fecha_inicio} y {asig.fecha_fin} "
-                        f"(rango de la oficina)."
+                        f"{fecha_min} y {asig.fecha_fin} "
+                        f"(desde la creación de la asignación hasta el fin de la oficina)."
                     )
                 )
 

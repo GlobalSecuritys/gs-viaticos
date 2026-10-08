@@ -72,6 +72,7 @@ from app.services.asignacion_ventana import (
     COT,
     asignacion_abierta,
     format_cot_datetime,
+    obtener_fecha_min_viatico,
     verificar_asignacion_abierta,
 )
 
@@ -149,6 +150,7 @@ def _a_response(a: Asignacion) -> AsignacionResponse:
         gracia_activada=getattr(a, "gracia_activada", False) is True,
         horas_restantes_cierre=horas_restantes,
         tiempo_restante_str=tiempo_restante_str,
+        fecha_min_viatico=obtener_fecha_min_viatico(a),
         created_at=a.created_at.replace(tzinfo=timezone.utc) if a.created_at else None,
         updated_at=a.updated_at.replace(tzinfo=timezone.utc) if a.updated_at else None,
     )

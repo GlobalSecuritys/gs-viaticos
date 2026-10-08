@@ -204,3 +204,27 @@ export function calcularAvisoCierre(cierreEn) {
     return { cierra: msRestantes < 2 * 60 * 60 * 1000, msRestantes, tiempoStr };
 }
 
+/**
+ * Obtiene la fecha mínima permitida para registrar un viático en una asignación.
+ * Permite subir viáticos desde el día en que se creó la asignación (o fecha_inicio si es anterior).
+ * @param {object|null} asignacion
+ * @returns {string|undefined} Formato 'YYYY-MM-DD' o undefined
+ */
+export function obtenerFechaMinViatico(asignacion) {
+    if (!asignacion) return undefined;
+    if (asignacion.fecha_min_viatico) return asignacion.fecha_min_viatico;
+    if (asignacion.created_at) {
+        const d = parsearFechaUtc(asignacion.created_at);
+        if (d && !isNaN(d.getTime())) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const fCreacion = `${y}-${m}-${day}`;
+            if (asignacion.fecha_inicio && fCreacion < asignacion.fecha_inicio) {
+                return fCreacion;
+            }
+        }
+    }
+    return asignacion.fecha_inicio || undefined;
+}
+

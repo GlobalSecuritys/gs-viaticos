@@ -67,3 +67,12 @@ export async function listarSalidasRegistradas(limit = 100) {
   const res = await api.get('/inventario/salidas', { params: { limit } });
   return res.data;
 }
+
+/**
+ * Obtiene la lectura inteligente determinística del estado del inventario.
+ * Piloto: activo exclusivamente para CI FR - INVENTARIO MANTENIMIENTO 2026 (planilla_id = 1).
+ */
+export async function obtenerLecturaInteligente(planillaId = 1) {
+  const res = await api.get(`/inventario/planillas/${planillaId}/lectura-inteligente`);
+  return res.data;
+}

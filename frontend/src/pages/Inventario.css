@@ -1124,3 +1124,352 @@
 }
 
 
+
+/* ===========================================================================
+   PILOTO · STOCK ACTUAL POR PRODUCTO
+   Exclusivo planilla_id = 1 · CI FR - INVENTARIO MANTENIMIENTO 2026
+   Namespace: sgc-stock-*
+=========================================================================== */
+
+/* -- Contenedor principal -- */
+.sgc-stock-section {
+  background: var(--color-bg-secondary, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.07);
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  animation: sgcStockFadeIn 0.3s ease;
+}
+
+@keyframes sgcStockFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* -- Header -- */
+.sgc-stock-section-header { margin-bottom: 22px; }
+
+.sgc-stock-section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.sgc-stock-section-icon { font-size: 22px; line-height: 1; }
+
+.sgc-stock-section-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-primary-blue, #1e3a8a);
+  letter-spacing: -0.02em;
+}
+
+.sgc-stock-section-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.sgc-stock-section-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted, #64748b);
+}
+
+/* -- Loading -- */
+.sgc-stock-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 4px;
+  color: var(--color-text-muted, #64748b);
+  font-size: 13.5px;
+}
+
+/* -- KPI row -- */
+.sgc-stock-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.sgc-stock-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 12px;
+  text-align: center;
+  transition: box-shadow 0.18s ease;
+}
+
+.sgc-stock-kpi:hover { box-shadow: 0 4px 12px rgba(15, 23, 42, 0.09); }
+
+.sgc-stock-kpi-val {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-primary-blue, #1e3a8a);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.sgc-stock-kpi-val--green { color: #059669; }
+.sgc-stock-kpi-val--muted { color: #94a3b8; }
+
+.sgc-stock-kpi-lbl {
+  font-size: 11.5px;
+  color: var(--color-text-muted, #64748b);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* -- Controles -- */
+.sgc-stock-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.sgc-stock-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.sgc-stock-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.sgc-stock-pill:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.sgc-stock-pill--activa {
+  background: #1e40af;
+  border-color: #1e40af;
+  color: #fff;
+}
+
+.sgc-stock-pill--activa:hover {
+  background: #1e3a8a;
+  border-color: #1e3a8a;
+  color: #fff;
+}
+
+.sgc-stock-pill--sin-stock {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+/* -- Buscador -- */
+.sgc-stock-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 6px 12px;
+  min-width: 220px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sgc-stock-search-wrap:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  background: #fff;
+}
+
+.sgc-stock-search-icon { font-size: 14px; color: #94a3b8; flex-shrink: 0; }
+
+.sgc-stock-search {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--color-text, #0f172a);
+  width: 100%;
+  min-width: 0;
+}
+
+.sgc-stock-search::placeholder { color: #94a3b8; }
+
+.sgc-stock-search-clear {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.sgc-stock-search-clear:hover { color: #dc2626; }
+
+/* -- Tabla -- */
+.sgc-stock-tabla-wrapper {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  margin-bottom: 16px;
+}
+
+.sgc-stock-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.sgc-stock-th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.sgc-stock-th--num { width: 48px; text-align: center; }
+.sgc-stock-th--fuente { width: 90px; text-align: center; }
+.sgc-stock-th--registros { width: 90px; text-align: center; }
+.sgc-stock-th--cantidad { width: 100px; text-align: right; }
+
+.sgc-stock-tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.sgc-stock-tr:last-child { border-bottom: none; }
+.sgc-stock-tr:hover { background: #f8fafc; }
+
+.sgc-stock-tr--sin-stock { opacity: 0.55; }
+.sgc-stock-tr--sin-stock:hover { opacity: 0.75; }
+
+.sgc-stock-td {
+  padding: 11px 16px;
+  vertical-align: middle;
+  color: var(--color-text, #0f172a);
+}
+
+.sgc-stock-td--num { text-align: center; color: #94a3b8; font-size: 12px; font-weight: 600; }
+.sgc-stock-td--nombre { font-weight: 500; min-width: 200px; word-break: break-word; }
+.sgc-stock-td--fuente { text-align: center; }
+.sgc-stock-td--registros { text-align: center; color: #64748b; font-size: 12.5px; }
+.sgc-stock-td--cantidad { text-align: right; }
+
+/* -- Badge fuente -- */
+.sgc-stock-fuente-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sgc-stock-fuente-badge--legacy { background: #ede9fe; color: #6d28d9; }
+.sgc-stock-fuente-badge--kardex { background: #dbeafe; color: #1d4ed8; }
+.sgc-stock-fuente-badge--mixta  { background: #fef3c7; color: #92400e; }
+
+/* -- Cantidad -- */
+.sgc-stock-cantidad {
+  display: inline-block;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.sgc-stock-cantidad--ok   { color: #059669; }
+.sgc-stock-cantidad--cero { color: #cbd5e1; }
+
+/* -- Vacio -- */
+.sgc-stock-vacio {
+  padding: 32px 20px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13.5px;
+  font-style: italic;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px dashed #e2e8f0;
+  margin-bottom: 16px;
+}
+
+/* -- Footer -- */
+.sgc-stock-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px 4px 0;
+  border-top: 1px solid #f1f5f9;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.sgc-stock-footer-filtro { color: #1d4ed8; font-weight: 500; }
+
+.sgc-stock-footer-total { color: #0f172a; margin-left: auto; }
+.sgc-stock-footer-total strong { color: #059669; }
+
+.sgc-stock-footer-fuentes { color: #94a3b8; font-size: 12px; }
+
+/* -- Responsive -- */
+@media (max-width: 640px) {
+  .sgc-stock-section { padding: 20px 16px; }
+
+  .sgc-stock-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sgc-stock-search-wrap { width: 100%; min-width: 0; }
+
+  .sgc-stock-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .sgc-stock-footer-total { margin-left: 0; }
+
+  .sgc-stock-th--fuente,
+  .sgc-stock-td--fuente,
+  .sgc-stock-th--registros,
+  .sgc-stock-td--registros { display: none; }
+}

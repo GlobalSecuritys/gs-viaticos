@@ -5,7 +5,7 @@ import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import TecnicoLayout from '../components/TecnicoLayout';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
 import { LABEL_TIPO_GASTO, formatCOP, formatFechaLarga, formatMiles, limpiarNumero } from '../utils/personal';
-import { LABEL_TIPO_ASIGNACION } from '../utils/asignaciones';
+import { LABEL_TIPO_ASIGNACION, obtenerFechaMinViatico } from '../utils/asignaciones';
 import { irAtras } from '../utils/navigation';
 import './Forms.css';
 import './MisViaticos.css';
@@ -707,9 +707,9 @@ export default function MisViaticos() {
                 <div className="mv-form-field">
                   {(() => {
                     const asigEdit = viaticoEditando?.asignacion_id
-                      ? asignacionesMap.get(viaticoEditando.asignacion_id)
+                      ? (asignacionesMap.get(viaticoEditando.asignacion_id) || viaticoEditando?.asignacion_resumen)
                       : null;
-                    const fechaMin = asigEdit?.fecha_inicio || undefined;
+                    const fechaMin = obtenerFechaMinViatico(asigEdit);
                     const fechaMax = asigEdit?.fecha_fin || undefined;
                     return (
                       <>
@@ -730,7 +730,7 @@ export default function MisViaticos() {
                         />
                         {fechaMin && fechaMax && (
                           <span style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
-                            Debe estar dentro del rango de la oficina.
+                            Debe estar dentro del rango permitido ({fechaMin} al {fechaMax}).
                           </span>
                         )}
                       </>

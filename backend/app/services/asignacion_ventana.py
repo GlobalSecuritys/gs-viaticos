@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
@@ -20,6 +20,24 @@ def format_cot_datetime(dt: datetime) -> str:
     p = "a. m." if dt.hour < 12 else "p. m."
     h = dt.hour % 12 or 12
     return f"{dt.strftime('%d/%m/%Y')} a las {h}:{dt.strftime('%M')} {p}"
+
+
+def obtener_fecha_min_viatico(asignacion: Asignacion) -> date:
+    """
+    Retorna la fecha mínima permitida para los viáticos de una asignación.
+    Los técnicos pueden registrar viáticos desde el día en que se crea la asignación
+    (o desde fecha_inicio si ésta fuera anterior).
+    """
+    if getattr(asignacion, "created_at", None):
+        dt = asignacion.created_at
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc).astimezone(COT)
+        else:
+            dt = dt.astimezone(COT)
+        fecha_creacion = dt.date()
+        return min(fecha_creacion, asignacion.fecha_inicio)
+    return asignacion.fecha_inicio
+
 
 
 def asignacion_abierta(
