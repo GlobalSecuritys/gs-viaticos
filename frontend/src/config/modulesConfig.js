@@ -238,6 +238,14 @@ export const GLOBAL_ADMIN_NAV = [
     minRole: 'admin',
   },
   {
+    id: 'dashboard-viaticos',
+    label: 'Dashboard de Viáticos',
+    icon: '📈',
+    description: 'Gasto histórico desde el día cero (vivo + archivado) y proyección.',
+    path: '/admin/dashboard-viaticos',
+    minRole: 'superadmin',
+  },
+  {
     id: 'perfil',
     label: 'Mi Perfil / Configuración',
     icon: '⚙️',

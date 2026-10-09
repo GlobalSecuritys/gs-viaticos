@@ -10,15 +10,16 @@ armar el listado de técnicos. Aquí todo se agrega en SQL.
 Auditoría, PerfilEmpleado, AdminViaticos y Asignaciones.
 """
 
+from calendar import monthrange
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import and_, case, desc, func, or_, select
+from sqlalchemy import and_, case, desc, func, or_, select, text
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_admin
+from app.core.security import get_current_admin, get_current_superadmin
 from app.database import get_db
 from app.models.asignacion import Asignacion
 from app.models.estadistica_asignacion_archivada import EstadisticaAsignacionArchivada
@@ -60,6 +61,22 @@ def _rango_periodo(periodo: str) -> tuple[Optional[date], Optional[date]]:
         fin = (inicio + timedelta(days=32)).replace(day=1) - timedelta(days=1)
         return inicio, fin
     return None, None
+
+
+def _clasificar_concepto(tipo_gasto: Optional[str]) -> str:
+    """Agrupa un tipo_gasto libre en los conceptos de las columnas archivadas."""
+    tg_l = (tipo_gasto or "").lower()
+    if "hospedaj" in tg_l or "hotel" in tg_l:
+        return "hospedaje"
+    if "transport" in tg_l or "pasaj" in tg_l or "peaj" in tg_l:
+        return "transporte"
+    if "aliment" in tg_l or "comida" in tg_l or "restauran" in tg_l:
+        return "alimentacion"
+    if "escalera" in tg_l:
+        return "alquiler_escalera"
+    if "material" in tg_l:
+        return "materiales"
+    return "otros"
 
 
 def _total_gasto(db: Session, *, solo_rechazados: bool = False) -> Decimal:
@@ -186,20 +203,7 @@ def resumen_gastos(
         "otros": Decimal("0.00"),
     }
     for tg, val in conceptos_vivos.items():
-        tg_l = (tg or "").lower()
-        val_d = Decimal(val or 0)
-        if "hospedaj" in tg_l or "hotel" in tg_l:
-            tot_conceptos["hospedaje"] += val_d
-        elif "transport" in tg_l or "pasaj" in tg_l or "peaj" in tg_l:
-            tot_conceptos["transporte"] += val_d
-        elif "aliment" in tg_l or "comida" in tg_l or "restauran" in tg_l:
-            tot_conceptos["alimentacion"] += val_d
-        elif "escalera" in tg_l:
-            tot_conceptos["alquiler_escalera"] += val_d
-        elif "material" in tg_l:
-            tot_conceptos["materiales"] += val_d
-        else:
-            tot_conceptos["otros"] += val_d
+        tot_conceptos[_clasificar_concepto(tg)] += Decimal(val or 0)
 
     stmt_conc_arch = select(
         func.coalesce(func.sum(EstadisticaAsignacionArchivada.total_hospedaje), 0),
@@ -585,3 +589,300 @@ def tecnicos_indicadores(
         mas_asignaciones=top_asig,
         mayor_gasto=top_gasto,
     )
+
+
+# ── Dashboard de viáticos (solo superadmin) ──────────────────────────────────
+# Una apertura = 2 consultas agregadas. El archivo se lee desde resumen_mensual
+# (nunca se expande desglose_viaticos) y el mes sale siempre de la fecha del gasto.
+
+# Desde este despliegue el archivado guarda el estado de cada viático.
+FECHA_INICIO_ESTADO_ARCHIVO = date(2026, 10, 9)
+
+CONCEPTOS = ("hospedaje", "transporte", "alimentacion", "materiales", "alquiler_escalera", "otros")
+
+_SQL_DASH_VIVO = text("""
+    SELECT to_char(v.fecha, 'YYYY-MM') AS mes,
+           v.estado, v.tipo_gasto, v.usuario_id, u.nombre, v.ciudad,
+           GROUPING(v.tipo_gasto, v.usuario_id, v.ciudad) AS g,
+           min(v.fecha) AS primera_fecha,
+           count(*) AS cantidad,
+           coalesce(sum(v.valor), 0) AS monto
+    FROM viaticos v
+    JOIN usuarios u ON u.id = v.usuario_id
+    GROUP BY GROUPING SETS (
+        (to_char(v.fecha, 'YYYY-MM'), v.estado),
+        (to_char(v.fecha, 'YYYY-MM'), v.estado, v.tipo_gasto),
+        (to_char(v.fecha, 'YYYY-MM'), v.estado, v.usuario_id, u.nombre),
+        (to_char(v.fecha, 'YYYY-MM'), v.estado, v.ciudad)
+    )
+""")
+
+# Conceptos del archivo: solo existen por carpeta; se reparten entre los meses
+# de la carpeta en proporción a su gasto (f = gasto_mes / total_gastado).
+_SQL_DASH_ARCHIVO = text("""
+    SELECT m.key AS mes, e.tecnico_id, u.nombre, e.ciudad,
+           coalesce((e.resumen_mensual->>'estado_conocido')::boolean, false) AS estado_conocido,
+           sum(x.g) AS gasto,
+           sum(x.r) AS rechazado,
+           sum(x.cr) AS cant_rechazados,
+           sum(e.total_hospedaje * y.f) AS hospedaje,
+           sum(e.total_transporte * y.f) AS transporte,
+           sum(e.total_alimentacion * y.f) AS alimentacion,
+           sum(e.total_materiales * y.f) AS materiales,
+           sum(e.total_alquiler_escalera * y.f) AS alquiler_escalera,
+           sum(e.total_otros * y.f) AS otros
+    FROM estadisticas_asignaciones_archivadas e
+    JOIN usuarios u ON u.id = e.tecnico_id
+    LEFT JOIN LATERAL json_each(e.resumen_mensual->'meses') m ON true
+    CROSS JOIN LATERAL (
+        SELECT CASE WHEN m.key IS NULL THEN e.total_gastado
+                    ELSE (m.value->>'gasto')::numeric END AS g,
+               coalesce((m.value->>'rechazado')::numeric, 0) AS r,
+               coalesce((m.value->>'cant_rechazados')::int, 0) AS cr
+    ) x
+    CROSS JOIN LATERAL (
+        SELECT CASE WHEN e.total_gastado > 0 THEN x.g / e.total_gastado ELSE 0 END AS f
+    ) y
+    GROUP BY m.key, e.tecnico_id, u.nombre, e.ciudad, 5
+""")
+
+
+def _sumar(destino: dict, clave, monto: float, cantidad: int = 0) -> None:
+    item = destino.setdefault(clave, {"monto": 0.0, "cantidad": 0})
+    item["monto"] += monto
+    item["cantidad"] += cantidad
+
+
+def _mes_siguiente(mes: str) -> str:
+    y, m = int(mes[:4]), int(mes[5:])
+    return f"{y + (m == 12)}-{(m % 12) + 1:02d}"
+
+
+def _mes_anterior(mes: str) -> str:
+    y, m = int(mes[:4]), int(mes[5:])
+    return f"{y - (m == 1)}-{12 if m == 1 else m - 1:02d}"
+
+
+def _dias_mes(mes: str) -> int:
+    return monthrange(int(mes[:4]), int(mes[5:]))[1]
+
+
+def _proyeccion(gasto_mes: dict, hoy: date, primer_dia: Optional[date]) -> Optional[dict]:
+    """
+    Ritmo diario de cada mes (gasto del mes / días con datos) + tendencia.
+    Se usa el ritmo diario por mes porque el archivo solo tiene granularidad
+    mensual: un ritmo semanal exacto solo existiría para los datos en vivo.
+    Central = 60 % ritmo del mes en curso + 40 % ritmo del mes anterior;
+    banda = el menor y el mayor de esos dos ritmos, con un ancho mínimo de
+    ±15 % (confianza baja) o ±10 % (media) para no aparentar precisión.
+    """
+    mes_actual = hoy.strftime("%Y-%m")
+    mes_prev = _mes_anterior(mes_actual)
+
+    dias_trans = hoy.day
+    gasto_actual = gasto_mes.get(mes_actual, 0.0)
+    ritmo_actual = gasto_actual / dias_trans
+
+    ritmo_prev = None
+    if gasto_mes.get(mes_prev, 0.0) > 0:
+        dias_prev = _dias_mes(mes_prev)
+        if primer_dia and primer_dia.strftime("%Y-%m") == mes_prev:
+            dias_prev = dias_prev - primer_dia.day + 1  # el primer mes empieza a mitad
+        ritmo_prev = gasto_mes[mes_prev] / dias_prev
+
+    ritmos = [r for r in (ritmo_actual, ritmo_prev) if r]
+    if not ritmos:
+        return None
+
+    dias_historia = (hoy - primer_dia).days + 1 if primer_dia else 0
+    confianza = "baja" if dias_historia < 90 else "media"
+    margen = 0.15 if confianza == "baja" else 0.10
+
+    if ritmo_actual and ritmo_prev:
+        central = 0.6 * ritmo_actual + 0.4 * ritmo_prev
+        tendencia_pct = (ritmo_actual - ritmo_prev) / ritmo_prev * 100
+    else:
+        # Un solo mes con datos: banda fija de ±25 %
+        central = ritmos[0]
+        margen = 0.25
+        tendencia_pct = None
+    bajo = min(min(ritmos), central * (1 - margen))
+    alto = max(max(ritmos), central * (1 + margen))
+
+    dias_mes = _dias_mes(mes_actual)
+    restantes = dias_mes - dias_trans
+    mes_sig = _mes_siguiente(mes_actual)
+    dias_sig = _dias_mes(mes_sig)
+
+    semanas = []
+    for i in range(8):
+        inicio = hoy + timedelta(days=1 + 7 * i)
+        semanas.append({
+            "desde": inicio.isoformat(),
+            "hasta": (inicio + timedelta(days=6)).isoformat(),
+            "central": round(central * 7, 2),
+            "minimo": round(bajo * 7, 2),
+            "maximo": round(alto * 7, 2),
+        })
+
+    return {
+        "ritmo_diario_actual": round(ritmo_actual, 2),
+        "ritmo_diario_mes_anterior": round(ritmo_prev, 2) if ritmo_prev else None,
+        "ritmo_diario_central": round(central, 2),
+        "tendencia_pct": round(tendencia_pct, 1) if tendencia_pct is not None else None,
+        "dias_transcurridos": dias_trans,
+        "dias_mes": dias_mes,
+        "cierre_mes": {
+            "mes": mes_actual,
+            "central": round(gasto_actual + central * restantes, 2),
+            "minimo": round(gasto_actual + bajo * restantes, 2),
+            "maximo": round(gasto_actual + alto * restantes, 2),
+        },
+        "mes_siguiente": {
+            "mes": mes_sig,
+            "central": round(central * dias_sig, 2),
+            "minimo": round(bajo * dias_sig, 2),
+            "maximo": round(alto * dias_sig, 2),
+        },
+        "semanas": semanas,
+        "dias_historia": dias_historia,
+        "confianza": confianza,
+        "margen_minimo_pct": round(margen * 100),
+    }
+
+
+@router.get("/dashboard-viaticos")
+def dashboard_viaticos(
+    current_superadmin: Annotated[Usuario, Depends(get_current_superadmin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Payload completo del dashboard de viáticos (vivo + archivado) desde el día
+    cero. Solo lectura, 2 consultas agregadas. Gasto = no rechazado; los
+    rechazados van aparte y nunca se suman al gasto.
+    """
+    hoy = datetime.now(COT).date()
+    meses: dict[str, dict] = {}
+
+    def mes_de(clave: str) -> dict:
+        return meses.setdefault(clave, {
+            "gasto": 0.0, "gasto_vivo": 0.0, "gasto_archivo": 0.0,
+            "gasto_archivo_estado_desconocido": 0.0,
+            "rechazado": 0.0, "cant_rechazados": 0,
+            "conceptos": {c: 0.0 for c in CONCEPTOS},
+            "tecnicos": {}, "ciudades": {}, "estados": {},
+        })
+
+    pendientes = {"cantidad": 0, "monto": 0.0}
+    primer_dia_vivo: Optional[date] = None
+
+    # 1. Vivo: un solo viaje a la BD con GROUPING SETS.
+    # g = GROUPING(tipo_gasto, usuario_id, ciudad): 7 = (mes, estado),
+    # 3 = por concepto, 5 = por técnico, 6 = por ciudad.
+    for r in db.execute(_SQL_DASH_VIVO).mappings():
+        m = mes_de(r["mes"])
+        monto = float(r["monto"] or 0)
+        cant = int(r["cantidad"] or 0)
+        rechazado = r["estado"] == ESTADO_NO_COMPUTA_GASTO
+        g = r["g"]
+        if g == 7:
+            _sumar(m["estados"], r["estado"], monto, cant)
+            if rechazado:
+                m["rechazado"] += monto
+                m["cant_rechazados"] += cant
+            else:
+                m["gasto"] += monto
+                m["gasto_vivo"] += monto
+            if r["estado"] == "pendiente":
+                pendientes["cantidad"] += cant
+                pendientes["monto"] += monto
+            if primer_dia_vivo is None or r["primera_fecha"] < primer_dia_vivo:
+                primer_dia_vivo = r["primera_fecha"]
+        elif rechazado:
+            continue
+        elif g == 3:
+            m["conceptos"][_clasificar_concepto(r["tipo_gasto"])] += monto
+        elif g == 5:
+            _sumar(m["tecnicos"], (r["usuario_id"], r["nombre"]), monto, cant)
+        elif g == 6:
+            _sumar(m["ciudades"], (r["ciudad"] or "Sin ciudad").strip().upper(), monto, cant)
+
+    # 2. Archivo: resumen_mensual + columnas de totales
+    sin_mes = {"gasto": 0.0, "filas": 0}
+    for r in db.execute(_SQL_DASH_ARCHIVO).mappings():
+        gasto = float(r["gasto"] or 0)
+        if r["mes"] is None:
+            # Sin resumen_mensual (o sin viáticos): no hay mes asignable.
+            if gasto:
+                sin_mes["gasto"] += gasto
+                sin_mes["filas"] += 1
+            continue
+        m = mes_de(r["mes"])
+        m["gasto"] += gasto
+        m["gasto_archivo"] += gasto
+        if r["estado_conocido"]:
+            _sumar(m["estados"], "archivado_no_rechazado", gasto)
+            if r["rechazado"]:
+                rech, cant_rech = float(r["rechazado"]), int(r["cant_rechazados"] or 0)
+                m["rechazado"] += rech
+                m["cant_rechazados"] += cant_rech
+                _sumar(m["estados"], ESTADO_NO_COMPUTA_GASTO, rech, cant_rech)
+        else:
+            m["gasto_archivo_estado_desconocido"] += gasto
+            _sumar(m["estados"], "archivado_estado_desconocido", gasto)
+        for c in CONCEPTOS:
+            m["conceptos"][c] += float(r[c] or 0)
+        _sumar(m["tecnicos"], (r["tecnico_id"], r["nombre"]), gasto)
+        _sumar(m["ciudades"], (r["ciudad"] or "Sin ciudad").strip().upper(), gasto)
+
+    # Serie continua desde el primer mes con datos hasta el mes en curso
+    mes_actual = hoy.strftime("%Y-%m")
+    serie = []
+    if meses:
+        k, ultimo = min(meses), max(max(meses), mes_actual)
+        while k <= ultimo:
+            m = mes_de(k)
+            serie.append({
+                "mes": k,
+                "gasto": round(m["gasto"], 2),
+                "gasto_vivo": round(m["gasto_vivo"], 2),
+                "gasto_archivo": round(m["gasto_archivo"], 2),
+                "gasto_archivo_estado_desconocido": round(m["gasto_archivo_estado_desconocido"], 2),
+                "rechazado": round(m["rechazado"], 2),
+                "cant_rechazados": m["cant_rechazados"],
+                "conceptos": {c: round(v, 2) for c, v in m["conceptos"].items()},
+                "tecnicos": [
+                    {"id": tid, "nombre": nombre or f"Usuario #{tid}", "monto": round(v["monto"], 2)}
+                    for (tid, nombre), v in m["tecnicos"].items()
+                ],
+                "ciudades": [{"ciudad": c, "monto": round(v["monto"], 2)} for c, v in m["ciudades"].items()],
+                "estados": {e: {"monto": round(v["monto"], 2), "cantidad": v["cantidad"]} for e, v in m["estados"].items()},
+            })
+            k = _mes_siguiente(k)
+
+    # Primer día documentado: el archivo solo guarda el mes; si el primer mes
+    # tiene gasto archivado se toma el día 1 de ese mes (aproximado).
+    primer_dia = None
+    if serie:
+        primer = serie[0]
+        if primer_dia_vivo and primer_dia_vivo.strftime("%Y-%m") == primer["mes"] and not primer["gasto_archivo"]:
+            primer_dia = primer_dia_vivo
+        else:
+            primer_dia = date(int(primer["mes"][:4]), int(primer["mes"][5:]), 1)
+
+    gasto_por_mes = {s["mes"]: s["gasto"] for s in serie}
+    return {
+        "generado_en": datetime.now(COT).isoformat(),
+        "hoy": hoy.isoformat(),
+        "mes_actual": mes_actual,
+        "primer_dia_aproximado": primer_dia.isoformat() if primer_dia else None,
+        "meses": serie,
+        "total_gasto": round(sum(gasto_por_mes.values()) + sin_mes["gasto"], 2),
+        "total_rechazado": round(sum(s["rechazado"] for s in serie), 2),
+        "cant_rechazados": sum(s["cant_rechazados"] for s in serie),
+        "pendientes": {"cantidad": pendientes["cantidad"], "monto": round(pendientes["monto"], 2)},
+        "sin_mes": {"gasto": round(sin_mes["gasto"], 2), "filas": sin_mes["filas"]},
+        "gasto_archivo_estado_desconocido": round(sum(s["gasto_archivo_estado_desconocido"] for s in serie), 2),
+        "fecha_inicio_estado_archivo": FECHA_INICIO_ESTADO_ARCHIVO.isoformat(),
+        "proyeccion": _proyeccion(gasto_por_mes, hoy, primer_dia),
+    }

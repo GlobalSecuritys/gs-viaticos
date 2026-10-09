@@ -1,0 +1,187 @@
+/* Dashboard de Viáticos: solo lo que no cubren Auditoria.css / AdminDashboard.css */
+
+.dv-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.1rem;
+}
+
+.dv-periodo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-text-secondary);
+}
+
+.dv-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.dv-generado {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.dv-btn-actualizar {
+    padding: 0.45rem 0.95rem;
+    border-radius: var(--radius-md);
+    border: 1px solid #1D63C8;
+    background: #1D63C8;
+    color: #FFFFFF;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.dv-btn-actualizar:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.dv-error {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: #B91C1C;
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+}
+
+.dv-tooltip {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+    font-size: 0.78rem;
+}
+
+.dv-tooltip-label {
+    margin: 0 0 0.25rem;
+    font-weight: 800;
+    color: #0F172A;
+}
+
+.dv-tooltip-row {
+    margin: 0;
+    color: #334155;
+}
+
+.dv-confianza {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dv-confianza--baja {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.dv-confianza--media {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.dv-metodo {
+    margin-top: 0.75rem;
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.dv-metodo p {
+    margin: 0 0 0.4rem;
+}
+
+.dv-semanas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+
+.dv-semana {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-tertiary);
+}
+
+.dv-semana-fechas {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+}
+
+.dv-semana-rango {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--color-text);
+}
+
+.dv-nota {
+    margin: 0.6rem 0 0;
+    font-size: 0.74rem;
+    color: var(--color-text-muted);
+    line-height: 1.45;
+}
+
+.dv-vacio {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    padding: 1.5rem 0;
+    text-align: center;
+}
+
+.dv-tasa {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.dv-tasa-valor {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #DC2626;
+}
+
+.dv-tasa-label {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+}
+
+@media (max-width: 900px) {
+    .dv-semanas {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dv-tasa {
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .dv-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .dv-toolbar-right {
+        justify-content: space-between;
+    }
+}

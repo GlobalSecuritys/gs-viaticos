@@ -16,6 +16,7 @@ import Asignaciones from './pages/Asignaciones';
 import NuevaAsignacion from './pages/NuevaAsignacion';
 import DetalleAsignacion from './pages/DetalleAsignacion';
 import Auditoria from './pages/Auditoria';
+import DashboardViaticos from './pages/DashboardViaticos';
 import AdminCuentasCobro from './pages/AdminCuentasCobro';
 import SeleccionModulo from './pages/SeleccionModulo';
 import TalentoHumano from './pages/TalentoHumano';
@@ -176,6 +177,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <Auditoria />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/dashboard-viaticos"
+            element={
+              <AdminRoute requireSuperadmin>
+                <DashboardViaticos />
               </AdminRoute>
             }
           />
