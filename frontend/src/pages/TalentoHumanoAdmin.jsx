@@ -9,6 +9,7 @@ import api, {
 } from '../services/api';
 import logoGSB from '../assets/logo-gsb.png';
 import InstallPwaPrompt from '../components/InstallPwaPrompt';
+import EvaluacionDesempenoForm from '../components/EvaluacionDesempenoForm';
 import { formatCOP, formatFechaLarga, iniciales } from '../utils/personal';
 import { formatApiError } from '../utils/formatError';
 import './TalentoHumanoAdmin.css';
@@ -442,11 +443,22 @@ export default function TalentoHumanoAdmin() {
         }
     }
 
+    const esPilarAdmin = user?.correo?.toLowerCase() === 'pilaradmin@gsbank.com';
+
     const NAV_ITEMS_ADMIN = [
         { id: 'general', label: 'Directorio & Ficha', icon: '👤', action: () => setTabActiva('general'), active: tabActiva === 'general' },
         { id: 'documentos', label: 'Contratos & Documentos', icon: '📄', action: () => setTabActiva('documentos'), active: tabActiva === 'documentos' },
         { id: 'adicional', label: 'Dotaciones', icon: '🦺', action: () => setTabActiva('adicional'), active: tabActiva === 'adicional' },
         { id: 'historial', label: 'Historial & Solicitudes', icon: '📝', action: () => setTabActiva('historial'), active: tabActiva === 'historial' },
+        ...(esPilarAdmin
+            ? [{
+                id: 'evaluacion-desempeno',
+                label: 'Evaluación de desempeño',
+                icon: '📋',
+                action: () => setTabActiva('evaluacion-desempeno'),
+                active: tabActiva === 'evaluacion-desempeno',
+            }]
+            : []),
     ];
 
     const p = empleadoSeleccionado?.perfil || {};
@@ -553,13 +565,27 @@ export default function TalentoHumanoAdmin() {
                     <InstallPwaPrompt />
                 </div>
 
-                <div className="tha-header-bar">
-                    <div>
-                        <h1 className="tha-header-title">Talento Humano</h1>
-                        <p className="tha-header-sub">
-                            Gestión de información laboral y administrativa de los empleados.
-                        </p>
-                    </div>
+                {tabActiva === 'evaluacion-desempeno' ? (
+                    !esPilarAdmin ? (
+                        <div style={{ padding: '3rem 2rem', textAlign: 'center', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', margin: '1rem 0' }}>
+                            <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}>🔒</span>
+                            <h3 style={{ color: '#0f172a', margin: '0 0 0.5rem 0', fontWeight: 600 }}>Módulo en fase de pruebas</h3>
+                            <p style={{ color: '#64748b', fontSize: '0.95rem', margin: 0 }}>
+                                Esta sección está actualmente habilitada únicamente para la Dirección Administrativa.
+                            </p>
+                        </div>
+                    ) : (
+                        <EvaluacionDesempenoForm user={user} />
+                    )
+                ) : (
+                    <>
+                        <div className="tha-header-bar">
+                            <div>
+                                <h1 className="tha-header-title">Talento Humano</h1>
+                                <p className="tha-header-sub">
+                                    Gestión de información laboral y administrativa de los empleados.
+                                </p>
+                            </div>
 
                     <div className="tha-header-actions">
                         <button className="tha-btn-excel" onClick={handleExportarExcel}>
@@ -1558,6 +1584,8 @@ export default function TalentoHumanoAdmin() {
                         )}
                     </div>
                 </div>
+                    </>
+                )}
             </main>
 
             {/* ── MODAL NUEVO EMPLEADO ── */}

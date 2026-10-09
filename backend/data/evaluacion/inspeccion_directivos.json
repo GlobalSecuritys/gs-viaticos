@@ -1,0 +1,400 @@
+[
+  {
+    "row": 2,
+    "cells": {
+      "C2": "GLOBAL SECURITY BANK SAS ",
+      "J2": "Código",
+      "K2": "Versión"
+    }
+  },
+  {
+    "row": 3,
+    "cells": {
+      "J3": "AD-FR-06",
+      "K3": "2"
+    }
+  },
+  {
+    "row": 4,
+    "cells": {
+      "C4": "EVALUACIÓN DE DESEMPEÑO DIRECTIVOS",
+      "J4": "Fecha Act",
+      "K4": "Página"
+    }
+  },
+  {
+    "row": 5,
+    "cells": {
+      "J5": "ABRIL 2023 ",
+      "K5": "1"
+    }
+  },
+  {
+    "row": 8,
+    "cells": {
+      "B8": "NOMBRE",
+      "F8": "FECHA"
+    }
+  },
+  {
+    "row": 9,
+    "cells": {
+      "B9": "CARGO",
+      "C9": "DIRECTORA ADMINSITRATIVA ",
+      "F9": "NOMBRE EVALUADOR"
+    }
+  },
+  {
+    "row": 11,
+    "cells": {
+      "B11": "Califique al colaborador utilizando la siguiente escala:"
+    }
+  },
+  {
+    "row": 13,
+    "cells": {
+      "D13": "4",
+      "E13": "Muy Bien",
+      "F13": "El empleado cumple muy bien el aspecto a evaluar."
+    }
+  },
+  {
+    "row": 14,
+    "cells": {
+      "D14": "3",
+      "E14": "Bueno",
+      "F14": "El empleado cumple bien el aspecto a evaluar"
+    }
+  },
+  {
+    "row": 15,
+    "cells": {
+      "D15": "2",
+      "E15": "Aceptable",
+      "F15": "El empleado cumple aceptablemente el aspecto a evaluar"
+    }
+  },
+  {
+    "row": 16,
+    "cells": {
+      "D16": "1",
+      "E16": "Pobre",
+      "F16": "El empleado no cumple suficientemente con el aspecto a evaluar"
+    }
+  },
+  {
+    "row": 18,
+    "cells": {
+      "B18": "No.",
+      "C18": "FACTORES DE EVALUACIÓN",
+      "E18": "DESCRIPCIÓN",
+      "G18": "CALIF. AUTO",
+      "H18": "CALIF JEFE",
+      "I18": "CALIF",
+      "J18": "OBSERVACIÓN"
+    }
+  },
+  {
+    "row": 19,
+    "cells": {
+      "B19": "1.  DESEMPEÑO "
+    }
+  },
+  {
+    "row": 20,
+    "cells": {
+      "B20": "1.1.",
+      "C20": "Atención y asesoría al cliente.",
+      "E20": "Este factor indica en que medida la persona cumple y satisface los requerimientos del cliente interno como externo."
+    }
+  },
+  {
+    "row": 21,
+    "cells": {
+      "B21": "1.2.",
+      "C21": "Interés e iniciativa en su trabajo.",
+      "E21": "Este factor considera la capacidad del empleado para crear, sugerir, aportar y llevar a cabo nuevas ideas y proyectos."
+    }
+  },
+  {
+    "row": 22,
+    "cells": {
+      "B22": "1.3.",
+      "C22": "Disposición para recibir y realizar instrucciones ",
+      "E22": "Este factor señala la disposición del empleado para acatar y ejecutar las órdenes, sugerencias e instrucciones que le imparte su jefe inmediato."
+    }
+  },
+  {
+    "row": 23,
+    "cells": {
+      "B23": "1.4",
+      "C23": "Propositividad",
+      "E23": "Este factor determina la capacidad de mostrar una tendencia hacia la busqueda o propuesta de soluciones ante problemas o conflictos externos o internos de la compañía"
+    }
+  },
+  {
+    "row": 24,
+    "cells": {
+      "B24": "1.5",
+      "C24": "Disposición y apertura para el cambio.",
+      "E24": "Este factor determina la manera o forma en que el empleado recibe las propuestas y sugerencias de mejoramiento y su disposición para poner en práctica."
+    }
+  },
+  {
+    "row": 25,
+    "cells": {
+      "B25": "1.6",
+      "C25": "Liderazgo",
+      "E25": "Este factor determina la capacidad para organizar unidades diferentes en función del logro de fines y estrategias de la institución, generar confianza y desarrollar habilidadesy conocimientos en subordinados, de tal forma que fomentan en ellos mayores ámbitos de acción y responsabilidad"
+    }
+  },
+  {
+    "row": 26,
+    "cells": {
+      "B26": "1.7",
+      "C26": "Capacidad de Gestión",
+      "E26": "Este factor estima la capacidad para planear, organizar, dirigir y controlar las actividades bajo su responsabilidad con el proposito de alcanzar los objetivos de mediano y largo plazo de la organización"
+    }
+  },
+  {
+    "row": 27,
+    "cells": {
+      "B27": "1.8",
+      "C27": "Capacidad de decisión",
+      "E27": "Este factor corresponde a la capacidad de ejecutar una acción adecuada utilizando la facultad de resolver en los ámbitos de trabajo correspondiente"
+    }
+  },
+  {
+    "row": 28,
+    "cells": {
+      "B28": "1.9",
+      "C28": "Capacidad de análisis",
+      "E28": "Este factor estima la capacidad que le permite a un individuo interpretar la información para responder de manera coherente a las diferentes situaciones  que se le presentan en el entorno de trabajo"
+    }
+  },
+  {
+    "row": 29,
+    "cells": {
+      "B29": "2. CUMPLIMIENTO DE LAS NORMAS INTERNAS "
+    }
+  },
+  {
+    "row": 30,
+    "cells": {
+      "B30": "2.1.",
+      "C30": "Cumplimiento de horarios.",
+      "E30": "Este factor considera la puntualidad del empleado para iniciar y cumplir con su jornada laboral."
+    }
+  },
+  {
+    "row": 31,
+    "cells": {
+      "B31": "2.2.",
+      "C31": "Respeto a las líneas de mando y acatamiento de normas y reglamento interno.",
+      "E31": "Este factor establece la disposición para tratar, dirigirse y obedecer a sus superiores, además de su disposición para acatar ordenes."
+    }
+  },
+  {
+    "row": 32,
+    "cells": {
+      "B32": "3.  CAPACITACIÓN Y EL ENTRENAMIENTO"
+    }
+  },
+  {
+    "row": 33,
+    "cells": {
+      "B33": "3.1.",
+      "C33": "Habilidad y Disposición para el reentrenamiento y la capacitación",
+      "E33": "Grado de receptividad, asimilación y desenvolvimiento para aplicar los conocimientos adquiridos."
+    }
+  },
+  {
+    "row": 34,
+    "cells": {
+      "B34": "3.2.",
+      "C34": "Capacidad para transmitir conocimientos adquiridos.",
+      "E34": "Este factor indica la capacidad del empleado para trasmitir y explicar la aplicación de los conocimientos que ha adquirido, a sus compañeros."
+    }
+  },
+  {
+    "row": 35,
+    "cells": {
+      "B35": "3.3.",
+      "C35": "Iniciativa y realización de programas de autocapacitación.",
+      "E35": "Este factor indica el interés y la preocupación del empleado, en desarrollar por iniciativa propia, programas de capacitación que le permitan su crecimiento intelectual, aplicados a su vida laboral y personal"
+    }
+  },
+  {
+    "row": 36,
+    "cells": {
+      "B36": "4.  COMPROMISO CON EL SISTEMA DE GESTIÓN INTEGRAL"
+    }
+  },
+  {
+    "row": 37,
+    "cells": {
+      "B37": "4.1.",
+      "C37": "Cumplimiento y diligenciamiento de documentos del proceso de calidad",
+      "E37": "Este factor evalúa el grado de empleado del empleado con el desarrollo eficaz del Sistema de Gestión de la Calidad."
+    }
+  },
+  {
+    "row": 38,
+    "cells": {
+      "B38": "4.2.",
+      "C38": "Capacidad de iniciativa para el mejoramiento de los procesos.",
+      "E38": "Este factor evalúa el interés del empleado por generar y proponer nuevas estrategias y metodologías para incrementar la eficiencia y la productividad en el desarrollo de sus labores."
+    }
+  },
+  {
+    "row": 39,
+    "cells": {
+      "B39": "4.3.",
+      "C39": "Participación de las actividades de intervención del SGSST y cumplimiento de las responsabilidades del SGSST",
+      "E39": "Este factor evalúa el grado de compromiso del empleado con el desarrollo eficaz del Sistema de Gestión de Seguridad y Salud en el Trabajo. Tiene en cuenta el conocimiento de las políticas, la participación en las actividades de prevención, el cumplimiento de sus responsabilidades según rol frente al SGSST."
+    }
+  },
+  {
+    "row": 41,
+    "cells": {
+      "C41": "GLOBAL SECURITY BANK SAS ",
+      "J41": "Código",
+      "K41": "Versión"
+    }
+  },
+  {
+    "row": 42,
+    "cells": {
+      "J42": "AD-FR-06",
+      "K42": "1"
+    }
+  },
+  {
+    "row": 43,
+    "cells": {
+      "C43": "EVALUACIÓN DE DESEMPEÑO DIRECTIVOS",
+      "J43": "Fecha Act",
+      "K43": "Página"
+    }
+  },
+  {
+    "row": 44,
+    "cells": {
+      "J44": "ABRIL 2023",
+      "K44": "1"
+    }
+  },
+  {
+    "row": 46,
+    "cells": {
+      "B46": "5.  HABILIDADES PERSONALES"
+    }
+  },
+  {
+    "row": 47,
+    "cells": {
+      "B47": "5.1.",
+      "C47": "ATENCION AL CLIENTE",
+      "E47": "Valora el cliente, le interesa satisfacerlo y tiende a agregar valor para conservarlo."
+    }
+  },
+  {
+    "row": 48,
+    "cells": {
+      "B48": "5.2",
+      "C48": "COMUNICACIÓN Y NEGOCIACIÓN",
+      "E48": "Buena expresión verbal, facilidad para expresar sus ideas de forma clara precisa y coherente. Crea un ambiente de confianza con el cliente y lo compromete en el negocio"
+    }
+  },
+  {
+    "row": 49,
+    "cells": {
+      "B49": "5.3",
+      "C49": "TRABAJO EN EQUIPO",
+      "E49": "Conoce el objetivo de trabajar en equipo, aporta para la consecución de metas comunes, busca llegar a acuerdos, apoya a los demás cuando lo requieren."
+    }
+  },
+  {
+    "row": 50,
+    "cells": {
+      "B50": "5.4",
+      "C50": "VERIFICACIÓN Y CONTROL",
+      "E50": "Presta atención a cada uno de los detalles para garantizar la calidad de la información y de los procesos que recibe y entrega, compara datos y se asegura que estén correctos."
+    }
+  },
+  {
+    "row": 51,
+    "cells": {
+      "B51": "5.5",
+      "C51": "RECURSIVIDAD",
+      "E51": "Busca diferentes alternativas para solucionar los inconvenientes que se presentan, tiende a actuar con creatividad."
+    }
+  },
+  {
+    "row": 52,
+    "cells": {
+      "B52": "5.6",
+      "C52": "RESPONSABILIDAD Y COMPROMISO",
+      "E52": "Asume con seriedad el trabajo entregado, conoce la importancia de cumplir en el momento indicado, se esfuerza por lograr las metas requeridas."
+    }
+  },
+  {
+    "row": 53,
+    "cells": {
+      "B53": "5.7",
+      "C53": "ORIENTACIÓN AL MEJORAMIENTO CONTÍNUO",
+      "E53": "Le gusta aprender nuevas cosas, busca diferentes alternativas para aportar a su mejoramiento, busca superación en las diferentes áreas."
+    }
+  },
+  {
+    "row": 54,
+    "cells": {
+      "B54": "5.8",
+      "C54": "CAPACIDAD PARA ESTABLECER PRIORIDADES",
+      "E54": "Diferencia lo realmente importante y de esta manera establece prioridades en su trabajo."
+    }
+  },
+  {
+    "row": 56,
+    "cells": {
+      "E56": "CALIFICACIÓN OBTENIDA"
+    }
+  },
+  {
+    "row": 58,
+    "cells": {
+      "B58": "COMPROMISOS GENERADOS"
+    }
+  },
+  {
+    "row": 59,
+    "cells": {
+      "B59": "1"
+    }
+  },
+  {
+    "row": 61,
+    "cells": {
+      "B61": "2"
+    }
+  },
+  {
+    "row": 63,
+    "cells": {
+      "B63": "3"
+    }
+  },
+  {
+    "row": 65,
+    "cells": {
+      "B65": "4"
+    }
+  },
+  {
+    "row": 70,
+    "cells": {
+      "B70": "EVALUADOR",
+      "F70": "FIRMA DEL EVALUADO"
+    }
+  }
+]
