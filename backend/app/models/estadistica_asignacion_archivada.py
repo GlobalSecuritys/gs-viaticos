@@ -81,4 +81,8 @@ class EstadisticaAsignacionArchivada(Base):
     # Detalle estructurado de viáticos borrados (fecha, tipo_gasto, valor, descripción, estado)
     desglose_viaticos: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
 
+    # Resumen por mes de la fecha de cada viático, con rechazados aparte del gasto:
+    # {"estado_conocido": bool, "meses": {"AAAA-MM": {"gasto", "rechazado", "cant_rechazados"}}}
+    resumen_mensual: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
+
     tecnico: Mapped["Usuario"] = relationship("Usuario", foreign_keys=[tecnico_id])

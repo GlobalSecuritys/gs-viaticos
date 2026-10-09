@@ -175,6 +175,30 @@ def purgar_asignaciones_eliminadas(db: Session) -> None:
         print(f"Advertencia al purgar asignaciones vencidas: {e}")
 
 
+def _calcular_resumen_mensual(viaticos) -> dict:
+    """Agrupa los viáticos por mes de su fecha. Los rechazados se suman aparte
+    y nunca dentro de "gasto"."""
+    meses: dict = {}
+    for v in viaticos:
+        mes = meses.setdefault(
+            v.fecha.strftime("%Y-%m"),
+            {"gasto": Decimal("0"), "rechazado": Decimal("0"), "cant_rechazados": 0},
+        )
+        val = Decimal(str(v.valor or 0))
+        if v.estado == "rechazado":
+            mes["rechazado"] += val
+            mes["cant_rechazados"] += 1
+        else:
+            mes["gasto"] += val
+    return {
+        "estado_conocido": True,
+        "meses": {
+            k: {"gasto": float(m["gasto"]), "rechazado": float(m["rechazado"]), "cant_rechazados": m["cant_rechazados"]}
+            for k, m in sorted(meses.items())
+        },
+    }
+
+
 def _archivar_y_eliminar_asignacion_permanente(
     asignacion: Asignacion,
     db: Session,
@@ -231,7 +255,15 @@ def _archivar_y_eliminar_asignacion_permanente(
             "ot": v.ot,
             "descripcion": v.descripcion,
             "cantidad_evidencias": len(v.evidencias) if v.evidencias else 0,
+            "estado": v.estado,
         })
+
+    # Resumen mensual (mes de la fecha del gasto); si falla no debe frenar la purga
+    try:
+        resumen_mensual = _calcular_resumen_mensual(viaticos)
+    except Exception as e:
+        resumen_mensual = None
+        print(f"Advertencia al calcular resumen_mensual de la asignación {asignacion.id}: {e}")
 
     # Verificar si ya existe registro histórico para evitar duplicados
     stmt_est = select(EstadisticaAsignacionArchivada).where(
@@ -258,6 +290,7 @@ def _archivar_y_eliminar_asignacion_permanente(
             total_otros=total_otros,
             cantidad_viaticos=len(viaticos),
             desglose_viaticos=desglose,
+            resumen_mensual=resumen_mensual,
             eliminada_por_id=admin.id,
             eliminada_en=datetime.utcnow(),
         )
