@@ -5,7 +5,11 @@ import TalentoHumanoTecnico from './TalentoHumanoTecnico';
 export default function TalentoHumano() {
     const { user } = useAuth();
 
-    if (user?.rol === 'admin' || user?.rol === 'superadmin') {
+    // Yeimy (contable) tiene acceso especial a TalentoHumanoAdmin
+    // para poder realizar su autoevaluación de desempeño
+    const esYeimyContable = user?.correo?.toLowerCase() === 'secretaria@gsbsecurity.com';
+
+    if (user?.rol === 'admin' || user?.rol === 'superadmin' || esYeimyContable) {
         return <TalentoHumanoAdmin />;
     }
 

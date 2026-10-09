@@ -27,7 +27,8 @@ export default function TalentoHumanoAdmin() {
     const [paginaActual, setPaginaActual] = useState(1);
     const ITEMS_POR_PAGINA = 8;
 
-    const [tabActiva, setTabActiva] = useState('general'); // 'general', 'documentos', 'adicional', 'historial'
+    const esYeimyContable = user?.correo?.toLowerCase() === 'secretaria@gsbsecurity.com';
+    const [tabActiva, setTabActiva] = useState(() => (esYeimyContable ? 'evaluacion-desempeno' : 'general')); // 'general', 'documentos', 'adicional', 'historial', 'evaluacion-desempeno'
     const [mensajeFeedback, setMensajeFeedback] = useState('');
     const [error, setError] = useState('');
 
@@ -66,6 +67,8 @@ export default function TalentoHumanoAdmin() {
 
     // ── Estados para Evaluaciones de Desempeño ──
     const [mostrarModalEvaluacion, setMostrarModalEvaluacion] = useState(false);
+    const [mostrarModalEvaluacionYeimy, setMostrarModalEvaluacionYeimy] = useState(false);
+    const [subTabEvaluacionAdmin, setSubTabEvaluacionAdmin] = useState('pilar'); // 'pilar' | 'yeimy'
     const [guardandoEvaluacion, setGuardandoEvaluacion] = useState(false);
     const [formEvaluacion, setFormEvaluacion] = useState({
         periodo: '2026 - Trimestre 1',
@@ -147,8 +150,12 @@ export default function TalentoHumanoAdmin() {
     }
 
     useEffect(() => {
+        if (esYeimyContable) {
+            setLoadingLista(false);
+            return;
+        }
         cargarEmpleados();
-    }, []);
+    }, [esYeimyContable]);
 
     // Filtrar lista de empleados
     const empleadosFiltrados = useMemo(() => {
@@ -445,24 +452,38 @@ export default function TalentoHumanoAdmin() {
 
     const esPilarAdmin = user?.correo?.toLowerCase() === 'pilaradmin@gsbank.com';
 
-    const NAV_ITEMS_ADMIN = [
-        { id: 'general', label: 'Directorio & Ficha', icon: '👤', action: () => setTabActiva('general'), active: tabActiva === 'general' },
-        { id: 'documentos', label: 'Contratos & Documentos', icon: '📄', action: () => setTabActiva('documentos'), active: tabActiva === 'documentos' },
-        { id: 'adicional', label: 'Dotaciones', icon: '🦺', action: () => setTabActiva('adicional'), active: tabActiva === 'adicional' },
-        { id: 'historial', label: 'Historial & Solicitudes', icon: '📝', action: () => setTabActiva('historial'), active: tabActiva === 'historial' },
-        ...(esPilarAdmin
-            ? [{
+    const NAV_ITEMS_ADMIN = esYeimyContable
+        ? [
+            {
                 id: 'evaluacion-desempeno',
                 label: 'Evaluación de desempeño',
                 icon: '📋',
                 action: () => setTabActiva('evaluacion-desempeno'),
-                active: tabActiva === 'evaluacion-desempeno',
-            }]
-            : []),
-    ];
+                active: true,
+            },
+        ]
+        : [
+            { id: 'general', label: 'Directorio & Ficha', icon: '👤', action: () => setTabActiva('general'), active: tabActiva === 'general' },
+            { id: 'documentos', label: 'Contratos & Documentos', icon: '📄', action: () => setTabActiva('documentos'), active: tabActiva === 'documentos' },
+            { id: 'adicional', label: 'Dotaciones', icon: '🦺', action: () => setTabActiva('adicional'), active: tabActiva === 'adicional' },
+            { id: 'historial', label: 'Historial & Solicitudes', icon: '📝', action: () => setTabActiva('historial'), active: tabActiva === 'historial' },
+            ...(esPilarAdmin
+                ? [{
+                    id: 'evaluacion-desempeno',
+                    label: 'Evaluación de desempeño',
+                    icon: '📋',
+                    action: () => setTabActiva('evaluacion-desempeno'),
+                    active: tabActiva === 'evaluacion-desempeno',
+                }]
+                : []),
+        ];
 
     const p = empleadoSeleccionado?.perfil || {};
     const initHero = iniciales(empleadoSeleccionado?.nombre || 'E');
+    const esYeimySeleccionada =
+        empleadoSeleccionado?.correo?.toLowerCase() === 'secretaria@gsbsecurity.com' ||
+        empleadoSeleccionado?.nombre?.toLowerCase().includes('yeimy') ||
+        empleadoSeleccionado?.id === 34;
 
     return (
         <div className="tha-root">
@@ -497,7 +518,7 @@ export default function TalentoHumanoAdmin() {
                         <div>
                             <div className="tha-user-name">{user?.nombre || 'Administrador'}</div>
                             <div className="tha-user-role">
-                                Administrador
+                                {esYeimyContable ? 'Auxiliar contable' : 'Administrador'}
                             </div>
                         </div>
                     )}
@@ -566,16 +587,77 @@ export default function TalentoHumanoAdmin() {
                 </div>
 
                 {tabActiva === 'evaluacion-desempeno' ? (
-                    !esPilarAdmin ? (
+                    esYeimyContable ? (
+                        <EvaluacionDesempenoForm user={user} plantillaId="contable" />
+                    ) : esPilarAdmin ? (
+                        <>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem', background: '#FFFFFF', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                    <span style={{ fontSize: '1.2rem' }}>📋</span>
+                                    <div>
+                                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0F172A' }}>Evaluaciones de Desempeño</div>
+                                        <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Seleccione la evaluación a gestionar</div>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', background: '#F1F5F9', padding: '0.25rem', borderRadius: '8px' }}>
+                                    <button
+                                        type="button"
+                                        style={{
+                                            padding: '0.45rem 1rem',
+                                            fontSize: '0.82rem',
+                                            fontWeight: subTabEvaluacionAdmin === 'pilar' ? 700 : 500,
+                                            color: subTabEvaluacionAdmin === 'pilar' ? '#0F172A' : '#64748B',
+                                            background: subTabEvaluacionAdmin === 'pilar' ? '#FFFFFF' : 'transparent',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            boxShadow: subTabEvaluacionAdmin === 'pilar' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                                            transition: 'all 0.15s ease',
+                                        }}
+                                        onClick={() => setSubTabEvaluacionAdmin('pilar')}
+                                    >
+                                        👤 Mi Evaluación (Directivos)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        style={{
+                                            padding: '0.45rem 1rem',
+                                            fontSize: '0.82rem',
+                                            fontWeight: subTabEvaluacionAdmin === 'yeimy' ? 700 : 500,
+                                            color: subTabEvaluacionAdmin === 'yeimy' ? '#0284C7' : '#64748B',
+                                            background: subTabEvaluacionAdmin === 'yeimy' ? '#FFFFFF' : 'transparent',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            boxShadow: subTabEvaluacionAdmin === 'yeimy' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                                            transition: 'all 0.15s ease',
+                                        }}
+                                        onClick={() => setSubTabEvaluacionAdmin('yeimy')}
+                                    >
+                                        📑 Yeimy Rocio Riaño (Auxiliar Contable)
+                                    </button>
+                                </div>
+                            </div>
+
+                            {subTabEvaluacionAdmin === 'pilar' ? (
+                                <EvaluacionDesempenoForm key="edf-directivos-pilar" user={user} plantillaId="directivos" />
+                            ) : (
+                                <EvaluacionDesempenoForm
+                                    key="edf-contable-yeimy-34"
+                                    user={{ id: 34, nombre: 'Yeimy Rocio Riaño', correo: 'secretaria@gsbsecurity.com', cargo: 'AUXILIAR CONTABLE ' }}
+                                    plantillaId="contable"
+                                    usuarioEvaluadoId={34}
+                                />
+                            )}
+                        </>
+                    ) : (
                         <div style={{ padding: '3rem 2rem', textAlign: 'center', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', margin: '1rem 0' }}>
                             <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}>🔒</span>
                             <h3 style={{ color: '#0f172a', margin: '0 0 0.5rem 0', fontWeight: 600 }}>Módulo en fase de pruebas</h3>
                             <p style={{ color: '#64748b', fontSize: '0.95rem', margin: 0 }}>
-                                Esta sección está actualmente habilitada únicamente para la Dirección Administrativa.
+                                Esta sección está actualmente habilitada únicamente para la Dirección Administrativa y Contabilidad.
                             </p>
                         </div>
-                    ) : (
-                        <EvaluacionDesempenoForm user={user} />
                     )
                 ) : (
                     <>
@@ -1117,22 +1199,61 @@ export default function TalentoHumanoAdmin() {
                                             </div>
                                         </div>
 
-                                        {/* Card F: Evaluación de Desempeño (1-5 estrellas) */}
+                                        {/* Card F: Evaluación de Desempeño */}
                                         <div className="tha-info-block tha-info-block--full" style={{ marginTop: '1rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
-                                                <div className="tha-block-title" style={{ borderBottom: 'none', paddingBottom: 0, margin: 0 }}>
-                                                    <span>⭐</span>
-                                                    <span>Evaluación de Desempeño del Técnico</span>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    className="tha-btn-nuevo"
-                                                    style={{ padding: '0.42rem 0.95rem', fontSize: '0.8rem', background: '#D97706', borderColor: '#B45309' }}
-                                                    onClick={() => setMostrarModalEvaluacion(true)}
-                                                >
-                                                    ⭐ Calificar Desempeño
-                                                </button>
-                                            </div>
+                                            {esYeimySeleccionada ? (
+                                                <>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                                                        <div className="tha-block-title" style={{ borderBottom: 'none', paddingBottom: 0, margin: 0 }}>
+                                                            <span>📋</span>
+                                                            <span>Evaluación de Desempeño · Auxiliar Contable</span>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            className="tha-btn-nuevo"
+                                                            style={{ padding: '0.45rem 1rem', fontSize: '0.82rem', background: '#0284C7', borderColor: '#0369A1', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                                                            onClick={() => setMostrarModalEvaluacionYeimy(true)}
+                                                        >
+                                                            <span>📋</span>
+                                                            <span>Ver Evaluación de Yeimy</span>
+                                                        </button>
+                                                    </div>
+
+                                                    <div style={{ textAlign: 'center', padding: '2rem 1.25rem', background: 'var(--color-bg-subtle, #F8FAFC)', borderRadius: '10px', border: '1px solid #BAE6FD' }}>
+                                                        <div style={{ fontSize: '2.4rem', marginBottom: '0.5rem' }}>📑</div>
+                                                        <p style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem', margin: 0 }}>
+                                                            Formato Oficial AD-FR-06 · Auxiliar Contable
+                                                        </p>
+                                                        <p style={{ fontSize: '0.84rem', color: '#475569', marginTop: '0.35rem', maxWidth: '540px', marginInline: 'auto', lineHeight: '1.45' }}>
+                                                            Autoevaluación de Desempeño institucional para <strong>Yeimy Rocio Riaño</strong> (22 ítems de evaluación en 5 secciones, escala 1 a 4 y compromisos individuales).
+                                                        </p>
+                                                        <button
+                                                            type="button"
+                                                            className="tha-btn-nuevo"
+                                                            style={{ marginTop: '1rem', padding: '0.55rem 1.35rem', fontSize: '0.88rem', background: '#0284C7', borderColor: '#0369A1', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}
+                                                            onClick={() => setMostrarModalEvaluacionYeimy(true)}
+                                                        >
+                                                            <span>📋</span>
+                                                            <span>Abrir Evaluación de Desempeño de Yeimy</span>
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                                                        <div className="tha-block-title" style={{ borderBottom: 'none', paddingBottom: 0, margin: 0 }}>
+                                                            <span>⭐</span>
+                                                            <span>Evaluación de Desempeño del Técnico</span>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            className="tha-btn-nuevo"
+                                                            style={{ padding: '0.42rem 0.95rem', fontSize: '0.8rem', background: '#D97706', borderColor: '#B45309' }}
+                                                            onClick={() => setMostrarModalEvaluacion(true)}
+                                                        >
+                                                            ⭐ Calificar Desempeño
+                                                        </button>
+                                                    </div>
 
                                             {/* Resumen & Métricas */}
                                             {(!empleadoSeleccionado.evaluaciones || empleadoSeleccionado.evaluaciones.length === 0) ? (
@@ -1261,6 +1382,8 @@ export default function TalentoHumanoAdmin() {
                                                             ))}
                                                         </div>
                                                     </div>
+                                                </>
+                                            )}
                                                 </>
                                             )}
                                         </div>
@@ -2286,6 +2409,63 @@ export default function TalentoHumanoAdmin() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ── MODAL EVALUACIÓN DE DESEMPEÑO DE YEIMY (AD-FR-06 CONTABLE) ── */}
+            {mostrarModalEvaluacionYeimy && (
+                <div className="tha-modal-overlay" style={{ zIndex: 1100 }}>
+                    <div
+                        className="tha-modal-card"
+                        style={{
+                            maxWidth: '1080px',
+                            width: '95%',
+                            maxHeight: '92vh',
+                            overflowY: 'auto',
+                            padding: '1.5rem',
+                            borderRadius: '12px',
+                            background: '#FFFFFF',
+                        }}
+                    >
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '1rem',
+                                borderBottom: '1px solid #E2E8F0',
+                                paddingBottom: '0.75rem',
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '1.25rem' }}>📋</span>
+                                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0F172A', fontWeight: 700 }}>
+                                    Evaluación de Desempeño · Yeimy Rocio Riaño (AD-FR-06)
+                                </h3>
+                            </div>
+                            <button
+                                type="button"
+                                className="tha-modal-close"
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '1.5rem',
+                                    cursor: 'pointer',
+                                    color: '#64748B',
+                                    padding: '0.2rem 0.5rem',
+                                    lineHeight: 1,
+                                }}
+                                onClick={() => setMostrarModalEvaluacionYeimy(false)}
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <EvaluacionDesempenoForm
+                            user={empleadoSeleccionado || user}
+                            plantillaId="contable"
+                            usuarioEvaluadoId={empleadoSeleccionado?.id || 34}
+                        />
                     </div>
                 </div>
             )}

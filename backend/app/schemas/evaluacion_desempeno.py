@@ -9,14 +9,20 @@ class ItemCalificacion(BaseModel):
 
 
 class AutoevaluacionSubmit(BaseModel):
+    plantilla: Optional[str] = Field(default="directivos", description="Identificador de la plantilla (directivos, contable)")
     cargo: Optional[str] = None
     fecha: Optional[date] = None
     autoevaluacion: dict[str, ItemCalificacion] = Field(
         ..., description="Diccionario con número de ítem (ej: '1.1') y calificación"
     )
+    compromisos: Optional[list[str]] = Field(
+        default=None, description="Lista de compromisos generados"
+    )
 
 
 class EvaluacionSubmit(BaseModel):
+    plantilla: Optional[str] = Field(default="directivos", description="Identificador de la plantilla (directivos, contable)")
+    usuario_evaluado_id: Optional[int] = Field(default=None, description="ID del usuario evaluado")
     nombre_evaluador: str = Field(..., min_length=2, description="Nombre del evaluador / jefe")
     evaluacion: dict[str, ItemCalificacion] = Field(
         ..., description="Diccionario con número de ítem (ej: '1.1') y calificación"

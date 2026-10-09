@@ -1,11 +1,16 @@
 import api from './api';
 
 /**
- * Consulta la evaluación de desempeño del usuario autenticado (plantilla 'directivos').
+ * Consulta la evaluación de desempeño del usuario autenticado o evaluado.
  * Una sola petición al cargar el módulo.
+ * @param {string} [plantilla]
+ * @param {number} [usuarioEvaluadoId]
  */
-export function obtenerMiEvaluacion() {
-    return api.get('/evaluaciones-desempeno/mi-evaluacion');
+export function obtenerMiEvaluacion(plantilla, usuarioEvaluadoId) {
+    const params = {};
+    if (plantilla) params.plantilla = plantilla;
+    if (usuarioEvaluadoId) params.usuario_evaluado_id = usuarioEvaluadoId;
+    return api.get('/evaluaciones-desempeno/mi-evaluacion', { params });
 }
 
 /**
