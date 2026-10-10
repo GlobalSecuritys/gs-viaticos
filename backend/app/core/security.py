@@ -7,7 +7,7 @@ from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.core.config import PLAN_DATOS_MOVILES_HABILITADOS, settings
 from app.database import get_db
 from app.models.usuario import Usuario
 from app.schemas.usuario import TokenData
@@ -88,15 +88,16 @@ def get_current_user(
         usuario.__dict__["_accesos_procesos"] = {}
 
     # Determinar si el usuario tiene acceso al concepto "Plan de datos móviles"
-    # Fuente única de verdad: PLAN_DATOS_MOVILES_HABILITADOS en config.py.
-    # Sin consulta adicional a la BD.
-    from app.core.config import PLAN_DATOS_MOVILES_HABILITADOS
-    _codigo = (usuario.codigo_empleado or "").strip()
-    _habilitado = _codigo in PLAN_DATOS_MOVILES_HABILITADOS
-    print(f"[PDM DEBUG] correo={usuario.correo!r} codigo_empleado={usuario.codigo_empleado!r} stripped={_codigo!r} habilitado={_habilitado} frozenset={PLAN_DATOS_MOVILES_HABILITADOS}")
-    usuario.__dict__["_plan_datos_moviles_habilitado"] = _habilitado
+    # (sin consulta adicional a la BD).
+    usuario.__dict__["_plan_datos_moviles_habilitado"] = plan_datos_moviles_habilitado(usuario)
 
     return usuario
+
+
+def plan_datos_moviles_habilitado(usuario: Usuario) -> bool:
+    """Acceso al concepto "Plan de datos móviles". Fuente única de verdad:
+    PLAN_DATOS_MOVILES_HABILITADOS en config.py. La usan get_current_user y el login."""
+    return (usuario.codigo_empleado or "").strip() in PLAN_DATOS_MOVILES_HABILITADOS
 
 def get_current_admin(
     current_user: Annotated[Usuario, Depends(get_current_user)]

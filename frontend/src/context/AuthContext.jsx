@@ -70,8 +70,7 @@ export function AuthProvider({ children }) {
       es_admin_calidad: isPilar ? true : Boolean(payload.es_admin_calidad),
       accesos_procesos: payload.accesos_procesos || {},
       rol_mapa: isPilar ? 'editor' : 'lector',
-      // El JWT no incluye plan_datos_moviles_habilitado; /auth/me lo enriquece en el useEffect.
-      plan_datos_moviles_habilitado: false,
+      plan_datos_moviles_habilitado: Boolean(payload.plan_datos_moviles_habilitado),
     };
 
     // Si por alguna razón nombre no viene en el payload, obtenerlo de /auth/me

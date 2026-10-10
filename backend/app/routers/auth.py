@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 from app.core.security import (
     create_access_token,
     hash_password,
+    plan_datos_moviles_habilitado,
     verify_password,
 )
 from app.database import get_db
@@ -187,6 +188,7 @@ def login(
         "es_admin_calidad": True if es_pilar else getattr(usuario, "es_admin_calidad", False),
         "rol_mapa": "editor" if es_pilar else "lector",
         "accesos_procesos": accesos_procesos,
+        "plan_datos_moviles_habilitado": plan_datos_moviles_habilitado(usuario),
     })
     return Token(access_token=access_token, token_type="bearer")
 
