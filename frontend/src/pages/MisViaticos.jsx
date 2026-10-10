@@ -4,6 +4,7 @@ import api, { subirEvidencias, eliminarEvidenciaViatico } from '../services/api'
 import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
 import TecnicoLayout from '../components/TecnicoLayout';
 import ModalSeleccionarTipoViatico from '../components/ModalSeleccionarTipoViatico';
+import { useAuth } from '../context/AuthContext';
 import { LABEL_TIPO_GASTO, formatCOP, formatFechaLarga, formatMiles, limpiarNumero } from '../utils/personal';
 import { LABEL_TIPO_ASIGNACION, obtenerFechaMinViatico } from '../utils/asignaciones';
 import { irAtras } from '../utils/navigation';
@@ -24,10 +25,11 @@ const ICONO_GASTO = {
   parqueadero: '🅿',
   materiales: '📦',
   alquiler_escalera: '🪜',
+  plan_datos_moviles: '📶',
   otros: '📎',
 };
 
-const CONCEPTOS = [
+const CONCEPTOS_BASE = [
   { id: 'alimentacion', label: 'Alimentación' },
   { id: 'transporte', label: 'Transporte' },
   { id: 'hotel', label: 'Hotel' },
@@ -49,6 +51,7 @@ function esArchivoPdf(url) {
 
 export default function MisViaticos() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [viaticos, setViaticos] = useState([]);
   const [asignaciones, setAsignaciones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -113,6 +116,15 @@ export default function MisViaticos() {
     asignaciones.forEach((a) => map.set(a.id, a));
     return map;
   }, [asignaciones]);
+
+  // Conceptos disponibles según los permisos del usuario autenticado
+  const CONCEPTOS = useMemo(() => {
+    const base = [...CONCEPTOS_BASE];
+    if (user?.plan_datos_moviles_habilitado) {
+      base.push({ id: 'plan_datos_moviles', label: 'Plan de datos móviles' });
+    }
+    return base;
+  }, [user?.plan_datos_moviles_habilitado]);
 
   const { grupos, independientes } = useMemo(() => {
     const porAsignacion = {};

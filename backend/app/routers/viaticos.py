@@ -26,6 +26,7 @@ from app.schemas.viatico import (
     ViaticoResponse,
     ViaticoUpdate,
 )
+from app.core.config import PLAN_DATOS_MOVILES_HABILITADOS
 
 router = APIRouter(prefix="/viaticos", tags=["Viáticos"])
 
@@ -85,6 +86,14 @@ def crear_viatico(
 
         # Validación estricta con hora legal de Colombia (COT)
         verificar_asignacion_abierta(asig)
+
+    # Validar acceso al concepto restringido "Plan de datos móviles"
+    if viatico_in.tipo_gasto == "plan_datos_moviles":
+        if (current_user.codigo_empleado or "") not in PLAN_DATOS_MOVILES_HABILITADOS:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="El concepto 'Plan de datos móviles' no está habilitado para este usuario.",
+            )
 
     # ── Determinar la fecha del gasto ──────────────────────────────────────
     # Si el frontend envía una fecha y hay asignación vinculada, validar que
@@ -209,6 +218,14 @@ def actualizar_viatico(
         verificar_asignacion_abierta(viatico.asignacion)
 
     update_data = viatico_in.model_dump(exclude_unset=True)
+
+    # Validar acceso al concepto restringido "Plan de datos móviles"
+    if update_data.get("tipo_gasto") == "plan_datos_moviles":
+        if (current_user.codigo_empleado or "") not in PLAN_DATOS_MOVILES_HABILITADOS:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="El concepto 'Plan de datos móviles' no está habilitado para este usuario.",
+            )
 
     # Si el técnico intenta cambiar la fecha y el viático tiene asignación,
     # validar que la nueva fecha esté dentro del rango [fecha_min, fecha_fin]

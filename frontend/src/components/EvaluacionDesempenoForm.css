@@ -986,8 +986,21 @@
     margin-bottom: 0.35rem;
 }
 
+/* Botón Descargar PDF (solo Pilar, evaluación completada) */
+.edf-btn-pdf {
+    align-self: center;
+    white-space: nowrap;
+}
+
 /* Responsividad */
 @media (max-width: 768px) {
+    .edf-resumen-badges {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    .edf-btn-pdf {
+        width: 100%;
+    }
     .edf-scale-buttons {
         width: 100%;
         justify-content: space-between;

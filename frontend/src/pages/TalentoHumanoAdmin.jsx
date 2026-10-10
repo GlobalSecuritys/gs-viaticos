@@ -14,6 +14,83 @@ import { formatCOP, formatFechaLarga, iniciales } from '../utils/personal';
 import { formatApiError } from '../utils/formatError';
 import './TalentoHumanoAdmin.css';
 
+const CORREOS_OPERACIONES = [
+    'auxiliar.operaciones@gsbsecurity.com',
+    'claudia@gsbank.com',
+    'asistente@gsbank.com',
+    'migueladmin@gsbank.com',
+];
+
+const EVALUADOS_PILAR = [
+    {
+        id: 'pilar',
+        label: 'Mi Evaluación (Directivos)',
+        badge: 'Directivos',
+        nombre: 'Pilar Aristizábal',
+        correo: 'PilarAdmin@gsbank.com',
+        cargo: 'DIRECTORA ADMINSITRATIVA ',
+        plantillaId: 'directivos',
+        usuarioEvaluadoId: 28,
+        icon: '👤',
+    },
+    {
+        id: 'yeimy',
+        label: 'Yeimy Rocio Riaño',
+        badge: 'Contable',
+        nombre: 'Yeimy Rocio Riaño',
+        correo: 'secretaria@gsbsecurity.com',
+        cargo: 'AUXILIAR CONTABLE ',
+        cedula: '1014202829',
+        plantillaId: 'contable',
+        usuarioEvaluadoId: 34,
+        icon: '📑',
+    },
+    {
+        id: 'luisa',
+        label: 'Luisa Herrera',
+        badge: 'Operaciones',
+        nombre: 'Luisa Herrera',
+        correo: 'auxiliar.operaciones@gsbsecurity.com',
+        cargo: 'AUXILIAR DE OPERACIONES',
+        plantillaId: 'operaciones',
+        usuarioEvaluadoId: 32,
+        icon: '⚙️',
+    },
+    {
+        id: 'claudia',
+        label: 'Claudia Miranda',
+        badge: 'Operaciones',
+        nombre: 'Claudia Miranda',
+        correo: 'Claudia@gsbank.com',
+        cargo: 'AUXILIAR DE OPERACIONES',
+        plantillaId: 'operaciones',
+        usuarioEvaluadoId: 23,
+        icon: '⚙️',
+    },
+    {
+        id: 'maria_paula',
+        label: 'Maria Paula',
+        badge: 'Operaciones',
+        nombre: 'Maria Paula',
+        correo: 'Asistente@gsbank.com',
+        cargo: 'AUXILIAR DE OPERACIONES',
+        plantillaId: 'operaciones',
+        usuarioEvaluadoId: 31,
+        icon: '⚙️',
+    },
+    {
+        id: 'miguel',
+        label: 'Miguel Ángel Peñuela',
+        badge: 'Operaciones',
+        nombre: 'MIGUEL ANGEL PEÑUELA',
+        correo: 'MiguelAdmin@gsbank.com',
+        cargo: 'AUXILIAR DE OPERACIONES',
+        plantillaId: 'operaciones',
+        usuarioEvaluadoId: 3,
+        icon: '⚙️',
+    },
+];
+
 export default function TalentoHumanoAdmin() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
@@ -27,8 +104,11 @@ export default function TalentoHumanoAdmin() {
     const [paginaActual, setPaginaActual] = useState(1);
     const ITEMS_POR_PAGINA = 8;
 
-    const esYeimyContable = user?.correo?.toLowerCase() === 'secretaria@gsbsecurity.com';
-    const [tabActiva, setTabActiva] = useState(() => (esYeimyContable ? 'evaluacion-desempeno' : 'general')); // 'general', 'documentos', 'adicional', 'historial', 'evaluacion-desempeno'
+    const correoUsuarioActual = user?.correo?.toLowerCase() || '';
+    const esYeimyContable = correoUsuarioActual === 'secretaria@gsbsecurity.com';
+    const esOperaciones = CORREOS_OPERACIONES.includes(correoUsuarioActual);
+    const esPerfilRestringidoEvaluacion = esYeimyContable || esOperaciones;
+    const [tabActiva, setTabActiva] = useState(() => (esPerfilRestringidoEvaluacion ? 'evaluacion-desempeno' : 'general')); // 'general', 'documentos', 'adicional', 'historial', 'evaluacion-desempeno'
     const [mensajeFeedback, setMensajeFeedback] = useState('');
     const [error, setError] = useState('');
 
@@ -150,12 +230,12 @@ export default function TalentoHumanoAdmin() {
     }
 
     useEffect(() => {
-        if (esYeimyContable) {
+        if (esPerfilRestringidoEvaluacion) {
             setLoadingLista(false);
             return;
         }
         cargarEmpleados();
-    }, [esYeimyContable]);
+    }, [esPerfilRestringidoEvaluacion]);
 
     // Filtrar lista de empleados
     const empleadosFiltrados = useMemo(() => {
@@ -452,7 +532,7 @@ export default function TalentoHumanoAdmin() {
 
     const esPilarAdmin = user?.correo?.toLowerCase() === 'pilaradmin@gsbank.com';
 
-    const NAV_ITEMS_ADMIN = esYeimyContable
+    const NAV_ITEMS_ADMIN = esPerfilRestringidoEvaluacion
         ? [
             {
                 id: 'evaluacion-desempeno',
@@ -518,7 +598,7 @@ export default function TalentoHumanoAdmin() {
                         <div>
                             <div className="tha-user-name">{user?.nombre || 'Administrador'}</div>
                             <div className="tha-user-role">
-                                {esYeimyContable ? 'Auxiliar contable' : 'Administrador'}
+                                {esYeimyContable ? 'Auxiliar contable' : esOperaciones ? 'Operaciones' : 'Administrador'}
                             </div>
                         </div>
                     )}
@@ -588,74 +668,110 @@ export default function TalentoHumanoAdmin() {
 
                 {tabActiva === 'evaluacion-desempeno' ? (
                     esYeimyContable ? (
-                        <EvaluacionDesempenoForm user={user} plantillaId="contable" />
+                        <EvaluacionDesempenoForm
+                            key={`edf-contable-${user?.id || 34}`}
+                            user={user}
+                            plantillaId="contable"
+                            usuarioEvaluadoId={user?.id || 34}
+                        />
+                    ) : esOperaciones ? (
+                        <EvaluacionDesempenoForm
+                            key={`edf-operaciones-${user?.id}`}
+                            user={{
+                                ...user,
+                                cargo: user?.cargo || 'AUXILIAR DE OPERACIONES',
+                            }}
+                            plantillaId="operaciones"
+                            usuarioEvaluadoId={user?.id}
+                        />
                     ) : esPilarAdmin ? (
                         <>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem', background: '#FFFFFF', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '1rem',
+                                marginBottom: '1.25rem',
+                                background: '#FFFFFF',
+                                padding: '0.85rem 1.25rem',
+                                borderRadius: '12px',
+                                border: '1px solid #E2E8F0',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                            }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                    <span style={{ fontSize: '1.2rem' }}>📋</span>
+                                    <span style={{ fontSize: '1.25rem' }}>📋</span>
                                     <div>
-                                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0F172A' }}>Evaluaciones de Desempeño</div>
-                                        <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Seleccione la evaluación a gestionar</div>
+                                        <div style={{ fontWeight: 700, fontSize: '0.98rem', color: '#0F172A' }}>Evaluaciones de Desempeño</div>
+                                        <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Seleccione el colaborador a gestionar y calificar</div>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.5rem', background: '#F1F5F9', padding: '0.25rem', borderRadius: '8px' }}>
-                                    <button
-                                        type="button"
-                                        style={{
-                                            padding: '0.45rem 1rem',
-                                            fontSize: '0.82rem',
-                                            fontWeight: subTabEvaluacionAdmin === 'pilar' ? 700 : 500,
-                                            color: subTabEvaluacionAdmin === 'pilar' ? '#0F172A' : '#64748B',
-                                            background: subTabEvaluacionAdmin === 'pilar' ? '#FFFFFF' : 'transparent',
-                                            border: 'none',
-                                            borderRadius: '6px',
-                                            cursor: 'pointer',
-                                            boxShadow: subTabEvaluacionAdmin === 'pilar' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                                            transition: 'all 0.15s ease',
-                                        }}
-                                        onClick={() => setSubTabEvaluacionAdmin('pilar')}
-                                    >
-                                        👤 Mi Evaluación (Directivos)
-                                    </button>
-                                    <button
-                                        type="button"
-                                        style={{
-                                            padding: '0.45rem 1rem',
-                                            fontSize: '0.82rem',
-                                            fontWeight: subTabEvaluacionAdmin === 'yeimy' ? 700 : 500,
-                                            color: subTabEvaluacionAdmin === 'yeimy' ? '#0284C7' : '#64748B',
-                                            background: subTabEvaluacionAdmin === 'yeimy' ? '#FFFFFF' : 'transparent',
-                                            border: 'none',
-                                            borderRadius: '6px',
-                                            cursor: 'pointer',
-                                            boxShadow: subTabEvaluacionAdmin === 'yeimy' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                                            transition: 'all 0.15s ease',
-                                        }}
-                                        onClick={() => setSubTabEvaluacionAdmin('yeimy')}
-                                    >
-                                        📑 Yeimy Rocio Riaño (Auxiliar Contable)
-                                    </button>
+                                <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap', background: '#F1F5F9', padding: '0.35rem', borderRadius: '10px' }}>
+                                    {EVALUADOS_PILAR.map((colab) => {
+                                        const esActivo = subTabEvaluacionAdmin === colab.id;
+                                        return (
+                                            <button
+                                                key={colab.id}
+                                                type="button"
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.45rem',
+                                                    padding: '0.45rem 0.85rem',
+                                                    fontSize: '0.82rem',
+                                                    fontWeight: esActivo ? 700 : 500,
+                                                    color: esActivo ? '#0F172A' : '#64748B',
+                                                    background: esActivo ? '#FFFFFF' : 'transparent',
+                                                    border: 'none',
+                                                    borderRadius: '7px',
+                                                    cursor: 'pointer',
+                                                    boxShadow: esActivo ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                                                    transition: 'all 0.15s ease',
+                                                }}
+                                                onClick={() => setSubTabEvaluacionAdmin(colab.id)}
+                                            >
+                                                <span>{colab.icon}</span>
+                                                <span>{colab.label}</span>
+                                                <span style={{
+                                                    fontSize: '0.68rem',
+                                                    fontWeight: 600,
+                                                    padding: '0.1rem 0.38rem',
+                                                    borderRadius: '4px',
+                                                    background: colab.badge === 'Directivos' ? '#E0E7FF' : colab.badge === 'Contable' ? '#E0F2FE' : '#FEF3C7',
+                                                    color: colab.badge === 'Directivos' ? '#3730A3' : colab.badge === 'Contable' ? '#0369A1' : '#92400E',
+                                                }}>
+                                                    {colab.badge}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
-                            {subTabEvaluacionAdmin === 'pilar' ? (
-                                <EvaluacionDesempenoForm key="edf-directivos-pilar" user={user} plantillaId="directivos" />
-                            ) : (
-                                <EvaluacionDesempenoForm
-                                    key="edf-contable-yeimy-34"
-                                    user={{ id: 34, nombre: 'Yeimy Rocio Riaño', correo: 'secretaria@gsbsecurity.com', cargo: 'AUXILIAR CONTABLE ' }}
-                                    plantillaId="contable"
-                                    usuarioEvaluadoId={34}
-                                />
-                            )}
+                            {(() => {
+                                const colab = EVALUADOS_PILAR.find((c) => c.id === subTabEvaluacionAdmin) || EVALUADOS_PILAR[0];
+                                return (
+                                    <EvaluacionDesempenoForm
+                                        key={`edf-${colab.plantillaId}-${colab.usuarioEvaluadoId}`}
+                                        user={{
+                                            id: colab.usuarioEvaluadoId,
+                                            nombre: colab.nombre,
+                                            correo: colab.correo,
+                                            cargo: colab.cargo,
+                                            cedula: colab.cedula,
+                                        }}
+                                        plantillaId={colab.plantillaId}
+                                        usuarioEvaluadoId={colab.usuarioEvaluadoId}
+                                    />
+                                );
+                            })()}
                         </>
                     ) : (
                         <div style={{ padding: '3rem 2rem', textAlign: 'center', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', margin: '1rem 0' }}>
                             <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}>🔒</span>
                             <h3 style={{ color: '#0f172a', margin: '0 0 0.5rem 0', fontWeight: 600 }}>Módulo en fase de pruebas</h3>
                             <p style={{ color: '#64748b', fontSize: '0.95rem', margin: 0 }}>
-                                Esta sección está actualmente habilitada únicamente para la Dirección Administrativa y Contabilidad.
+                                Esta sección está actualmente habilitada únicamente para la Dirección Administrativa, Contabilidad y Operaciones.
                             </p>
                         </div>
                     )

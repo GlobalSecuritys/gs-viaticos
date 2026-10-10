@@ -72,6 +72,7 @@ MAPA_CONCEPTOS = {
     "parqueadero": "Parqueadero",
     "materiales": "Materiales",
     "alquiler_escalera": "Alquiler de escalera",
+    "plan_datos_moviles": "Plan de datos móviles",
     "otros": "Otros",
 }
 

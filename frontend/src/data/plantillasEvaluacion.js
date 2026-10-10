@@ -410,6 +410,99 @@ export const PLANTILLAS_EVALUACION = {
         ]
       }
     ]
+  },
+  "operaciones": {
+    "id": "operaciones",
+    "nombre": "OPERATIVOS (AUXILIAR OPERACION)",
+    "encabezado": {
+      "empresa": "GLOBAL SECURITY BANK SAS ",
+      "codigo": "AD-FR-06",
+      "version": "2",
+      "titulo": "EVALUACIÓN DE DESEMPEÑO",
+      "fecha_act": "Septiembre 2024",
+      "pagina": "1 de 1"
+    },
+    "identificacion": {
+      "nombre_label": "NOMBRE:",
+      "fecha_label": "FECHA:",
+      "cargo_label": "CARGO:",
+      "cargo_default": "AUXILIAR DE OPERACIONES",
+      "evaluador_label": "NOMBRE EVALUADOR:"
+    },
+    "escala_instruccion": "Califique al empleado utilizando la siguiente escala:",
+    "escala": [
+      { "valor": 4, "etiqueta": "Muy bueno",  "significado": "El empleado cumple sobradamente el aspecto a evaluar." },
+      { "valor": 3, "etiqueta": "Bueno",       "significado": "El empleado cumple bien el aspecto a evaluar" },
+      { "valor": 2, "etiqueta": "Medio",       "significado": "El empleado cumple suficientemente el aspecto a evaluar" },
+      { "valor": 1, "etiqueta": "Pobre",       "significado": "El empleado no cumple suficientemente con el aspecto a evaluar" }
+    ],
+    "columnas": {
+      "no": "No.",
+      "factores": "FACTORES DE EVALUACIÓN",
+      "descripcion": "DESCRIPCIÓN",
+      "calif_auto": "CALIF. COLABORADOR",
+      "calif_jefe": "CALF EVALUADOR",
+      "calif": "CALIF. DEFINITIVA",
+      "observacion": "OBSERVACIÓN "
+    },
+    "pasos_disponibles": ["auto", "eval", "resumen"],
+    "requiere_evaluador": true,
+    "compromisos_label": "COMPROMISOS GENERADOS",
+    "compromisos_cantidad": 8,
+    "secciones": [
+      {
+        "numero": "1",
+        "titulo": "1.  DESEMPEÑO ",
+        "items": [
+          { "numero": "1.1", "texto": "Cumplimiento de funciones y responsabilidades del cargo", "descripcion": "Este factor indica en que medida el colaborador entiende y  cumple satisfactoriamente las funciones y responsabilidades de su cargo" },
+          { "numero": "1.2", "texto": "Organización en el área de trabajo", "descripcion": "Este factor indica en que medida el colaborador es organizado en su área de trabajo y con respecto a la información que entrega de una manera confiable y oportuna" },
+          { "numero": "1.3", "texto": "Objetivos en su área de trabajo", "descripcion": "Este factor indica en que medida el colaborador conoce los objetivos de su área y aporta para la consecución de los mismos" },
+          { "numero": "1.4", "texto": "Atención al cliente externo y/o interno", "descripcion": "Este factor indica en que medida el colaborador cumple y satisface los requerimientos del cliente y sus compañeros de trabajo" },
+          { "numero": "1.5", "texto": "Interés e iniciativa en su trabajo.", "descripcion": "Este factor considera la capacidad del empleado para crear, sugerir, aportar y llevar a cabo nuevas ideas y proyectos." },
+          { "numero": "1.6", "texto": "Colaboración que ofrece a sus superiores y compañeros.", "descripcion": "Este factor señala la colaboración que el empleado presta a los superiores o compañeros, tanto a los que tienen que ver directamente con su trabajo, como a los que indirectamente se relacionan con él." },
+          { "numero": "1.7", "texto": "Disposición y apertura para el cambio.", "descripcion": "Este factor determina la manera o forma en que el empleado recibe las propuestas y sugerencias de mejoramiento y su disposición para ponerlas en práctica." },
+          { "numero": "1.8", "texto": "Presentación personal durante el trabajo.", "descripcion": "Este factor valora la presentación personal del colaborador en cuanto a uniforme si lo tiene o no." },
+          { "numero": "1.9", "texto": "Procedimientos del cargo", "descripcion": "Este factor evalúa el desempeño frente al cumplimiento de los procedimientos específicos de su cargo" }
+        ]
+      },
+      {
+        "numero": "2",
+        "titulo": "2. CUMPLIMIENTO DE LAS NORMAS INTERNAS ",
+        "items": [
+          { "numero": "2.1", "texto": "Cumplimiento de horarios.", "descripcion": "Este factor considera la puntualidad del empleado para iniciar y cumplir con su jornada laboral." },
+          { "numero": "2.2", "texto": "Respeto a las líneas de mando y acatamiento de normas y reglamento interno.", "descripcion": "Este factor establece la disposición para tratar, dirigirse y obedecer a sus superiores, además de su disposición para acatar ordenes." }
+        ]
+      },
+      {
+        "numero": "3",
+        "titulo": "3.  CAPACITACIÓN Y EL ENTRENAMIENTO",
+        "items": [
+          { "numero": "3.1", "texto": "Iniciativa y realización de programas de capacitación.", "descripcion": "Este factor indica el interés y la preocupación del empleado, en desarrollar por iniciativa propia, programas de capacitación que le permitan su crecimiento intelectual, aplicados a su vida laboral y personal. También tiene en cuenta la participación activa dentro de los programas de capacitación establecidos por la organización y la aplicación de los conceptos dados allí en las labores cotidianas desarrolladas en su lugar del trabajo." }
+        ]
+      },
+      {
+        "numero": "4",
+        "titulo": "4.  COMPROMISO CON EL SISTEMA DE GESTIÓN INTEGRAL",
+        "items": [
+          { "numero": "4.1", "texto": "Cumplimiento y diligenciamiento de documentos del Sistema Gestion Calidad", "descripcion": "Este factor evalúa el grado de compromiso del empleado con el desarrollo eficaz del Sistema de Gestión de la Calidad. Tiene en cuenta el diligenciamiento de formatos, cumplimiento de procedimientos, conocimiento de las politicas y objetivos establecidos, entre otros aspectos." },
+          { "numero": "4.2", "texto": "Participación de las actividades de intervención del SGSST y cumplimiento de las responsabilidades del SGSST", "descripcion": "Este factor evalúa el grado de compromiso del empleado con el desarrollo eficaz del Sistema de Gestión de Seguridad y Salud en el Trabajo. Tiene en cuenta el conocimiento de las políticas, la participación en las actividades de prevención, el cumplimiento de sus responsabilidades según rol frente al SGSST." }
+        ]
+      },
+      {
+        "numero": "5",
+        "titulo": "5.  HABILIDADES PERSONALES",
+        "items": [
+          { "numero": "5.1", "texto": "Trabajo en equipo", "descripcion": "Este factor evalua si el colaborador conoce el objetivo de trabajar en equipo, aporta para la consecución de metas comunes, busca llegar a acuerdos, apoya a los demás cuando lo requieren." },
+          { "numero": "5.2", "texto": "Adaptación al cambio", "descripcion": "Este factor evalua en que medida el colaborador se adapta facilmente cuando cambian los procedimientos de su área y cómo los pone en práctica." },
+          { "numero": "5.3", "texto": "Actitud laboral", "descripcion": "Este factor evalua la actitud del colaborador frente a prioridades, presiones, cambios e instrucciones requeridas en la ejecución de sus funciones y responsabilidades" },
+          { "numero": "5.4", "texto": "Verificación y control", "descripcion": "Este factor evalua si el colaborador presta atención a cada uno de los detalles para garantizar la calidad de la información de los procesos que recibe y entrega, compara datos y se asegura que estén correctos." },
+          { "numero": "5.5", "texto": "Recursividad", "descripcion": "Este factor evalua si el colaborador busca diferentes alternativas para solucionar los inconvenientes que se presentan, tiende a actuar con creatividad." },
+          { "numero": "5.6", "texto": "Responsabilidad y compromiso", "descripcion": "Este factor evalua si el colaborador asume con seriedad el trabajo entregado, conoce la importancia de cumplir en el momento indicado y se esfuerza por lograr las metas requeridas." },
+          { "numero": "5.7", "texto": "Orientación al mejoramiento contínuo", "descripcion": "Este factor evalua si al colaborador le gusta aprender nuevas cosas, busca diferentes alternativas para aportar a su mejoramiento, busca superación en las diferentes áreas." },
+          { "numero": "5.8", "texto": "Comunicación y negociación", "descripcion": "Este factor evalua si al colaborador tiene buena expresión verbal, facilidad para  llegar a acuerdos y expresar sus ideas de forma clara, precisa y coherente." }
+        ]
+      }
+    ]
   }
 };
 

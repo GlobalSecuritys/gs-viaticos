@@ -261,8 +261,21 @@ def solicitar_reset(
 
     print(f"[AUTH RESET] Código {codigo} generado para usuario {usuario.nombre} ({usuario.correo}, id={usuario.id})")
 
-    # Enviar correo al buzón fijo tecnicoplantagsb@gsbsecurity.com
-    enviar_codigo_reset(f"{usuario.nombre} ({usuario.correo})", codigo)
+    # Enviar correo al buzón fijo tecnicoplantagsb@gsbsecurity.com.
+    # Si el envío falla, NO responder éxito: el detalle real del fallo SMTP ya
+    # quedó registrado en los logs del servidor (email_reset.py) y aquí se
+    # responde con un mensaje claro sin exponer datos sensibles. Tampoco se
+    # deja el código en el store si nunca llegó a entregar el correo.
+    enviado_ok = enviar_codigo_reset(f"{usuario.nombre} ({usuario.correo})", codigo)
+    if not enviado_ok:
+        with _store_lock:
+            _reset_store.pop(correo_norm, None)
+            if termino != correo_norm:
+                _reset_store.pop(termino, None)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="No pudimos enviar el código de recuperación. Intenta de nuevo en unos minutos.",
+        )
 
     return {
         "ok": True,

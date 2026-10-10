@@ -76,6 +76,9 @@ def _clasificar_concepto(tipo_gasto: Optional[str]) -> str:
         return "alquiler_escalera"
     if "material" in tg_l:
         return "materiales"
+    # plan_datos_moviles no tiene columna propia en estadísticas archivadas → "otros"
+    if tg_l == "plan_datos_moviles":
+        return "otros"
     return "otros"
 
 

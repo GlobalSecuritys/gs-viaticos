@@ -37,3 +37,11 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Conceptos con acceso restringido por usuario
+# Para habilitar a otro técnico en el futuro, agregar su codigo_empleado aquí.
+# ─────────────────────────────────────────────────────────────────────────────
+PLAN_DATOS_MOVILES_HABILITADOS: frozenset[str] = frozenset({
+    "15507020",  # nelson.17.v@hotmail.com
+})

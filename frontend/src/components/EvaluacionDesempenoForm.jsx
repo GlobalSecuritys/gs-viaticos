@@ -10,16 +10,28 @@ import './EvaluacionDesempenoForm.css';
 
 export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEvaluadoId, readOnly = false }) {
     const { user: authUser } = useAuth();
+    const esPilar = authUser?.correo?.toLowerCase() === 'pilaradmin@gsbank.com';
     const esUsuarioYeimy = authUser?.correo?.toLowerCase() === 'secretaria@gsbsecurity.com';
+
+    const correosOperaciones = [
+        'auxiliar.operaciones@gsbsecurity.com',
+        'claudia@gsbank.com',
+        'asistente@gsbank.com',
+        'migueladmin@gsbank.com',
+    ];
 
     // Resolver plantilla activa (parámetro o fallback por correo)
     const activePlantillaId = plantillaId || (
-        (user?.correo?.toLowerCase() === 'secretaria@gsbsecurity.com' || esUsuarioYeimy) ? 'contable' : 'directivos'
+        (user?.correo?.toLowerCase() === 'secretaria@gsbsecurity.com' || esUsuarioYeimy)
+            ? 'contable'
+            : (correosOperaciones.includes(user?.correo?.toLowerCase()) || correosOperaciones.includes(authUser?.correo?.toLowerCase()))
+                ? 'operaciones'
+                : 'directivos'
     );
     const plantilla = PLANTILLAS_EVALUACION[activePlantillaId] || PLANTILLAS_EVALUACION['directivos'];
 
-    // Si quien ve es Yeimy, solo ve el paso de autoevaluación (sin paso de jefe ni resumen)
-    const esSoloAuto = esUsuarioYeimy || (!plantilla.requiere_evaluador && (plantilla.pasos_disponibles || []).length === 1);
+    // Si quien ve la pantalla NO es Pilar, solo ve el paso de autoevaluación (y resumen cuando finalice)
+    const esSoloAuto = !esPilar;
     const esContable = activePlantillaId === 'contable';
     const cantCompromisos = plantilla.compromisos_cantidad || (esSoloAuto ? 8 : 4);
 
@@ -50,12 +62,12 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
         return `${y}-${m}-${dia}`;
     }, []);
 
-    const nombreEvaluado = user?.nombre || (esContable ? (plantilla.identificacion.nombre_default || 'Yeimy Rocio Riaño') : 'Pilar Aristizábal');
-    const cargo = plantilla.identificacion.cargo_default || (esContable ? 'AUXILIAR CONTABLE ' : 'DIRECTORA ADMINSITRATIVA ');
-    const cedula = esContable ? (plantilla.identificacion.cedula_default || user?.cedula || '1014202829') : '';
+    const nombreEvaluado = user?.nombre || (esContable ? (plantilla.identificacion.nombre_default || 'Yeimy Rocio Riaño') : (activePlantillaId === 'operaciones' ? 'Auxiliar de Operaciones' : 'Pilar Aristizábal'));
+    const cargo = user?.cargo || plantilla.identificacion.cargo_default || (esContable ? 'AUXILIAR CONTABLE ' : activePlantillaId === 'operaciones' ? 'AUXILIAR DE OPERACIONES' : 'DIRECTORA ADMINSITRATIVA ');
+    const cedula = user?.cedula || (esContable ? (plantilla.identificacion.cedula_default || '1014202829') : '');
 
     const [fecha, setFecha] = useState(fechaHoy);
-    const [nombreEvaluador, setNombreEvaluador] = useState('');
+    const [nombreEvaluador, setNombreEvaluador] = useState(() => (esPilar ? 'Pilar Aristizábal' : ''));
 
     // Calificaciones: { [numItem]: { calificacion: number, observacion: string } }
     const [autoevaluacion, setAutoevaluacion] = useState({});
@@ -69,8 +81,9 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
     const [errorMsg, setErrorMsg] = useState('');
     const [exitoMsg, setExitoMsg] = useState('');
     const [faltantesResaltados, setFaltantesResaltados] = useState([]);
+    const [generandoPdf, setGenerandoPdf] = useState(false);
 
-    const targetUserId = usuarioEvaluadoId || user?.id || (esContable ? 34 : 'anon');
+    const targetUserId = usuarioEvaluadoId || user?.id || authUser?.id || (esContable ? 34 : 'anon');
     const getStorageKey = (paso) => `draft_evaluacion_${activePlantillaId}_${targetUserId}_${paso}`;
 
     // ── 1. Cargar datos del backend una sola vez al entrar ────────────────────
@@ -90,7 +103,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                 setEvaluacionGuardada(data || null);
                 setAutoevaluacion(data?.autoevaluacion || {});
                 setEvaluacionJefe(!esSoloAuto && data?.evaluacion ? data.evaluacion : {});
-                setNombreEvaluador(data?.nombre_evaluador || '');
+                setNombreEvaluador(data?.nombre_evaluador || (esPilar ? 'Pilar Aristizábal' : ''));
                 setFecha(data?.fecha ? String(data.fecha) : fechaHoy);
                 setFaltantesResaltados([]);
                 setExitoMsg('');
@@ -177,6 +190,10 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
         (evaluacionGuardada?.estado === 'autoevaluado' || evaluacionGuardada?.estado === 'completado')
     );
     const evaluacionCompletada = evaluacionGuardada?.estado === 'completado';
+    // PDF: solo Pilar y solo cuando ambos pasos de ESTE evaluado tienen envío real registrado
+    const puedeDescargarPdf = esPilar && autoevalEnviada && evaluacionCompletada && Boolean(
+        evaluacionGuardada?.evaluacion_enviada_en && evaluacionGuardada?.evaluacion_enviada_por_id
+    );
     const modoSoloLectura = readOnly || (esSoloAuto ? autoevalEnviada : false);
 
     // ── 2. Guardar borrador en localStorage en silencio (cero requests) ──────
@@ -455,8 +472,69 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
     }
 
     const seccionActual = plantilla.secciones[seccionActivaIdx];
-    const esAdminViendoAutoContable = !esUsuarioYeimy && esContable && pasoActivo === 'auto';
-    const bloqueadoPaso = modoSoloLectura || esAdminViendoAutoContable || (pasoActivo === 'auto' && autoevalEnviada) || (pasoActivo === 'eval' && evaluacionCompletada);
+    const esJefeViendoAutoColaborador = esPilar && targetUserId !== authUser?.id && pasoActivo === 'auto';
+    const bloqueadoPaso = modoSoloLectura || esJefeViendoAutoColaborador || (pasoActivo === 'auto' && autoevalEnviada) || (pasoActivo === 'eval' && evaluacionCompletada);
+
+    // Cuenta que envió cada paso, resuelta con lo que ya hay en pantalla (sin consultar el backend)
+    function cuentaPorId(id) {
+        if (!id) return '—';
+        if (id === targetUserId && user?.correo) return `${user.correo} (${nombreEvaluado})`;
+        if (id === authUser?.id && authUser?.correo) return authUser.nombre ? `${authUser.correo} (${authUser.nombre})` : authUser.correo;
+        return `Usuario #${id}`;
+    }
+
+    async function handleDescargarPdf() {
+        if (!puedeDescargarPdf || generandoPdf) return;
+        setGenerandoPdf(true);
+        setErrorMsg('');
+        try {
+            const { generarPdfEvaluacion } = await import('../utils/pdfEvaluacionDesempeno');
+            generarPdfEvaluacion({
+                plantilla,
+                plantillaId: activePlantillaId,
+                nombreEvaluado,
+                cedula,
+                cargo,
+                fecha,
+                nombreEvaluador,
+                autoevaluacion,
+                evaluacionJefe,
+                compromisos,
+                promediosResumen,
+                evaluacionGuardada,
+                cuentaAutoevaluacion: cuentaPorId(evaluacionGuardada?.autoevaluacion_enviada_por_id),
+                cuentaEvaluacion: cuentaPorId(evaluacionGuardada?.evaluacion_enviada_por_id),
+            });
+        } catch (err) {
+            console.error('Error generando PDF de evaluación:', err);
+            setErrorMsg('No se pudo generar el PDF de la evaluación.');
+        } finally {
+            setGenerandoPdf(false);
+        }
+    }
+
+    function handleGuardarBorradorManual() {
+        try {
+            if (pasoActivo === 'auto' && !autoevalEnviada) {
+                const draftAuto = {
+                    autoevaluacion,
+                    compromisos: esSoloAuto ? compromisos : undefined,
+                };
+                localStorage.setItem(getStorageKey('auto'), JSON.stringify(draftAuto));
+                setExitoMsg('💾 Borrador de autoevaluación guardado exitosamente en este equipo.');
+            } else if (pasoActivo === 'eval' && !evaluacionCompletada) {
+                const draftEval = {
+                    evaluacionJefe,
+                    nombreEvaluador,
+                    compromisos,
+                };
+                localStorage.setItem(getStorageKey('eval'), JSON.stringify(draftEval));
+                setExitoMsg('💾 Borrador de evaluación guardado exitosamente en este equipo.');
+            }
+        } catch (e) {
+            console.warn('Error guardando en localStorage', e);
+        }
+    }
 
     return (
         <div className="edf-container">
@@ -555,13 +633,27 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
             {/* ── Selector de Pasos en la misma pantalla ── */}
             {esSoloAuto ? (
                 <div className="edf-steps-bar">
-                    <div className={`edf-step-btn edf-step-btn--active ${autoevalEnviada ? 'edf-step-btn--completed' : ''}`}>
+                    <button
+                        type="button"
+                        className={`edf-step-btn ${pasoActivo === 'auto' ? 'edf-step-btn--active' : ''} ${autoevalEnviada ? 'edf-step-btn--completed' : ''}`}
+                        onClick={() => setPasoActivo('auto')}
+                    >
                         <span className="edf-step-num">1</span>
                         <span className="edf-step-label">
                             Autoevaluación
                             {autoevalEnviada && <span className="edf-check">✓ Enviada (Solo lectura)</span>}
                         </span>
-                    </div>
+                    </button>
+                    {evaluacionCompletada && (
+                        <button
+                            type="button"
+                            className={`edf-step-btn ${pasoActivo === 'resumen' ? 'edf-step-btn--active' : ''}`}
+                            onClick={() => setPasoActivo('resumen')}
+                        >
+                            <span className="edf-step-num">📊</span>
+                            <span className="edf-step-label">Cuadro Consolidado Final</span>
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className="edf-steps-bar">
@@ -584,13 +676,13 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                             if (autoevalEnviada) setPasoActivo('eval');
                         }}
                         disabled={!autoevalEnviada}
-                        title={!autoevalEnviada ? 'Debes enviar la autoevaluación primero' : undefined}
+                        title={!autoevalEnviada ? 'El colaborador debe enviar su autoevaluación primero' : undefined}
                     >
                         <span className="edf-step-num">2</span>
                         <span className="edf-step-label">
                             Evaluación (Jefe)
                             {evaluacionCompletada && <span className="edf-check">✓ Completada</span>}
-                            {!autoevalEnviada && <span className="edf-lock">🔒 Bloqueada</span>}
+                            {!autoevalEnviada && <span className="edf-lock">🔒 Bloqueada (Pendiente colaborador)</span>}
                         </span>
                     </button>
 
@@ -626,6 +718,16 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                                 <span className="edf-badge-k">Prom. Evaluación Jefe</span>
                                 <span className="edf-badge-v">{promediosResumen.totalJefe}</span>
                             </div>
+                            {puedeDescargarPdf && (
+                                <button
+                                    type="button"
+                                    className="edf-btn-primary edf-btn-pdf"
+                                    onClick={handleDescargarPdf}
+                                    disabled={generandoPdf}
+                                >
+                                    {generandoPdf ? 'Generando PDF...' : 'Descargar PDF'}
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -909,10 +1011,29 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                     <div className="edf-submit-panel">
                         {pasoActivo === 'auto' && (
                             <div className="edf-submit-wrap">
-                                {autoevalEnviada ? (
+                                {esJefeViendoAutoColaborador ? (
+                                    autoevalEnviada ? (
+                                        <div className="edf-already-sent">
+                                            <span>✓ Autoevaluación del colaborador enviada el{' '}
+                                                <strong>{evaluacionGuardada?.autoevaluacion_enviada_en ? new Date(evaluacionGuardada.autoevaluacion_enviada_en).toLocaleDateString() : 'recientemente'}</strong>.
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className="edf-btn-primary"
+                                                onClick={() => setPasoActivo('eval')}
+                                            >
+                                                Ir al Paso 2: Evaluación del Jefe →
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="edf-already-sent" style={{ background: '#FFFBEB', borderColor: '#FDE68A', color: '#92400E' }}>
+                                            <span>⏳ <strong>Esperando autoevaluación:</strong> Este colaborador aún no ha enviado su autoevaluación. El Paso 2 (Evaluación del Jefe) se habilitará una vez sea completada y enviada por el colaborador.</span>
+                                        </div>
+                                    )
+                                ) : autoevalEnviada ? (
                                     <div className="edf-already-sent">
                                         <span>✓ Esta autoevaluación ya fue enviada el{' '}
-                                            <strong>{evaluacionGuardada.autoevaluacion_enviada_en ? new Date(evaluacionGuardada.autoevaluacion_enviada_en).toLocaleDateString() : 'recientemente'}</strong>.
+                                            <strong>{evaluacionGuardada?.autoevaluacion_enviada_en ? new Date(evaluacionGuardada.autoevaluacion_enviada_en).toLocaleDateString() : 'recientemente'}</strong>.
                                             {esSoloAuto ? ' El formulario se encuentra en modo solo lectura.' : ''}
                                         </span>
                                         {!esSoloAuto && (
@@ -935,14 +1056,32 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                                                 </span>
                                             )}
                                         </div>
-                                        <button
-                                            type="button"
-                                            className="edf-btn-primary"
-                                            disabled={guardandoPaso}
-                                            onClick={handleEnviarAutoevaluacion}
-                                        >
-                                            {guardandoPaso ? 'Enviando Autoevaluación...' : 'Enviar Autoevaluación'}
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                                            <button
+                                                type="button"
+                                                style={{
+                                                    padding: '0.65rem 1.1rem',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid #CBD5E1',
+                                                    background: '#FFFFFF',
+                                                    color: '#334155',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.85rem',
+                                                    cursor: 'pointer',
+                                                }}
+                                                onClick={handleGuardarBorradorManual}
+                                            >
+                                                💾 Guardar borrador
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="edf-btn-primary"
+                                                disabled={guardandoPaso}
+                                                onClick={handleEnviarAutoevaluacion}
+                                            >
+                                                {guardandoPaso ? 'Enviando Autoevaluación...' : 'Enviar Autoevaluación'}
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -971,14 +1110,32 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                                                 </span>
                                             )}
                                         </div>
-                                        <button
-                                            type="button"
-                                            className="edf-btn-primary edf-btn-primary--jefe"
-                                            disabled={guardandoPaso}
-                                            onClick={handleEnviarEvaluacionJefe}
-                                        >
-                                            {guardandoPaso ? 'Guardando Evaluación...' : 'Completar y Enviar Evaluación (Paso 2)'}
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                                            <button
+                                                type="button"
+                                                style={{
+                                                    padding: '0.65rem 1.1rem',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid #CBD5E1',
+                                                    background: '#FFFFFF',
+                                                    color: '#334155',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.85rem',
+                                                    cursor: 'pointer',
+                                                }}
+                                                onClick={handleGuardarBorradorManual}
+                                            >
+                                                💾 Guardar borrador
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="edf-btn-primary edf-btn-primary--jefe"
+                                                disabled={guardandoPaso}
+                                                onClick={handleEnviarEvaluacionJefe}
+                                            >
+                                                {guardandoPaso ? 'Guardando Evaluación...' : 'Completar y Enviar Evaluación (Paso 2)'}
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>

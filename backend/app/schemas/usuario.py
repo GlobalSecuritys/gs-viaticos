@@ -56,6 +56,9 @@ class UsuarioResponse(UsuarioBase):
     acceso_mapa: bool = False
     rol_mapa: str = "lector"
     accesos_procesos: dict[str, str] = {}
+    # Habilita el concepto "Plan de datos móviles" en el formulario del técnico.
+    # Se calcula en security.get_current_user() desde PLAN_DATOS_MOVILES_HABILITADOS.
+    plan_datos_moviles_habilitado: bool = False
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -64,18 +67,22 @@ class UsuarioResponse(UsuarioBase):
     @classmethod
     def _extract_accesos_virtuales(cls, values):
         """
-        El campo accesos_procesos no es una columna de la tabla 'usuarios'.
-        get_current_user lo setea como atributo instancia virtual (_accesos_procesos)
-        en el objeto Usuario de SQLAlchemy antes de que Pydantic serialice.
-        Este validador lo transfiere al campo público del schema.
+        Los campos accesos_procesos y plan_datos_moviles_habilitado no son columnas
+        de la tabla 'usuarios'. get_current_user los setea como atributos instancia
+        virtuales (_accesos_procesos, _plan_datos_moviles_habilitado) en el objeto
+        Usuario de SQLAlchemy antes de que Pydantic serialice.
+        Este validador los transfiere a los campos públicos del schema.
         """
-        # Cuando viene desde ORM (object con __dict__), extraer el atributo privado
+        # Cuando viene desde ORM (object con __dict__), extraer los atributos privados
         if hasattr(values, "__dict__"):
             obj_dict = vars(values)
             priv_accesos = obj_dict.get("_accesos_procesos")
             if priv_accesos is not None:
                 # Convertir a dict mutable para que Pydantic pueda asignarlo
                 values.__dict__["accesos_procesos"] = dict(priv_accesos)
+            priv_pdm = obj_dict.get("_plan_datos_moviles_habilitado")
+            if priv_pdm is not None:
+                values.__dict__["plan_datos_moviles_habilitado"] = bool(priv_pdm)
         return values
 
 

@@ -5,7 +5,7 @@ import api from '../services/api';
 import { obtenerAsignacion, actualizarAsignacion, finalizarAsignacion, borrarAsignacionConFlujo, toggleGraciaAsignacion } from '../services/asignaciones';
 import { irAtras } from '../utils/navigation';
 import { LABEL_TIPO_ASIGNACION, LABEL_ESTADO_ASIGNACION } from '../utils/asignaciones';
-import { formatFechaLarga, formatFechaCorta, formatCOP } from '../utils/personal';
+import { formatFechaLarga, formatFechaCorta, formatCOP, LABEL_TIPO_GASTO } from '../utils/personal';
 import { parseDescripcion } from '../utils/descripcion';
 import AsignacionForm from '../components/AsignacionForm';
 import ModalEvidencia from '../components/ModalEvidencia';
@@ -324,7 +324,7 @@ export default function DetalleAsignacion() {
                                                     return (
                                                         <tr key={v.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
                                                             <td style={{ padding: '0.65rem 0.85rem' }}>{formatFechaCorta(v.fecha)}</td>
-                                                            <td style={{ padding: '0.65rem 0.85rem', fontWeight: 600, color: '#1E40AF' }}>{v.tipo_gasto}</td>
+                                                            <td style={{ padding: '0.65rem 0.85rem', fontWeight: 600, color: '#1E40AF' }}>{LABEL_TIPO_GASTO[v.tipo_gasto] || v.tipo_gasto}</td>
                                                             <td style={{ padding: '0.65rem 0.85rem', color: '#334155' }}>
                                                                 {descInfo.razonSocial ? <strong>{descInfo.razonSocial}</strong> : null}
                                                                 {descInfo.nit ? <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>NIT: {descInfo.nit}</span> : null}

@@ -12,6 +12,7 @@ TipoGasto = Literal[
     "materiales",
     "alquiler_escalera",
     "otros",
+    "plan_datos_moviles",
 ]
 
 TipoIdentificacion = Literal["cedula", "nit_proveedor", "nit_nuevo"]

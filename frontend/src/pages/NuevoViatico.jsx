@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api, { subirEvidencias } from '../services/api';
 import { obtenerMisAsignacionesActivas } from '../services/asignaciones';
@@ -10,7 +10,7 @@ import { formatFechaLarga, formatCOP, formatMiles, limpiarNumero } from '../util
 import { derivarLugarDesdeTipoAsignacion, calcularAvisoCierre, formatearCierreEn, obtenerFechaMinViatico } from '../utils/asignaciones';
 import './NuevoViatico.css';
 
-const CONCEPTOS = [
+const CONCEPTOS_BASE = [
     { value: 'alimentacion', label: 'Alimentación' },
     { value: 'transporte', label: 'Transporte' },
     { value: 'hotel', label: 'Hospedaje / Hotel' },
@@ -60,6 +60,17 @@ export default function NuevoViatico() {
     const [mostrarModalCambioTipo, setMostrarModalCambioTipo] = useState(false);
     const [modalCCGastoId, setModalCCGastoId] = useState(null);
     const [modalZoomFotoUrl, setModalZoomFotoUrl] = useState(null);
+
+    // Conceptos disponibles según los permisos del usuario autenticado.
+    // El frontend no duplica la lista blanca: lee user.plan_datos_moviles_habilitado
+    // que ya viene en la respuesta de /auth/me sin petición adicional.
+    const CONCEPTOS = useMemo(() => {
+        const base = [...CONCEPTOS_BASE];
+        if (user?.plan_datos_moviles_habilitado) {
+            base.push({ value: 'plan_datos_moviles', label: 'Plan de datos móviles' });
+        }
+        return base;
+    }, [user?.plan_datos_moviles_habilitado]);
 
     useEffect(() => {
         if (asignacionIdParam) {

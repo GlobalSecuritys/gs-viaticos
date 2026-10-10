@@ -154,5 +154,7 @@ def enviar_codigo_reset(cuenta_solicitante: str, codigo: str) -> bool:
 
     except Exception as exc:
         print(f"[RESET EMAIL] ❌ Error crítico al enviar correo: {exc}")
-        logger.error("Error al enviar correo de reset: %s", exc)
+        # logger.exception deja el traceback completo en los logs del servidor
+        # (Render) para poder diagnosticar el fallo real (auth SMTP, red, etc.)
+        logger.exception("Error al enviar correo de recuperación de contraseña: %s", exc)
         return False
