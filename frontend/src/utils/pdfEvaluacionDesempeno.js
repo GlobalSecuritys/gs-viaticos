@@ -258,21 +258,6 @@ export function generarPdfEvaluacion({
         },
     });
 
-    // ── Compromisos generados ────────────────────────────────────────────────
-    const cantComp = plantilla.compromisos_cantidad || compromisos.length;
-    const filasComp = Array.from({ length: cantComp }, (_, i) => [String(i + 1), limpiar(compromisos[i])]);
-    autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 16,
-        margin: margenTabla,
-        theme: 'grid',
-        head: [[{ content: limpiar(plantilla.compromisos_label), colSpan: 2 }]],
-        body: filasComp,
-        rowPageBreak: 'avoid',
-        styles: { ...estiloBase, fontSize: 7.5, minCellHeight: 24 },
-        headStyles: { fontStyle: 'bold', halign: 'center', fillColor: [255, 255, 255], minCellHeight: 0 },
-        columnStyles: { 0: { cellWidth: 40, halign: 'center', fontStyle: 'bold' }, 1: { cellWidth: 'auto' } },
-    });
-
     // ── Registro de envío (sin firma) ────────────────────────────────────────
     autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 16,

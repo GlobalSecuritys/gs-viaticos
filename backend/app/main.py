@@ -37,11 +37,11 @@ from app.models.calidad_procesos import (
 from app.models.bitacora_backup import BitacoraBackup
 from app.models.estadistica_asignacion_archivada import EstadisticaAsignacionArchivada
 from app.models.inventario import InventarioPlanilla, InventarioItem, InventarioMovimiento
-from app.models.evaluacion_desempeno import EvaluacionDesempeno
+from app.models.evaluacion_desempeno import EvaluacionDesempeno, EvaluacionCompromiso
 
 app = FastAPI(
-    title="GS Viáticos API",
-    description="Sistema de gestión de viáticos y gastos operativos para Global Security",
+    title="Sistema Integral de Gestión GSB API",
+    description="Plataforma de gestión de viáticos, operaciones y calidad de Global Security",
     version="1.0.0",
 )
 
@@ -131,6 +131,7 @@ def startup_db_check():
         InventarioItem.__table__.create(bind=engine, checkfirst=True)
         InventarioMovimiento.__table__.create(bind=engine, checkfirst=True)
         EvaluacionDesempeno.__table__.create(bind=engine, checkfirst=True)
+        EvaluacionCompromiso.__table__.create(bind=engine, checkfirst=True)
         _asegurar_inventario()
     except Exception as e:
         print(f"[STARTUP] Advertencia al crear/verificar tablas: {e}")

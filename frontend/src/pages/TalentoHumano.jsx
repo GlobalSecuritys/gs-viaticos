@@ -9,7 +9,7 @@ export default function TalentoHumano() {
     // para poder realizar su autoevaluación de desempeño
     const esYeimyContable = user?.correo?.toLowerCase() === 'secretaria@gsbsecurity.com';
 
-    if (user?.rol === 'admin' || user?.rol === 'superadmin' || esYeimyContable) {
+    if (user?.rol === 'admin' || user?.rol === 'superadmin' || esYeimyContable || user?.rol === 'evaluador_externo') {
         return <TalentoHumanoAdmin />;
     }
 

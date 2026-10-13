@@ -1,7 +1,7 @@
 {
-  "name": "GS Viáticos — Global Security",
-  "short_name": "GS Viáticos",
-  "description": "Sistema de gestión de viáticos y gastos operativos de Global Security",
+  "name": "Sistema Integral de Gestión GSB",
+  "short_name": "SIG GSB",
+  "description": "Plataforma de gestión de viáticos, operaciones y calidad de Global Security",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

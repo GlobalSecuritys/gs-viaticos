@@ -42,7 +42,7 @@ export default function TecnicoLayout({ children }) {
                     <img src={logoGSB} alt="Global Security Bank" className="tec-sidebar-logo" />
                     <div className="tec-sidebar-brand-text">
                         <span className="tec-brand-title">Global Security Bank</span>
-                        <span className="tec-brand-sub">Plataforma de Viáticos</span>
+                        <span className="tec-brand-sub">Sistema Integral de Gestión GSB</span>
                     </div>
                 </div>
 

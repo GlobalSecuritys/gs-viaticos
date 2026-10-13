@@ -51,8 +51,6 @@ export const PLANTILLAS_EVALUACION = {
     },
     "pasos_disponibles": ["auto", "eval", "resumen"],
     "requiere_evaluador": true,
-    "compromisos_label": "COMPROMISOS GENERADOS",
-    "compromisos_cantidad": 4,
     "secciones": [
       {
         "numero": "1",
@@ -266,8 +264,6 @@ export const PLANTILLAS_EVALUACION = {
     },
     "pasos_disponibles": ["auto", "eval", "resumen"],
     "requiere_evaluador": true,
-    "compromisos_label": "COMPROMISOS GENERADOS",
-    "compromisos_cantidad": 8,
     "secciones": [
       {
         "numero": "1",
@@ -447,8 +443,6 @@ export const PLANTILLAS_EVALUACION = {
     },
     "pasos_disponibles": ["auto", "eval", "resumen"],
     "requiere_evaluador": true,
-    "compromisos_label": "COMPROMISOS GENERADOS",
-    "compromisos_cantidad": 8,
     "secciones": [
       {
         "numero": "1",

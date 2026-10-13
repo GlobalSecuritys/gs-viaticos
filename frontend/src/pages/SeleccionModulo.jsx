@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { isAdminMaster, GLOBAL_ADMIN_NAV } from '../config/modulesConfig';
@@ -14,12 +14,19 @@ import './SeleccionModulo.css';
 const LABEL_ROL = {
   superadmin: 'Administrador',
   tecnico: 'Técnico',
+  evaluador_externo: 'Evaluador Externo',
 };
 
 export default function SeleccionModulo() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [globalLockAlert, setGlobalLockAlert] = useState(null);
+
+  useEffect(() => {
+    if (user?.rol === 'evaluador_externo') {
+      navigate('/talento-humano', { replace: true });
+    }
+  }, [user, navigate]);
 
   const isMaster = isAdminMaster(user);
   const nombreMostrado = obtenerNombreUsuario(user, 'Administrador');
@@ -216,7 +223,7 @@ export default function SeleccionModulo() {
 
           {/* Footer institucional */}
           <footer className="sm-footer">
-            <span>© 2025 Global Security Bank · Sistema GS-VIÁTICOS & Ecosistema de Calidad SGC</span>
+            <span>© 2025 Global Security Bank · SISTEMA INTEGRAL DE GESTIÓN GSB</span>
           </footer>
         </main>
       </div>

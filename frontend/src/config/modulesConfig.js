@@ -104,7 +104,7 @@ export const MODULES_CONFIG = [
       },
     ],
     canAccess: (user) => {
-      return user?.rol === 'admin' || user?.rol === 'superadmin';
+      return user?.rol === 'admin' || user?.rol === 'superadmin' || user?.rol === 'evaluador_externo';
     },
     sidebarNav: [
       { id: 'personal', label: 'Directorio de Personal', icon: '👤', path: '/talento-humano' },

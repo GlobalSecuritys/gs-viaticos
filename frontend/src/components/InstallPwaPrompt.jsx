@@ -69,7 +69,7 @@ export default function InstallPwaPrompt() {
                 <button
                     className="pwa-install-btn"
                     onClick={handleInstalar}
-                    title="Instalar GS Viáticos en tu dispositivo"
+                    title="Instalar SIG GSB en tu dispositivo"
                 >
                     <span className="pwa-install-icon">📲</span>
                     <span className="pwa-install-text">Instalar App</span>
@@ -85,7 +85,7 @@ export default function InstallPwaPrompt() {
                         <div className="pwa-ios-header">
                             <span className="pwa-ios-app-icon">💼</span>
                             <div>
-                                <h3>Instalar GS Viáticos</h3>
+                                <h3>Instalar SIG GSB</h3>
                                 <p>Sigue estos sencillos pasos en iPhone/iPad:</p>
                             </div>
                         </div>

@@ -152,7 +152,7 @@ export default function SuperAdminDashboard() {
                 <div className="sa-sidebar-brand">
                     <img src={logoGSB} alt="GSB" className="sa-sidebar-logo" />
                     <div>
-                        <span className="sa-sidebar-title">GS-VIÁTICOS</span>
+                        <span className="sa-sidebar-title">SIG GSB</span>
                         <span className="sa-sidebar-subtitle">GLOBAL SECURITY BANK S.A.S</span>
                     </div>
                 </div>

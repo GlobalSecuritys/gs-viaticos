@@ -12,6 +12,7 @@ import InstallPwaPrompt from '../components/InstallPwaPrompt';
 import EvaluacionDesempenoForm from '../components/EvaluacionDesempenoForm';
 import { formatCOP, formatFechaLarga, iniciales } from '../utils/personal';
 import { formatApiError } from '../utils/formatError';
+import { esAdministradorSeccion } from '../utils/permisos';
 import './TalentoHumanoAdmin.css';
 
 const CORREOS_OPERACIONES = [
@@ -107,7 +108,12 @@ export default function TalentoHumanoAdmin() {
     const correoUsuarioActual = user?.correo?.toLowerCase() || '';
     const esYeimyContable = correoUsuarioActual === 'secretaria@gsbsecurity.com';
     const esOperaciones = CORREOS_OPERACIONES.includes(correoUsuarioActual);
-    const esPerfilRestringidoEvaluacion = esYeimyContable || esOperaciones;
+    const esEvaluadorExterno = user?.rol === 'evaluador_externo';
+    // Acceso admin a Administrativo (AD) asignado por Pilar: ve Talento Humano completo
+    // aunque también sea evaluado (conserva su pestaña de autoevaluación).
+    const tieneAccesoAdministrativo = esAdministradorSeccion(user, 'AD');
+    const esPerfilRestringidoEvaluacion =
+        !tieneAccesoAdministrativo && (esYeimyContable || esOperaciones || esEvaluadorExterno);
     const [tabActiva, setTabActiva] = useState(() => (esPerfilRestringidoEvaluacion ? 'evaluacion-desempeno' : 'general')); // 'general', 'documentos', 'adicional', 'historial', 'evaluacion-desempeno'
     const [mensajeFeedback, setMensajeFeedback] = useState('');
     const [error, setError] = useState('');
@@ -547,7 +553,7 @@ export default function TalentoHumanoAdmin() {
             { id: 'documentos', label: 'Contratos & Documentos', icon: '📄', action: () => setTabActiva('documentos'), active: tabActiva === 'documentos' },
             { id: 'adicional', label: 'Dotaciones', icon: '🦺', action: () => setTabActiva('adicional'), active: tabActiva === 'adicional' },
             { id: 'historial', label: 'Historial & Solicitudes', icon: '📝', action: () => setTabActiva('historial'), active: tabActiva === 'historial' },
-            ...(esPilarAdmin
+            ...(esPilarAdmin || esYeimyContable || esOperaciones
                 ? [{
                     id: 'evaluacion-desempeno',
                     label: 'Evaluación de desempeño',
@@ -598,7 +604,7 @@ export default function TalentoHumanoAdmin() {
                         <div>
                             <div className="tha-user-name">{user?.nombre || 'Administrador'}</div>
                             <div className="tha-user-role">
-                                {esYeimyContable ? 'Auxiliar contable' : esOperaciones ? 'Operaciones' : 'Administrador'}
+                                {tieneAccesoAdministrativo ? 'Administrador' : esYeimyContable ? 'Auxiliar contable' : esOperaciones ? 'Operaciones' : esEvaluadorExterno ? 'Evaluador Externo' : 'Administrador'}
                             </div>
                         </div>
                     )}
@@ -683,6 +689,18 @@ export default function TalentoHumanoAdmin() {
                             }}
                             plantillaId="operaciones"
                             usuarioEvaluadoId={user?.id}
+                        />
+                    ) : esEvaluadorExterno ? (
+                        <EvaluacionDesempenoForm
+                            key="edf-directivos-pilar-externo"
+                            user={{
+                                id: 28,
+                                nombre: 'Pilar Aristizábal',
+                                correo: 'PilarAdmin@gsbank.com',
+                                cargo: 'DIRECTORA ADMINSITRATIVA ',
+                            }}
+                            plantillaId="directivos"
+                            usuarioEvaluadoId={28}
                         />
                     ) : esPilarAdmin ? (
                         <>

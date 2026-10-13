@@ -248,7 +248,7 @@ export default function AdminDashboard() {
                         <img src={logoGSB} alt="Global Security Bank" className="gsb-sidebar-logo" />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span className="gsb-sidebar-brand-name">GS-VIÁTICOS</span>
+                        <span className="gsb-sidebar-brand-name">SIG GSB</span>
                         <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>‹ Hub de Módulos</span>
                     </div>
                 </div>
@@ -326,7 +326,7 @@ export default function AdminDashboard() {
                         </button>
                         <div>
                             <h1 className="gsb-topbar-title">PANEL ADMINISTRATIVO</h1>
-                            <span className="gsb-topbar-subtitle">GS-VIÁTICOS</span>
+                            <span className="gsb-topbar-subtitle">SIG GSB</span>
                         </div>
                     </div>
 

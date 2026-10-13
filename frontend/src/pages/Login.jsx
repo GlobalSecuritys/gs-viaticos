@@ -379,7 +379,7 @@ export default function Login() {
           </div>
           <div>
             <h1 className="login-brand-name">GLOBAL SECURITY</h1>
-            <p className="login-brand-sub">Sistema de Viáticos y Gastos Operativos</p>
+            <p className="login-brand-sub">Sistema Integral de Gestión GSB</p>
           </div>
         </div>
         <ul className="login-features">

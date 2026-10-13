@@ -99,7 +99,7 @@ def _asegurar_perfil_y_documentos_por_defecto(db: Session, usuario: Usuario) -> 
             dias_vacaciones_disponibles=12,
             dias_vacaciones_tomados=3,
             dias_vacaciones_programados=0,
-            observaciones="Empleado registrado en el sistema GS Viáticos.",
+            observaciones="Empleado registrado en el Sistema Integral de Gestión GSB.",
             updated_by_nombre="Sistema",
         )
         db.add(perfil)

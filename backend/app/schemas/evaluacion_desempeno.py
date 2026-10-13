@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ItemCalificacion(BaseModel):
@@ -9,27 +9,56 @@ class ItemCalificacion(BaseModel):
 
 
 class AutoevaluacionSubmit(BaseModel):
-    plantilla: Optional[str] = Field(default="directivos", description="Identificador de la plantilla (directivos, contable)")
+    plantilla: Optional[str] = Field(default="directivos", description="Identificador de la plantilla (directivos, contable, operaciones)")
     cargo: Optional[str] = None
     fecha: Optional[date] = None
     autoevaluacion: dict[str, ItemCalificacion] = Field(
         ..., description="Diccionario con número de ítem (ej: '1.1') y calificación"
     )
-    compromisos: Optional[list[str]] = Field(
-        default=None, description="Lista de compromisos generados"
-    )
 
 
 class EvaluacionSubmit(BaseModel):
-    plantilla: Optional[str] = Field(default="directivos", description="Identificador de la plantilla (directivos, contable)")
+    plantilla: Optional[str] = Field(default="directivos", description="Identificador de la plantilla (directivos, contable, operaciones)")
     usuario_evaluado_id: Optional[int] = Field(default=None, description="ID del usuario evaluado")
     nombre_evaluador: str = Field(..., min_length=2, description="Nombre del evaluador / jefe")
     evaluacion: dict[str, ItemCalificacion] = Field(
         ..., description="Diccionario con número de ítem (ej: '1.1') y calificación"
     )
-    compromisos: Optional[list[str]] = Field(
-        default=None, description="Lista de compromisos generados"
-    )
+
+
+class CompromisosUpdate(BaseModel):
+    compromisos: list[str] = Field(..., description="Lista de exactamente 8 compromisos")
+    version: int = Field(..., ge=1, description="Versión cargada para control de concurrencia optimista")
+
+    @field_validator("compromisos")
+    @classmethod
+    def validar_compromisos(cls, v: list[str]) -> list[str]:
+        if len(v) != 8:
+            raise ValueError("La lista de compromisos debe tener exactamente 8 elementos.")
+        limpios = []
+        for idx, c in enumerate(v):
+            txt = str(c or "").strip()
+            if len(txt) > 500:
+                raise ValueError(f"El compromiso #{idx + 1} no puede superar los 500 caracteres.")
+            limpios.append(txt)
+        return limpios
+
+
+class CompromisosResponse(BaseModel):
+    id: int
+    evaluacion_id: int
+    compromisos: list[str]
+    estado: str
+    nombre_evaluador: Optional[str] = None
+    cerrado_por_id: Optional[int] = None
+    cerrado_en: Optional[datetime] = None
+    version: int
+    actualizado_en: datetime
+    creado_en: datetime
+    puede_editar: bool = False
+    puede_cerrar: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EvaluacionDesempenoResponse(BaseModel):
@@ -51,3 +80,4 @@ class EvaluacionDesempenoResponse(BaseModel):
     actualizado_en: datetime
 
     model_config = ConfigDict(from_attributes=True)
+

@@ -66,3 +66,56 @@ class EvaluacionDesempeno(Base):
     usuario_evaluado: Mapped["Usuario"] = relationship(
         "Usuario", foreign_keys=[usuario_evaluado_id]
     )
+    compromisos_seccion: Mapped[Optional["EvaluacionCompromiso"]] = relationship(
+        "EvaluacionCompromiso", back_populates="evaluacion", uselist=False, cascade="all, delete-orphan"
+    )
+
+
+class EvaluacionCompromiso(Base):
+    """
+    Sección independiente de Compromisos generados en la Evaluación de Desempeño.
+    Tiene ciclo de vida propio: 'abierto' / 'cerrado', control de concurrencia optimista (version),
+    y almacena exactamente 8 compromisos descriptivos.
+    """
+    __tablename__ = "evaluaciones_compromisos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    evaluacion_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("evaluaciones_desempeno.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    compromisos: Mapped[list] = mapped_column(
+        JSON,
+        nullable=False,
+        default=lambda: [""] * 8,
+    )
+    estado: Mapped[str] = mapped_column(
+        String(30), nullable=False, server_default="abierto", default="abierto"
+    )
+    nombre_evaluador: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    cerrado_por_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True
+    )
+    cerrado_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False), nullable=True
+    )
+    version: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="1", default=1
+    )
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), nullable=False, server_default=func.now()
+    )
+    actualizado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+    evaluacion: Mapped["EvaluacionDesempeno"] = relationship(
+        "EvaluacionDesempeno", back_populates="compromisos_seccion"
+    )
+    cerrado_por: Mapped[Optional["Usuario"]] = relationship(
+        "Usuario", foreign_keys=[cerrado_por_id]
+    )
+

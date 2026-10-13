@@ -45,7 +45,7 @@ def enviar_codigo_reset(cuenta_solicitante: str, codigo: str) -> bool:
 
     print(f"[RESET EMAIL] Iniciando envío de código {codigo} a {destino} (cuenta solicitante: {cuenta_solicitante}) vía {smtp_host}:{smtp_port}...")
 
-    asunto = "GS-Viáticos — Código de recuperación de contraseña"
+    asunto = "Sistema Integral de Gestión GSB — Código de recuperación de contraseña"
 
     html_body = f"""
 <!DOCTYPE html>
@@ -70,7 +70,7 @@ def enviar_codigo_reset(cuenta_solicitante: str, codigo: str) -> bool:
                          letter-spacing:0.06em;">GLOBAL SECURITY</h1>
               <p style="margin:6px 0 0;color:#93C5FD;font-size:12px;
                         text-transform:uppercase;letter-spacing:0.08em;font-weight:600;">
-                Sistema de Viáticos y Gastos Operativos
+                Sistema Integral de Gestión GSB
               </p>
             </td>
           </tr>
@@ -110,7 +110,7 @@ def enviar_codigo_reset(cuenta_solicitante: str, codigo: str) -> bool:
             <td style="background:#F9FAFB;border-top:1px solid #E5E7EB;
                        padding:16px 40px;text-align:center;">
               <p style="margin:0;font-size:11px;color:#9CA3AF;">
-                Este mensaje fue generado automáticamente por el sistema GS-Viáticos.
+                Este mensaje fue generado automáticamente por el Sistema Integral de Gestión GSB.
                 No responder a este correo.
               </p>
             </td>
@@ -126,7 +126,7 @@ def enviar_codigo_reset(cuenta_solicitante: str, codigo: str) -> bool:
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = asunto
-        msg["From"] = f"GS-Viáticos <{smtp_user}>"
+        msg["From"] = f"Sistema Integral de Gestión GSB <{smtp_user}>"
         msg["To"] = destino
 
         msg.attach(MIMEText(

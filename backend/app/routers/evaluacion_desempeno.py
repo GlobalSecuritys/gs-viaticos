@@ -4,15 +4,17 @@ import os
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_admin
+from app.core.security import get_current_user
 from app.database import get_db
-from app.models.evaluacion_desempeno import EvaluacionDesempeno
+from app.models.evaluacion_desempeno import EvaluacionCompromiso, EvaluacionDesempeno
 from app.models.usuario import Usuario
 from app.schemas.evaluacion_desempeno import (
     AutoevaluacionSubmit,
+    CompromisosResponse,
+    CompromisosUpdate,
     EvaluacionDesempenoResponse,
     EvaluacionSubmit,
 )
@@ -20,7 +22,7 @@ from app.schemas.evaluacion_desempeno import (
 router = APIRouter(prefix="/evaluaciones-desempeno", tags=["Evaluación de Desempeño"])
 
 # ── Constantes de acceso ─────────────────────────────────────────────────────
-# Solo Pilar puede enviar la evaluación del jefe (para cualquier evaluado)
+# Pilar administra y evalúa a todos los colaboradores internos
 _PILAR_CORREO = "pilaradmin@gsbank.com"
 
 # Correos que solo pueden ver/enviar SU PROPIA autoevaluación (sin paso del jefe)
@@ -35,6 +37,7 @@ _CORREO_PLANTILLA = {
 
 # Cargar plantilla estática para validar ítems requeridos sin consultar la BD
 _PLANTILLAS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "plantillas_evaluacion.json")
+
 
 def _obtener_items_requeridos(plantilla_id: str = "directivos") -> set[str]:
     try:
@@ -68,12 +71,31 @@ def _obtener_items_requeridos(plantilla_id: str = "directivos") -> set[str]:
     }
 
 
+def get_current_evaluacion_usuario(
+    current_user: Annotated[Usuario, Depends(get_current_user)]
+) -> Usuario:
+    """
+    Permite acceso tanto a superadministradores internos como al rol evaluador_externo
+    destinado a evaluar a Pilar.
+    """
+    if current_user.rol not in ("superadmin", "evaluador_externo"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tiene permisos para acceder al módulo de evaluación de desempeño.",
+        )
+    return current_user
+
+
 def _correo_lower(usuario: Usuario) -> str:
-    return (usuario.correo or "").lower()
+    return (usuario.correo or "").lower().strip()
 
 
 def _es_pilar(usuario: Usuario) -> bool:
     return _correo_lower(usuario) == _PILAR_CORREO
+
+
+def _es_evaluador_externo(usuario: Usuario) -> bool:
+    return usuario.rol == "evaluador_externo"
 
 
 def _plantilla_por_correo(usuario: Usuario) -> Optional[str]:
@@ -86,10 +108,15 @@ def _es_evaluado_restringido(usuario: Usuario) -> bool:
     return _correo_lower(usuario) in _CORREO_PLANTILLA
 
 
+def _get_pilar_user_id(db: Session) -> Optional[int]:
+    stmt = select(Usuario.id).where(func.lower(func.trim(Usuario.correo)) == _PILAR_CORREO)
+    return db.scalar(stmt)
+
+
 # ── 1. Consultar evaluación del usuario ──────────────────────────────────────
 @router.get("/mi-evaluacion", response_model=Optional[EvaluacionDesempenoResponse])
 def obtener_mi_evaluacion(
-    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    current_admin: Annotated[Usuario, Depends(get_current_evaluacion_usuario)],
     db: Annotated[Session, Depends(get_db)],
     plantilla: Optional[str] = None,
     usuario_evaluado_id: Optional[int] = None,
@@ -98,30 +125,40 @@ def obtener_mi_evaluacion(
     Devuelve la evaluación de desempeño.
 
     Reglas de seguridad:
-    - Los evaluados restringidos (Yeimy, los 4 de operaciones) solo pueden consultar
-      su propia fila; el parámetro usuario_evaluado_id es ignorado para ellos.
-    - Pilar puede consultar cualquier evaluado pasando usuario_evaluado_id.
-    - Otros admin sin plantilla asignada solo ven su propia fila de "directivos".
+    - Evaluador externo: SOLO puede consultar la evaluación de Pilar (directivos).
+    - Evaluados restringidos (Yeimy, operaciones): solo pueden consultar su propia fila.
+    - Pilar: puede consultar cualquier evaluado pasando usuario_evaluado_id.
     """
-    correo = _correo_lower(current_admin)
+    pilar_id = _get_pilar_user_id(db)
 
-    # Resolver plantilla
-    target_plantilla = plantilla or _plantilla_por_correo(current_admin) or "directivos"
-
-    # Resolver usuario evaluado
-    if _es_evaluado_restringido(current_admin):
-        # Siempre su propio ID; ignorar cualquier parámetro externo
+    # 1. Caso Evaluador Externo
+    if _es_evaluador_externo(current_admin):
+        if not pilar_id:
+            return None
+        if usuario_evaluado_id and usuario_evaluado_id != pilar_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="El evaluador externo únicamente tiene autorización para consultar la evaluación de la Dirección Administrativa.",
+            )
+        target_user_id = pilar_id
+        target_plantilla = "directivos"
+    # 2. Caso Evaluado Restringido
+    elif _es_evaluado_restringido(current_admin):
         target_user_id = current_admin.id
+        target_plantilla = _plantilla_por_correo(current_admin) or "operaciones"
+    # 3. Caso Pilar consultando a otro evaluado
     elif usuario_evaluado_id and usuario_evaluado_id != current_admin.id:
-        # Solo Pilar puede consultar evaluados ajenos
         if not _es_pilar(current_admin):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tiene permisos para consultar evaluaciones de otros usuarios.",
             )
         target_user_id = usuario_evaluado_id
+        target_plantilla = plantilla or "operaciones"
+    # 4. Caso propio (Pilar u otro usuario)
     else:
         target_user_id = current_admin.id
+        target_plantilla = plantilla or _plantilla_por_correo(current_admin) or "directivos"
 
     stmt = (
         select(EvaluacionDesempeno)
@@ -150,15 +187,20 @@ def obtener_mi_evaluacion(
 @router.post("/autoevaluacion", response_model=EvaluacionDesempenoResponse)
 def enviar_autoevaluacion(
     payload: AutoevaluacionSubmit,
-    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    current_admin: Annotated[Usuario, Depends(get_current_evaluacion_usuario)],
     db: Annotated[Session, Depends(get_db)],
 ):
     """
     Registra el paso de Autoevaluación.
-    El usuario evaluado siempre es el del token (nunca un parámetro del cliente).
-    Valida que todos los ítems de la plantilla estén calificados entre 1 y 4.
+    El usuario evaluado siempre es el del token.
+    El evaluador externo no tiene autoevaluación propia.
     """
-    # Validar que la plantilla enviada corresponda al usuario si tiene una asignada
+    if _es_evaluador_externo(current_admin):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="La cuenta de evaluador externo no diligencia autoevaluación propia.",
+        )
+
     plantilla_esperada = _plantilla_por_correo(current_admin)
     if plantilla_esperada and payload.plantilla and payload.plantilla != plantilla_esperada:
         raise HTTPException(
@@ -197,10 +239,6 @@ def enviar_autoevaluacion(
     )
     fecha_reg = payload.fecha or date.today()
 
-    compromisos_limpios = None
-    if payload.compromisos is not None:
-        compromisos_limpios = [c.strip() for c in payload.compromisos if isinstance(c, str)]
-
     if not evaluacion_reg:
         evaluacion_reg = EvaluacionDesempeno(
             usuario_evaluado_id=current_admin.id,
@@ -208,7 +246,6 @@ def enviar_autoevaluacion(
             cargo=cargo_default,
             fecha=fecha_reg,
             autoevaluacion=auto_data,
-            compromisos=compromisos_limpios,
             estado="autoevaluado",
             autoevaluacion_enviada_por_id=current_admin.id,
             autoevaluacion_enviada_en=ahora,
@@ -218,8 +255,6 @@ def enviar_autoevaluacion(
         evaluacion_reg.autoevaluacion = auto_data
         evaluacion_reg.cargo = cargo_default
         evaluacion_reg.fecha = fecha_reg
-        if compromisos_limpios is not None:
-            evaluacion_reg.compromisos = compromisos_limpios
         evaluacion_reg.autoevaluacion_enviada_por_id = current_admin.id
         evaluacion_reg.autoevaluacion_enviada_en = ahora
         if evaluacion_reg.estado == "borrador":
@@ -234,21 +269,34 @@ def enviar_autoevaluacion(
 @router.post("/evaluacion", response_model=EvaluacionDesempenoResponse)
 def enviar_evaluacion_jefe(
     payload: EvaluacionSubmit,
-    current_admin: Annotated[Usuario, Depends(get_current_admin)],
+    current_admin: Annotated[Usuario, Depends(get_current_evaluacion_usuario)],
     db: Annotated[Session, Depends(get_db)],
 ):
     """
     Registra el paso de Evaluación por parte del jefe/evaluador.
-    SOLO la cuenta de Pilar (pilaradmin@gsbank.com) puede ejecutar este endpoint.
-    Los evaluados restringidos (Yeimy, los 4 de operaciones) son rechazados.
-    Requiere que la autoevaluación del evaluado ya haya sido enviada.
+    - Pilar evalúa a los colaboradores internos.
+    - El evaluador externo evalúa exclusivamente a Pilar.
+    - Al completarse, crea automáticamente la sección independiente de compromisos en estado 'abierto'.
     """
-    # Solo Pilar puede enviar la evaluación del jefe
-    if not _es_pilar(current_admin):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tiene permisos para enviar la evaluación del jefe. Solo la Dirección Administrativa puede realizar este paso.",
-        )
+    pilar_id = _get_pilar_user_id(db)
+    target_plantilla = payload.plantilla or "directivos"
+    target_user_id = payload.usuario_evaluado_id if payload.usuario_evaluado_id is not None else current_admin.id
+
+    # Validar permisos según quién evalúa a quién:
+    if target_user_id == pilar_id:
+        # Pilar como evaluada: puede ser evaluada por el evaluador externo o por Pilar misma
+        if not (_es_evaluador_externo(current_admin) or _es_pilar(current_admin)):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo el evaluador externo asignado (o la Dirección) puede evaluar este perfil.",
+            )
+    else:
+        # Colaboradores evaluados: SOLO Pilar puede evaluarlos
+        if not _es_pilar(current_admin):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tiene permisos para enviar la evaluación del jefe. Solo la Dirección Administrativa puede realizar este paso.",
+            )
 
     nombre_eval = payload.nombre_evaluador.strip()
     if not nombre_eval:
@@ -256,9 +304,6 @@ def enviar_evaluacion_jefe(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El nombre del evaluador es obligatorio para enviar la evaluación.",
         )
-
-    target_plantilla = payload.plantilla or "directivos"
-    target_user_id = payload.usuario_evaluado_id if payload.usuario_evaluado_id is not None else current_admin.id
 
     evaluado_user = db.get(Usuario, target_user_id)
     if evaluado_user:
@@ -289,7 +334,6 @@ def enviar_evaluacion_jefe(
     )
     evaluacion_reg = db.scalar(stmt)
 
-    # Verificar que la autoevaluación fue REALMENTE enviada
     if (
         not evaluacion_reg
         or not evaluacion_reg.autoevaluacion
@@ -302,18 +346,236 @@ def enviar_evaluacion_jefe(
         )
 
     eval_data = {k: v.model_dump() for k, v in payload.evaluacion.items()}
-
-    compromisos_limpios = [c.strip() for c in (payload.compromisos or []) if isinstance(c, str)]
-
     ahora = datetime.utcnow()
+
     evaluacion_reg.evaluacion = eval_data
     evaluacion_reg.nombre_evaluador = nombre_eval
-    if compromisos_limpios:
-        evaluacion_reg.compromisos = compromisos_limpios
     evaluacion_reg.evaluacion_enviada_por_id = current_admin.id
     evaluacion_reg.evaluacion_enviada_en = ahora
     evaluacion_reg.estado = "completado"
 
+    # Creación automática de la sección de compromisos independiente si no existe aún
+    stmt_comp = select(EvaluacionCompromiso).where(EvaluacionCompromiso.evaluacion_id == evaluacion_reg.id)
+    comp_reg = db.scalar(stmt_comp)
+    if not comp_reg:
+        comp_reg = EvaluacionCompromiso(
+            evaluacion_id=evaluacion_reg.id,
+            compromisos=[""] * 8,
+            estado="abierto",
+            nombre_evaluador=nombre_eval,
+            version=1,
+        )
+        db.add(comp_reg)
+
     db.commit()
     db.refresh(evaluacion_reg)
     return evaluacion_reg
+
+
+# ── 4. Endpoints de Sección Independiente de Compromisos ────────────────────
+def _verificar_acceso_compromisos(
+    evaluacion: EvaluacionDesempeno,
+    current_user: Usuario,
+    db: Session,
+) -> tuple[bool, bool]:
+    """
+    Retorna (es_evaluado, es_evaluador_autorizado).
+    Lanza 403 si el usuario no tiene ninguna relación con la evaluación.
+    """
+    pilar_id = _get_pilar_user_id(db)
+    es_evaluado = (current_user.id == evaluacion.usuario_evaluado_id)
+
+    if evaluacion.usuario_evaluado_id == pilar_id:
+        es_evaluador_autorizado = _es_evaluador_externo(current_user) or _es_pilar(current_user)
+    else:
+        es_evaluador_autorizado = _es_pilar(current_user)
+
+    if not (es_evaluado or es_evaluador_autorizado):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tiene permisos para acceder a los compromisos de esta evaluación.",
+        )
+    return es_evaluado, es_evaluador_autorizado
+
+
+@router.get("/compromisos/{evaluacion_id}", response_model=CompromisosResponse)
+def obtener_compromisos(
+    evaluacion_id: int,
+    current_user: Annotated[Usuario, Depends(get_current_evaluacion_usuario)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Obtiene los compromisos de una evaluación completada.
+    Habilitado para evaluador y evaluado.
+    """
+    evaluacion = db.get(EvaluacionDesempeno, evaluacion_id)
+    if not evaluacion:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluación no encontrada.")
+
+    if evaluacion.estado != "completado":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La sección de compromisos solo se habilita cuando la evaluación está completada.",
+        )
+
+    _, es_evaluador = _verificar_acceso_compromisos(evaluacion, current_user, db)
+
+    stmt = select(EvaluacionCompromiso).where(EvaluacionCompromiso.evaluacion_id == evaluacion_id)
+    comp_reg = db.scalar(stmt)
+    if not comp_reg:
+        comp_reg = EvaluacionCompromiso(
+            evaluacion_id=evaluacion.id,
+            compromisos=[""] * 8,
+            estado="abierto",
+            nombre_evaluador=evaluacion.nombre_evaluador,
+            version=1,
+        )
+        db.add(comp_reg)
+        db.commit()
+        db.refresh(comp_reg)
+
+    res = CompromisosResponse.model_validate(comp_reg)
+    res.puede_editar = (comp_reg.estado == "abierto")
+    res.puede_cerrar = (comp_reg.estado == "abierto" and es_evaluador)
+    return res
+
+
+@router.put("/compromisos/{evaluacion_id}", response_model=CompromisosResponse)
+def guardar_compromisos(
+    evaluacion_id: int,
+    payload: CompromisosUpdate,
+    current_user: Annotated[Usuario, Depends(get_current_evaluacion_usuario)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Guarda los compromisos con control de concurrencia optimista (version).
+    Evaluador y evaluado pueden guardar mientras el estado sea 'abierto'.
+    Si otra persona guardó antes (versión desactualizada), responde 409 Conflict.
+    """
+    evaluacion = db.get(EvaluacionDesempeno, evaluacion_id)
+    if not evaluacion:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluación no encontrada.")
+
+    if evaluacion.estado != "completado":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La sección de compromisos solo admite ediciones en evaluaciones completadas.",
+        )
+
+    _, es_evaluador = _verificar_acceso_compromisos(evaluacion, current_user, db)
+
+    stmt_sel = select(EvaluacionCompromiso).where(EvaluacionCompromiso.evaluacion_id == evaluacion_id)
+    comp_reg = db.scalar(stmt_sel)
+    if not comp_reg:
+        comp_reg = EvaluacionCompromiso(
+            evaluacion_id=evaluacion.id,
+            compromisos=[""] * 8,
+            estado="abierto",
+            nombre_evaluador=evaluacion.nombre_evaluador,
+            version=1,
+        )
+        db.add(comp_reg)
+        db.commit()
+        db.refresh(comp_reg)
+
+    if comp_reg.estado != "abierto":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La sección de compromisos está cerrada y se encuentra en modo de solo lectura.",
+        )
+
+    # Actualización atómica condicionada a version y estado abierto
+    stmt_update = (
+        update(EvaluacionCompromiso)
+        .where(
+            EvaluacionCompromiso.evaluacion_id == evaluacion_id,
+            EvaluacionCompromiso.version == payload.version,
+            EvaluacionCompromiso.estado == "abierto",
+        )
+        .values(
+            compromisos=payload.compromisos,
+            version=EvaluacionCompromiso.version + 1,
+            actualizado_en=func.now(),
+        )
+    )
+    result = db.execute(stmt_update)
+    db.commit()
+
+    if result.rowcount == 0:
+        db.refresh(comp_reg)
+        if comp_reg.estado != "abierto":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La sección de compromisos fue cerrada por el evaluador y ya no admite modificaciones.",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Conflicto de concurrencia: la sección fue editada por la otra persona. Por favor recarga para ver los cambios recientes.",
+        )
+
+    db.refresh(comp_reg)
+    res = CompromisosResponse.model_validate(comp_reg)
+    res.puede_editar = (comp_reg.estado == "abierto")
+    res.puede_cerrar = (comp_reg.estado == "abierto" and es_evaluador)
+    return res
+
+
+@router.post("/compromisos/{evaluacion_id}/cerrar", response_model=CompromisosResponse)
+def cerrar_compromisos(
+    evaluacion_id: int,
+    current_user: Annotated[Usuario, Depends(get_current_evaluacion_usuario)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Cierra la sección de compromisos.
+    Solo el evaluador asignado (Pilar para colaboradores, evaluador externo para Pilar)
+    puede cerrar la sección. Queda en solo lectura definitiva.
+    """
+    evaluacion = db.get(EvaluacionDesempeno, evaluacion_id)
+    if not evaluacion:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluación no encontrada.")
+
+    if evaluacion.estado != "completado":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La evaluación debe estar completada para cerrar la sección de compromisos.",
+        )
+
+    _, es_evaluador = _verificar_acceso_compromisos(evaluacion, current_user, db)
+
+    if not es_evaluador:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo el evaluador asignado tiene la potestad de cerrar la sección de compromisos.",
+        )
+
+    stmt_sel = select(EvaluacionCompromiso).where(EvaluacionCompromiso.evaluacion_id == evaluacion_id)
+    comp_reg = db.scalar(stmt_sel)
+    if not comp_reg:
+        comp_reg = EvaluacionCompromiso(
+            evaluacion_id=evaluacion.id,
+            compromisos=[""] * 8,
+            estado="abierto",
+            nombre_evaluador=evaluacion.nombre_evaluador,
+            version=1,
+        )
+        db.add(comp_reg)
+        db.flush()
+
+    if comp_reg.estado == "cerrado":
+        res = CompromisosResponse.model_validate(comp_reg)
+        res.puede_editar = False
+        res.puede_cerrar = False
+        return res
+
+    comp_reg.estado = "cerrado"
+    comp_reg.cerrado_por_id = current_user.id
+    comp_reg.cerrado_en = datetime.utcnow()
+    comp_reg.version = comp_reg.version + 1
+    db.commit()
+    db.refresh(comp_reg)
+
+    res = CompromisosResponse.model_validate(comp_reg)
+    res.puede_editar = False
+    res.puede_cerrar = False
+    return res

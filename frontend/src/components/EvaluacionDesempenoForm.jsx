@@ -7,10 +7,12 @@ import {
     enviarEvaluacion,
 } from '../services/evaluacionDesempeno';
 import './EvaluacionDesempenoForm.css';
+import SeccionCompromisos from './SeccionCompromisos';
 
 export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEvaluadoId, readOnly = false }) {
     const { user: authUser } = useAuth();
     const esPilar = authUser?.correo?.toLowerCase() === 'pilaradmin@gsbank.com';
+    const esEvaluadorExterno = authUser?.rol === 'evaluador_externo';
     const esUsuarioYeimy = authUser?.correo?.toLowerCase() === 'secretaria@gsbsecurity.com';
 
     const correosOperaciones = [
@@ -30,10 +32,15 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
     );
     const plantilla = PLANTILLAS_EVALUACION[activePlantillaId] || PLANTILLAS_EVALUACION['directivos'];
 
-    // Si quien ve la pantalla NO es Pilar, solo ve el paso de autoevaluación (y resumen cuando finalice)
-    const esSoloAuto = !esPilar;
+    // Resolver si el usuario actual es evaluador autorizado para este evaluado
+    // (Pilar para el equipo interno; Evaluador Externo exclusivamente para Pilar)
+    const targetUserId = usuarioEvaluadoId !== undefined
+        ? usuarioEvaluadoId
+        : (user?.id !== undefined ? user.id : (esEvaluadorExterno ? 28 : authUser?.id));
+
+    const esEvaluadorAutorizado = esPilar || (esEvaluadorExterno && targetUserId === 28);
+    const esSoloAuto = !esEvaluadorAutorizado;
     const esContable = activePlantillaId === 'contable';
-    const cantCompromisos = plantilla.compromisos_cantidad || (esSoloAuto ? 8 : 4);
 
     // Total de ítems de la plantilla
     const todosLosItems = useMemo(() => {
@@ -67,12 +74,13 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
     const cedula = user?.cedula || (esContable ? (plantilla.identificacion.cedula_default || '1014202829') : '');
 
     const [fecha, setFecha] = useState(fechaHoy);
-    const [nombreEvaluador, setNombreEvaluador] = useState(() => (esPilar ? 'Pilar Aristizábal' : ''));
+    const [nombreEvaluador, setNombreEvaluador] = useState(() => (
+        esPilar ? 'Pilar Aristizábal' : esEvaluadorExterno ? (authUser?.nombre || '') : ''
+    ));
 
     // Calificaciones: { [numItem]: { calificacion: number, observacion: string } }
     const [autoevaluacion, setAutoevaluacion] = useState({});
     const [evaluacionJefe, setEvaluacionJefe] = useState({});
-    const [compromisos, setCompromisos] = useState(() => Array(cantCompromisos).fill(''));
 
     // Estado del backend
     const [evaluacionGuardada, setEvaluacionGuardada] = useState(null);
@@ -83,7 +91,6 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
     const [faltantesResaltados, setFaltantesResaltados] = useState([]);
     const [generandoPdf, setGenerandoPdf] = useState(false);
 
-    const targetUserId = usuarioEvaluadoId || user?.id || authUser?.id || (esContable ? 34 : 'anon');
     const getStorageKey = (paso) => `draft_evaluacion_${activePlantillaId}_${targetUserId}_${paso}`;
 
     // ── 1. Cargar datos del backend una sola vez al entrar ────────────────────
@@ -115,14 +122,6 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                 );
 
                 if (data) {
-                    if (Array.isArray(data.compromisos) && data.compromisos.length > 0) {
-                        const compArr = [...data.compromisos];
-                        while (compArr.length < cantCompromisos) compArr.push('');
-                        setCompromisos(compArr.slice(0, cantCompromisos));
-                    } else {
-                        setCompromisos(Array(cantCompromisos).fill(''));
-                    }
-
                     if (esSoloAuto) {
                         setPasoActivo('auto');
                     } else if (data.estado === 'completado') {
@@ -135,18 +134,12 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                 } else {
                     // Sin registro en backend: no hay autoevaluación enviada de ESTE evaluado.
                     // Partir de cero y restaurar borrador local por paso si existe.
-                    setCompromisos(Array(cantCompromisos).fill(''));
                     setPasoActivo('auto');
                     try {
                         const rawAuto = localStorage.getItem(getStorageKey('auto'));
                         if (rawAuto) {
                             const draftAuto = JSON.parse(rawAuto);
                             if (draftAuto.autoevaluacion) setAutoevaluacion(draftAuto.autoevaluacion);
-                            if (esSoloAuto && Array.isArray(draftAuto.compromisos)) {
-                                const compArr = [...draftAuto.compromisos];
-                                while (compArr.length < cantCompromisos) compArr.push('');
-                                setCompromisos(compArr.slice(0, cantCompromisos));
-                            }
                         }
                         if (!esSoloAuto) {
                             const rawEval = localStorage.getItem(getStorageKey('eval'));
@@ -154,11 +147,6 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                                 const draftEval = JSON.parse(rawEval);
                                 if (draftEval.evaluacionJefe) setEvaluacionJefe(draftEval.evaluacionJefe);
                                 if (draftEval.nombreEvaluador) setNombreEvaluador(draftEval.nombreEvaluador);
-                                if (Array.isArray(draftEval.compromisos)) {
-                                    const compArr = [...draftEval.compromisos];
-                                    while (compArr.length < cantCompromisos) compArr.push('');
-                                    setCompromisos(compArr.slice(0, cantCompromisos));
-                                }
                             }
                         }
                     } catch (e) {
@@ -178,7 +166,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
         return () => {
             activo = false;
         };
-    }, [activePlantillaId, cantCompromisos, esSoloAuto, usuarioEvaluadoId, targetUserId]);
+    }, [activePlantillaId, esSoloAuto, usuarioEvaluadoId, targetUserId]);
 
     // ── Cálculos derivados del estado del backend ────────────────────────────
     // IMPORTANTE: deben ir ANTES del segundo useEffect que las referencia
@@ -196,28 +184,25 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
     );
     const modoSoloLectura = readOnly || (esSoloAuto ? autoevalEnviada : false);
 
-    // ── 2. Guardar borrador en localStorage en silencio (cero requests) ──────
     useEffect(() => {
         if (cargando) return;
         try {
             if (pasoActivo === 'auto' && !autoevalEnviada) {
                 const draftAuto = {
                     autoevaluacion,
-                    compromisos: esSoloAuto ? compromisos : undefined,
                 };
                 localStorage.setItem(getStorageKey('auto'), JSON.stringify(draftAuto));
             } else if (pasoActivo === 'eval' && !evaluacionCompletada) {
                 const draftEval = {
                     evaluacionJefe,
                     nombreEvaluador,
-                    compromisos,
                 };
                 localStorage.setItem(getStorageKey('eval'), JSON.stringify(draftEval));
             }
         } catch (e) {
             console.warn('Error guardando en localStorage', e);
         }
-    }, [autoevaluacion, evaluacionJefe, nombreEvaluador, compromisos, pasoActivo, cargando, activePlantillaId, targetUserId, esSoloAuto, autoevalEnviada, evaluacionCompletada]);
+    }, [autoevaluacion, evaluacionJefe, nombreEvaluador, pasoActivo, cargando, activePlantillaId, targetUserId, esSoloAuto, autoevalEnviada, evaluacionCompletada]);
 
     // Diccionario activo según el paso
     const califsActivas = pasoActivo === 'auto' ? autoevaluacion : evaluacionJefe;
@@ -338,15 +323,6 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
         }));
     }
 
-    function handleCompromisoChange(idx, val) {
-        if (modoSoloLectura || evaluacionCompletada) return;
-        setCompromisos((prev) => {
-            const next = [...prev];
-            next[idx] = val;
-            return next;
-        });
-    }
-
     // ── Envío de Paso 1: Autoevaluación ──────────────────────────────────────
     async function handleEnviarAutoevaluacion() {
         setErrorMsg('');
@@ -379,7 +355,6 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                 autoevaluacion,
                 cargo,
                 fecha,
-                compromisos: esSoloAuto ? compromisos : undefined,
             });
             setEvaluacionGuardada(res.data);
             setFaltantesResaltados([]);
@@ -442,7 +417,6 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                 usuario_evaluado_id: targetUserId,
                 nombre_evaluador: nombreEvaluador.trim(),
                 evaluacion: evaluacionJefe,
-                compromisos,
             });
             setEvaluacionGuardada(res.data);
             setExitoMsg('✅ Evaluación de desempeño completada y enviada exitosamente.');
@@ -499,7 +473,6 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                 nombreEvaluador,
                 autoevaluacion,
                 evaluacionJefe,
-                compromisos,
                 promediosResumen,
                 evaluacionGuardada,
                 cuentaAutoevaluacion: cuentaPorId(evaluacionGuardada?.autoevaluacion_enviada_por_id),
@@ -518,7 +491,6 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
             if (pasoActivo === 'auto' && !autoevalEnviada) {
                 const draftAuto = {
                     autoevaluacion,
-                    compromisos: esSoloAuto ? compromisos : undefined,
                 };
                 localStorage.setItem(getStorageKey('auto'), JSON.stringify(draftAuto));
                 setExitoMsg('💾 Borrador de autoevaluación guardado exitosamente en este equipo.');
@@ -526,7 +498,6 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                 const draftEval = {
                     evaluacionJefe,
                     nombreEvaluador,
-                    compromisos,
                 };
                 localStorage.setItem(getStorageKey('eval'), JSON.stringify(draftEval));
                 setExitoMsg('💾 Borrador de evaluación guardado exitosamente en este equipo.');
@@ -792,15 +763,16 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                         </table>
                     </div>
 
-                    {/* Compromisos en Resumen */}
-                    <div className="edf-compromisos-resumen">
-                        <h4>{plantilla.compromisos_label}</h4>
-                        <ol className="edf-compromisos-lista">
-                            {compromisos.map((c, i) => (
-                                <li key={i}>{c || <span className="edf-muted">(Sin compromiso registrado)</span>}</li>
-                            ))}
-                        </ol>
-                    </div>
+                    {/* Sección Independiente de Compromisos */}
+                    {evaluacionGuardada && (
+                        <SeccionCompromisos
+                            evaluacionId={evaluacionGuardada.id}
+                            evaluacion={evaluacionGuardada}
+                            colaboradorNombre={nombreEvaluado}
+                            plantillaId={activePlantillaId}
+                            cargo={cargo}
+                        />
+                    )}
                 </div>
             ) : (
                 /* ── FORMULARIO PASO A PASO (Autoevaluación o Evaluación Jefe) ── */
@@ -980,32 +952,6 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                         </div>
                     </div>
 
-                    {/* ── COMPROMISOS GENERADOS ── */}
-                    {(!plantilla.requiere_evaluador || pasoActivo === 'eval' || (esSoloAuto && pasoActivo === 'auto')) && (
-                        <div className="edf-card edf-compromisos-card">
-                            <h3 className="edf-compromisos-title">{plantilla.compromisos_label}</h3>
-                            <p className="edf-compromisos-sub">
-                                {plantilla.requiere_evaluador
-                                    ? `Diligencia los compromisos acordados para el plan de mejoramiento (${cantCompromisos} espacios según formato):`
-                                    : `Registre los compromisos generados (${cantCompromisos} espacios según formato):`}
-                            </p>
-                            <div className="edf-compromisos-grid">
-                                {compromisos.map((comp, idx) => (
-                                    <div key={idx} className="edf-comp-item">
-                                        <span className="edf-comp-num">{idx + 1}</span>
-                                        <textarea
-                                            className="edf-comp-textarea"
-                                            rows={2}
-                                            placeholder={`Compromiso #${idx + 1}...`}
-                                            value={comp}
-                                            onChange={(e) => handleCompromisoChange(idx, e.target.value)}
-                                            disabled={bloqueadoPaso}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     {/* ── BOTONES DE ENVÍO DE CADA PASO ── */}
                     <div className="edf-submit-panel">
