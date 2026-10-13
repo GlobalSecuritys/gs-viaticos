@@ -145,6 +145,20 @@ function formatFecha(isoStr) {
   }
 }
 
+function getIconoDocumento(doc, fallbackIcono = '📄') {
+  const nombre = (doc?.nombre_documento || '').toLowerCase();
+  const url = (doc?.cloudinary_secure_url || '').toLowerCase();
+  const esExcel =
+    nombre.endsWith('.xlsx') ||
+    nombre.endsWith('.xls') ||
+    url.endsWith('.xlsx') ||
+    url.endsWith('.xls') ||
+    url.includes('.xlsx?') ||
+    url.includes('.xls?');
+  if (esExcel) return '📊';
+  return fallbackIcono;
+}
+
 function iniciales(nombre = '') {
   return nombre
     .split(' ')
@@ -315,6 +329,22 @@ export default function CalidadDetalleProceso() {
       showToast('Selecciona un archivo y escribe un nombre para el documento.', 'err');
       return;
     }
+
+    const MAX_MB = 15;
+    const MAX_BYTES = MAX_MB * 1024 * 1024;
+    if (docFile.size > MAX_BYTES) {
+      showToast(`El archivo "${docFile.name}" supera el tamaño máximo permitido de ${MAX_MB} MB.`, 'err');
+      return;
+    }
+
+    const EXTENSIONES_PERMITIDAS = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.bmp', '.tiff', '.xlsx', '.xls'];
+    const nombreArchivo = (docFile.name || '').toLowerCase();
+    const ext = '.' + nombreArchivo.split('.').pop();
+    if (!EXTENSIONES_PERMITIDAS.includes(ext)) {
+      showToast(`Formato no permitido (${ext || 'desconocido'}). Solo se admiten archivos PDF, imágenes o Excel (.xlsx, .xls).`, 'err');
+      return;
+    }
+
     setSubiendoDoc(true);
     try {
       const catFinal = categoriaModal ? categoriaModal.nombre : (docCategoria || 'Procesos');
@@ -802,7 +832,7 @@ export default function CalidadDetalleProceso() {
                               <tr key={doc.id}>
                                 <td>
                                   <div className="sgc-doc-name-cell">
-                                    <span className="sgc-doc-icon">📄</span>
+                                    <span className="sgc-doc-icon">{getIconoDocumento(doc, '📄')}</span>
                                     <a
                                       href={doc.cloudinary_secure_url}
                                       target="_blank"
@@ -970,10 +1000,11 @@ export default function CalidadDetalleProceso() {
             </div>
             <form onSubmit={handleSubirDocumento} className="sgc-modal-form">
               <div className="sgc-form-group">
-                <label>Archivo (PDF, imagen, formato, etc.)</label>
+                <label>Archivo (PDF, Excel .xlsx / .xls, o imagen)</label>
                 <input
                   type="file"
                   required
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.bmp,.tiff,.xlsx,.xls,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,image/*"
                   onChange={(e) => {
                     const f = e.target.files[0];
                     setDocFile(f);
@@ -1259,7 +1290,7 @@ export default function CalidadDetalleProceso() {
                   <div className="sgc-cat-upload-header">
                     <h4>📤 Subir archivo a {categoriaModal.nombre}</h4>
                     <span className="sgc-cat-upload-hint">
-                      Formatos admitidos: PDF, Excel (.xlsx, .xls), Word (.docx), imágenes (.png, .jpg), etc.
+                      Formatos admitidos: PDF, Excel (.xlsx, .xls) e imágenes (.png, .jpg, .webp).
                     </span>
                   </div>
 
@@ -1280,6 +1311,7 @@ export default function CalidadDetalleProceso() {
                           type="file"
                           required
                           className="sgc-file-input-hidden"
+                          accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.bmp,.tiff,.xlsx,.xls,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,image/*"
                           onChange={(e) => {
                             const f = e.target.files[0];
                             setDocFile(f);
@@ -1371,7 +1403,7 @@ export default function CalidadDetalleProceso() {
                             <td>
                               <div className="sgc-doc-name-cell">
                                 <span className="sgc-doc-icon">
-                                  {categoriaModal.icono || '📄'}
+                                  {getIconoDocumento(doc, categoriaModal.icono || '📄')}
                                 </span>
                                 <a
                                   href={doc.cloudinary_secure_url}

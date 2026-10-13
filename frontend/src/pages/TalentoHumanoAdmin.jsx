@@ -22,6 +22,12 @@ const CORREOS_OPERACIONES = [
     'migueladmin@gsbank.com',
 ];
 
+const MAPA_INSIGNIA_PLANTILLA = {
+    contable: 'Procesos Administrativos',
+    directivos: 'Directivos',
+    operaciones: 'Operaciones',
+};
+
 const EVALUADOS_PILAR = [
     {
         id: 'pilar',
@@ -727,6 +733,9 @@ export default function TalentoHumanoAdmin() {
                                 <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap', background: '#F1F5F9', padding: '0.35rem', borderRadius: '10px' }}>
                                     {EVALUADOS_PILAR.map((colab) => {
                                         const esActivo = subTabEvaluacionAdmin === colab.id;
+                                        const textoBadge = MAPA_INSIGNIA_PLANTILLA[colab.plantillaId] || colab.badge;
+                                        const esDirectivos = colab.plantillaId === 'directivos';
+                                        const esContable = colab.plantillaId === 'contable';
                                         return (
                                             <button
                                                 key={colab.id}
@@ -745,6 +754,7 @@ export default function TalentoHumanoAdmin() {
                                                     cursor: 'pointer',
                                                     boxShadow: esActivo ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                                                     transition: 'all 0.15s ease',
+                                                    whiteSpace: 'nowrap',
                                                 }}
                                                 onClick={() => setSubTabEvaluacionAdmin(colab.id)}
                                             >
@@ -755,10 +765,11 @@ export default function TalentoHumanoAdmin() {
                                                     fontWeight: 600,
                                                     padding: '0.1rem 0.38rem',
                                                     borderRadius: '4px',
-                                                    background: colab.badge === 'Directivos' ? '#E0E7FF' : colab.badge === 'Contable' ? '#E0F2FE' : '#FEF3C7',
-                                                    color: colab.badge === 'Directivos' ? '#3730A3' : colab.badge === 'Contable' ? '#0369A1' : '#92400E',
+                                                    whiteSpace: 'nowrap',
+                                                    background: esDirectivos ? '#E0E7FF' : esContable ? '#E0F2FE' : '#FEF3C7',
+                                                    color: esDirectivos ? '#3730A3' : esContable ? '#0369A1' : '#92400E',
                                                 }}>
-                                                    {colab.badge}
+                                                    {textoBadge}
                                                 </span>
                                             </button>
                                         );

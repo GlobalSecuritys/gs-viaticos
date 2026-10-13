@@ -5,7 +5,9 @@ funciones reutilizables para subir archivos.
 """
 
 import asyncio
+import io
 import logging
+import zipfile
 from dataclasses import dataclass
 
 import cloudinary
@@ -317,6 +319,92 @@ async def upload_documento_talento_humano(file: UploadFile) -> CloudinaryUploadR
 
 CALIDAD_PROCESOS_FOLDER = "gs_viaticos/calidad_procesos/documentos"
 
+ALLOWED_CALIDAD_EXTENSIONS = ALLOWED_EXTENSIONS | {".xlsx", ".xls"}
+
+ALLOWED_CALIDAD_CONTENT_TYPES = ALLOWED_CONTENT_TYPES | {
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+    "application/pdf",
+    "application/x-pdf",
+    "application/zip",
+    "application/x-zip-compressed",
+}
+
+OLE2_EXCEL_HEADER = b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"
+
+
+def _is_valid_xlsx(content: bytes) -> bool:
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as zf:
+            return any(name.startswith("xl/") for name in zf.namelist())
+    except Exception:
+        return False
+
+
+def _is_valid_xls(content: bytes) -> bool:
+    return content.startswith(OLE2_EXCEL_HEADER)
+
+
+def _validate_calidad_documento_file(file: UploadFile, content: bytes) -> None:
+    """Valida tipo, formato, firma y tamaño para documentos de Calidad de Procesos (PDF, imágenes y Excel .xlsx/.xls)."""
+    if len(content) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"El archivo '{file.filename}' está vacío.",
+        )
+
+    if len(content) > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"El archivo '{file.filename}' supera el tamaño máximo "
+                f"de {MAX_FILE_SIZE_BYTES // (1024 * 1024)} MB."
+            ),
+        )
+
+    content_type = (file.content_type or "").lower().strip()
+    filename = (file.filename or "").lower().strip()
+    ext = "." + filename.split(".")[-1] if "." in filename else ""
+
+    # Extensión permitida: PDF, imágenes y Excel (.xlsx, .xls)
+    if ext not in ALLOWED_CALIDAD_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Tipo de archivo no permitido ({file.filename or file.content_type}). "
+                "Por favor adjunta un documento PDF, una imagen (JPG, PNG, WEBP) o una hoja de cálculo Excel (.xlsx, .xls)."
+            ),
+        )
+
+    # Content-Type permitido
+    es_content_type_valido = (
+        content_type in ALLOWED_CALIDAD_CONTENT_TYPES
+        or content_type.startswith("image/")
+        or content_type in ("application/pdf", "application/x-pdf")
+    )
+    if not es_content_type_valido:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Tipo MIME no permitido ({file.content_type}). "
+                "Por favor adjunta un documento PDF, una imagen (JPG, PNG, WEBP) o una hoja de cálculo Excel (.xlsx, .xls)."
+            ),
+        )
+
+    # Validación de contenido real para Excel
+    if ext == ".xlsx":
+        if not _is_valid_xlsx(content):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El archivo no corresponde a un documento Excel (.xlsx) válido o su contenido no coincide.",
+            )
+    elif ext == ".xls":
+        if not _is_valid_xls(content):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El archivo no corresponde a un documento Excel (.xls) binario válido o su cabecera no coincide.",
+            )
+
 
 def _upload_calidad_procesos_sync(content: bytes) -> dict:
     return cloudinary.uploader.upload(
@@ -331,10 +419,10 @@ def _upload_calidad_procesos_sync(content: bytes) -> dict:
 
 async def upload_documento_calidad_procesos(file: UploadFile) -> CloudinaryUploadResult:
     """
-    Sube un documento de Calidad de Procesos (PDF, DOCX, XLSX, JPG, PNG, etc.) a Cloudinary.
+    Sube un documento de Calidad de Procesos (PDF, imagen o Excel .xlsx/.xls) a Cloudinary.
     """
     content = await file.read()
-    _validate_cuenta_cobro_file(file, content)
+    _validate_calidad_documento_file(file, content)
 
     try:
         result = await asyncio.to_thread(_upload_calidad_procesos_sync, content)
