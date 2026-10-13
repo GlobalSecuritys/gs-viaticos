@@ -54,7 +54,12 @@ export default function SeccionCompromisos({
             setPuedeEditar(Boolean(data.puede_editar));
             setPuedeCerrar(Boolean(data.puede_cerrar));
         } catch (err) {
-            const msg = err.response?.data?.detail || 'No se pudo cargar la sección de compromisos.';
+            let msg = err.response?.data?.detail;
+            if (msg === 'Not Found' || err.response?.status === 404) {
+                msg = 'El servidor terminó o está completando el despliegue. Haz clic en "Reintentar" para cargar los compromisos.';
+            } else if (!msg) {
+                msg = 'No se pudo cargar la sección de compromisos.';
+            }
             setErrorMsg(msg);
         } finally {
             setCargando(false);
@@ -206,6 +211,9 @@ export default function SeccionCompromisos({
                         <span>❌</span>
                         <div>{errorMsg}</div>
                     </div>
+                    <button type="button" className="sc-btn-reload" onClick={cargarDatos} style={{ marginLeft: 'auto' }}>
+                        ↻ Reintentar
+                    </button>
                 </div>
             )}
 

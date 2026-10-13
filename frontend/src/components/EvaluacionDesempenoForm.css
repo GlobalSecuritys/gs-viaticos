@@ -927,6 +927,19 @@
     border-top: 2px solid #e2e8f0;
 }
 
+/* Filas con baja puntuación (calificación 1 o 2 en autoevaluación o jefe) */
+.edf-tr-baja td {
+    background-color: rgba(220, 38, 38, 0.06);
+}
+
+.edf-tr-baja:hover td {
+    background-color: rgba(220, 38, 38, 0.09);
+}
+
+.edf-tr-baja td:first-child {
+    border-left: 3px solid rgba(220, 38, 38, 0.55);
+}
+
 .edf-td-num {
     font-weight: 700;
     color: #64748b;

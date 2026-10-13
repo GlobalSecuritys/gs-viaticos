@@ -109,7 +109,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                 // reutiliza la instancia si no hay key) contaminen "Enviada" y el paso de jefe.
                 setEvaluacionGuardada(data || null);
                 setAutoevaluacion(data?.autoevaluacion || {});
-                setEvaluacionJefe(!esSoloAuto && data?.evaluacion ? data.evaluacion : {});
+                setEvaluacionJefe((!esSoloAuto || data?.estado === 'completado') && data?.evaluacion ? data.evaluacion : {});
                 setNombreEvaluador(data?.nombre_evaluador || (esPilar ? 'Pilar Aristizábal' : ''));
                 setFecha(data?.fecha ? String(data.fecha) : fechaHoy);
                 setFaltantesResaltados([]);
@@ -122,10 +122,10 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                 );
 
                 if (data) {
-                    if (esSoloAuto) {
-                        setPasoActivo('auto');
-                    } else if (data.estado === 'completado') {
+                    if (data.estado === 'completado') {
                         setPasoActivo('resumen');
+                    } else if (esSoloAuto) {
+                        setPasoActivo('auto');
                     } else if (autoRealEnviada) {
                         setPasoActivo('eval');
                     } else {
@@ -182,7 +182,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
     const puedeDescargarPdf = esPilar && autoevalEnviada && evaluacionCompletada && Boolean(
         evaluacionGuardada?.evaluacion_enviada_en && evaluacionGuardada?.evaluacion_enviada_por_id
     );
-    const modoSoloLectura = readOnly || (esSoloAuto ? autoevalEnviada : false);
+    const modoSoloLectura = readOnly || (esSoloAuto ? (autoevalEnviada || pasoActivo === 'eval') : evaluacionCompletada);
 
     useEffect(() => {
         if (cargando) return;
@@ -192,7 +192,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                     autoevaluacion,
                 };
                 localStorage.setItem(getStorageKey('auto'), JSON.stringify(draftAuto));
-            } else if (pasoActivo === 'eval' && !evaluacionCompletada) {
+            } else if (pasoActivo === 'eval' && !evaluacionCompletada && !esSoloAuto) {
                 const draftEval = {
                     evaluacionJefe,
                     nombreEvaluador,
@@ -274,7 +274,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
 
     // ── Handlers de interacción ──────────────────────────────────────────────
     function handleCalificar(itemNumero, valor) {
-        if (modoSoloLectura) return;
+        if (modoSoloLectura || (esSoloAuto && pasoActivo === 'eval')) return;
         setFaltantesResaltados((prev) => prev.filter((n) => n !== itemNumero));
         if (pasoActivo === 'auto') {
             setAutoevaluacion((prev) => ({
@@ -285,6 +285,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                 },
             }));
         } else if (pasoActivo === 'eval') {
+            if (esSoloAuto) return;
             setEvaluacionJefe((prev) => ({
                 ...prev,
                 [itemNumero]: {
@@ -296,7 +297,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
     }
 
     function handleObservacion(itemNumero, texto) {
-        if (modoSoloLectura) return;
+        if (modoSoloLectura || (esSoloAuto && pasoActivo === 'eval')) return;
         if (pasoActivo === 'auto') {
             setAutoevaluacion((prev) => ({
                 ...prev,
@@ -306,6 +307,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                 },
             }));
         } else if (pasoActivo === 'eval') {
+            if (esSoloAuto) return;
             setEvaluacionJefe((prev) => ({
                 ...prev,
                 [itemNumero]: {
@@ -383,6 +385,10 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
 
     // ── Envío de Paso 2: Evaluación (solo plantillas con jefe) ────────────────
     async function handleEnviarEvaluacionJefe() {
+        if (esSoloAuto) {
+            setErrorMsg('No tiene permisos para enviar la evaluación del jefe.');
+            return;
+        }
         setErrorMsg('');
         setExitoMsg('');
 
@@ -447,7 +453,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
 
     const seccionActual = plantilla.secciones[seccionActivaIdx];
     const esJefeViendoAutoColaborador = esPilar && targetUserId !== authUser?.id && pasoActivo === 'auto';
-    const bloqueadoPaso = modoSoloLectura || esJefeViendoAutoColaborador || (pasoActivo === 'auto' && autoevalEnviada) || (pasoActivo === 'eval' && evaluacionCompletada);
+    const bloqueadoPaso = modoSoloLectura || esJefeViendoAutoColaborador || (pasoActivo === 'auto' && autoevalEnviada) || (pasoActivo === 'eval' && (evaluacionCompletada || esSoloAuto));
 
     // Cuenta que envió cada paso, resuelta con lo que ya hay en pantalla (sin consultar el backend)
     function cuentaPorId(id) {
@@ -494,7 +500,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                 };
                 localStorage.setItem(getStorageKey('auto'), JSON.stringify(draftAuto));
                 setExitoMsg('💾 Borrador de autoevaluación guardado exitosamente en este equipo.');
-            } else if (pasoActivo === 'eval' && !evaluacionCompletada) {
+            } else if (pasoActivo === 'eval' && !evaluacionCompletada && !esSoloAuto) {
                 const draftEval = {
                     evaluacionJefe,
                     nombreEvaluador,
@@ -586,15 +592,20 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                         <div className="edf-id-field">
                             <label className="edf-field-label">
                                 {plantilla.identificacion.evaluador_label}
-                                {pasoActivo === 'eval' && <span className="edf-req">*</span>}
+                                {pasoActivo === 'eval' && !esSoloAuto && <span className="edf-req">*</span>}
                             </label>
                             <input
                                 type="text"
-                                className="edf-input"
+                                className={`edf-input ${esSoloAuto || evaluacionCompletada ? 'edf-input--readonly' : ''}`}
                                 placeholder="Nombre y apellido del evaluador"
                                 value={nombreEvaluador}
-                                onChange={(e) => setNombreEvaluador(e.target.value)}
-                                disabled={evaluacionCompletada}
+                                onChange={(e) => {
+                                    if (!esSoloAuto && !evaluacionCompletada) {
+                                        setNombreEvaluador(e.target.value);
+                                    }
+                                }}
+                                disabled={evaluacionCompletada || esSoloAuto}
+                                readOnly={evaluacionCompletada || esSoloAuto}
                             />
                         </div>
                     )}
@@ -616,14 +627,27 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                         </span>
                     </button>
                     {evaluacionCompletada && (
-                        <button
-                            type="button"
-                            className={`edf-step-btn ${pasoActivo === 'resumen' ? 'edf-step-btn--active' : ''}`}
-                            onClick={() => setPasoActivo('resumen')}
-                        >
-                            <span className="edf-step-num">📊</span>
-                            <span className="edf-step-label">Cuadro Consolidado Final</span>
-                        </button>
+                        <>
+                            <button
+                                type="button"
+                                className={`edf-step-btn ${pasoActivo === 'eval' ? 'edf-step-btn--active' : ''} edf-step-btn--completed`}
+                                onClick={() => setPasoActivo('eval')}
+                            >
+                                <span className="edf-step-num">2</span>
+                                <span className="edf-step-label">
+                                    Evaluación (Jefe)
+                                    <span className="edf-check">✓ Completada (Solo lectura)</span>
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                className={`edf-step-btn ${pasoActivo === 'resumen' ? 'edf-step-btn--active' : ''}`}
+                                onClick={() => setPasoActivo('resumen')}
+                            >
+                                <span className="edf-step-num">📊</span>
+                                <span className="edf-step-label">Cuadro Consolidado Final</span>
+                            </button>
+                        </>
                     )}
                 </div>
             ) : (
@@ -736,8 +760,12 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                                             const obsAuto = autoevaluacion[it.numero]?.observacion;
                                             const obsJefe = evaluacionJefe[it.numero]?.observacion;
 
+                                            const vAuto = typeof cAuto === 'number' ? cAuto : Number(cAuto);
+                                            const vJefe = typeof cJefe === 'number' ? cJefe : Number(cJefe);
+                                            const esBaja = (vAuto === 1 || vAuto === 2 || vJefe === 1 || vJefe === 2);
+
                                             return (
-                                                <tr key={`res-${it.numero}`}>
+                                                <tr key={`res-${it.numero}`} className={esBaja ? 'edf-tr-baja' : ''}>
                                                     <td className="edf-td-num">{it.numero}</td>
                                                     <td>
                                                         <div className="edf-td-factor-txt">{it.texto}</div>
@@ -809,9 +837,9 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
 
                         <div className="edf-live-avg">
                             <span className="edf-avg-label">
-                                {esSoloAuto
+                                {pasoActivo === 'auto'
                                     ? 'Promedio Autoevaluación:'
-                                    : (pasoActivo === 'auto' ? 'Promedio Autoevaluación:' : 'Promedio Evaluación Jefe:')}
+                                    : 'Promedio Evaluación Jefe:'}
                             </span>
                             <span className="edf-avg-val">{promedioTotalPaso}</span>
                             <span className="edf-avg-scale">/ 4.00</span>
@@ -982,7 +1010,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                                             <strong>{evaluacionGuardada?.autoevaluacion_enviada_en ? new Date(evaluacionGuardada.autoevaluacion_enviada_en).toLocaleDateString() : 'recientemente'}</strong>.
                                             {esSoloAuto ? ' El formulario se encuentra en modo solo lectura.' : ''}
                                         </span>
-                                        {!esSoloAuto && (
+                                        {(!esSoloAuto || evaluacionCompletada) && (
                                             <button
                                                 type="button"
                                                 className="edf-btn-primary"
@@ -1037,7 +1065,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                             <div className="edf-submit-wrap">
                                 {evaluacionCompletada ? (
                                     <div className="edf-already-sent">
-                                        <span>✓ La evaluación completa ya fue enviada.</span>
+                                        <span>✓ La evaluación completa ya fue enviada.{esSoloAuto ? ' Se encuentra en modo solo lectura.' : ''}</span>
                                         <button
                                             type="button"
                                             className="edf-btn-primary"
@@ -1046,7 +1074,7 @@ export default function EvaluacionDesempenoForm({ user, plantillaId, usuarioEval
                                             Ver Cuadro Consolidado Final →
                                         </button>
                                     </div>
-                                ) : (
+                                ) : !esSoloAuto && (
                                     <div className="edf-submit-row">
                                         <div className="edf-submit-info">
                                             <span>Ítems de evaluación: <strong>{cantCalificadosPaso} de {totalItemsCount}</strong></span>
