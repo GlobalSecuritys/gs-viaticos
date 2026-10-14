@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models.evaluacion_desempeno import EvaluacionCompromiso, EvaluacionDesempeno
+from app.models.log_auditoria import LogAuditoria
 from app.models.usuario import Usuario
 from app.schemas.evaluacion_desempeno import (
     AutoevaluacionSubmit,
@@ -75,10 +76,11 @@ def get_current_evaluacion_usuario(
     current_user: Annotated[Usuario, Depends(get_current_user)]
 ) -> Usuario:
     """
-    Permite acceso tanto a superadministradores internos como al rol evaluador_externo
-    destinado a evaluar a Pilar.
+    Permite acceso a:
+    - superadmin / evaluador_externo  (acceso completo o evaluación de Pilar)
+    - tecnico                         (solo su propia autoevaluación y compromisos)
     """
-    if current_user.rol not in ("superadmin", "evaluador_externo"):
+    if current_user.rol not in ("superadmin", "evaluador_externo", "tecnico"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tiene permisos para acceder al módulo de evaluación de desempeño.",
@@ -98,14 +100,60 @@ def _es_evaluador_externo(usuario: Usuario) -> bool:
     return usuario.rol == "evaluador_externo"
 
 
+def _es_tecnico(usuario: Usuario) -> bool:
+    """True si el usuario es un técnico de planta (rol='tecnico')."""
+    return usuario.rol == "tecnico"
+
+
 def _plantilla_por_correo(usuario: Usuario) -> Optional[str]:
     """Devuelve la plantilla asignada a este correo, o None si no tiene asignada."""
     return _CORREO_PLANTILLA.get(_correo_lower(usuario))
 
 
 def _es_evaluado_restringido(usuario: Usuario) -> bool:
-    """True si el usuario solo puede ver/enviar SU PROPIA autoevaluación."""
-    return _correo_lower(usuario) in _CORREO_PLANTILLA
+    """True si el usuario solo puede ver/enviar SU PROPIA autoevaluación.
+
+    Cubre dos grupos:
+    1. Administrativos con correo en _CORREO_PLANTILLA (Yeimy, Luisa, Claudia…)
+    2. Técnicos de planta (rol='tecnico') — plantilla resuelta por rol, no por correo.
+    """
+    return _correo_lower(usuario) in _CORREO_PLANTILLA or _es_tecnico(usuario)
+
+
+def _plantilla_para_usuario(usuario: Usuario) -> Optional[str]:
+    """Resuelve la plantilla de un usuario evaluado restringido.
+
+    - Técnicos: plantilla 'tecnico' (sin consultar BD, solo por rol).
+    - Administrativos con correo hardcodeado: desde _CORREO_PLANTILLA.
+    """
+    if _es_tecnico(usuario):
+        return "tecnico"
+    return _plantilla_por_correo(usuario)
+
+
+def _registrar_auditoria(
+    db: Session,
+    actor: Usuario,
+    accion: str,
+    detalle: str,
+    usuario_objetivo: Optional[Usuario] = None,
+) -> None:
+    """Escribe una entrada en logs_auditoria de forma no bloqueante (best-effort)."""
+    try:
+        log = LogAuditoria(
+            actor_id=actor.id,
+            actor_nombre=actor.nombre,
+            actor_rol=actor.rol,
+            usuario_objetivo_id=usuario_objetivo.id if usuario_objetivo else None,
+            usuario_objetivo_nombre=usuario_objetivo.nombre if usuario_objetivo else None,
+            accion=accion,
+            detalle=detalle,
+            resultado="ok",
+        )
+        db.add(log)
+        # No commit aquí — se consolida junto con la transacción principal
+    except Exception:
+        pass  # El log nunca debe bloquear la operación real
 
 
 def _get_pilar_user_id(db: Session) -> Optional[int]:
@@ -142,10 +190,10 @@ def obtener_mi_evaluacion(
             )
         target_user_id = pilar_id
         target_plantilla = "directivos"
-    # 2. Caso Evaluado Restringido
+    # 2. Caso Evaluado Restringido (administrativos por correo + tecnicos por rol)
     elif _es_evaluado_restringido(current_admin):
         target_user_id = current_admin.id
-        target_plantilla = _plantilla_por_correo(current_admin) or "operaciones"
+        target_plantilla = _plantilla_para_usuario(current_admin) or "operaciones"
     # 3. Caso Pilar consultando a otro evaluado
     elif usuario_evaluado_id and usuario_evaluado_id != current_admin.id:
         if not _es_pilar(current_admin):
@@ -201,7 +249,7 @@ def enviar_autoevaluacion(
             detail="La cuenta de evaluador externo no diligencia autoevaluación propia.",
         )
 
-    plantilla_esperada = _plantilla_por_correo(current_admin)
+    plantilla_esperada = _plantilla_para_usuario(current_admin)
     if plantilla_esperada and payload.plantilla and payload.plantilla != plantilla_esperada:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -235,6 +283,7 @@ def enviar_autoevaluacion(
     cargo_default = payload.cargo or (
         "AUXILIAR CONTABLE " if target_plantilla == "contable"
         else "AUXILIAR DE OPERACIONES" if target_plantilla == "operaciones"
+        else "TECNICO DE PLANTA" if target_plantilla == "tecnico"
         else "DIRECTORA ADMINSITRATIVA "
     )
     fecha_reg = payload.fecha or date.today()
@@ -262,6 +311,18 @@ def enviar_autoevaluacion(
 
     db.commit()
     db.refresh(evaluacion_reg)
+
+    # Registro en auditoría para técnicos
+    if _es_tecnico(current_admin) or _es_evaluado_restringido(current_admin):
+        _registrar_auditoria(
+            db,
+            actor=current_admin,
+            accion="autoevaluacion_enviada",
+            detalle=f"Plantilla '{target_plantilla}' — evaluacion_id={evaluacion_reg.id}",
+            usuario_objetivo=current_admin,
+        )
+        db.commit()
+
     return evaluacion_reg
 
 
@@ -281,6 +342,13 @@ def enviar_evaluacion_jefe(
     pilar_id = _get_pilar_user_id(db)
     target_plantilla = payload.plantilla or "directivos"
     target_user_id = payload.usuario_evaluado_id if payload.usuario_evaluado_id is not None else current_admin.id
+
+    # Los técnicos no pueden enviar la evaluación del jefe (solo autoevaluación)
+    if _es_tecnico(current_admin):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Los técnicos solo pueden diligenciar su autoevaluación. La evaluación del jefe la realiza la Dirección Administrativa.",
+        )
 
     # Validar permisos según quién evalúa a quién:
     if target_user_id == pilar_id:
@@ -307,7 +375,7 @@ def enviar_evaluacion_jefe(
 
     evaluado_user = db.get(Usuario, target_user_id)
     if evaluado_user:
-        plantilla_esperada = _plantilla_por_correo(evaluado_user)
+        plantilla_esperada = _plantilla_para_usuario(evaluado_user)
         if plantilla_esperada and target_plantilla != plantilla_esperada:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -572,6 +640,17 @@ def cerrar_compromisos(
     comp_reg.cerrado_por_id = current_user.id
     comp_reg.cerrado_en = datetime.utcnow()
     comp_reg.version = comp_reg.version + 1
+
+    # Registro en auditoría (técnicos y administrativos evaluados)
+    evaluado_user = db.get(Usuario, evaluacion.usuario_evaluado_id)
+    _registrar_auditoria(
+        db,
+        actor=current_user,
+        accion="compromisos_cerrados",
+        detalle=f"Evaluación ID {evaluacion.id} — compromisos cerrados definitivamente",
+        usuario_objetivo=evaluado_user,
+    )
+
     db.commit()
     db.refresh(comp_reg)
 

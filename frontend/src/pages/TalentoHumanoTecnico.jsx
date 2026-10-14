@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import TecnicoLayout from '../components/TecnicoLayout';
+import EvaluacionDesempenoForm from '../components/EvaluacionDesempenoForm';
 import { formatFechaLarga, iniciales } from '../utils/personal';
 import { formatApiError } from '../utils/formatError';
 import { irAtras } from '../utils/navigation';
@@ -19,6 +20,7 @@ export default function TalentoHumanoTecnico() {
 
     // Modales de autoservicio
     const [modalAbierto, setModalAbierto] = useState(null); // 'info_laboral', 'documentos', 'solicitudes', 'vacaciones', 'formacion', 'evaluaciones', 'comunicaciones', 'solicitar_actualizacion'
+    const [expandidoEval, setExpandidoEval] = useState(false);
     const [tipoSolicitud, setTipoSolicitud] = useState('actualizacion_datos');
     const [asuntoSolicitud, setAsuntoSolicitud] = useState('');
     const [mensajeSolicitud, setMensajeSolicitud] = useState('');
@@ -726,22 +728,68 @@ export default function TalentoHumanoTecnico() {
             )}
 
             {modalAbierto === 'evaluaciones' && (
-                <div className="tht-modal-overlay">
-                    <div className="tht-modal-card">
-                        <div className="tht-modal-header">
-                            <h3 className="tht-modal-title">Evaluaciones de Desempeño</h3>
-                            <button className="tht-modal-close" onClick={() => setModalAbierto(null)}>×</button>
-                        </div>
-                        <div className="tht-modal-body">
-                            <div style={{ background: '#F8FAFC', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '1rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <strong style={{ fontSize: '0.9rem', color: 'var(--color-navy-dark)' }}>Evaluación Semestral 2026-1</strong>
-                                    <span style={{ color: '#D4AF37', fontWeight: 800 }}>★ 4.8 / 5.0</span>
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(10, 30, 60, 0.55)',
+                        zIndex: 1000,
+                        overflowY: 'auto',
+                        padding: expandidoEval ? '0' : '1.5rem 1rem',
+                        display: expandidoEval ? 'flex' : 'block',
+                        flexDirection: 'column',
+                    }}
+                    onClick={(e) => { if (e.target === e.currentTarget) setModalAbierto(null); }}
+                >
+                    <div style={{
+                        maxWidth: expandidoEval ? '100%' : '900px',
+                        width: expandidoEval ? '100%' : undefined,
+                        flex: expandidoEval ? 1 : undefined,
+                        margin: expandidoEval ? 0 : '0 auto',
+                        background: '#FFFFFF',
+                        borderRadius: expandidoEval ? 0 : '14px',
+                        boxShadow: expandidoEval ? 'none' : '0 20px 60px rgba(0,0,0,0.25)',
+                        overflow: 'hidden',
+                        display: expandidoEval ? 'flex' : 'block',
+                        flexDirection: 'column',
+                        minHeight: expandidoEval ? '100vh' : undefined,
+                    }}>
+                        {/* Header del overlay */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid #E2E8F0', background: 'linear-gradient(135deg, #1D63C8 0%, #0A3A60 100%)', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span style={{ fontSize: '1.3rem' }}>⭐</span>
+                                <div>
+                                    <h3 style={{ color: '#FFFFFF', fontSize: '1rem', fontWeight: 800, margin: 0 }}>Evaluación de Desempeño</h3>
+                                    <p style={{ color: '#BFDBFE', fontSize: '0.78rem', margin: 0 }}>Completa tu autoevaluación y revisa tus compromisos</p>
                                 </div>
-                                <p style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.35rem' }}>
-                                    Excelente cumplimiento de asignaciones técnicas, legalizaciones a tiempo y trato profesional con clientes corporativos.
-                                </p>
                             </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                {/* Botón expandir / contraer */}
+                                <button
+                                    onClick={() => setExpandidoEval((v) => !v)}
+                                    title={expandidoEval ? 'Contraer ventana' : 'Expandir a pantalla completa'}
+                                    style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#FFFFFF', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}
+                                >
+                                    {expandidoEval ? '⊡' : '⛶'}
+                                </button>
+                                {/* Botón cerrar */}
+                                <button
+                                    onClick={() => { setModalAbierto(null); setExpandidoEval(false); }}
+                                    title="Cerrar"
+                                    style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#FFFFFF', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        </div>
+                        {/* Formulario real de evaluación */}
+                        <div style={{ padding: '0 1.5rem', flex: expandidoEval ? 1 : undefined, overflowY: expandidoEval ? 'auto' : undefined }}>
+                            <EvaluacionDesempenoForm
+                                key={`edf-tecnico-${user?.id}`}
+                                user={user}
+                                plantillaId="tecnico"
+                                usuarioEvaluadoId={user?.id}
+                            />
                         </div>
                     </div>
                 </div>
