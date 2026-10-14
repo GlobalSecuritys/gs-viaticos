@@ -31,7 +31,7 @@ Columnas relevantes de `usuarios`:
 
 | Rol en BD | UI muestra | Creado/validado en | Qué puede hacer (verificado) |
 |---|---|---|---|
-| **`tecnico`** | "Técnico" | Creación: `admin.py:77` (panel) y `auth.py` `/auth/registro` (autoregistro, `rol="tecnico"`). Validación: `schemas/usuario.py:40-41` | Ver su dashboard de viáticos, crear sus propios viáticos y evidencias (`viaticos.py` usa `get_current_user`), consultar sus asignaciones activas (`asignaciones.py` → `router_tecnico`), registrar movimientos de inventario (`inventario.py`), ver su perfil en Talento Humano (`talento_humano.py` `/me`), acceder al Hub y al Mapa SGC en modo lector. **No** puede: entrar a rutas admin (`AdminRoute.jsx`), ver KPIs de administración, gestionar usuarios. |
+| **`tecnico`** | "Técnico" | Creación: `admin.py:77` (panel) y `auth.py` `/auth/registro` (autoregistro, `rol="tecnico"`). Validación: `schemas/usuario.py:40-41` | Ver su dashboard de viáticos, crear sus propios viáticos y evidencias (`viaticos.py` usa `get_current_user`), consultar sus asignaciones activas (`asignaciones.py` → `router_tecnico`), registrar movimientos de inventario (`inventario.py`), ver su perfil en Talento Humano (`talento_humano.py` `/me`), **diligenciar su autoevaluación de desempeño con plantilla `tecnico`** (`evaluacion_desempeno.py:75-88` admite `rol='tecnico'`; ver §4.10.1), acceder al Hub y al Mapa SGC en modo lector. **No** puede: entrar a rutas admin (`AdminRoute.jsx`), ver KPIs de administración, gestionar usuarios, enviar el Paso 2 de evaluación (403 en `evaluacion_desempeno.py:346-351`). |
 | **`superadmin`** | "Administrador" | Es el único rol que `get_current_admin` acepta (`security.py:95`). Validación: `schemas/usuario.py:38-39,103-104` | Paneles admin/dashboard de viáticos y demás módulos aptos, gestión de usuarios, ver auditoría, respaldos, calidad de procesos, supervisión de inventario, talento humano. Es el objetivo de los "Accesos por Proceso" (ver §5). |
 | **`admin`** | (no debería existir) | **Ya no se crea ni valida** salvo referencias residuales (ver §6). | Eliminado del sistema. `main.py:81-116` y `schemas/usuario.py:28,38,103` lo convierten en `superadmin` al detectarlo. |
 
@@ -106,6 +106,8 @@ En cada startup (`main.py:45-77`) se crean por `checkfirst` las tablas de Cuenta
 | `inventario_movimientos` | `inventario.py:83` | Kardex inmutable; tipos `ajuste_inicial/compra/devolucion` (entrada) y `salida` (`inventario.py:13-15`); `origen` reserva `foto_ia` (mig. 0015). |
 | `procesos_calidad` (+ responsables, documentos, accesos_admin) | `calidad_procesos.py` | Mapa SGC + responsable + documentos + niveles de acceso por proceso. |
 | `empleados_perfil`, `empleados_documentos`, `empleados_historial`, `empleados_solicitudes`, `empleados_dotaciones`, `empleados_evaluaciones` | `talento_humano.py` | Módulo Talento Humano (perfil, documentos, historial, solicitudes, dotación/EPP, evaluaciones 1-5⭐). |
+| `evaluaciones_desempeno` | `evaluacion_desempeno.py:12` (mig. `0021`) | Evaluación AD-FR-06. **Una fila por evaluación** (no por ítem); `autoevaluacion` y `evaluacion` son JSON indexado por número de ítem (`{"1.1": {"calificacion": 1-4, "observacion": ""}}`). Estados: `borrador` → `autoevaluado` → `completado`. Trazabilidad de envío en `*_enviada_por_id` / `*_enviada_en`. La columna `compromisos` es legacy (sin uso desde mig. `0023`). |
+| `evaluaciones_compromisos` | `evaluacion_desempeno.py:74` (mig. `0023`) | Sección 5 de compromisos, 1:1 con la evaluación (`unique`). Exactamente **8 compromisos** (strings, máx. 500 c/u). Estados `abierto` → `cerrado`, concurrencia optimista con `version`, cierre exclusivo del evaluador. |
 
 ---
 
@@ -243,6 +245,51 @@ Control de acceso declarado en el docstring (`inventario.py:1-10`): captura/cons
 | `GET /talento-humano/empleados/{usuario_id}/evaluaciones` | `1111` | Lista evaluaciones. |
 | `POST /talento-humano/empleados/{usuario_id}/evaluaciones` | `1134` | Crea evaluación (1-5⭐). |
 | `DELETE /talento-humano/empleados/{usuario_id}/evaluaciones/{evaluacion_id}` | `1199` | Elimina evaluación. |
+
+### 4.10 Evaluación de Desempeño AD-FR-06 — `/evaluaciones-desempeno` (`evaluacion_desempeno.py`)
+
+Digitalización del formato documental **AD-FR-06** (2 versiones en `plantillas_evaluacion.json`): autoevaluación + evaluación del jefe, escala **1 a 4** por ítem (4 Muy bueno / 3 Bueno / 2 Aceptable-Medio / 1 Pobre), con observación opcional por ítem, promedios calculados en el frontend y sección de 8 compromisos. **No confundir con las evaluaciones 1-5⭐ de §4.9** (`empleados_evaluaciones`): son módulos y tablas distintas.
+
+**Plantillas** — 4 plantillas idénticas en backend (`backend/app/core/plantillas_evaluacion.json`) y frontend (`frontend/src/data/plantillasEvaluacion.js`; verificado byte-a-byte, mantener sincronizadas a mano):
+
+| Plantilla | Perfil | Ítems (5 secciones) |
+|---|---|---|
+| `directivos` | Pilar Aristizábal (Dirección Administrativa) | 25 |
+| `contable` | Yeimy Rocio Riaño (`secretaria@gsbsecurity.com`) | 22 |
+| `operaciones` | Auxiliares de operaciones (4 correos) | 22 |
+| `tecnico` | **Técnicos de planta (`rol='tecnico'`)** — "OPERATIVOS (TECNICO PLANTA)" | 22 |
+
+**Endpoints** (prefix `/evaluaciones-desempeno`, registrado `main.py:290`):
+
+| Endpoint | Línea | Protección / notas |
+|---|---|---|
+| `GET /mi-evaluacion` | `165` | `get_current_evaluacion_usuario` (`:75`, admite `superadmin`, `evaluador_externo`, **`tecnico`**). Devuelve la fila propia (o la de un evaluado si quien consulta es Pilar). |
+| `POST /autoevaluacion` | `235` | Paso 1. Exige **todos** los ítems de la plantilla (`_obtener_items_requeridos`, `:43`). Crea/actualiza la fila → estado `autoevaluado`. |
+| `POST /evaluacion` | `330` | Paso 2 (jefe). Exige autoevaluación enviada previamente (`:405-414`) → estado `completado` + crea los 8 compromisos (`abierto`). |
+| `GET /compromisos/{id}` | `469` | Solo con evaluación `completado`; crea la fila de compromisos si no existe. |
+| `PUT /compromisos/{id}` | `511` | Guardado con concurrencia optimista (`version` → 409 si otro editó primero). |
+| `POST /compromisos/{id}/cerrar` | `591` | Solo el evaluador asignado; estado `cerrado` definitivo. |
+
+**Máquina de estados** (`evaluacion_desempeno.py:40`):
+
+```
+borrador ──POST /autoevaluacion──▶ autoevaluado ──POST /evaluacion──▶ completado
+   (o sin fila)                        │                                   │
+                                       │                     compromisos: abierto ──cerrar──▶ cerrado
+```
+
+#### 4.10.1 Flujo con TÉCNICOS (plantilla `tecnico`)
+
+- **Cómo llega el técnico al módulo**: ruta `/talento-humano` → `TalentoHumano.jsx:16` renderiza `TalentoHumanoTecnico.jsx` para `rol='tecnico'` (admins y perfiles restringidos caen en `TalentoHumanoAdmin.jsx`). El técnico abre el modal "Evaluación de Desempeño" (`TalentoHumanoTecnico.jsx:730`) que monta `<EvaluacionDesempenoForm plantillaId="tecnico" usuarioEvaluadoId={user.id}>` (`:787-792`), con opción de pantalla completa.
+- **Resolución de plantilla por ROL, no por correo**: `_es_tecnico()` (`evaluacion_desempeno.py:103`) → `_plantilla_para_usuario()` (`:123`) devuelve `"tecnico"` sin consultar BD; los correos hardcodeados de `_CORREO_PLANTILLA` (`:31-37`) solo aplican a administrativos. El backend rechaza con 400 un payload con plantilla distinta (`:253-257`).
+- **Solo autoevaluación (esSoloAuto)**: en el frontend, `esEvaluadorAutorizado = esPilar || (evaluador externo y es Pilar evaluada)` (`EvaluacionDesempenoForm.jsx:41`); para el técnico es `false` → `esSoloAuto=true` (`:42`): solo ve el Paso 1, no hay Paso 2 en su UI, y al enviar queda en **solo lectura** (`modoSoloLectura`, `:185`).
+- **El Paso 2 lo hace Pilar sobre el técnico**: `POST /evaluacion` rechaza explícitamente a los técnicos con 403 (`evaluacion_desempeno.py:346-351`); solo Pilar puede evaluar colaboradores internos (`:361-367`). La evaluación del jefe queda **oculta** al técnico (respuesta con `evaluacion=None`) hasta que la fila esté `completado` (`:226-229`).
+- **Aislamiento de datos**: un técnico solo consulta su propia fila (los restringidos caen en el caso 2 de `obtener_mi_evaluacion`, `:193-196`, ignorando cualquier `usuario_evaluado_id` enviado); no puede ver la fila ni los compromisos de otro (403 en `_verificar_acceso_compromisos`, `:444-466`).
+- **Compromisos**: se habilitan solo cuando Pilar completó la evaluación (400 si `estado != "completado"`, `:483-487`); el técnico y Pilar editan mientras estén `abierto`; **solo Pilar cierra** (`:614-618`).
+- **Borradores locales**: el formulario persiste avances en `localStorage` por clave (`getStorageKey('auto')`) hasta que el envío real lo borra (`EvaluacionDesempenoForm.jsx:187-205,364-368`).
+- **Auditoría**: el envío de autoevaluación de un técnico escribe en `logs_auditoria` (`accion="autoevaluacion_enviada"`, `:316-324`, helper best-effort `_registrar_auditoria` `:134-156`) y el cierre de compromisos (`"compromisos_cerrados"`, `:646-652`).
+- **PDF**: `pdfEvaluacionDesempeno.js` (formulario completo, carga diferida `import()`, cero peticiones extra) y `pdfCompromisos.js` (solo compromisos); solo Pilar descarga el PDF de evaluación cuando **ambos** pasos tienen envío registrado (`puedeDescargarPdf`, `EvaluacionDesempenoForm.jsx:182-184`).
+- **Acceso de entrada**: la dependencia `get_current_evaluacion_usuario` (`:75-88`) admite `rol='tecnico'` — los técnicos NO necesitan ser `superadmin` para entrar al módulo.
 
 ---
 

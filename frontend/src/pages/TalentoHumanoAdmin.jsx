@@ -10,6 +10,7 @@ import api, {
 import logoGSB from '../assets/logo-gsb.png';
 import InstallPwaPrompt from '../components/InstallPwaPrompt';
 import EvaluacionDesempenoForm from '../components/EvaluacionDesempenoForm';
+import PanelEvaluacionTecnicos from '../components/PanelEvaluacionTecnicos';
 import { formatCOP, formatFechaLarga, iniciales } from '../utils/personal';
 import { formatApiError } from '../utils/formatError';
 import { esAdministradorSeccion } from '../utils/permisos';
@@ -551,7 +552,14 @@ export default function TalentoHumanoAdmin() {
                 label: 'Evaluación de desempeño',
                 icon: '📋',
                 action: () => setTabActiva('evaluacion-desempeno'),
-                active: true,
+                active: tabActiva === 'evaluacion-desempeno',
+            },
+            {
+                id: 'evaluacion-tecnicos',
+                label: 'Evaluación Técnicos (AD-FR-35)',
+                icon: '🛠️',
+                action: () => setTabActiva('evaluacion-tecnicos'),
+                active: tabActiva === 'evaluacion-tecnicos',
             },
         ]
         : [
@@ -566,6 +574,15 @@ export default function TalentoHumanoAdmin() {
                     icon: '📋',
                     action: () => setTabActiva('evaluacion-desempeno'),
                     active: tabActiva === 'evaluacion-desempeno',
+                }]
+                : []),
+            ...(esPilarAdmin || tieneAccesoAdministrativo || user?.rol === 'superadmin' || esYeimyContable || esOperaciones
+                ? [{
+                    id: 'evaluacion-tecnicos',
+                    label: 'Evaluación Técnicos (AD-FR-35)',
+                    icon: '🛠️',
+                    action: () => setTabActiva('evaluacion-tecnicos'),
+                    active: tabActiva === 'evaluacion-tecnicos',
                 }]
                 : []),
         ];
@@ -678,7 +695,9 @@ export default function TalentoHumanoAdmin() {
                     <InstallPwaPrompt />
                 </div>
 
-                {tabActiva === 'evaluacion-desempeno' ? (
+                {tabActiva === 'evaluacion-tecnicos' ? (
+                    <PanelEvaluacionTecnicos />
+                ) : tabActiva === 'evaluacion-desempeno' ? (
                     esYeimyContable ? (
                         <EvaluacionDesempenoForm
                             key={`edf-contable-${user?.id || 34}`}

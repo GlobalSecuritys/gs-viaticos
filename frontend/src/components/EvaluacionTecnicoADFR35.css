@@ -1,0 +1,361 @@
+﻿/* ── EvaluacionTecnicoADFR35.css ── */
+
+.etfr-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0 0.25rem;
+}
+
+/* ── Empty / Loading / Error ── */
+.etfr-empty, .etfr-loading, .etfr-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+.etfr-error { color: #991b1b; background: #fff1f2; border-color: #fca5a5; }
+
+/* ── Badges ── */
+.etfr-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.etfr-badge--pendiente   { background: #fef9c3; color: #92400e; }
+.etfr-badge--progreso    { background: #dbeafe; color: #1e40af; }
+.etfr-badge--listo       { background: #d1fae5; color: #065f46; border: 1.5px solid #059669; }
+.etfr-badge--completado  { background: #059669; color: #fff; }
+.etfr-badge--borrador    { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+.etfr-badge--enviado     { background: #7c3aed; color: #fff; }
+
+/* ── Eval Header ── */
+.etfr-eval-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.1rem 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.etfr-eval-nombre {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.35rem;
+}
+.etfr-eval-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+.etfr-eval-meta span { display: flex; align-items: center; gap: 0.3rem; }
+.etfr-eval-estado-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ── Resumen panel ── */
+.etfr-resumen-panel {
+  background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%);
+  border: 1.5px solid #bbf7d0;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+}
+.etfr-resumen-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1.1rem;
+  flex-wrap: wrap;
+}
+.etfr-resumen-title { font-size: 1rem; font-weight: 700; color: #0f172a; }
+.etfr-resumen-sub   { font-size: 0.78rem; color: #64748b; }
+.etfr-resultado-badge {
+  margin-left: auto;
+  padding: 0.35rem 1.1rem;
+  border-radius: 20px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  letter-spacing: 0.05em;
+}
+.etfr-resultado-badge--aprueba   { background: #059669; color: #fff; }
+.etfr-resultado-badge--no-aprueba { background: #dc2626; color: #fff; }
+
+.etfr-resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+.etfr-resumen-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  text-align: center;
+}
+.etfr-resumen-card--final { border: 2px solid #7c3aed; }
+.etfr-resumen-card--nivel { border-width: 2px; }
+.etfr-resumen-card-label { font-size: 0.72rem; color: #64748b; font-weight: 600; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.etfr-resumen-card-val   { font-size: 1.25rem; font-weight: 800; color: #0f172a; }
+.etfr-resumen-card-val--big { font-size: 1.6rem; color: #7c3aed; }
+.etfr-resumen-card-sub   { font-size: 0.72rem; color: #64748b; margin-top: 0.25rem; }
+
+.etfr-resumen-obs { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; }
+.etfr-resumen-obs-label { font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 0.4rem; }
+.etfr-resumen-obs-text  { font-size: 0.88rem; color: #1e293b; line-height: 1.55; }
+
+/* ── Capas tabs ── */
+.etfr-capas-container {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.etfr-capas-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #f1f5f9;
+  background: #f8fafc;
+  overflow-x: auto;
+}
+.etfr-capa-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem 1.1rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+.etfr-capa-tab:hover { color: #0f172a; background: rgba(0,0,0,0.03); }
+.etfr-capa-tab--active { color: #0f172a; background: #fff; border-bottom-color: #7c3aed; font-weight: 700; }
+.etfr-capa-tab__editable { font-size: 0.72rem; opacity: 0.7; }
+.etfr-capa-content { padding: 1.25rem 1.5rem; }
+.etfr-capa-no-acceso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2.5rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+/* ── Capa Form ── */
+.etfr-capa-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.etfr-capa-form__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding-left: 0.85rem;
+  border-left: 4px solid #7c3aed;
+}
+.etfr-capa-form__title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  flex-wrap: wrap;
+}
+.etfr-capa-form__enviado-info { font-size: 0.72rem; color: #64748b; font-weight: 400; }
+.etfr-capa-form__prom { font-size: 0.82rem; color: #475569; }
+
+/* Escala */
+.etfr-escala-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.etfr-escala-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* Seccion */
+.etfr-seccion-bloque { margin-bottom: 0.35rem; }
+.etfr-seccion-titulo {
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #475569;
+  padding: 0.5rem 0;
+  border-bottom: 1.5px solid #f1f5f9;
+  margin-bottom: 0.5rem;
+}
+.etfr-items-grid { display: flex; flex-direction: column; gap: 0.35rem; }
+.etfr-item-row {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  transition: background 0.15s;
+}
+.etfr-item-row--calificado { background: #fff; border-color: #e2e8f0; }
+.etfr-item-numero { font-size: 0.78rem; font-weight: 700; color: #94a3b8; text-align: center; }
+.etfr-item-texto  { font-size: 0.86rem; color: #1e293b; }
+.etfr-item-opciones { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.etfr-opt-btn {
+  min-width: 2.4rem;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.etfr-opt-btn:hover:not(:disabled) { border-color: #6366f1; color: #6366f1; }
+.etfr-opt-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.etfr-opt-btn--sel { transform: scale(1.07); box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+
+/* Observacion */
+.etfr-obs-row { display: flex; flex-direction: column; gap: 0.4rem; }
+.etfr-obs-label { font-size: 0.82rem; font-weight: 600; color: #475569; }
+.etfr-obs-textarea {
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.86rem;
+  font-family: inherit;
+  color: #1e293b;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+.etfr-obs-textarea:focus { outline: none; border-color: #7c3aed; }
+
+/* Acciones capa */
+.etfr-capa-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; }
+
+/* Botones */
+.etfr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+.etfr-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.etfr-btn--primary   { background: #7c3aed; color: #fff; }
+.etfr-btn--primary:hover:not(:disabled)   { background: #6d28d9; }
+.etfr-btn--secondary { background: #f1f5f9; color: #1e293b; border: 1px solid #e2e8f0; }
+.etfr-btn--secondary:hover:not(:disabled) { background: #e2e8f0; }
+.etfr-btn--danger    { background: #dc2626; color: #fff; }
+.etfr-btn--danger:hover:not(:disabled)    { background: #b91c1c; }
+
+/* Feedback */
+.etfr-feedback {
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.etfr-feedback--ok  { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+.etfr-feedback--err { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+/* Modal */
+.etfr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+.etfr-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.22);
+}
+.etfr-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.etfr-modal-title { font-size: 1.05rem; font-weight: 700; color: #0f172a; }
+.etfr-modal-sub   { font-size: 0.8rem; color: #64748b; }
+.etfr-modal-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #64748b;
+  padding: 0.1rem 0.3rem;
+}
+.etfr-modal-actions { display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 1rem; }
+
+/* Compromisos wrapper */
+.etfr-compromisos-wrap {
+  margin-top: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .etfr-item-row { grid-template-columns: 2rem 1fr; grid-template-rows: auto auto; }
+  .etfr-item-opciones { grid-column: 1 / -1; }
+  .etfr-eval-header { flex-direction: column; }
+  .etfr-resumen-grid { grid-template-columns: 1fr 1fr; }
+}

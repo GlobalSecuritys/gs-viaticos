@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import TecnicoLayout from '../components/TecnicoLayout';
 import EvaluacionDesempenoForm from '../components/EvaluacionDesempenoForm';
+import EvaluacionTecnicoMe from '../components/EvaluacionTecnicoMe';
 import { formatFechaLarga, iniciales } from '../utils/personal';
 import { formatApiError } from '../utils/formatError';
 import { irAtras } from '../utils/navigation';
@@ -782,14 +783,9 @@ export default function TalentoHumanoTecnico() {
                                 </button>
                             </div>
                         </div>
-                        {/* Formulario real de evaluación */}
+                        {/* Formulario real de evaluación técnica AD-FR-35 */}
                         <div style={{ padding: '0 1.5rem', flex: expandidoEval ? 1 : undefined, overflowY: expandidoEval ? 'auto' : undefined }}>
-                            <EvaluacionDesempenoForm
-                                key={`edf-tecnico-${user?.id}`}
-                                user={user}
-                                plantillaId="tecnico"
-                                usuarioEvaluadoId={user?.id}
-                            />
+                            <EvaluacionTecnicoMe />
                         </div>
                     </div>
                 </div>

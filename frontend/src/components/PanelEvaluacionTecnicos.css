@@ -1,0 +1,410 @@
+/* ── PanelEvaluacionTecnicos.css ── */
+
+.petf-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.25rem;
+}
+
+.petf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.petf-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.petf-header-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.petf-header-sub {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.petf-header-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Back bar */
+.petf-back-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.petf-back-btn {
+  background: white;
+  border: 1px solid #cbd5e1;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.petf-back-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.petf-back-title {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+/* Periodos Bar */
+.petf-periodos-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.petf-periodos-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.petf-periodos-chips {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.petf-periodo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #334155;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.petf-periodo-chip:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.petf-periodo-chip--active {
+  background: #e0f2fe;
+  border-color: #0284c7;
+  color: #0369a1;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(2, 132, 199, 0.1);
+}
+
+.petf-periodo-count {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.petf-periodo-activo-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #16a34a;
+}
+
+/* Config row */
+.petf-config-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+}
+
+.petf-config-capa-label {
+  color: #475569;
+}
+
+.petf-config-usuario {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.petf-config-chip {
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: white;
+}
+
+/* Feedback banners */
+.petf-feedback {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.petf-feedback--ok {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.petf-feedback--err {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.petf-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+/* Table wrap */
+.petf-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.petf-list-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.petf-eval-table-wrap {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow-x: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.petf-eval-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.petf-eval-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.petf-eval-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.petf-eval-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.petf-tecnico-nombre {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.petf-tecnico-cedula {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.petf-empty {
+  text-align: center;
+  padding: 2.5rem 1rem !important;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Buttons */
+.petf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 0.95rem;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.petf-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.petf-btn--primary {
+  background: #0284c7;
+  color: white;
+  border-color: #0284c7;
+}
+
+.petf-btn--primary:hover:not(:disabled) {
+  background: #0369a1;
+}
+
+.petf-btn--secondary {
+  background: white;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+
+.petf-btn--secondary:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.petf-btn--ghost {
+  background: transparent;
+  color: #64748b;
+}
+
+.petf-btn--ghost:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+/* Modals */
+.petf-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.petf-modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.petf-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.petf-modal-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.petf-modal-sub {
+  margin: 0.25rem 0 1rem 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.petf-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
+.petf-modal-close:hover {
+  color: #334155;
+}
+
+.petf-modal-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.petf-modal-input,
+.petf-modal-select {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  box-sizing: border-box;
+  background: white;
+}
+
+.petf-modal-input:focus,
+.petf-modal-select:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.petf-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}

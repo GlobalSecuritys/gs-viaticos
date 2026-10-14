@@ -177,6 +177,12 @@ def obtener_mi_evaluacion(
     - Evaluados restringidos (Yeimy, operaciones): solo pueden consultar su propia fila.
     - Pilar: puede consultar cualquier evaluado pasando usuario_evaluado_id.
     """
+    if plantilla == "tecnico_adfr35":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La plantilla 'tecnico_adfr35' se gestiona exclusivamente a través de los endpoints de /evaluaciones-tecnicos.",
+        )
+
     pilar_id = _get_pilar_user_id(db)
 
     # 1. Caso Evaluador Externo
@@ -247,6 +253,12 @@ def enviar_autoevaluacion(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="La cuenta de evaluador externo no diligencia autoevaluación propia.",
+        )
+
+    if payload.plantilla == "tecnico_adfr35":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La plantilla 'tecnico_adfr35' se gestiona exclusivamente a través de los endpoints de /evaluaciones-tecnicos.",
         )
 
     plantilla_esperada = _plantilla_para_usuario(current_admin)
@@ -342,6 +354,12 @@ def enviar_evaluacion_jefe(
     pilar_id = _get_pilar_user_id(db)
     target_plantilla = payload.plantilla or "directivos"
     target_user_id = payload.usuario_evaluado_id if payload.usuario_evaluado_id is not None else current_admin.id
+
+    if payload.plantilla == "tecnico_adfr35":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La plantilla 'tecnico_adfr35' se gestiona exclusivamente a través de los endpoints de /evaluaciones-tecnicos.",
+        )
 
     # Los técnicos no pueden enviar la evaluación del jefe (solo autoevaluación)
     if _es_tecnico(current_admin):

@@ -588,6 +588,71 @@ export const PLANTILLAS_EVALUACION = {
         ]
       }
     ]
+  },
+  tecnico_adfr35: {
+    id: "tecnico_adfr35",
+    nombre: "EVALUACIÓN DE TÉCNICOS CONTRATISTAS",
+    encabezado: {
+      empresa: "GLOBAL SECURITY BANK SAS",
+      codigo: "AD-FR-35",
+      version: "2",
+      titulo: "EVALUACIÓN DE TÉCNICOS CONTRATISTAS",
+      fecha_act: "08/01/2026",
+      pagina: "1"
+    },
+    identificacion: {
+      nombre_label: "TÉCNICO CONTRATISTA",
+      periodo_label: "PERIODO DE EVALUACIÓN",
+      evaluador_label: "EVALUADOR",
+      cargo_label: "CARGO",
+      cargo_default: "Directora Administrativa",
+      fecha_label: "FECHA DE EVALUACIÓN",
+      estado_label: "ESTADO"
+    },
+    escala_instruccion: "Califique al técnico utilizando la siguiente escala:",
+    escala: [
+      { valor: 4, etiqueta: "MUY BUENO", significado: "100%", promedia: true },
+      { valor: 3, etiqueta: "BUENO", significado: "> 70 & < 99", promedia: true },
+      { valor: 2, etiqueta: "ACEPTABLE", significado: "> 40 & < 69", promedia: true },
+      { valor: 1, etiqueta: "DEFICIENTE", significado: "< 39", promedia: true },
+      { valor: "N/A", etiqueta: "No aplica (cuenta como respondido)", significado: "No se promedia", promedia: false }
+    ],
+    capas: [
+      { codigo: "auto", etiqueta: "AUTO", descripcion: "El propio técnico" },
+      { codigo: "viaticos", etiqueta: "VIÁTICOS", descripcion: "Administrativa a cargo de viáticos (por definir)" },
+      { codigo: "asistente_oper", etiqueta: "ASISTENTE OPER", descripcion: "Asistente de operaciones (por definir)" }
+    ],
+    secciones: [
+      {
+        numero: "1",
+        titulo: "1. SERVICIO EN CAMPO",
+        items: [
+          { numero: "1.1", texto: "Puntualidad" },
+          { numero: "1.2", texto: "Tiempos de ejecución del servicio (SLA)" },
+          { numero: "1.3", texto: "Atención y actitud del servicio" },
+          { numero: "1.4", texto: "Uso de los elementos de protección personal" },
+          { numero: "1.5", texto: "Calidad del servicio" }
+        ]
+      },
+      {
+        numero: "2",
+        titulo: "2. GESTIÓN ADMINISTRATIVA",
+        items: [
+          { numero: "2.1", texto: "Comunicación cliente interno" },
+          { numero: "2.2", texto: "Procedimientos administrativos (manejo de plataforma de viáticos)" },
+          { numero: "2.3", texto: "Manejo de inventario" },
+          { numero: "2.4", texto: "Manejo de la plataforma de ODS" },
+          { numero: "2.5", texto: "Procedimientos administrativos (cuentas de cobro - pago de seguridad social)" }
+        ]
+      },
+      {
+        numero: "3",
+        titulo: "3. CONOCIMIENTO TÉCNICO",
+        items: [
+          { numero: "3.1", texto: "Conocimientos técnicos" }
+        ]
+      }
+    ]
   }
 };
 

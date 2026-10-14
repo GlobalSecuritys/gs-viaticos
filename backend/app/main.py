@@ -14,6 +14,7 @@ from app.routers.calidad_procesos import router as calidad_procesos_router, seed
 from app.routers.bitacora_backup import router as bitacora_backup_router
 from app.routers.inventario import router as inventario_router
 from app.routers.evaluacion_desempeno import router as evaluacion_desempeno_router
+from app.routers.evaluacion_tecnicos import router as evaluacion_tecnicos_router
 
 from sqlalchemy import text
 from app.database import engine, SessionLocal
@@ -37,7 +38,14 @@ from app.models.calidad_procesos import (
 from app.models.bitacora_backup import BitacoraBackup
 from app.models.estadistica_asignacion_archivada import EstadisticaAsignacionArchivada
 from app.models.inventario import InventarioPlanilla, InventarioItem, InventarioMovimiento
-from app.models.evaluacion_desempeno import EvaluacionDesempeno, EvaluacionCompromiso
+from app.models.evaluacion_desempeno import (
+    EvaluacionDesempeno,
+    EvaluacionCompromiso,
+    EvaluacionPeriodoTecnico,
+    EvaluacionConfigCapa,
+    EvaluacionTecnicoCapa,
+    EvaluacionTecnicoResumen,
+)
 
 app = FastAPI(
     title="Sistema Integral de Gestión GSB API",
@@ -132,7 +140,15 @@ def startup_db_check():
         InventarioMovimiento.__table__.create(bind=engine, checkfirst=True)
         EvaluacionDesempeno.__table__.create(bind=engine, checkfirst=True)
         EvaluacionCompromiso.__table__.create(bind=engine, checkfirst=True)
+        EvaluacionPeriodoTecnico.__table__.create(bind=engine, checkfirst=True)
+        EvaluacionConfigCapa.__table__.create(bind=engine, checkfirst=True)
+        EvaluacionTecnicoCapa.__table__.create(bind=engine, checkfirst=True)
+        EvaluacionTecnicoResumen.__table__.create(bind=engine, checkfirst=True)
         _asegurar_inventario()
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE evaluaciones_desempeno ADD COLUMN IF NOT EXISTS periodo_id INTEGER REFERENCES evaluaciones_periodos_tecnicos(id) ON DELETE SET NULL;"))
+            conn.execute(text("INSERT INTO evaluaciones_config_capas (capa) VALUES ('viaticos'), ('asistente_oper') ON CONFLICT (capa) DO NOTHING;"))
+            conn.commit()
     except Exception as e:
         print(f"[STARTUP] Advertencia al crear/verificar tablas: {e}")
 
@@ -288,6 +304,7 @@ app.include_router(talento_humano_router)
 app.include_router(calidad_procesos_router)
 app.include_router(inventario_router)
 app.include_router(evaluacion_desempeno_router)
+app.include_router(evaluacion_tecnicos_router)
 app.include_router(bitacora_backup_router)
 
 
