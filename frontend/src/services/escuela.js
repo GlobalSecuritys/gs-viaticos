@@ -14,3 +14,29 @@ export function obtenerMiFormacion() {
 export function obtenerModulo(clave) {
     return api.get(`/escuela/modulos/${encodeURIComponent(clave)}`);
 }
+
+/* ── Estudiantes y material académico (solo encargada) ── */
+
+export function obtenerEstudiantes() {
+    return api.get('/escuela/estudiantes');
+}
+
+export function obtenerFichaEstudiante(id) {
+    return api.get(`/escuela/estudiantes/${id}`);
+}
+
+export function subirMaterialEstudiante(id, archivo, descripcion) {
+    const form = new FormData();
+    form.append('archivo', archivo);
+    if (descripcion) form.append('descripcion', descripcion);
+    return api.post(`/escuela/estudiantes/${id}/archivos`, form, { timeout: 120000 });
+}
+
+/** Enlace firmado de Cloudinary que caduca a los 5 minutos. */
+export function obtenerEnlaceMaterial(id, archivoId) {
+    return api.get(`/escuela/estudiantes/${id}/archivos/${archivoId}/descarga`);
+}
+
+export function eliminarMaterialEstudiante(id, archivoId) {
+    return api.delete(`/escuela/estudiantes/${id}/archivos/${archivoId}`);
+}

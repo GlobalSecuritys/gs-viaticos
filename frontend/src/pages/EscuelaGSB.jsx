@@ -1,25 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ModuloEscuela from '../components/ModuloEscuela';
-import { obtenerFalencias, obtenerMiFormacion } from '../services/escuela';
+import BarraAdvertencias from '../components/escuela/BarraAdvertencias';
+import FichaEstudiante from '../components/escuela/FichaEstudiante';
+import ListaEstudiantes from '../components/escuela/ListaEstudiantes';
+import { AccionesFicha, Calificacion, Cargando, Leccion } from '../components/escuela/Piezas';
+import { obtenerEstudiantes, obtenerFalencias, obtenerMiFormacion } from '../services/escuela';
 import { esEncargadoEscuela } from '../utils/permisos';
 import { formatApiError } from '../utils/formatError';
 import { irAtras } from '../utils/navigation';
+import { fmtFecha, PLANTILLA_LABEL } from '../utils/escuela';
 import './AdminUsuarios.css';
 import './EscuelaGSB.css';
-
-const PLANTILLA_LABEL = {
-    directivos: 'Directivos',
-    contable: 'Contable',
-    operaciones: 'Operaciones',
-    tecnico: 'Técnico de planta',
-};
-
-function fmtFecha(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
-}
 
 /* ── Iconos SVG inline (sin imágenes) ── */
 function IconoBirrete({ size = 30 }) {
@@ -41,48 +34,6 @@ function IconoInsignia() {
             <path d="M22 41.5 18 56l7-3.5 4 6 3.5-14M42 41.5 46 56l-7-3.5-4 6-3.5-14" fill="#FEF3C7" stroke="#D97706" strokeWidth="2" strokeLinejoin="round" />
         </svg>
     );
-}
-
-function Sello({ disponible }) {
-    return (
-        <span className={`esc-sello ${disponible ? 'esc-sello--ok' : 'esc-sello--sin'}`}>
-            {disponible ? 'Módulo disponible' : 'Sin módulo'}
-        </span>
-    );
-}
-
-function AccionesFicha({ disponible, onAbrir }) {
-    return (
-        <div className="esc-ficha-acciones">
-            <Sello disponible={disponible} />
-            {disponible && onAbrir && (
-                <button type="button" className="esc-btn-abrir" onClick={onAbrir}>
-                    Abrir lección →
-                </button>
-            )}
-        </div>
-    );
-}
-
-function Leccion({ numero }) {
-    return (
-        <div className="esc-leccion" aria-label={`Ítem ${numero}`}>
-            <span className="esc-leccion-label">Lección</span>
-            <span className="esc-leccion-num">{numero}</span>
-        </div>
-    );
-}
-
-function Calificacion({ valor }) {
-    return (
-        <span className={`esc-calif esc-calif--${valor}`} title="Calificación del jefe (escala 1 a 4)">
-            {valor}<small>/4</small>
-        </span>
-    );
-}
-
-function Cargando({ texto }) {
-    return <div className="esc-cargando"><span className="esc-cargando-punto" />{texto}</div>;
 }
 
 /* ── Mi formación: lo que ve cada trabajador sobre sí mismo ── */
@@ -136,19 +87,11 @@ function MiFormacion({ onAbrir }) {
     );
 }
 
-/* ── Falencias detectadas: panel de solo consulta de la encargada ── */
-function PanelFalencias({ onAbrir }) {
-    const [falencias, setFalencias] = useState(null);
-    const [error, setError] = useState('');
+/* ── Todas las falencias: panel de solo consulta de la encargada ── */
+function PanelFalencias({ falencias, error, onAbrir }) {
     const [busqueda, setBusqueda] = useState('');
     const [plantilla, setPlantilla] = useState('');
     const [soloSinModulo, setSoloSinModulo] = useState(false);
-
-    useEffect(() => {
-        obtenerFalencias()
-            .then(({ data }) => setFalencias(data))
-            .catch((err) => setError(formatApiError(err, 'No se pudieron cargar las falencias.')));
-    }, []);
 
     const filtradas = useMemo(() => {
         const q = busqueda.trim().toLowerCase();
@@ -227,16 +170,101 @@ function PanelFalencias({ onAbrir }) {
     );
 }
 
+/* ── Vista de la encargada: advertencias + Estudiantes / Todas las falencias / Mi formación ── */
+function VistaEncargada({ onAbrirModulo }) {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const estudianteId = Number(searchParams.get('estudiante')) || null;
+    const [tab, setTab] = useState('estudiantes');
+    const [falencias, setFalencias] = useState(null);
+    const [errorFalencias, setErrorFalencias] = useState('');
+    const [estudiantes, setEstudiantes] = useState(null);
+    const [errorEstudiantes, setErrorEstudiantes] = useState('');
+
+    // Dos peticiones al entrar: falencias (barra + pestaña) y estudiantes (solo conteos).
+    useEffect(() => {
+        obtenerFalencias()
+            .then(({ data }) => setFalencias(data))
+            .catch((err) => setErrorFalencias(formatApiError(err, 'No se pudieron cargar las falencias.')));
+        obtenerEstudiantes()
+            .then(({ data }) => setEstudiantes(data))
+            .catch((err) => setErrorEstudiantes(formatApiError(err, 'No se pudieron cargar los estudiantes.')));
+    }, []);
+
+    const estudiantesIds = useMemo(
+        () => (estudiantes ? new Set(estudiantes.map((e) => e.id)) : null),
+        [estudiantes]
+    );
+
+    function abrirEstudiante(id) {
+        setTab('estudiantes');
+        setSearchParams({ estudiante: String(id) });
+    }
+
+    function cerrarEstudiante() {
+        setSearchParams({});
+    }
+
+    function actualizarConteo(id, total) {
+        setEstudiantes((lista) => lista && lista.map((e) => (e.id === id ? { ...e, total_archivos: total } : e)));
+    }
+
+    return (
+        <div className="esc-layout">
+            <BarraAdvertencias
+                falencias={errorFalencias ? [] : falencias}
+                estudiantesIds={estudiantesIds}
+                activoId={estudianteId}
+                onAbrir={abrirEstudiante}
+            />
+
+            <div className="esc-principal">
+                <nav className="esc-tabs" aria-label="Secciones de la Escuela">
+                    {[
+                        ['estudiantes', 'Estudiantes'],
+                        ['falencias', 'Todas las falencias'],
+                        ['formacion', 'Mi formación'],
+                    ].map(([id, label]) => (
+                        <button
+                            key={id}
+                            type="button"
+                            className={`esc-tab${tab === id ? ' esc-tab--activa' : ''}`}
+                            onClick={() => { setTab(id); if (estudianteId) cerrarEstudiante(); }}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </nav>
+
+                <section className="esc-hoja">
+                    {tab === 'estudiantes' && estudianteId ? (
+                        <FichaEstudiante
+                            estudianteId={estudianteId}
+                            onVolver={cerrarEstudiante}
+                            onAbrirModulo={onAbrirModulo}
+                            onArchivosCambian={actualizarConteo}
+                        />
+                    ) : tab === 'estudiantes' ? (
+                        <ListaEstudiantes estudiantes={estudiantes} error={errorEstudiantes} onAbrir={abrirEstudiante} />
+                    ) : tab === 'falencias' ? (
+                        <PanelFalencias falencias={falencias} error={errorFalencias} onAbrir={onAbrirModulo} />
+                    ) : (
+                        <MiFormacion onAbrir={onAbrirModulo} />
+                    )}
+                </section>
+            </div>
+        </div>
+    );
+}
+
 export default function EscuelaGSB() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const esEncargada = esEncargadoEscuela(user);
-    const [tab, setTab] = useState(esEncargada ? 'falencias' : 'formacion');
     const [moduloAbierto, setModuloAbierto] = useState(null);
 
     return (
         <div className="esc-root">
-            <div className="esc-container">
+            <div className={`esc-container${esEncargada ? ' esc-container--ancho' : ''}`}>
                 <button className="admin-back-btn" onClick={() => irAtras(navigate, '/seleccion-modulo')}>
                     ← Volver
                 </button>
@@ -252,34 +280,22 @@ export default function EscuelaGSB() {
                     </div>
                 </header>
 
-                {esEncargada && !moduloAbierto && (
-                    <nav className="esc-tabs" aria-label="Secciones de la Escuela">
-                        <button
-                            type="button"
-                            className={`esc-tab${tab === 'falencias' ? ' esc-tab--activa' : ''}`}
-                            onClick={() => setTab('falencias')}
-                        >
-                            Falencias detectadas
-                        </button>
-                        <button
-                            type="button"
-                            className={`esc-tab${tab === 'formacion' ? ' esc-tab--activa' : ''}`}
-                            onClick={() => setTab('formacion')}
-                        >
-                            Mi formación
-                        </button>
-                    </nav>
-                )}
-
-                <section className="esc-hoja">
-                    {moduloAbierto ? (
+                {moduloAbierto && (
+                    <section className="esc-hoja">
                         <ModuloEscuela clave={moduloAbierto} onVolver={() => setModuloAbierto(null)} />
-                    ) : esEncargada && tab === 'falencias' ? (
-                        <PanelFalencias onAbrir={setModuloAbierto} />
+                    </section>
+                )}
+                {/* Se oculta (no se desmonta) mientras hay una lección abierta: al volver
+                    no se repiten peticiones y se conserva la pestaña/ficha. */}
+                <div hidden={Boolean(moduloAbierto)}>
+                    {esEncargada ? (
+                        <VistaEncargada onAbrirModulo={setModuloAbierto} />
                     ) : (
-                        <MiFormacion onAbrir={setModuloAbierto} />
+                        <section className="esc-hoja">
+                            <MiFormacion onAbrir={setModuloAbierto} />
+                        </section>
                     )}
-                </section>
+                </div>
             </div>
         </div>
     );
