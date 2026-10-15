@@ -33,6 +33,7 @@ export function AuthProvider({ children }) {
               accesos_procesos: data.accesos_procesos || {},
               rol_mapa: (data.correo || '').trim().toLowerCase() === 'pilaradmin@gsbank.com' ? 'editor' : 'lector',
               plan_datos_moviles_habilitado: Boolean(data.plan_datos_moviles_habilitado),
+              encargado_escuela: Boolean(data.encargado_escuela),
             };
             localStorage.setItem('gs_user', JSON.stringify(updated));
             return updated;
@@ -71,6 +72,7 @@ export function AuthProvider({ children }) {
       accesos_procesos: payload.accesos_procesos || {},
       rol_mapa: isPilar ? 'editor' : 'lector',
       plan_datos_moviles_habilitado: Boolean(payload.plan_datos_moviles_habilitado),
+      encargado_escuela: Boolean(payload.encargado_escuela),
     };
 
     // Si por alguna razón nombre no viene en el payload, obtenerlo de /auth/me

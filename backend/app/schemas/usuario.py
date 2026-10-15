@@ -59,6 +59,7 @@ class UsuarioResponse(UsuarioBase):
     # Habilita el concepto "Plan de datos móviles" en el formulario del técnico.
     # Se calcula en security.get_current_user() desde PLAN_DATOS_MOVILES_HABILITADOS.
     plan_datos_moviles_habilitado: bool = False
+    encargado_escuela: bool = False
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -119,6 +120,12 @@ class UsuarioEstadoUpdate(BaseModel):
     un solo campo, validado, para PUT /admin/usuarios/{id}/estado."""
 
     activo: bool
+
+
+class UsuarioEncargadoEscuelaUpdate(BaseModel):
+    """Otorgar/quitar el permiso encargado_escuela. Exclusivo para la cuenta Master."""
+
+    encargado_escuela: bool
 
 
 class UsuarioAccesoViaticosUpdate(BaseModel):

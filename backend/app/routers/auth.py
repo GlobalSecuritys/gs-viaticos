@@ -189,6 +189,7 @@ def login(
         "rol_mapa": "editor" if es_pilar else "lector",
         "accesos_procesos": accesos_procesos,
         "plan_datos_moviles_habilitado": plan_datos_moviles_habilitado(usuario),
+        "encargado_escuela": bool(usuario.encargado_escuela),
     })
     return Token(access_token=access_token, token_type="bearer")
 

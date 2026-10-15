@@ -92,3 +92,11 @@ export function tieneAccesoSeccion(user, codigoProceso) {
     return nivel === 'admin' || nivel === 'lector';
 }
 
+
+/**
+ * Permiso exclusivo de la Escuela GSB (columna usuarios.encargado_escuela):
+ * ver el panel de falencias detectadas. No depende del rol ni del correo.
+ */
+export function esEncargadoEscuela(user) {
+    return Boolean(user?.encargado_escuela);
+}

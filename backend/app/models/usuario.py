@@ -23,6 +23,8 @@ class Usuario(Base):
     acceso_mapa: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false", default=False)
     rol_mapa: Mapped[str] = mapped_column(String(20), nullable=False, server_default="lector", default="lector")
     solo_inventario: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false", default=False)
+    # Permiso exclusivo de la Escuela GSB: ver el panel de falencias detectadas.
+    encargado_escuela: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false", default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         nullable=False,

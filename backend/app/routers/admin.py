@@ -41,6 +41,7 @@ from app.schemas.usuario import (
     UsuarioCreateAdmin,
     UsuarioEstadoUpdate,
     UsuarioAccesoViaticosUpdate,
+    UsuarioEncargadoEscuelaUpdate,
     UsuarioInfoUpdate,
     UsuarioResponse,
     UsuarioRolUpdate,
@@ -309,6 +310,39 @@ def cambiar_acceso_viaticos_usuario(
         usuario_objetivo=usuario,
         accion="cambiar_acceso_viaticos",
         detalle=f"acceso_viaticos: {valor_anterior} → {usuario.acceso_viaticos}",
+        resultado="exitoso",
+    )
+
+    return usuario
+
+
+@router.put("/usuarios/{id}/encargado-escuela", response_model=UsuarioResponse)
+def cambiar_encargado_escuela_usuario(
+    id: int,
+    datos: UsuarioEncargadoEscuelaUpdate,
+    current_master_admin: Annotated[Usuario, Depends(get_current_master_admin)],
+    db: Annotated[Session, Depends(get_db)]
+):
+    """Otorga o quita el permiso encargado_escuela (panel de falencias de la
+    Escuela GSB). Exclusivo para la Administradora Master."""
+    usuario = db.get(Usuario, id)
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+
+    valor_anterior = usuario.encargado_escuela
+    usuario.encargado_escuela = datos.encargado_escuela
+    db.commit()
+    db.refresh(usuario)
+
+    registrar_auditoria(
+        db,
+        actor=current_master_admin,
+        usuario_objetivo=usuario,
+        accion="cambiar_encargado_escuela",
+        detalle=f"encargado_escuela: {valor_anterior} → {usuario.encargado_escuela}",
         resultado="exitoso",
     )
 

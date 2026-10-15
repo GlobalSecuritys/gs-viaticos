@@ -72,6 +72,17 @@ export default function AdminUsuarios() {
         }
     }
 
+    async function cambiarEncargadoEscuela(id, nuevoValor) {
+        try {
+            await api.put(`/admin/usuarios/${id}/encargado-escuela`, {
+                encargado_escuela: nuevoValor,
+            });
+            cargarUsuarios();
+        } catch (err) {
+            setError(formatApiError(err, 'No se pudo cambiar el permiso de la Escuela GSB'));
+        }
+    }
+
     async function handleEliminarUsuario(usuario) {
         if (user && user.id === usuario.id) {
             alert('No puedes eliminar tu propia cuenta de usuario.');
@@ -180,6 +191,7 @@ export default function AdminUsuarios() {
                                         <th>Rol</th>
                                         <th>Cambiar rol</th>
                                         <th>Estado</th>
+                                        {isPilar && <th title="Ve el panel de falencias de la Escuela GSB">Encargada Escuela</th>}
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -245,6 +257,18 @@ export default function AdminUsuarios() {
                                                     </button>
                                                 )}
                                             </td>
+
+                                            {isPilar && (
+                                                <td>
+                                                    <button
+                                                        className="admin-estado-btn"
+                                                        onClick={() => cambiarEncargadoEscuela(u.id, !u.encargado_escuela)}
+                                                        title={u.encargado_escuela ? 'Quitar el permiso de la Escuela GSB' : 'Otorgar el permiso de la Escuela GSB'}
+                                                    >
+                                                        {u.encargado_escuela ? '🎓 Sí' : '— No'}
+                                                    </button>
+                                                </td>
+                                            )}
 
                                             <td>
                                                 {user && user.id === u.id ? (
