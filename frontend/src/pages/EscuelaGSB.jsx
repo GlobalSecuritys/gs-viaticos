@@ -6,7 +6,6 @@ import { obtenerFalencias, obtenerMiFormacion } from '../services/escuela';
 import { esEncargadoEscuela } from '../utils/permisos';
 import { formatApiError } from '../utils/formatError';
 import { irAtras } from '../utils/navigation';
-import './AdminDashboard.css';
 import './AdminUsuarios.css';
 import './EscuelaGSB.css';
 
@@ -22,23 +21,68 @@ function fmtFecha(iso) {
     return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function EstadoModulo({ disponible, onAbrir }) {
-    if (disponible && onAbrir) {
-        return (
-            <button type="button" className="esc-estado esc-estado--ok esc-estado--btn" onClick={onAbrir}>
-                Abrir módulo →
-            </button>
-        );
-    }
+/* ── Iconos SVG inline (sin imágenes) ── */
+function IconoBirrete({ size = 30 }) {
     return (
-        <span className={`esc-estado ${disponible ? 'esc-estado--ok' : 'esc-estado--sin'}`}>
+        <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 6 2 12.5 16 19l14-6.5L16 6Z" fill="currentColor" />
+            <path d="M8 15.5v5.2c0 1.9 3.6 3.8 8 3.8s8-1.9 8-3.8v-5.2L16 19l-8-3.5Z" fill="currentColor" opacity=".78" />
+            <path d="M28 13.5v7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            <circle cx="28" cy="22.3" r="1.6" fill="currentColor" />
+        </svg>
+    );
+}
+
+function IconoInsignia() {
+    return (
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+            <circle cx="32" cy="27" r="17" fill="#ECFDF5" stroke="#10B981" strokeWidth="2.5" />
+            <path d="m24.5 27.5 5 5 10-10.5" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M22 41.5 18 56l7-3.5 4 6 3.5-14M42 41.5 46 56l-7-3.5-4 6-3.5-14" fill="#FEF3C7" stroke="#D97706" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+function Sello({ disponible }) {
+    return (
+        <span className={`esc-sello ${disponible ? 'esc-sello--ok' : 'esc-sello--sin'}`}>
             {disponible ? 'Módulo disponible' : 'Sin módulo'}
         </span>
     );
 }
 
+function AccionesFicha({ disponible, onAbrir }) {
+    return (
+        <div className="esc-ficha-acciones">
+            <Sello disponible={disponible} />
+            {disponible && onAbrir && (
+                <button type="button" className="esc-btn-abrir" onClick={onAbrir}>
+                    Abrir lección →
+                </button>
+            )}
+        </div>
+    );
+}
+
+function Leccion({ numero }) {
+    return (
+        <div className="esc-leccion" aria-label={`Ítem ${numero}`}>
+            <span className="esc-leccion-label">Lección</span>
+            <span className="esc-leccion-num">{numero}</span>
+        </div>
+    );
+}
+
 function Calificacion({ valor }) {
-    return <span className={`esc-calif esc-calif--${valor}`}>{valor}</span>;
+    return (
+        <span className={`esc-calif esc-calif--${valor}`} title="Calificación del jefe (escala 1 a 4)">
+            {valor}<small>/4</small>
+        </span>
+    );
+}
+
+function Cargando({ texto }) {
+    return <div className="esc-cargando"><span className="esc-cargando-punto" />{texto}</div>;
 }
 
 /* ── Mi formación: lo que ve cada trabajador sobre sí mismo ── */
@@ -53,16 +97,16 @@ function MiFormacion({ onAbrir }) {
     }, []);
 
     if (error) return <div className="esc-error">{error}</div>;
-    if (!datos) return <div className="admin-loading-state"><p>Cargando tu formación...</p></div>;
+    if (!datos) return <Cargando texto="Cargando tu formación..." />;
 
     if (datos.falencias.length === 0) {
         return (
             <div className="esc-vacio">
-                <span className="esc-vacio-icono">🎓</span>
+                <IconoInsignia />
                 <h3>No tienes aspectos por reforzar</h3>
                 <p>
-                    En tus evaluaciones de desempeño completadas no hay ítems calificados con 1 o 2.
-                    Si en una evaluación futura aparece alguno, aquí verás el módulo de formación correspondiente.
+                    ¡Buen trabajo! En tus evaluaciones de desempeño completadas no hay ítems calificados con 1 o 2.
+                    Si en una evaluación futura aparece alguno, aquí encontrarás la lección para reforzarlo.
                 </p>
             </div>
         );
@@ -72,20 +116,20 @@ function MiFormacion({ onAbrir }) {
         <>
             <p className="esc-intro">
                 Estos son los aspectos de tu evaluación de desempeño que tu jefe calificó con 1 o 2.
-                Cuando haya un módulo de formación para alguno, aparecerá como disponible.
+                Cuando haya una lección para alguno, podrás abrirla desde aquí.
             </p>
-            <div className="esc-lista">
+            <div className="esc-fichas">
                 {datos.falencias.map((f) => (
-                    <div key={`${f.evaluacion_id}-${f.item_numero}`} className="esc-item">
-                        <div className="esc-item-num">{f.item_numero}</div>
-                        <div className="esc-item-cuerpo">
-                            <div className="esc-item-texto">{f.item_texto}</div>
-                            <div className="esc-item-meta">
+                    <article key={`${f.evaluacion_id}-${f.item_numero}`} className={`esc-ficha${f.modulo_disponible ? ' esc-ficha--ok' : ''}`}>
+                        <Leccion numero={f.item_numero} />
+                        <div className="esc-ficha-cuerpo">
+                            <h3 className="esc-ficha-titulo">{f.item_texto}</h3>
+                            <div className="esc-ficha-meta">
                                 Calificación <Calificacion valor={f.calificacion} /> · {fmtFecha(f.fecha)}
                             </div>
                         </div>
-                        <EstadoModulo disponible={f.modulo_disponible} onAbrir={() => onAbrir(f.clave_modulo)} />
-                    </div>
+                        <AccionesFicha disponible={f.modulo_disponible} onAbrir={() => onAbrir(f.clave_modulo)} />
+                    </article>
                 ))}
             </div>
         </>
@@ -116,7 +160,7 @@ function PanelFalencias({ onAbrir }) {
     }, [falencias, busqueda, plantilla, soloSinModulo]);
 
     if (error) return <div className="esc-error">{error}</div>;
-    if (!falencias) return <div className="admin-loading-state"><p>Cargando falencias...</p></div>;
+    if (!falencias) return <Cargando texto="Cargando falencias..." />;
 
     const trabajadores = new Set(falencias.map((f) => f.usuario_id)).size;
     const sinModulo = falencias.filter((f) => !f.modulo_disponible).length;
@@ -129,7 +173,7 @@ function PanelFalencias({ onAbrir }) {
                 <div><strong>{sinModulo}</strong><span>sin módulo</span></div>
             </div>
 
-            <div className="admin-card-toolbar">
+            <div className="esc-toolbar">
                 <div className="admin-search-wrap">
                     <span className="admin-search-icon">🔍</span>
                     <input
@@ -155,38 +199,28 @@ function PanelFalencias({ onAbrir }) {
             </div>
 
             {filtradas.length === 0 ? (
-                <div className="esc-vacio">
-                    <span className="esc-vacio-icono">📋</span>
+                <div className="esc-vacio esc-vacio--compacto">
                     <p>{falencias.length === 0
                         ? 'Ninguna evaluación completada tiene ítems calificados con 1 o 2 por el jefe.'
                         : 'Ninguna falencia coincide con los filtros.'}</p>
                 </div>
             ) : (
-                <div className="admin-table-wrap">
-                    <table className="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Trabajador</th>
-                                <th>Plantilla</th>
-                                <th>Ítem</th>
-                                <th style={{ textAlign: 'center' }}>Calif.</th>
-                                <th>Fecha</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtradas.map((f) => (
-                                <tr key={`${f.evaluacion_id}-${f.item_numero}`}>
-                                    <td><strong style={{ color: 'var(--color-text)' }}>{f.trabajador}</strong></td>
-                                    <td>{PLANTILLA_LABEL[f.plantilla] || f.plantilla}</td>
-                                    <td><span className="esc-tabla-num">{f.item_numero}</span> {f.item_texto}</td>
-                                    <td style={{ textAlign: 'center' }}><Calificacion valor={f.calificacion} /></td>
-                                    <td style={{ whiteSpace: 'nowrap' }}>{fmtFecha(f.fecha)}</td>
-                                    <td><EstadoModulo disponible={f.modulo_disponible} onAbrir={() => onAbrir(f.clave_modulo)} /></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="esc-fichas">
+                    {filtradas.map((f) => (
+                        <article key={`${f.evaluacion_id}-${f.item_numero}`} className={`esc-ficha${f.modulo_disponible ? ' esc-ficha--ok' : ''}`}>
+                            <Leccion numero={f.item_numero} />
+                            <div className="esc-ficha-cuerpo">
+                                <h3 className="esc-ficha-titulo">{f.item_texto}</h3>
+                                <div className="esc-ficha-meta">
+                                    <strong>{f.trabajador}</strong>
+                                    {' · '}{PLANTILLA_LABEL[f.plantilla] || f.plantilla}
+                                    {' · '}<Calificacion valor={f.calificacion} />
+                                    {' · '}{fmtFecha(f.fecha)}
+                                </div>
+                            </div>
+                            <AccionesFicha disponible={f.modulo_disponible} onAbrir={() => onAbrir(f.clave_modulo)} />
+                        </article>
+                    ))}
                 </div>
             )}
         </>
@@ -201,22 +235,25 @@ export default function EscuelaGSB() {
     const [moduloAbierto, setModuloAbierto] = useState(null);
 
     return (
-        <div className="admin-root">
-            <div className="admin-container">
-                <div className="admin-page-header">
+        <div className="esc-root">
+            <div className="esc-container">
+                <button className="admin-back-btn" onClick={() => irAtras(navigate, '/seleccion-modulo')}>
+                    ← Volver
+                </button>
+
+                <header className="esc-header">
+                    <div className="esc-emblema"><IconoBirrete /></div>
                     <div>
-                        <button className="admin-back-btn" onClick={() => irAtras(navigate, '/seleccion-modulo')}>
-                            ← Volver
-                        </button>
+                        <span className="esc-kicker">Proceso Administrativo · Formación continua</span>
+                        <h1 className="esc-titulo">Escuela GSB</h1>
+                        <p className="esc-proposito">
+                            Formación a partir de la evaluación de desempeño AD-FR-06: cada aspecto por reforzar tiene su lección.
+                        </p>
                     </div>
-                    <h1 className="admin-page-title">🎓 Escuela GSB</h1>
-                    <p className="admin-page-sub">
-                        Formación a partir de la evaluación de desempeño AD-FR-06
-                    </p>
-                </div>
+                </header>
 
                 {esEncargada && !moduloAbierto && (
-                    <div className="esc-tabs">
+                    <nav className="esc-tabs" aria-label="Secciones de la Escuela">
                         <button
                             type="button"
                             className={`esc-tab${tab === 'falencias' ? ' esc-tab--activa' : ''}`}
@@ -231,10 +268,10 @@ export default function EscuelaGSB() {
                         >
                             Mi formación
                         </button>
-                    </div>
+                    </nav>
                 )}
 
-                <div className="admin-card-container">
+                <section className="esc-hoja">
                     {moduloAbierto ? (
                         <ModuloEscuela clave={moduloAbierto} onVolver={() => setModuloAbierto(null)} />
                     ) : esEncargada && tab === 'falencias' ? (
@@ -242,7 +279,7 @@ export default function EscuelaGSB() {
                     ) : (
                         <MiFormacion onAbrir={setModuloAbierto} />
                     )}
-                </div>
+                </section>
             </div>
         </div>
     );
