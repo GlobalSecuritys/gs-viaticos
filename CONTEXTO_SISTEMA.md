@@ -23,7 +23,9 @@ Columnas relevantes de `usuarios`:
 | `es_admin_calidad` | `Boolean`, default `false` | `usuario.py:22` | Residuo del sistema antiguo de edición SGC (ver §6) |
 | `acceso_mapa` | `Boolean`, default `false` | `usuario.py:23` | **Flag legacy**: se lee pero ya no se gestiona |
 | `rol_mapa` | `String(20)`, default `lector` | `usuario.py:24` | Residuo del sistema antiguo; se setea pero sin efecto real |
-| `created_at` | `DateTime` | `usuario.py:25-29` | Fecha de creación |
+| `solo_inventario` | `Boolean`, default `false` | `usuario.py:25` | Usuario restringido al módulo de Inventario |
+| `encargado_escuela` | `Boolean`, default `false` | `usuario.py:27` (mig. `0025`) | Permiso exclusivo del panel de falencias de la Escuela GSB (§4.11). Lo otorga solo la cuenta Master desde Administración de Usuarios. |
+| `created_at` | `DateTime` | `usuario.py:28-32` | Fecha de creación |
 
 > El rol `'admin'` fue **eliminado** y migrado a `superadmin`. La migración es idempotente y corre en cada startup: `main.py:81-116` (`_migrar_rol_admin_a_superadmin`) y `backend/alembic/versiones/0012_add_acceso_viaticos_y_migrar_admins.py`.
 
@@ -106,7 +108,8 @@ En cada startup (`main.py:45-77`) se crean por `checkfirst` las tablas de Cuenta
 | `inventario_movimientos` | `inventario.py:83` | Kardex inmutable; tipos `ajuste_inicial/compra/devolucion` (entrada) y `salida` (`inventario.py:13-15`); `origen` reserva `foto_ia` (mig. 0015). |
 | `procesos_calidad` (+ responsables, documentos, accesos_admin) | `calidad_procesos.py` | Mapa SGC + responsable + documentos + niveles de acceso por proceso. |
 | `empleados_perfil`, `empleados_documentos`, `empleados_historial`, `empleados_solicitudes`, `empleados_dotaciones`, `empleados_evaluaciones` | `talento_humano.py` | Módulo Talento Humano (perfil, documentos, historial, solicitudes, dotación/EPP, evaluaciones 1-5⭐). |
-| `evaluaciones_desempeno` | `evaluacion_desempeno.py:12` (mig. `0021`) | Evaluación AD-FR-06. **Una fila por evaluación** (no por ítem); `autoevaluacion` y `evaluacion` son JSON indexado por número de ítem (`{"1.1": {"calificacion": 1-4, "observacion": ""}}`). Estados: `borrador` → `autoevaluado` → `completado`. Trazabilidad de envío en `*_enviada_por_id` / `*_enviada_en`. La columna `compromisos` es legacy (sin uso desde mig. `0023`). |
+| `evaluaciones_desempeno` | `evaluacion_desempeno.py:12` (mig. `0021`) | Evaluación AD-FR-06. **Una fila por evaluación** (no por ítem); `autoevaluacion` y `evaluacion` son JSON indexado por número de ítem (`{"1.1": {"calificacion": 1-4, "observacion": ""}}`). Estados AD-FR-06: `borrador` → `autoevaluado` → `completado`. **La misma tabla guarda las evaluaciones AD-FR-35** (plantilla `tecnico_adfr35`, con `periodo_id`), que usan además `pendiente`, `en_evaluacion` y `listo_para_cierre` y también terminan en `completado` (`evaluacion_tecnicos.py:982`); para distinguirlas hay que filtrar por `plantilla`. Trazabilidad de envío en `*_enviada_por_id` / `*_enviada_en`. La columna `compromisos` es legacy (sin uso desde mig. `0023`). |
+| `configuracion_general` | `configuracion_general.py` (mig. `0024`) | Clave → valor para textos editables desde la UI. Hoy solo `titulo_panel_tecnicos` (título del panel AD-FR-35). |
 | `evaluaciones_compromisos` | `evaluacion_desempeno.py:74` (mig. `0023`) | Sección 5 de compromisos, 1:1 con la evaluación (`unique`). Exactamente **8 compromisos** (strings, máx. 500 c/u). Estados `abierto` → `cerrado`, concurrencia optimista con `version`, cierre exclusivo del evaluador. |
 
 ---
@@ -248,9 +251,9 @@ Control de acceso declarado en el docstring (`inventario.py:1-10`): captura/cons
 
 ### 4.10 Evaluación de Desempeño AD-FR-06 — `/evaluaciones-desempeno` (`evaluacion_desempeno.py`)
 
-Digitalización del formato documental **AD-FR-06** (2 versiones en `plantillas_evaluacion.json`): autoevaluación + evaluación del jefe, escala **1 a 4** por ítem (4 Muy bueno / 3 Bueno / 2 Aceptable-Medio / 1 Pobre), con observación opcional por ítem, promedios calculados en el frontend y sección de 8 compromisos. **No confundir con las evaluaciones 1-5⭐ de §4.9** (`empleados_evaluaciones`): son módulos y tablas distintas.
+Digitalización del formato documental **AD-FR-06** (4 plantillas en `plantillas_evaluacion.json`, que además contiene `tecnico_adfr35` del formato AD-FR-35): autoevaluación + evaluación del jefe, escala **1 a 4** por ítem (4 Muy bueno / 3 Bueno / 2 Aceptable-Medio / 1 Pobre), con observación opcional por ítem, promedios calculados en el frontend y sección de 8 compromisos. **No confundir con las evaluaciones 1-5⭐ de §4.9** (`empleados_evaluaciones`): son módulos y tablas distintas.
 
-**Plantillas** — 4 plantillas idénticas en backend (`backend/app/core/plantillas_evaluacion.json`) y frontend (`frontend/src/data/plantillasEvaluacion.js`; verificado byte-a-byte, mantener sincronizadas a mano):
+**Plantillas** — 4 plantillas AD-FR-06 idénticas en backend (`backend/app/core/plantillas_evaluacion.json`) y frontend (`frontend/src/data/plantillasEvaluacion.js`; verificado byte-a-byte, mantener sincronizadas a mano):
 
 | Plantilla | Perfil | Ítems (5 secciones) |
 |---|---|---|
@@ -259,16 +262,18 @@ Digitalización del formato documental **AD-FR-06** (2 versiones en `plantillas_
 | `operaciones` | Auxiliares de operaciones (4 correos) | 22 |
 | `tecnico` | **Técnicos de planta (`rol='tecnico'`)** — "OPERATIVOS (TECNICO PLANTA)" | 22 |
 
+`contable`, `operaciones` y `tecnico` tienen los **mismos 22 ítems** (número, texto y descripción verificados el 2026-10-15); `directivos` tiene 25 ítems distintos. Por eso la Escuela GSB agrupa las tres primeras en la familia `general` (§4.11).
+
 **Endpoints** (prefix `/evaluaciones-desempeno`, registrado `main.py:290`):
 
 | Endpoint | Línea | Protección / notas |
 |---|---|---|
 | `GET /mi-evaluacion` | `165` | `get_current_evaluacion_usuario` (`:75`, admite `superadmin`, `evaluador_externo`, **`tecnico`**). Devuelve la fila propia (o la de un evaluado si quien consulta es Pilar). |
-| `POST /autoevaluacion` | `235` | Paso 1. Exige **todos** los ítems de la plantilla (`_obtener_items_requeridos`, `:43`). Crea/actualiza la fila → estado `autoevaluado`. |
-| `POST /evaluacion` | `330` | Paso 2 (jefe). Exige autoevaluación enviada previamente (`:405-414`) → estado `completado` + crea los 8 compromisos (`abierto`). |
-| `GET /compromisos/{id}` | `469` | Solo con evaluación `completado`; crea la fila de compromisos si no existe. |
-| `PUT /compromisos/{id}` | `511` | Guardado con concurrencia optimista (`version` → 409 si otro editó primero). |
-| `POST /compromisos/{id}/cerrar` | `591` | Solo el evaluador asignado; estado `cerrado` definitivo. |
+| `POST /autoevaluacion` | `241` | Paso 1. Exige **todos** los ítems de la plantilla (`_obtener_items_requeridos`, `:43`). Crea/actualiza la fila → estado `autoevaluado`. |
+| `POST /evaluacion` | `342` | Paso 2 (jefe). Exige autoevaluación enviada previamente (`:405-414`) → estado `completado` + crea los 8 compromisos (`abierto`). |
+| `GET /compromisos/{id}` | `487` | Solo con evaluación `completado`; crea la fila de compromisos si no existe. |
+| `PUT /compromisos/{id}` | `529` | Guardado con concurrencia optimista (`version` → 409 si otro editó primero). |
+| `POST /compromisos/{id}/cerrar` | `609` | Solo el evaluador asignado; estado `cerrado` definitivo. |
 
 **Máquina de estados** (`evaluacion_desempeno.py:40`):
 
@@ -290,6 +295,23 @@ borrador ──POST /autoevaluacion──▶ autoevaluado ──POST /evaluacion
 - **Auditoría**: el envío de autoevaluación de un técnico escribe en `logs_auditoria` (`accion="autoevaluacion_enviada"`, `:316-324`, helper best-effort `_registrar_auditoria` `:134-156`) y el cierre de compromisos (`"compromisos_cerrados"`, `:646-652`).
 - **PDF**: `pdfEvaluacionDesempeno.js` (formulario completo, carga diferida `import()`, cero peticiones extra) y `pdfCompromisos.js` (solo compromisos); solo Pilar descarga el PDF de evaluación cuando **ambos** pasos tienen envío registrado (`puedeDescargarPdf`, `EvaluacionDesempenoForm.jsx:182-184`).
 - **Acceso de entrada**: la dependencia `get_current_evaluacion_usuario` (`:75-88`) admite `rol='tecnico'` — los técnicos NO necesitan ser `superadmin` para entrar al módulo.
+
+### 4.11 Escuela GSB — `/escuela` (`escuela.py`)
+
+Formación a partir de las falencias de la evaluación AD-FR-06. Ruta UI `/escuela-gsb` → `EscuelaGSB.jsx` (antes era `SeccionEnConstruccion`). **No modifica el flujo de evaluación**: solo lee `evaluaciones_desempeno`.
+
+- **Detección al vuelo (sin tabla)**: `_detectar_falencias` (`escuela.py`) toma las evaluaciones `completado` cuya plantilla esté en la lista blanca `FAMILIA_POR_PLANTILLA` (`core/escuela_modulos.py`: `directivos`, `contable`, `operaciones`, `tecnico`) y devuelve cada ítem con calificación **1 o 2 en la evaluación del jefe** (columna `evaluacion`, no `autoevaluacion`). Cada falencia es un aviso de solo lectura: trabajador, plantilla, ítem (número y texto), calificación, fecha (`evaluacion_enviada_en`). AD-FR-35 (`tecnico_adfr35`) queda fuera; para incluirla hay que añadir la familia `adfr35` y adaptar la detección, porque sus calificaciones viven en `evaluaciones_tecnicos_capas`.
+- **Módulos didácticos en código**: `backend/app/core/escuela_modulos.json`, uno por ítem, con clave `familia:número` (familias `general` = contable/operaciones/tecnico y `directivos`). Esquema: `titulo`, `objetivo`, `duracion_min` (opcional) y `bloques` de tipo `texto` (texto plano), `enlace` (`url`), `video` (`url`; YouTube/Vimeo se incrustan) y `pdf` (`archivo` bajo `/escuela/…`, servido desde `frontend/public/escuela/`). **En producción el archivo está vacío (`{}`)** hasta que Dirección Administrativa entregue el contenido; `escuela_modulos.ejemplo.json` solo se carga si `ESCUELA_MODULOS_FILE` apunta a él. Al arrancar, `validar_registro_modulos()` (`main.py`) advierte en el log de claves que no corresponden a ningún ítem.
+- **Estado automático** por falencia: "Módulo disponible" si existe la clave en el registro; si no, "Sin módulo".
+
+| Endpoint | Línea | Protección / notas |
+|---|---|---|
+| `GET /escuela/falencias` | `105` | **Exclusivo `encargado_escuela`** (`get_encargado_escuela`). No usa `require_seccion`, que deja pasar a cualquier `superadmin`. Filtros opcionales `usuario_id` y `plantilla`. |
+| `GET /escuela/mi-formacion` | `119` | Cualquier usuario autenticado; solo sus propias falencias y los módulos disponibles. |
+| `GET /escuela/modulos/{clave}` | `137` | La encargada, o un usuario con una falencia de ese módulo (403 si no). |
+| `PUT /admin/usuarios/{id}/encargado-escuela` | `admin.py` | Solo la cuenta Master (`get_current_master_admin`); queda en auditoría (`cambiar_encargado_escuela`). |
+
+El permiso viaja en el JWT y en `/auth/me` (`encargado_escuela`); en el frontend se consulta con `esEncargadoEscuela(user)` (`utils/permisos.js`).
 
 ---
 
@@ -320,7 +342,7 @@ Definición de grupos (códigos) en `PanelRolesAdminsMapa.jsx:14-44` y `modulesC
 | `OP` | Viáticos | `viaticos` (`modulesConfig.js:281`) + `Autoplaner ODS` (próximamente, `modulesConfig.js:331`) | `canAccess`: rol admin/superadmin y `acceso_viaticos` (`modulesConfig.js:56-59`). |
 | `IN` | Inventario | `inventario` (`modulesConfig.js:379`) | Módulo real activo (`PanelRolesAdminsMapa.jsx:29`). |
 | `MC` | Backup & Evidencias | `backup` (`modulesConfig.js:427`) | Solo aparece como card; requiere módulo. |
-| `AD` | Talento Humano + Escuela GSB (próximamente) | `talento` (`modulesConfig.js:465`), `escuela-gsb` (`modulesConfig.js:508`) | `puedeAcceder`: rol admin/superadmin (`modulesConfig.js:503`). |
+| `AD` | Talento Humano + Escuela GSB | `talento` (`modulesConfig.js:465`), `escuela-gsb` (`modulesConfig.js:505`) | Talento Humano: rol admin/superadmin (`modulesConfig.js:500`). Escuela GSB: **cualquier usuario** (`puedeAcceder: () => true`, `modulesConfig.js:543`); dentro, el panel de falencias exige `encargado_escuela`. |
 
 ### 5.4 Sincronización `acceso_viaticos` ↔ `OP`
 
@@ -354,14 +376,16 @@ El campo `usuarios.acceso_viaticos` es **espejo** del nivel `admin` del proceso 
 | **Administrador de Sección** | Nivel `accesos_procesos[codigo] === 'admin'`. Edición completa de la ficha del proceso. |
 | **Accesos por Proceso** | Sistema de niveles (Ninguno/Lector/Administrador) por proceso SGC, gestionado por PilarAdmin. Tabla `procesos_calidad_accesos_admin`. |
 | **Bloque Antiguo (legacy)** | `acceso_mapa`, `rol_mapa`, `es_admin_calidad`. Se leen/setean pero ya no gobiernan accesos. |
-| **Módulo operativo** | Ficha de proceso con funcionalidad real (Inventario en `IN`, Viáticos en `OP`, Talento Humano en `AD`). |
-| **Placeholder** | Ficha de proceso sin módulo desarrollado (Autoplaner ODS, Escuela GSB y demás procesos). |
+| **Módulo operativo** | Ficha de proceso con funcionalidad real (Inventario en `IN`, Viáticos en `OP`, Talento Humano y Escuela GSB en `AD`). |
+| **Placeholder** | Ficha de proceso sin módulo desarrollado (Autoplaner ODS y demás procesos). |
+| **Encargada Escuela** | Usuario con `usuarios.encargado_escuela = true`. Ve el panel de falencias de la Escuela GSB; no depende del rol ni del correo. |
+| **Falencia** | Ítem AD-FR-06 calificado 1 o 2 por el jefe en una evaluación `completado`. Se calcula al vuelo; no se guarda. |
 | **OTP** | Código de 6 dígitos para recuperar contraseña, guardado en memoria (`auth.py`). |
 | **Kardex** | Registro inmutable de movimientos de inventario (`inventario_movimientos`). |
 | **Hub** | Panel central al hacer login (`SeleccionModulo.jsx`); muestra accesos a módulos según rol. |
 | **Inventario** | Proceso `IN` del mapa SGC, con módulo operativo real (`Inventario.jsx`, `inventario.py`). Planillas MANTENIMIENTO y RTC. |
-| **JWT** | Token de sesión. Contiene `sub`, `rol`, `nombre`, `cargo`, `activo`, `acceso_viaticos`, `accesos_procesos`. |
+| **JWT** | Token de sesión. Contiene `sub`, `rol`, `id`, `nombre`, `codigo_empleado`, `acceso_viaticos`, `es_admin_calidad`, `rol_mapa`, `accesos_procesos`, `plan_datos_moviles_habilitado`, `encargado_escuela`. |
 
 ---
 
-> **Nota final:** Este documento refleja el estado del código al momento de la revisión (`commit 47e641ec`, rama `main`). Los cambios posteriores (commits, migraciones) pueden desactualizar las referencias. Se recomienda regenerar este contexto tras cambios significativos en roles, permisos o estructura de módulos.
+> **Nota final:** Este documento refleja el estado del código al momento de la revisión (`commit 47e641ec`, rama `main`), con las secciones de Evaluación AD-FR-06, AD-FR-35 y Escuela GSB revisadas el 2026-10-15. Los cambios posteriores (commits, migraciones) pueden desactualizar las referencias. Se recomienda regenerar este contexto tras cambios significativos en roles, permisos o estructura de módulos.
