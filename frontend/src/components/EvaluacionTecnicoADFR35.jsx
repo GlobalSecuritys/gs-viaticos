@@ -104,7 +104,8 @@ function CapaForm({ evaluacionId, capa, capaData, puedeEditar, onUpdated, readOn
       return v !== "N/A" && v !== "NA";
     });
     if (!nums.length) { setErrCapa("Al menos un criterio debe tener valor numerico."); return; }
-    if (!window.confirm(`¿Confirma enviar la capa "${CAPAS_META[capa]?.etiqueta}"? Esta accion es irreversible.`)) return;
+    const queEnvia = capa === "auto" ? "su autoevaluacion" : `la capa "${CAPAS_META[capa]?.etiqueta}"`;
+    if (!window.confirm(`¿Confirma enviar ${queEnvia}? Esta accion es irreversible.`)) return;
     setEnviando(true);
     try {
       await api.post(
@@ -215,7 +216,7 @@ function CapaForm({ evaluacionId, capa, capaData, puedeEditar, onUpdated, readOn
             {guardando ? "Guardando..." : "💾 Guardar borrador"}
           </button>
           <button type="button" className="etfr-btn etfr-btn--primary" disabled={enviando} onClick={enviar}>
-            {enviando ? "Enviando..." : "✅ Enviar capa"}
+            {enviando ? "Enviando..." : capa === "auto" ? "✅ Enviar autoevaluacion" : "✅ Enviar capa"}
           </button>
         </div>
       )}
@@ -493,4 +494,4 @@ export default function EvaluacionTecnicoADFR35({ evaluacionId, onCerrada }) {
       )}
     </div>
   );
-}
+}
