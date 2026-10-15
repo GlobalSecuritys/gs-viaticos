@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class FalenciaResponse(BaseModel):
@@ -33,3 +33,36 @@ class MiFormacionResponse(BaseModel):
 class ModuloResponse(BaseModel):
     clave: str
     contenido: dict[str, Any]
+
+
+class EstudianteResumen(BaseModel):
+    id: int
+    nombre: str
+    correo: str
+    grupo: str  # "administrativos" | "tecnicos"
+    total_falencias: int
+    peor_calificacion: Optional[int] = None
+    total_archivos: int
+
+
+class ArchivoEstudianteResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    nombre_original: str
+    descripcion: Optional[str] = None
+    extension: str
+    tipo_mime: str
+    tamano_bytes: int
+    subido_por_nombre: str
+    subido_en: datetime
+
+
+class FichaEstudianteResponse(EstudianteResumen):
+    falencias: list[FalenciaResponse]
+    archivos: list[ArchivoEstudianteResponse]
+
+
+class EnlaceDescargaResponse(BaseModel):
+    url: str
+    expira_en: datetime

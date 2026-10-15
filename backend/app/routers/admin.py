@@ -29,6 +29,7 @@ from app.schemas.viatico import (
 )
 from app.services.excel_export import generar_excel_viaticos_independientes
 from app.core.cloudinary import upload_evidencia_viatico
+from app.core.escuela_archivos import limpiar_material_de_usuario
 from app.core.config import settings
 from app.core.security import get_current_admin, get_current_superadmin, get_current_master_admin, hash_password, verificar_autoridad_sobre_usuario
 from app.database import get_db
@@ -455,6 +456,10 @@ def eliminar_usuario_definitivo(
     nombre, correo, rol = usuario.nombre, usuario.correo, usuario.rol
     db.delete(usuario)
     db.commit()
+
+    # Material académico de la Escuela GSB: las filas caen por CASCADE; los
+    # archivos en Cloudinary se limpian sin bloquear (si falla, queda en el log).
+    limpiar_material_de_usuario(id)
 
     # 9. Auditoría solo cuando el borrado quedó confirmado
     registrar_auditoria(
