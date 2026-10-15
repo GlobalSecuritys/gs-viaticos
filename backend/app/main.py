@@ -14,6 +14,8 @@ from app.routers.calidad_procesos import router as calidad_procesos_router, seed
 from app.routers.bitacora_backup import router as bitacora_backup_router
 from app.routers.inventario import router as inventario_router
 from app.routers.evaluacion_desempeno import router as evaluacion_desempeno_router
+from app.routers.escuela import router as escuela_router
+from app.core.escuela_modulos import validar_registro_modulos
 from app.routers.evaluacion_tecnicos import router as evaluacion_tecnicos_router
 
 from sqlalchemy import text
@@ -53,6 +55,12 @@ app = FastAPI(
     description="Plataforma de gestión de viáticos, operaciones y calidad de Global Security",
     version="1.0.0",
 )
+
+@app.on_event("startup")
+def startup_validar_escuela():
+    # Avisa en el log si escuela_modulos.json tiene claves que no son ítems AD-FR-06.
+    validar_registro_modulos()
+
 
 @app.on_event("startup")
 def startup_db_check():
@@ -307,6 +315,7 @@ app.include_router(inventario_router)
 app.include_router(evaluacion_desempeno_router)
 app.include_router(evaluacion_tecnicos_router)
 app.include_router(bitacora_backup_router)
+app.include_router(escuela_router)
 
 
 @app.get("/", include_in_schema=False)
