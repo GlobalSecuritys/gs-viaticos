@@ -1,0 +1,209 @@
+/* Escuela GSB: complementa AdminDashboard.css / AdminUsuarios.css */
+
+.esc-tabs {
+    display: inline-flex;
+    gap: 3px;
+    padding: 3px;
+    margin-bottom: 1rem;
+    background: #F1F5F9;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+}
+
+.esc-tab {
+    border: none;
+    background: transparent;
+    color: #64748B;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.45rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.esc-tab--activa {
+    background: #10B981;
+    color: #FFFFFF;
+}
+
+.esc-error {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: #B91C1C;
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+}
+
+.esc-intro {
+    margin: 0 0 1rem;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.esc-vacio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--color-text-secondary);
+}
+
+.esc-vacio-icono {
+    font-size: 2.4rem;
+    margin-bottom: 0.5rem;
+}
+
+.esc-vacio h3 {
+    margin: 0 0 0.4rem;
+    color: var(--color-text);
+    font-size: 1.05rem;
+}
+
+.esc-vacio p {
+    margin: 0;
+    max-width: 460px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.esc-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.esc-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-tertiary);
+}
+
+.esc-item-num {
+    flex-shrink: 0;
+    min-width: 2.6rem;
+    padding: 0.3rem 0.4rem;
+    border-radius: 8px;
+    background: #ECFDF5;
+    color: #047857;
+    font-weight: 800;
+    font-size: 0.82rem;
+    text-align: center;
+}
+
+.esc-item-cuerpo {
+    flex: 1;
+    min-width: 0;
+}
+
+.esc-item-texto {
+    font-weight: 700;
+    color: var(--color-text);
+    font-size: 0.88rem;
+}
+
+.esc-item-meta {
+    margin-top: 0.2rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.esc-estado {
+    flex-shrink: 0;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.esc-estado--ok {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.esc-estado--sin {
+    background: #F1F5F9;
+    color: #475569;
+}
+
+.esc-calif {
+    display: inline-block;
+    min-width: 1.4rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 0.78rem;
+    text-align: center;
+}
+
+.esc-calif--1 {
+    background: #FEE2E2;
+    color: #B91C1C;
+}
+
+.esc-calif--2 {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.esc-resumen {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.esc-resumen > div {
+    display: flex;
+    flex-direction: column;
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-tertiary);
+    min-width: 110px;
+}
+
+.esc-resumen strong {
+    font-size: 1.35rem;
+    color: var(--color-text);
+}
+
+.esc-resumen span {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.esc-filtros {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.esc-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+
+.esc-tabla-num {
+    font-weight: 800;
+    color: #047857;
+    margin-right: 0.25rem;
+}
+
+@media (max-width: 600px) {
+    .esc-item {
+        flex-wrap: wrap;
+    }
+}

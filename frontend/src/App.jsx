@@ -25,6 +25,7 @@ import CalidadProcesos from './pages/CalidadProcesos';
 import CalidadCategoria from './pages/CalidadCategoria';
 import CalidadDetalleProceso from './pages/CalidadDetalleProceso';
 import SeccionEnConstruccion from './pages/SeccionEnConstruccion';
+import EscuelaGSB from './pages/EscuelaGSB';
 import Inventario from './pages/Inventario';
 
 export default function App() {
@@ -231,7 +232,7 @@ export default function App() {
             }
           />
 
-          {/* ── MÓDULOS EN DESARROLLO (AUTOPLANER ODS & ESCUELA GSB) ── */}
+          {/* ── AUTOPLANER ODS (en desarrollo) & ESCUELA GSB ── */}
           <Route
             path="/autoplaner-ods"
             element={
@@ -251,14 +252,7 @@ export default function App() {
             path="/escuela-gsb"
             element={
               <PrivateRoute>
-                <SeccionEnConstruccion
-                  titulo="Escuela GSB"
-                  subtitulo="Campus de Formación y Certificación Continua"
-                  icono="🎓"
-                  grupoPadre="Administrativo"
-                  descripcion="Plataforma de capacitación técnica, inducción institucional, cursos normativos y evaluación periódica de competencias."
-                  colorTheme="green"
-                />
+                <EscuelaGSB />
               </PrivateRoute>
             }
           />

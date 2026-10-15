@@ -504,7 +504,7 @@ export const MODULOS_SGC_ASOCIADOS = {
       codigo: 'AD',
       moduloId: 'escuela-gsb',
       nombre: 'Escuela GSB',
-      badge: 'MUY PRONTO',
+      badge: 'FORMACIÓN',
       colorTheme: 'green',
       colorHex: '#10B981',
       descripcion: 'Campus virtual de capacitación técnica, inducción institucional, cursos normativos y certificación de competencias.',
