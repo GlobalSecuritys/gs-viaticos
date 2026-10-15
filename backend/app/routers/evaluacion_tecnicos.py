@@ -17,6 +17,7 @@ from app.models.evaluacion_desempeno import (
     EvaluacionTecnicoCapa,
     EvaluacionTecnicoResumen,
 )
+from app.models.configuracion_general import ConfiguracionGeneral
 from app.models.log_auditoria import LogAuditoria
 from app.models.usuario import Usuario
 from app.schemas.evaluacion_tecnicos import (
@@ -30,7 +31,10 @@ from app.schemas.evaluacion_tecnicos import (
     EvaluacionTecnicoListItem,
     PeriodoCreate,
     PeriodoResponse,
+    PeriodoUpdate,
     ResumenResponse,
+    TituloPanelResponse,
+    TituloPanelUpdate,
 )
 
 router = APIRouter(prefix="/evaluaciones-tecnicos", tags=["Evaluación de Técnicos AD-FR-35"])
@@ -42,6 +46,8 @@ _CRITERIOS_ADFR35 = [
     "3.1",
 ]
 _CAPAS_VALIDAS = ("auto", "viaticos", "asistente_oper")
+_CLAVE_TITULO_PANEL = "titulo_panel_tecnicos"
+_TITULO_PANEL_DEFAULT = "Evaluacion de Tecnicos Contratistas"
 
 # Umbrales únicos de nivel de desempeño
 UMBRALES_NIVEL = [
@@ -313,6 +319,93 @@ def abrir_periodo(
     res = PeriodoResponse.model_validate(periodo)
     res.total_evaluaciones = len(tecnicos)
     return res
+
+
+@router.put("/periodos/{periodo_id}", response_model=PeriodoResponse)
+def renombrar_periodo(
+    periodo_id: int,
+    payload: PeriodoUpdate,
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Pilar o superadmin cambian el nombre visible de un periodo."""
+    if not _es_pilar_o_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado.")
+
+    periodo = db.get(EvaluacionPeriodoTecnico, periodo_id)
+    if not periodo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Periodo no encontrado.")
+
+    nombre = payload.nombre.strip()
+    duplicado = db.scalar(
+        select(EvaluacionPeriodoTecnico.id).where(
+            func.lower(EvaluacionPeriodoTecnico.nombre) == nombre.lower(),
+            EvaluacionPeriodoTecnico.id != periodo_id,
+        )
+    )
+    if duplicado:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Ya existe un periodo registrado con el nombre '{nombre}'.",
+        )
+
+    anterior = periodo.nombre
+    periodo.nombre = nombre
+    _registrar_auditoria_tecnico(
+        db,
+        actor=current_user,
+        accion="periodo_renombrado",
+        detalle=f"Periodo '{anterior}' → '{nombre}'.",
+    )
+    db.commit()
+    db.refresh(periodo)
+
+    res = PeriodoResponse.model_validate(periodo)
+    res.total_evaluaciones = db.scalar(
+        select(func.count(EvaluacionDesempeno.id)).where(EvaluacionDesempeno.periodo_id == periodo.id)
+    ) or 0
+    return res
+
+
+@router.get("/titulo-panel", response_model=TituloPanelResponse)
+def obtener_titulo_panel(
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Título visible del panel AD-FR-35 (editable por Pilar / superadmin)."""
+    valor = db.scalar(
+        select(ConfiguracionGeneral.valor).where(ConfiguracionGeneral.clave == _CLAVE_TITULO_PANEL)
+    )
+    return TituloPanelResponse(titulo=valor or _TITULO_PANEL_DEFAULT)
+
+
+@router.put("/titulo-panel", response_model=TituloPanelResponse)
+def actualizar_titulo_panel(
+    payload: TituloPanelUpdate,
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    if not _es_pilar_o_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado.")
+
+    titulo = payload.titulo.strip()
+    config = db.get(ConfiguracionGeneral, _CLAVE_TITULO_PANEL)
+    anterior = config.valor if config else _TITULO_PANEL_DEFAULT
+    if config:
+        config.valor = titulo
+        config.actualizado_por_id = current_user.id
+    else:
+        db.add(ConfiguracionGeneral(
+            clave=_CLAVE_TITULO_PANEL, valor=titulo, actualizado_por_id=current_user.id
+        ))
+    _registrar_auditoria_tecnico(
+        db,
+        actor=current_user,
+        accion="titulo_panel_tecnicos_actualizado",
+        detalle=f"'{anterior}' → '{titulo}'.",
+    )
+    db.commit()
+    return TituloPanelResponse(titulo=titulo)
 
 
 @router.post("/periodos/{periodo_id}/agregar-tecnico/{usuario_id}", response_model=EvaluacionTecnicoListItem)

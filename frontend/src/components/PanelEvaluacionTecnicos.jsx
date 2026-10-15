@@ -36,6 +36,8 @@ function badge(estado) {
   );
 }
 
+const TITULO_DEFAULT = "Evaluacion de Tecnicos Contratistas";
+
 export default function PanelEvaluacionTecnicos() {
   /* ── Estado ── */
   const [periodos, setPeriodos] = useState([]);
@@ -67,6 +69,14 @@ export default function PanelEvaluacionTecnicos() {
   /* Vista detalle */
   const [vistaDetalle, setVistaDetalle] = useState(false);
 
+  /* Edicion de textos: titulo del panel y nombre del periodo */
+  const [titulo, setTitulo] = useState(TITULO_DEFAULT);
+  const [editandoTitulo, setEditandoTitulo] = useState(false);
+  const [tituloDraft, setTituloDraft] = useState("");
+  const [editandoPeriodo, setEditandoPeriodo] = useState(false);
+  const [periodoDraft, setPeriodoDraft] = useState("");
+  const [guardandoTexto, setGuardandoTexto] = useState(false);
+
   /* ── Carga inicial ── */
   const cargarPeriodos = useCallback(async () => {
     try {
@@ -81,6 +91,13 @@ export default function PanelEvaluacionTecnicos() {
       const { data } = await api.get("/evaluaciones-tecnicos/configuracion-capas");
       setConfigCapas(data);
     } catch (e) { /* silencioso */ }
+  }, []);
+
+  const cargarTitulo = useCallback(async () => {
+    try {
+      const { data } = await api.get("/evaluaciones-tecnicos/titulo-panel");
+      setTitulo(data.titulo);
+    } catch { /* silencioso: queda el titulo por defecto */ }
   }, []);
 
   const cargarUsuarios = useCallback(async () => {
@@ -102,7 +119,7 @@ export default function PanelEvaluacionTecnicos() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([cargarPeriodos(), cargarConfigCapas(), cargarUsuarios()]).finally(() => setLoading(false));
+    Promise.all([cargarPeriodos(), cargarConfigCapas(), cargarUsuarios(), cargarTitulo()]).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -123,6 +140,38 @@ export default function PanelEvaluacionTecnicos() {
       setPeriodoActivo(data);
     } catch (e) { setError(formatApiError(e, "No se pudo crear el periodo.")); }
     finally { setCreandoPeriodo(false); }
+  }
+
+  async function handleGuardarTitulo() {
+    const nuevo = tituloDraft.trim();
+    if (nuevo.length < 3) { setError("El titulo debe tener al menos 3 caracteres."); return; }
+    setGuardandoTexto(true);
+    setError("");
+    try {
+      const { data } = await api.put("/evaluaciones-tecnicos/titulo-panel", { titulo: nuevo });
+      setTitulo(data.titulo);
+      setEditandoTitulo(false);
+    } catch (e) { setError(formatApiError(e, "No se pudo guardar el titulo.")); }
+    finally { setGuardandoTexto(false); }
+  }
+
+  async function handleRenombrarPeriodo() {
+    const nuevo = periodoDraft.trim();
+    if (nuevo.length < 3) { setError("El nombre del periodo debe tener al menos 3 caracteres."); return; }
+    setGuardandoTexto(true);
+    setError("");
+    try {
+      const { data } = await api.put(`/evaluaciones-tecnicos/periodos/${periodoActivo.id}`, { nombre: nuevo });
+      setPeriodos((prev) => prev.map((p) => (p.id === data.id ? data : p)));
+      setPeriodoActivo(data);
+      setEditandoPeriodo(false);
+    } catch (e) { setError(formatApiError(e, "No se pudo renombrar el periodo.")); }
+    finally { setGuardandoTexto(false); }
+  }
+
+  function onTeclaEdicion(e, guardar, cancelar) {
+    if (e.key === "Enter") guardar();
+    if (e.key === "Escape") cancelar();
   }
 
   function abrirConfig() {
@@ -207,7 +256,36 @@ export default function PanelEvaluacionTecnicos() {
         <div className="petf-header-info">
           <span style={{ fontSize: "1.35rem" }}>🛠️</span>
           <div>
-            <div className="petf-header-title">Evaluacion de Tecnicos Contratistas</div>
+            {editandoTitulo ? (
+              <div className="petf-edit-inline">
+                <input
+                  className="petf-edit-input petf-edit-input--titulo"
+                  value={tituloDraft}
+                  maxLength={150}
+                  autoFocus
+                  onChange={(e) => setTituloDraft(e.target.value)}
+                  onKeyDown={(e) => onTeclaEdicion(e, handleGuardarTitulo, () => setEditandoTitulo(false))}
+                />
+                <button type="button" className="petf-btn petf-btn--primary petf-btn--sm" disabled={guardandoTexto} onClick={handleGuardarTitulo}>
+                  {guardandoTexto ? "..." : "Guardar"}
+                </button>
+                <button type="button" className="petf-btn petf-btn--secondary petf-btn--sm" onClick={() => setEditandoTitulo(false)}>
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <div className="petf-header-title">
+                {titulo}
+                <button
+                  type="button"
+                  className="petf-edit-btn"
+                  title="Editar titulo"
+                  onClick={() => { setTituloDraft(titulo); setEditandoTitulo(true); }}
+                >
+                  ✏️
+                </button>
+              </div>
+            )}
             <div className="petf-header-sub">AD-FR-35 · Formato de 3 capas (Auto / Viaticos / Asistente Oper.)</div>
           </div>
         </div>
@@ -241,7 +319,7 @@ export default function PanelEvaluacionTecnicos() {
                 key={p.id}
                 type="button"
                 className={`petf-periodo-chip${periodoActivo?.id === p.id ? " petf-periodo-chip--active" : ""}`}
-                onClick={() => { setPeriodoActivo(p); setEvalSelId(null); }}
+                onClick={() => { setPeriodoActivo(p); setEvalSelId(null); setEditandoPeriodo(false); }}
               >
                 <span>{p.nombre}</span>
                 {p.activo && <span className="petf-periodo-activo-dot" title="Activo" />}
@@ -270,9 +348,36 @@ export default function PanelEvaluacionTecnicos() {
         <>
           <div className="petf-list-header">
             <div className="petf-list-header-left">
-              <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.92rem" }}>
-                {periodoActivo.nombre}
-              </span>
+              {editandoPeriodo ? (
+                <div className="petf-edit-inline">
+                  <input
+                    className="petf-edit-input"
+                    value={periodoDraft}
+                    maxLength={100}
+                    autoFocus
+                    onChange={(e) => setPeriodoDraft(e.target.value)}
+                    onKeyDown={(e) => onTeclaEdicion(e, handleRenombrarPeriodo, () => setEditandoPeriodo(false))}
+                  />
+                  <button type="button" className="petf-btn petf-btn--primary petf-btn--sm" disabled={guardandoTexto} onClick={handleRenombrarPeriodo}>
+                    {guardandoTexto ? "..." : "Guardar"}
+                  </button>
+                  <button type="button" className="petf-btn petf-btn--secondary petf-btn--sm" onClick={() => setEditandoPeriodo(false)}>
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.92rem" }}>
+                  {periodoActivo.nombre}
+                  <button
+                    type="button"
+                    className="petf-edit-btn"
+                    title="Editar nombre del periodo"
+                    onClick={() => { setPeriodoDraft(periodoActivo.nombre); setEditandoPeriodo(true); }}
+                  >
+                    ✏️
+                  </button>
+                </span>
+              )}
               <span style={{ color: "#64748b", fontSize: "0.8rem" }}>
                 — {evaluaciones.length} evaluaciones
               </span>

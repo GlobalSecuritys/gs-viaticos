@@ -1,10 +1,11 @@
 from datetime import date
+from types import SimpleNamespace
 from decimal import Decimal
 from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, text
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.viatico import Viatico
@@ -400,21 +401,38 @@ def eliminar_usuario_definitivo(
     db.query(EmpleadoSolicitud).filter(EmpleadoSolicitud.usuario_id == id).delete(synchronize_session=False)
     db.query(EmpleadoPerfil).filter(EmpleadoPerfil.usuario_id == id).delete(synchronize_session=False)
 
-    # 7. Registrar auditoría con snapshot antes de borrar el usuario
-    registrar_auditoria(
-        db,
-        actor=current_admin,
-        usuario_objetivo=usuario,
-        accion="eliminar_usuario",
-        detalle=f"Eliminación definitiva de usuario '{usuario.nombre}' ({usuario.correo}, rol: {usuario.rol}) y todos sus datos asociados.",
-        resultado="exitoso",
-    )
+    # 7. Inventario: se conserva el historial. Los despachos quedan sin técnico
+    # (el nombre sigue en tecnico_nombre_origen) y el kardex/traspasos, que exigen
+    # un usuario, pasan al admin que elimina, igual que creado_por_id.
+    params = {"id": id, "admin_id": current_admin.id, "nombre": usuario.nombre}
+    db.execute(text(
+        "UPDATE inventario_legacy_despachos "
+        "SET tecnico_nombre_origen = COALESCE(tecnico_nombre_origen, :nombre), tecnico_id = NULL "
+        "WHERE tecnico_id = :id"
+    ), params)
+    db.execute(text(
+        "UPDATE inventario_movimientos SET usuario_id = :admin_id WHERE usuario_id = :id"
+    ), params)
+    db.execute(text(
+        "UPDATE inventario_legacy_traspasos SET solicitado_por_id = :admin_id WHERE solicitado_por_id = :id"
+    ), params)
 
-    # 8. Eliminar el usuario
+    # 8. Eliminar el usuario en la misma transacción que todo lo anterior
+    nombre, correo, rol = usuario.nombre, usuario.correo, usuario.rol
     db.delete(usuario)
     db.commit()
 
-    return {"detail": f"Usuario '{usuario.nombre}' y todos sus datos han sido eliminados permanentemente."}
+    # 9. Auditoría solo cuando el borrado quedó confirmado
+    registrar_auditoria(
+        db,
+        actor=current_admin,
+        usuario_objetivo=SimpleNamespace(id=id, nombre=nombre),
+        accion="eliminar_usuario",
+        detalle=f"Eliminación definitiva de usuario '{nombre}' (id {id}, {correo}, rol: {rol}) y todos sus datos asociados.",
+        resultado="exitoso",
+    )
+
+    return {"detail": f"Usuario '{nombre}' y todos sus datos han sido eliminados permanentemente."}
 
 
 

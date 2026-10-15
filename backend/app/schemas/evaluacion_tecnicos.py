@@ -7,6 +7,18 @@ class PeriodoCreate(BaseModel):
     nombre: str = Field(..., min_length=3, max_length=100, description="Ej: SEGUNDO SEMESTRE 2026")
 
 
+class PeriodoUpdate(BaseModel):
+    nombre: str = Field(..., min_length=3, max_length=100)
+
+
+class TituloPanelUpdate(BaseModel):
+    titulo: str = Field(..., min_length=3, max_length=150)
+
+
+class TituloPanelResponse(BaseModel):
+    titulo: str
+
+
 class PeriodoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

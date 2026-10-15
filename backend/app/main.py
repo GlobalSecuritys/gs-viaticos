@@ -38,6 +38,7 @@ from app.models.calidad_procesos import (
 from app.models.bitacora_backup import BitacoraBackup
 from app.models.estadistica_asignacion_archivada import EstadisticaAsignacionArchivada
 from app.models.inventario import InventarioPlanilla, InventarioItem, InventarioMovimiento
+from app.models.configuracion_general import ConfiguracionGeneral
 from app.models.evaluacion_desempeno import (
     EvaluacionDesempeno,
     EvaluacionCompromiso,
