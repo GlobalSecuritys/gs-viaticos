@@ -17,7 +17,11 @@ logger = logging.getLogger("uvicorn.error")
 
 _CORE_DIR = os.path.dirname(__file__)
 _PLANTILLAS_FILE = os.path.join(_CORE_DIR, "plantillas_evaluacion.json")
-_MODULOS_FILE = os.path.join(_CORE_DIR, "escuela_modulos.json")
+# En producción escuela_modulos.json está vacío ({}): no se publica contenido
+# didáctico hasta que Dirección Administrativa lo entregue. Los módulos de
+# prueba viven en escuela_modulos.ejemplo.json, que nunca se carga salvo que
+# se apunte ESCUELA_MODULOS_FILE a él en un entorno de pruebas.
+_MODULOS_FILE = os.environ.get("ESCUELA_MODULOS_FILE") or os.path.join(_CORE_DIR, "escuela_modulos.json")
 
 # Lista blanca: plantilla → familia de ítems. Solo estas plantillas generan
 # falencias. contable/operaciones/tecnico tienen los mismos 22 ítems (texto y

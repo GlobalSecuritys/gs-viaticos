@@ -1,0 +1,18 @@
+{
+  "general:1.1": {
+    "titulo": "EJEMPLO — Cumplimiento de funciones del cargo",
+    "objetivo": "Módulo de prueba para verificar el visor. No es contenido didáctico real.",
+    "duracion_min": 10,
+    "bloques": [
+      { "tipo": "texto", "titulo": "Introducción", "contenido": "Este es un párrafo de prueba.\n\nY este es un segundo párrafo." },
+      { "tipo": "enlace", "titulo": "Enlace de prueba", "url": "https://example.com", "descripcion": "Abre una página de ejemplo." },
+      { "tipo": "video", "titulo": "Video de prueba", "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+      { "tipo": "pdf", "titulo": "PDF de prueba", "archivo": "/escuela/general-1.1/guia.pdf" }
+    ]
+  },
+  "directivos:9.9": {
+    "titulo": "EJEMPLO — clave inválida",
+    "objetivo": "Debe disparar la advertencia de arranque: el ítem 9.9 no existe.",
+    "bloques": []
+  }
+}

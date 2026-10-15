@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ModuloEscuela from '../components/ModuloEscuela';
 import { obtenerFalencias, obtenerMiFormacion } from '../services/escuela';
 import { esEncargadoEscuela } from '../utils/permisos';
 import { formatApiError } from '../utils/formatError';
@@ -21,7 +22,14 @@ function fmtFecha(iso) {
     return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function EstadoModulo({ disponible }) {
+function EstadoModulo({ disponible, onAbrir }) {
+    if (disponible && onAbrir) {
+        return (
+            <button type="button" className="esc-estado esc-estado--ok esc-estado--btn" onClick={onAbrir}>
+                Abrir módulo →
+            </button>
+        );
+    }
     return (
         <span className={`esc-estado ${disponible ? 'esc-estado--ok' : 'esc-estado--sin'}`}>
             {disponible ? 'Módulo disponible' : 'Sin módulo'}
@@ -34,7 +42,7 @@ function Calificacion({ valor }) {
 }
 
 /* ── Mi formación: lo que ve cada trabajador sobre sí mismo ── */
-function MiFormacion() {
+function MiFormacion({ onAbrir }) {
     const [datos, setDatos] = useState(null);
     const [error, setError] = useState('');
 
@@ -76,7 +84,7 @@ function MiFormacion() {
                                 Calificación <Calificacion valor={f.calificacion} /> · {fmtFecha(f.fecha)}
                             </div>
                         </div>
-                        <EstadoModulo disponible={f.modulo_disponible} />
+                        <EstadoModulo disponible={f.modulo_disponible} onAbrir={() => onAbrir(f.clave_modulo)} />
                     </div>
                 ))}
             </div>
@@ -85,7 +93,7 @@ function MiFormacion() {
 }
 
 /* ── Falencias detectadas: panel de solo consulta de la encargada ── */
-function PanelFalencias() {
+function PanelFalencias({ onAbrir }) {
     const [falencias, setFalencias] = useState(null);
     const [error, setError] = useState('');
     const [busqueda, setBusqueda] = useState('');
@@ -174,7 +182,7 @@ function PanelFalencias() {
                                     <td><span className="esc-tabla-num">{f.item_numero}</span> {f.item_texto}</td>
                                     <td style={{ textAlign: 'center' }}><Calificacion valor={f.calificacion} /></td>
                                     <td style={{ whiteSpace: 'nowrap' }}>{fmtFecha(f.fecha)}</td>
-                                    <td><EstadoModulo disponible={f.modulo_disponible} /></td>
+                                    <td><EstadoModulo disponible={f.modulo_disponible} onAbrir={() => onAbrir(f.clave_modulo)} /></td>
                                 </tr>
                             ))}
                         </tbody>
@@ -190,6 +198,7 @@ export default function EscuelaGSB() {
     const { user } = useAuth();
     const esEncargada = esEncargadoEscuela(user);
     const [tab, setTab] = useState(esEncargada ? 'falencias' : 'formacion');
+    const [moduloAbierto, setModuloAbierto] = useState(null);
 
     return (
         <div className="admin-root">
@@ -206,7 +215,7 @@ export default function EscuelaGSB() {
                     </p>
                 </div>
 
-                {esEncargada && (
+                {esEncargada && !moduloAbierto && (
                     <div className="esc-tabs">
                         <button
                             type="button"
@@ -226,7 +235,13 @@ export default function EscuelaGSB() {
                 )}
 
                 <div className="admin-card-container">
-                    {esEncargada && tab === 'falencias' ? <PanelFalencias /> : <MiFormacion />}
+                    {moduloAbierto ? (
+                        <ModuloEscuela clave={moduloAbierto} onVolver={() => setModuloAbierto(null)} />
+                    ) : esEncargada && tab === 'falencias' ? (
+                        <PanelFalencias onAbrir={setModuloAbierto} />
+                    ) : (
+                        <MiFormacion onAbrir={setModuloAbierto} />
+                    )}
                 </div>
             </div>
         </div>
