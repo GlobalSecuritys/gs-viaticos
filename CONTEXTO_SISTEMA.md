@@ -109,6 +109,7 @@ En cada startup (`main.py:45-77`) se crean por `checkfirst` las tablas de Cuenta
 | `procesos_calidad` (+ responsables, documentos, accesos_admin) | `calidad_procesos.py` | Mapa SGC + responsable + documentos + niveles de acceso por proceso. |
 | `empleados_perfil`, `empleados_documentos`, `empleados_historial`, `empleados_solicitudes`, `empleados_dotaciones`, `empleados_evaluaciones` | `talento_humano.py` | Módulo Talento Humano (perfil, documentos, historial, solicitudes, dotación/EPP, evaluaciones 1-5⭐). |
 | `evaluaciones_desempeno` | `evaluacion_desempeno.py:12` (mig. `0021`) | Evaluación AD-FR-06. **Una fila por evaluación** (no por ítem); `autoevaluacion` y `evaluacion` son JSON indexado por número de ítem (`{"1.1": {"calificacion": 1-4, "observacion": ""}}`). Estados AD-FR-06: `borrador` → `autoevaluado` → `completado`. **La misma tabla guarda las evaluaciones AD-FR-35** (plantilla `tecnico_adfr35`, con `periodo_id`), que usan además `pendiente`, `en_evaluacion` y `listo_para_cierre` y también terminan en `completado` (`evaluacion_tecnicos.py:982`); para distinguirlas hay que filtrar por `plantilla`. Trazabilidad de envío en `*_enviada_por_id` / `*_enviada_en`. La columna `compromisos` es legacy (sin uso desde mig. `0023`). |
+| `escuela_archivos_estudiante` | `escuela_archivo.py` (mig. `0026`) | Material académico que la encargada de la Escuela sube por estudiante. Metadatos aquí; el archivo vive en Cloudinary `type=authenticated` (privado) en `gs_viaticos/escuela/estudiantes/{usuario_id}`. FK `estudiante_id` con `ON DELETE CASCADE`. Independiente de Talento Humano. |
 | `configuracion_general` | `configuracion_general.py` (mig. `0024`) | Clave → valor para textos editables desde la UI. Hoy solo `titulo_panel_tecnicos` (título del panel AD-FR-35). |
 | `evaluaciones_compromisos` | `evaluacion_desempeno.py:74` (mig. `0023`) | Sección 5 de compromisos, 1:1 con la evaluación (`unique`). Exactamente **8 compromisos** (strings, máx. 500 c/u). Estados `abierto` → `cerrado`, concurrencia optimista con `version`, cierre exclusivo del evaluador. |
 
@@ -310,6 +311,20 @@ Formación a partir de las falencias de la evaluación AD-FR-06. Ruta UI `/escue
 | `GET /escuela/mi-formacion` | `119` | Cualquier usuario autenticado; solo sus propias falencias y los módulos disponibles. |
 | `GET /escuela/modulos/{clave}` | `137` | La encargada, o un usuario con una falencia de ese módulo (403 si no). |
 | `PUT /admin/usuarios/{id}/encargado-escuela` | `admin.py` | Solo la cuenta Master (`get_current_master_admin`); queda en auditoría (`cambiar_encargado_escuela`). |
+
+**Estudiantes y material académico (solo `encargado_escuela`)**. Estudiante = usuario activo con rol `superadmin` (grupo **Administrativos**, incluye la plantilla `operaciones`) o `tecnico` (grupo **Técnicos**), excluyendo cuentas `solo_inventario` y a la propia encargada.
+
+| Endpoint | Notas |
+|---|---|
+| `GET /escuela/estudiantes` | Lista con grupo, nº de falencias, peor calificación y nº de archivos (sin URLs). |
+| `GET /escuela/estudiantes/{id}` | Ficha bajo demanda: falencias (reutiliza `_detectar_falencias`) + metadatos del material. |
+| `POST /escuela/estudiantes/{id}/archivos` | Multipart `archivo` + `descripcion`. PDF, JPG/PNG/WEBP/HEIC, DOC/DOCX, XLS/XLSX, PPT/PPTX; máx. 10 MB; se valida extensión **y** firma del contenido (`core/escuela_archivos.py`). Imágenes como `image`, PDF y Office como `raw`. Auditoría `escuela_archivo_subido`. |
+| `GET /escuela/estudiantes/{id}/archivos/{aid}/descarga` | Enlace firmado (`private_download_url`) que caduca en 5 min. Auditoría `escuela_archivo_descargado`. |
+| `DELETE /escuela/estudiantes/{id}/archivos/{aid}` | Borra en Cloudinary y luego la fila (si Cloudinary falla, 502 y se conserva la fila). Auditoría `escuela_archivo_eliminado`. |
+
+Al eliminar un usuario (`DELETE /admin/usuarios/{id}`), sus filas caen por CASCADE y `limpiar_material_de_usuario` borra su carpeta en Cloudinary sin bloquear (si falla, solo queda en el log). UI: `EscuelaGSB.jsx` + `components/escuela/` (barra de advertencias, lista de estudiantes, ficha y "Material académico"); la ficha abierta va en `?estudiante=ID`.
+
+> Hallazgo: el resto de archivos del proyecto en Cloudinary (evidencias, cuentas de cobro, documentos de Talento Humano, calidad, inventario) se suben como `type=upload`, es decir, **públicos para quien tenga la URL**.
 
 El permiso viaja en el JWT y en `/auth/me` (`encargado_escuela`); en el frontend se consulta con `esEncargadoEscuela(user)` (`utils/permisos.js`).
 
