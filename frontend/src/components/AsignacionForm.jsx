@@ -3,6 +3,8 @@ import ModalSeleccionarCliente from './ModalSeleccionarCliente';
 import { formatMiles, limpiarNumero } from '../utils/personal';
 import './AsignacionForm.css';
 
+const OBSERVACIONES_DEFAULT = 'DINERO ENVIADO CORRESPONDIENTES A LOS GASTOS DE ALIMENTACION Y TRANSPORTES';
+
 const VACIO = {
     tecnico_id: '',
     tipo: '',
@@ -12,7 +14,7 @@ const VACIO = {
     fecha_inicio: '',
     fecha_fin: '',
     monto_anticipo: '',
-    observaciones: '',
+    observaciones: OBSERVACIONES_DEFAULT,
 };
 
 const OPCIONES_TIPO = [
