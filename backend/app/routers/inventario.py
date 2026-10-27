@@ -54,8 +54,13 @@ from app.schemas.inventario_nuevo import (
 from app.services.auditoria import registrar_auditoria
 from app.services.inventario_duplicados import buscar_duplicados
 from app.services.inventario_excel import (
+    PLANILLA_PILOTO_EXCEL,
     buscar_en_excel,
     obtener_datos_inventario_excel,
+    obtener_detalle_tecnico_mantenimiento,
+    obtener_resumen_mantenimiento,
+    obtener_tecnicos_mantenimiento,
+    obtener_vista_mantenimiento,
 )
 from app.services.inventario_lectura_inteligente import (
     obtener_lectura_inteligente_mantenimiento,
@@ -917,3 +922,87 @@ def lectura_inteligente_planilla(
     Piloto controlado: activo exclusivamente para CI FR - INVENTARIO MANTENIMIENTO 2026 (planilla_id = 1).
     """
     return obtener_lectura_inteligente_mantenimiento(db, planilla_id)
+
+
+# -----------------------------------------------------------------------------
+# ENDPOINTS OPTIMIZADOS MANTENIMIENTO 2026 (PLANILLA 1)
+# -----------------------------------------------------------------------------
+
+@router.get("/planillas/{planilla_id}/excel-resumen")
+def resumen_excel_planilla(
+    planilla_id: int,
+    current_user: LectorIN,
+):
+    """Retorna los 4 indicadores del encabezado y números para las tarjetas resumen de Mantenimiento 2026."""
+    if planilla_id != PLANILLA_PILOTO_EXCEL:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Este módulo optimizado está disponible únicamente para Mantenimiento 2026 (planilla {PLANILLA_PILOTO_EXCEL}).",
+        )
+    return obtener_resumen_mantenimiento(planilla_id)
+
+
+@router.get("/planillas/{planilla_id}/excel-vista")
+def vista_excel_planilla(
+    planilla_id: int,
+    current_user: LectorIN,
+    vista: str = Query(..., description="cantidad_total | salidas | prestamos | compras"),
+    q: Optional[str] = Query(None, description="Búsqueda por texto"),
+    filtro_estado: Optional[str] = Query(None, description="Filtro estado para salidas (instalada/pendiente/devuelta/danada)"),
+    filtro_tecnico: Optional[str] = Query(None, description="Filtro técnico para salidas"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=500),
+):
+    """Retorna los datos de una vista específica de Mantenimiento 2026 con filtros y paginación en servidor."""
+    if planilla_id != PLANILLA_PILOTO_EXCEL:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Este módulo optimizado está disponible únicamente para Mantenimiento 2026 (planilla {PLANILLA_PILOTO_EXCEL}).",
+        )
+    return obtener_vista_mantenimiento(
+        planilla_id=planilla_id,
+        vista=vista,
+        q=q,
+        filtro_estado=filtro_estado,
+        filtro_tecnico=filtro_tecnico,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/planillas/{planilla_id}/excel-tecnicos")
+def tecnicos_excel_planilla(
+    planilla_id: int,
+    current_user: LectorIN,
+):
+    """Retorna la lista de técnicos activos con préstamos para el slider/carrusel."""
+    if planilla_id != PLANILLA_PILOTO_EXCEL:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Este módulo optimizado está disponible únicamente para Mantenimiento 2026 (planilla {PLANILLA_PILOTO_EXCEL}).",
+        )
+    return obtener_tecnicos_mantenimiento(planilla_id)
+
+
+@router.get("/planillas/{planilla_id}/excel-tecnicos/{nombre_hoja}")
+def detalle_tecnico_excel_planilla(
+    planilla_id: int,
+    nombre_hoja: str,
+    current_user: LectorIN,
+    q: Optional[str] = Query(None, description="Búsqueda por texto"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=500),
+):
+    """Retorna el detalle de préstamos de un técnico específico. Rechaza hojas no autorizadas con 404."""
+    if planilla_id != PLANILLA_PILOTO_EXCEL:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Este módulo optimizado está disponible únicamente para Mantenimiento 2026 (planilla {PLANILLA_PILOTO_EXCEL}).",
+        )
+    return obtener_detalle_tecnico_mantenimiento(
+        planilla_id=planilla_id,
+        nombre_hoja=nombre_hoja,
+        q=q,
+        page=page,
+        page_size=page_size,
+    )

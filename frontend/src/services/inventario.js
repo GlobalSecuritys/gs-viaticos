@@ -76,3 +76,52 @@ export async function obtenerLecturaInteligente(planillaId = 1) {
   const res = await api.get(`/inventario/planillas/${planillaId}/lectura-inteligente`);
   return res.data;
 }
+
+/**
+ * Obtiene los 4 indicadores del encabezado y números de las tarjetas de Mantenimiento 2026.
+ */
+export async function obtenerExcelResumen(planillaId = 1) {
+  const res = await api.get(`/inventario/planillas/${planillaId}/excel-resumen`);
+  return res.data;
+}
+
+/**
+ * Obtiene los datos paginados y filtrados de una vista (cantidad_total, salidas, prestamos, compras).
+ */
+export async function obtenerExcelVista({
+  planillaId = 1,
+  vista,
+  q,
+  filtro_estado,
+  filtro_tecnico,
+  page = 1,
+  page_size = 50,
+} = {}) {
+  const params = { vista, page, page_size };
+  if (q && q.trim()) params.q = q.trim();
+  if (filtro_estado && filtro_estado.trim()) params.filtro_estado = filtro_estado.trim();
+  if (filtro_tecnico && filtro_tecnico.trim()) params.filtro_tecnico = filtro_tecnico.trim();
+
+  const res = await api.get(`/inventario/planillas/${planillaId}/excel-vista`, { params });
+  return res.data;
+}
+
+/**
+ * Obtiene la lista de técnicos activos con préstamos para el slider.
+ */
+export async function obtenerExcelTecnicos(planillaId = 1) {
+  const res = await api.get(`/inventario/planillas/${planillaId}/excel-tecnicos`);
+  return res.data;
+}
+
+/**
+ * Obtiene el detalle de préstamos de un técnico específico.
+ */
+export async function obtenerExcelDetalleTecnico(planillaId = 1, nombreHoja, { q, page = 1, page_size = 50 } = {}) {
+  const params = { page, page_size };
+  if (q && q.trim()) params.q = q.trim();
+  const hojaEncoded = encodeURIComponent(nombreHoja);
+  const res = await api.get(`/inventario/planillas/${planillaId}/excel-tecnicos/${hojaEncoded}`, { params });
+  return res.data;
+}
+

@@ -11,7 +11,11 @@ import {
   guardarSalidaRegistro,
   obtenerLecturaInteligente,
 } from '../services/inventario';
+import MantenimientoView from '../components/inventario/mantenimiento/MantenimientoView';
 import './Inventario.css';
+
+// Constante para el piloto Mantenimiento 2026
+const PLANILLA_PILOTO_EXCEL = 1;
 
 // ── Metadatos visuales por planilla (orden fijo 1-5) ─────────────────────────
 const PLANILLA_META = {
@@ -170,19 +174,16 @@ export default function Inventario() {
     setFiltroTextoGlobal('');
     setFiltrosColumnas({});
     setPanelFiltroAbierto(false);
-    setHojaSeleccionada('');
-    cargarExcel('', planilla);
-
-    // Piloto: Lectura inteligente exclusiva para CI FR - INVENTARIO MANTENIMIENTO 2026 (id = 1)
-    if (planilla.id === 1) {
-      setCargandoLectura(true);
-      obtenerLecturaInteligente(1)
-        .then((data) => setLecturaInteligente(data))
-        .catch((err) => console.error('Error cargando lectura inteligente:', err))
-        .finally(() => setCargandoLectura(false));
-    } else {
+    // Piloto: Mantenimiento 2026 utiliza la nueva vista optimizada sin carga anticipada de tablas
+    if (planilla.id === PLANILLA_PILOTO_EXCEL) {
+      setVistaActiva('mantenimiento');
       setLecturaInteligente(null);
+      return;
     }
+
+    setVistaActiva('excel');
+    cargarExcel('', planilla);
+    setLecturaInteligente(null);
   };
 
   const volverAlHome = () => {
@@ -398,6 +399,17 @@ export default function Inventario() {
   // ═══════════════════════════════════════════════════════════════════════════
   // VISTA DETALLE: DENTRO DE UNA PLANILLA (Excel / Búsqueda / Salida)
   // ═══════════════════════════════════════════════════════════════════════════
+  if (planillaSeleccionada.id === PLANILLA_PILOTO_EXCEL) {
+    return (
+      <div className="sgc-inv-panel">
+        <MantenimientoView
+          planilla={planillaSeleccionada}
+          onVolver={volverAlHome}
+        />
+      </div>
+    );
+  }
+
   const metaActiva = getMeta(planillaSeleccionada.orden);
 
   return (
