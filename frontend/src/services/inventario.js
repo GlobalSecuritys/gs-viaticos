@@ -136,3 +136,69 @@ export async function obtenerResumenMenu(planillaId, { forzar = false } = {}) {
 }
 
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Endpoints APP-MANAGED (Comware y futuras planillas con fuente='app')
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Catálogo de descripciones únicas con stock y sugerencia de tipo serial. */
+export async function obtenerCatalogo(planillaId) {
+  const res = await api.get(`/inventario/planillas/${planillaId}/catalogo`);
+  return res.data;
+}
+
+/** Lista de técnicos que han tenido salidas. */
+export async function obtenerTecnicos(planillaId) {
+  const res = await api.get(`/inventario/planillas/${planillaId}/tecnicos`);
+  return res.data;
+}
+
+/** Resumen rápido desde inventario_registros. */
+export async function obtenerResumenApp(planillaId) {
+  const res = await api.get(`/inventario/planillas/${planillaId}/resumen-app`);
+  return res.data;
+}
+
+/** Registra una entrada (ingreso a bodega). */
+export async function registrarEntrada(planillaId, datos) {
+  const res = await api.post(`/inventario/planillas/${planillaId}/entradas`, datos);
+  return res.data;
+}
+
+/** Registra una salida (despacho). */
+export async function registrarSalida(planillaId, datos) {
+  const res = await api.post(`/inventario/planillas/${planillaId}/salidas`, datos);
+  return res.data;
+}
+
+/** Marca salidas pendientes como instaladas. */
+export async function registrarInstalacion(planillaId, datos) {
+  const res = await api.post(`/inventario/planillas/${planillaId}/salidas/instalar`, datos);
+  return res.data;
+}
+
+/** Devuelve una salida pendiente a bodega. */
+export async function devolverSalida(planillaId, registroId, motivo) {
+  const res = await api.post(
+    `/inventario/planillas/${planillaId}/salidas/${registroId}/devolver`,
+    { registro_id: registroId, motivo }
+  );
+  return res.data;
+}
+
+/** Anula una entrada en stock. */
+export async function anularEntrada(planillaId, registroId, motivo) {
+  const res = await api.post(
+    `/inventario/planillas/${planillaId}/entradas/${registroId}/anular`,
+    { registro_id: registroId, motivo }
+  );
+  return res.data;
+}
+
+/** Historial paginado de movimientos. */
+export async function obtenerMovimientos(planillaId, { page = 1, page_size = 50 } = {}) {
+  const res = await api.get(`/inventario/planillas/${planillaId}/movimientos`, {
+    params: { page, page_size },
+  });
+  return res.data;
+}

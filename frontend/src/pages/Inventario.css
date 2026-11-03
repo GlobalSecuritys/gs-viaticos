@@ -1507,3 +1507,54 @@
   color: #92400e;
   border: 1px solid #fcd34d;
 }
+
+/* ── Botones Entrada / Salida app-managed ───────────────────────────────────── */
+.sgc-inv-btn-accion--entrada {
+  border-color: #c8e6c9 !important;
+  color: #2e7d32 !important;
+  background: #f1f8e9 !important;
+}
+.sgc-inv-btn-accion--entrada:hover {
+  background: #e8f5e9 !important;
+  border-color: #43a047 !important;
+  color: #1b5e20 !important;
+}
+.sgc-inv-btn-accion--entrada .sgc-inv-btn-icon {
+  color: #43a047;
+}
+
+.sgc-inv-btn-accion--salida {
+  border-color: #ffcdd2 !important;
+  color: #c62828 !important;
+  background: #fff5f5 !important;
+}
+.sgc-inv-btn-accion--salida:hover {
+  background: #ffebee !important;
+  border-color: #e53935 !important;
+  color: #b71c1c !important;
+}
+.sgc-inv-btn-accion--salida .sgc-inv-btn-icon {
+  color: #e53935;
+}
+
+/* ── Toast de confirmación ────────────────────────────────────────────────── */
+.sgc-inv-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1b5e20;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 28px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  z-index: 9999;
+  white-space: nowrap;
+  animation: sgc-toast-in .25s ease;
+}
+@keyframes sgc-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}

@@ -13,6 +13,8 @@ import {
 } from '../services/inventario';
 import MantenimientoView from '../components/inventario/mantenimiento/MantenimientoView';
 import MenuLateralInventario from '../components/inventario/MenuLateralInventario';
+import ModalEntrada from '../components/inventario/ModalEntrada';
+import ModalSalida from '../components/inventario/ModalSalida';
 import './Inventario.css';
 
 // Constante para el piloto Mantenimiento 2026
@@ -93,6 +95,35 @@ export default function Inventario() {
   const [guardandoSalida, setGuardandoSalida] = useState(false);
   const [mensajeExitoSalida, setMensajeExitoSalida] = useState('');
   const [refreshMenuCounter, setRefreshMenuCounter] = useState(0);
+
+  // ── Modales Entrada / Salida (app-managed) ────────────────────────────────
+  const PLANILLA_COMWARE_ID = 2;
+  const esAppManaged = planillaSeleccionada?.id === PLANILLA_COMWARE_ID;
+  const [modalEntradaAbierto, setModalEntradaAbierto] = useState(false);
+  const [modalSalidaAbierto, setModalSalidaAbierto] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+
+  const mostrarToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 4000);
+  };
+
+  const handleEntradaExito = (resumen, mensaje) => {
+    setModalEntradaAbierto(false);
+    mostrarToast(mensaje || 'Entrada registrada correctamente.');
+    setRefreshMenuCounter((c) => c + 1);
+    // Re-cargar datos de la planilla
+    if (planillaSeleccionada) cargarExcel(planillaSeleccionada);
+    cargarPlanillas();
+  };
+
+  const handleSalidaExito = (resumen, mensaje) => {
+    setModalSalidaAbierto(false);
+    mostrarToast(mensaje || 'Salida registrada correctamente.');
+    setRefreshMenuCounter((c) => c + 1);
+    if (planillaSeleccionada) cargarExcel(planillaSeleccionada);
+    cargarPlanillas();
+  };
 
   // ── Cargar ficha SGC para botón Volver ────────────────────────────────────
   useEffect(() => {
@@ -662,6 +693,30 @@ export default function Inventario() {
             <span className="sgc-inv-btn-icon">🔎</span>
             <span>Buscar equipo / Salida</span>
           </button>
+
+          {/* ── Botones Entrada / Salida app-managed (solo Comware) ── */}
+          {esAppManaged && (
+            <>
+              <button
+                type="button"
+                className="sgc-inv-btn-accion sgc-inv-btn-accion--entrada"
+                onClick={() => setModalEntradaAbierto(true)}
+                title="Registrar ingreso de equipos a bodega"
+              >
+                <span className="sgc-inv-btn-icon">⬇</span>
+                <span>Entrada</span>
+              </button>
+              <button
+                type="button"
+                className="sgc-inv-btn-accion sgc-inv-btn-accion--salida"
+                onClick={() => setModalSalidaAbierto(true)}
+                title="Registrar despacho de equipos desde bodega"
+              >
+                <span className="sgc-inv-btn-icon">⬆</span>
+                <span>Salida</span>
+              </button>
+            </>
+          )}
         </div>
 
         <div className="sgc-inv-toolbar-right">
@@ -1066,6 +1121,29 @@ export default function Inventario() {
         onSeleccionarHoja={(nombreHoja) => cambiarHoja(nombreHoja)}
         refreshTrigger={refreshMenuCounter}
       />
+
+      {/* ── Modales app-managed ── */}
+      {modalEntradaAbierto && (
+        <ModalEntrada
+          planillaId={planillaSeleccionada.id}
+          onClose={() => setModalEntradaAbierto(false)}
+          onSuccess={handleEntradaExito}
+        />
+      )}
+      {modalSalidaAbierto && (
+        <ModalSalida
+          planillaId={planillaSeleccionada.id}
+          onClose={() => setModalSalidaAbierto(false)}
+          onSuccess={handleSalidaExito}
+        />
+      )}
+
+      {/* ── Toast de confirmación ── */}
+      {toastMsg && (
+        <div className="sgc-inv-toast">
+          <span>✅ {toastMsg}</span>
+        </div>
+      )}
     </div>
   );
 }
