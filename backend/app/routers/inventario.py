@@ -160,40 +160,23 @@ def _obtener_item_o_404(db: Session, item_id: int, for_update: bool = False) -> 
 def _conteo_planilla(db: Session, planilla_id: int) -> tuple[int, int]:
     """Retorna (total_items, total_unidades) para una planilla calculando desde el kardex."""
 
-    # ── RTC – Comware: base Excel + movimientos kardex en BD si existen ──────
+    # ── RTC – Comware: leer de inventario_registros (fuente='app') ───────────
     if planilla_id == PLANILLA_COMWARE_ID:
-        resumen = calcular_resumen_comware(planilla_id=planilla_id)
-        base_stock = resumen["total_stock"] if resumen.get("encontrado") else 0
-
-        # Sumar ítems y movimientos registrados en Kardex para Comware
-        kardex_items = db.scalar(
-            select(func.count(InventarioItem.id)).where(
-                InventarioItem.planilla_id == planilla_id,
-                InventarioItem.eliminado_en.is_(None),
-            )
-        ) or 0
-        kardex_unidades = db.scalar(
-            select(
-                func.coalesce(
-                    func.sum(
-                        case(
-                            (InventarioMovimiento.tipo.in_(TIPOS_MOVIMIENTO_ENTRADA), InventarioMovimiento.cantidad),
-                            (InventarioMovimiento.tipo.in_(TIPOS_MOVIMIENTO_SALIDA), -InventarioMovimiento.cantidad),
-                            else_=0,
-                        )
-                    ),
-                    0,
-                )
-            )
-            .select_from(InventarioItem)
-            .join(InventarioMovimiento, InventarioMovimiento.item_id == InventarioItem.id)
-            .where(
-                InventarioItem.planilla_id == planilla_id,
-                InventarioItem.eliminado_en.is_(None),
-            )
-        ) or 0
-
-        return int(base_stock + kardex_items), int(base_stock + kardex_unidades)
+        stock = db.execute(
+            text(
+                "SELECT COUNT(*) FROM inventario_registros "
+                "WHERE planilla_id = :pid AND estado = 'stock' AND anulado_en IS NULL"
+            ),
+            {"pid": planilla_id},
+        ).scalar() or 0
+        productos = db.execute(
+            text(
+                "SELECT COUNT(DISTINCT descripcion) FROM inventario_registros "
+                "WHERE planilla_id = :pid AND estado = 'stock' AND anulado_en IS NULL"
+            ),
+            {"pid": planilla_id},
+        ).scalar() or 0
+        return int(productos), int(stock)
 
     total_items = db.scalar(
         select(func.count(InventarioItem.id)).where(
