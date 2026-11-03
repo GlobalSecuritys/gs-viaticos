@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from app.routers.admin import router as admin_router
@@ -40,6 +40,7 @@ from app.models.calidad_procesos import (
 from app.models.bitacora_backup import BitacoraBackup
 from app.models.estadistica_asignacion_archivada import EstadisticaAsignacionArchivada
 from app.models.inventario import InventarioPlanilla, InventarioItem, InventarioMovimiento
+from app.models.inventario_registros import InventarioRegistro, InventarioHistorialMovimiento
 from app.models.configuracion_general import ConfiguracionGeneral
 from app.models.escuela_archivo import EscuelaArchivoEstudiante
 from app.models.evaluacion_desempeno import (
@@ -52,21 +53,21 @@ from app.models.evaluacion_desempeno import (
 )
 
 app = FastAPI(
-    title="Sistema Integral de Gestión GSB API",
-    description="Plataforma de gestión de viáticos, operaciones y calidad de Global Security",
+    title="Sistema Integral de GestiÃ³n GSB API",
+    description="Plataforma de gestiÃ³n de viÃ¡ticos, operaciones y calidad de Global Security",
     version="1.0.0",
 )
 
 @app.on_event("startup")
 def startup_validar_escuela():
-    # Avisa en el log si escuela_modulos.json tiene claves que no son ítems AD-FR-06.
+    # Avisa en el log si escuela_modulos.json tiene claves que no son Ã­tems AD-FR-06.
     validar_registro_modulos()
 
 
 @app.on_event("startup")
 def startup_db_check():
-    # ── 1. Migraciones CORE (tablas que siempre existen) ─────────────────────
-    # Se ejecutan en una única transacción; si algo falla aquí sí es grave.
+    # â”€â”€ 1. Migraciones CORE (tablas que siempre existen) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Se ejecutan en una Ãºnica transacciÃ³n; si algo falla aquÃ­ sÃ­ es grave.
     try:
         with engine.connect() as conn:
             conn.execute(text("ALTER TABLE viaticos ADD COLUMN IF NOT EXISTS comentario_admin TEXT;"))
@@ -85,16 +86,17 @@ def startup_db_check():
     except Exception as e:
         print(f"[STARTUP] Advertencia migraciones core: {e}")
 
-    # ── 2. Migraciones OPCIONALES (tablas legacy que pueden no existir) ───────
-    # Cada sentencia corre en su propia conexión/transacción para que un error
-    # de "tabla no existe" no aborte las demás ni la secuencia del startup.
+    # â”€â”€ 2. Migraciones OPCIONALES (tablas legacy que pueden no existir) â”€â”€â”€â”€â”€â”€â”€
+    # Cada sentencia corre en su propia conexiÃ³n/transacciÃ³n para que un error
+    # de "tabla no existe" no aborte las demÃ¡s ni la secuencia del startup.
     _sql_opcionales = [
         # inventario_planillas
         "ALTER TABLE inventario_planillas ADD COLUMN IF NOT EXISTS orden INTEGER DEFAULT 1;",
+        "ALTER TABLE inventario_planillas ADD COLUMN IF NOT EXISTS fuente VARCHAR(20)  NOT NULL DEFAULT 'excel';",
         # inventario_items
         "ALTER TABLE inventario_items ADD COLUMN IF NOT EXISTS numero_articulo VARCHAR(60);",
         "ALTER TABLE inventario_items ADD COLUMN IF NOT EXISTS tiempo_entrega VARCHAR(80);",
-        # inventario_mapeo_legacy: mapeo union_temporal → planilla_id para conteo legacy
+        # inventario_mapeo_legacy: mapeo union_temporal â†’ planilla_id para conteo legacy
         """
         CREATE TABLE IF NOT EXISTS inventario_mapeo_legacy (
             id SERIAL PRIMARY KEY,
@@ -119,17 +121,17 @@ def startup_db_check():
                 _c.execute(text(sql_alt))
                 _c.commit()
         except Exception:
-            # Silencioso: la tabla o columna no existe aún; se ignorará.
+            # Silencioso: la tabla o columna no existe aÃºn; se ignorarÃ¡.
             pass
 
-    # ── 3. ENUM PROYECTO_ZEUS (requiere AUTOCOMMIT fuera de transacción) ──────
+    # â”€â”€ 3. ENUM PROYECTO_ZEUS (requiere AUTOCOMMIT fuera de transacciÃ³n) â”€â”€â”€â”€â”€â”€
     try:
         with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn_ac:
             conn_ac.execute(text("ALTER TYPE inventario_union_temporal ADD VALUE IF NOT EXISTS 'PROYECTO_ZEUS';"))
     except Exception as e_enum:
-        print(f"[STARTUP] Enum PROYECTO_ZEUS (puede ya existir o tabla no existe aún): {e_enum}")
+        print(f"[STARTUP] Enum PROYECTO_ZEUS (puede ya existir o tabla no existe aÃºn): {e_enum}")
 
-    # ── 4. Creación de tablas (checkfirst=True → idempotente) ─────────────────
+    # â”€â”€ 4. CreaciÃ³n de tablas (checkfirst=True â†’ idempotente) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try:
         CuentaCobro.__table__.create(bind=engine, checkfirst=True)
         CuentaCobroAsignacion.__table__.create(bind=engine, checkfirst=True)
@@ -148,6 +150,8 @@ def startup_db_check():
         InventarioPlanilla.__table__.create(bind=engine, checkfirst=True)
         InventarioItem.__table__.create(bind=engine, checkfirst=True)
         InventarioMovimiento.__table__.create(bind=engine, checkfirst=True)
+        InventarioRegistro.__table__.create(bind=engine, checkfirst=True)
+        InventarioHistorialMovimiento.__table__.create(bind=engine, checkfirst=True)
         EvaluacionDesempeno.__table__.create(bind=engine, checkfirst=True)
         EvaluacionCompromiso.__table__.create(bind=engine, checkfirst=True)
         EvaluacionPeriodoTecnico.__table__.create(bind=engine, checkfirst=True)
@@ -162,7 +166,7 @@ def startup_db_check():
     except Exception as e:
         print(f"[STARTUP] Advertencia al crear/verificar tablas: {e}")
 
-    # ── 5. Seeds y migraciones de datos ──────────────────────────────────────
+    # â”€â”€ 5. Seeds y migraciones de datos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try:
         with SessionLocal() as db:
             seed_procesos_calidad_si_vacio(db)
@@ -175,7 +179,7 @@ def startup_db_check():
 
 
 def _migrar_y_sembrar_planillas(db) -> None:
-    """Migración idempotente y siembra de las 5 planillas independientes."""
+    """MigraciÃ³n idempotente y siembra de las 5 planillas independientes."""
     from sqlalchemy import select, func
     from app.models.inventario import InventarioPlanilla, InventarioItem
 
@@ -224,7 +228,7 @@ def _migrar_y_sembrar_planillas(db) -> None:
                 p_row.orden = orden_num
                 p_row.activa = True
 
-        # Asegurar que ítems huérfanos se asignen a Mantenimiento 2026
+        # Asegurar que Ã­tems huÃ©rfanos se asignen a Mantenimiento 2026
         db.query(InventarioItem).filter(
             (InventarioItem.planilla_id.is_(None))
             | (~InventarioItem.planilla_id.in_(select(InventarioPlanilla.id)))
@@ -237,7 +241,7 @@ def _migrar_y_sembrar_planillas(db) -> None:
 
 
 def _asegurar_inventario() -> None:
-    """Asegura el esquema canónico de inventario."""
+    """Asegura el esquema canÃ³nico de inventario."""
     try:
         renombradas = asegurar_esquema_inventario(engine)
         if renombradas:
@@ -247,8 +251,8 @@ def _asegurar_inventario() -> None:
 
 def _migrar_rol_admin_a_superadmin(db) -> None:
     """
-    Migración automática de seguridad: eleva cualquier usuario con rol='admin' (rol intermedio
-    eliminado) a 'superadmin' (Administrador). Registra cada elevación en log_auditoria.
+    MigraciÃ³n automÃ¡tica de seguridad: eleva cualquier usuario con rol='admin' (rol intermedio
+    eliminado) a 'superadmin' (Administrador). Registra cada elevaciÃ³n en log_auditoria.
     Se ejecuta en cada inicio del servidor; es idempotente (no afecta a usuarios ya migrados).
     """
     from sqlalchemy import select, update
@@ -267,15 +271,15 @@ def _migrar_rol_admin_a_superadmin(db) -> None:
                     usuario_objetivo=u,
                     accion="CAMBIO_ROL",
                     detalle=(
-                        f"Elevación de privilegios automática: Usuario '{u.nombre}' ({u.correo}) "
+                        f"ElevaciÃ³n de privilegios automÃ¡tica: Usuario '{u.nombre}' ({u.correo}) "
                         f"migrado de rol intermedio 'admin' a 'Administrador' (superadmin) "
                         f"durante startup del servidor."
                     ),
                     resultado="exitoso",
                 )
             except Exception:
-                pass  # No bloquear si la tabla de auditoria no existe aún
-            print(f"[STARTUP] ✅ Migrado {u.correo}: admin -> superadmin")
+                pass  # No bloquear si la tabla de auditoria no existe aÃºn
+            print(f"[STARTUP] âœ… Migrado {u.correo}: admin -> superadmin")
         if usuarios_admin:
             db.commit()
     except Exception as e:
@@ -283,7 +287,7 @@ def _migrar_rol_admin_a_superadmin(db) -> None:
         print(f"[STARTUP] Advertencia al migrar roles: {e}")
 
 
-# Configuración de CORS para el frontend (React + Vite)
+# ConfiguraciÃ³n de CORS para el frontend (React + Vite)
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -322,3 +326,4 @@ app.include_router(escuela_router)
 @app.get("/", include_in_schema=False)
 def root():
     return RedirectResponse(url="/docs")
+

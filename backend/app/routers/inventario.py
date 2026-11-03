@@ -68,6 +68,26 @@ from app.services.inventario_excel import (
 from app.services.inventario_lectura_inteligente import (
     obtener_lectura_inteligente_mantenimiento,
 )
+from app.models.inventario_registros import InventarioRegistro, InventarioHistorialMovimiento
+from app.schemas.inventario_comware import (
+    EntradaCreate,
+    SalidaCreate,
+    InstalacionCreate,
+    DevolucionCreate,
+    AnulacionCreate,
+    OperacionResponse,
+    MovimientoResponse,
+)
+from app.services.inventario_comware import (
+    registrar_entrada,
+    registrar_salida,
+    registrar_instalacion,
+    devolver_a_bodega,
+    anular_entrada,
+    calcular_catalogo,
+    calcular_tecnicos,
+    calcular_resumen_app,
+)
 
 router = APIRouter(prefix="/inventario", tags=["Inventario (IN)"])
 
@@ -1065,3 +1085,218 @@ def detalle_tecnico_excel_planilla(
         page=page,
         page_size=page_size,
     )
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENDPOINTS APP-MANAGED (Comware y futuras planillas con fuente='app')
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def _verificar_planilla_app(db: Session, planilla_id: int) -> None:
+    """Lanza 400 si la planilla no es app-managed."""
+    fuente = db.execute(
+        text("SELECT fuente FROM inventario_planillas WHERE id = :id"),
+        {"id": planilla_id},
+    ).scalar()
+    if fuente != "app":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Esta planilla no es app-managed. Los movimientos se gestionan por Excel.",
+        )
+
+
+# ── Catálogo / autocomplete ──────────────────────────────────────────────────
+
+@router.get("/planillas/{planilla_id}/catalogo")
+def obtener_catalogo(planilla_id: int, db: DB, current_user: LectorIN):
+    """Lista de descripciones únicas con stock y sugerencia de tipo serial."""
+    _verificar_planilla_app(db, planilla_id)
+    return calcular_catalogo(db, planilla_id)
+
+
+@router.get("/planillas/{planilla_id}/tecnicos")
+def obtener_tecnicos(planilla_id: int, db: DB, current_user: LectorIN):
+    """Lista de técnicos únicos que han tenido salidas."""
+    _verificar_planilla_app(db, planilla_id)
+    return calcular_tecnicos(db, planilla_id)
+
+
+# ── Resumen app ──────────────────────────────────────────────────────────────
+
+@router.get("/planillas/{planilla_id}/resumen-app")
+def resumen_planilla_app_endpoint(planilla_id: int, db: DB, current_user: LectorIN):
+    """Resumen de conteos actuales leyendo de inventario_registros."""
+    _verificar_planilla_app(db, planilla_id)
+    return calcular_resumen_app(db, planilla_id)
+
+
+# ── Entrada ──────────────────────────────────────────────────────────────────
+
+@router.post("/planillas/{planilla_id}/entradas", response_model=OperacionResponse, status_code=201)
+def endpoint_entrada(planilla_id: int, datos: EntradaCreate, db: DB, current_user: AdminIN):
+    """Registra una entrada (ingreso a bodega). AdminIN requerido."""
+    _verificar_planilla_app(db, planilla_id)
+    try:
+        registros, resumen = registrar_entrada(db, planilla_id, datos, current_user.id)
+        db.commit()
+        from app.schemas.inventario_comware import RegistroResponse
+        return OperacionResponse(
+            ok=True,
+            mensaje=f"Entrada registrada: {len(registros)} unidad(es) ingresada(s) a bodega.",
+            resumen=resumen,
+            registros=[RegistroResponse.model_validate(r) for r in registros],
+        )
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al registrar entrada: {exc}") from exc
+
+
+# ── Salida ───────────────────────────────────────────────────────────────────
+
+@router.post("/planillas/{planilla_id}/salidas", response_model=OperacionResponse, status_code=201)
+def endpoint_salida(planilla_id: int, datos: SalidaCreate, db: DB, current_user: AdminIN):
+    """Despacha equipos: mueve filas de stock a pendiente. AdminIN requerido."""
+    _verificar_planilla_app(db, planilla_id)
+    try:
+        registros, resumen = registrar_salida(db, planilla_id, datos, current_user.id)
+        db.commit()
+        from app.schemas.inventario_comware import RegistroResponse
+        return OperacionResponse(
+            ok=True,
+            mensaje=f"Salida registrada: {len(registros)} unidad(es) despachada(s) a {datos.tecnico.upper()}.",
+            resumen=resumen,
+            registros=[RegistroResponse.model_validate(r) for r in registros],
+        )
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al registrar salida: {exc}") from exc
+
+
+# ── Instalación ──────────────────────────────────────────────────────────────
+
+@router.post("/planillas/{planilla_id}/salidas/instalar", response_model=OperacionResponse)
+def endpoint_instalar(planilla_id: int, datos: InstalacionCreate, db: DB, current_user: AdminIN):
+    """Marca salidas pendientes como instaladas. AdminIN requerido."""
+    _verificar_planilla_app(db, planilla_id)
+    try:
+        registros, resumen = registrar_instalacion(db, planilla_id, datos, current_user.id)
+        db.commit()
+        from app.schemas.inventario_comware import RegistroResponse
+        return OperacionResponse(
+            ok=True,
+            mensaje=f"Instalación registrada: {len(registros)} unidad(es) instalada(s).",
+            resumen=resumen,
+            registros=[RegistroResponse.model_validate(r) for r in registros],
+        )
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al registrar instalación: {exc}") from exc
+
+
+# ── Devolución ───────────────────────────────────────────────────────────────
+
+@router.post(
+    "/planillas/{planilla_id}/salidas/{registro_id}/devolver",
+    response_model=OperacionResponse,
+)
+def endpoint_devolver(
+    planilla_id: int, registro_id: int, datos: DevolucionCreate, db: DB, current_user: AdminIN
+):
+    """Devuelve una salida pendiente a bodega. AdminIN requerido."""
+    _verificar_planilla_app(db, planilla_id)
+    try:
+        reg, resumen = devolver_a_bodega(db, planilla_id, registro_id, datos.motivo, current_user.id)
+        db.commit()
+        from app.schemas.inventario_comware import RegistroResponse
+        return OperacionResponse(
+            ok=True,
+            mensaje=f"Registro #{registro_id} devuelto a bodega.",
+            resumen=resumen,
+            registros=[RegistroResponse.model_validate(reg)],
+        )
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al devolver a bodega: {exc}") from exc
+
+
+# ── Anulación ────────────────────────────────────────────────────────────────
+
+@router.post(
+    "/planillas/{planilla_id}/entradas/{registro_id}/anular",
+    response_model=OperacionResponse,
+)
+def endpoint_anular(
+    planilla_id: int, registro_id: int, datos: AnulacionCreate, db: DB, current_user: AdminIN
+):
+    """Anula una entrada en stock (soft-delete). AdminIN requerido."""
+    _verificar_planilla_app(db, planilla_id)
+    try:
+        reg, resumen = anular_entrada(db, planilla_id, registro_id, datos.motivo, current_user.id)
+        db.commit()
+        from app.schemas.inventario_comware import RegistroResponse
+        return OperacionResponse(
+            ok=True,
+            mensaje=f"Entrada #{registro_id} anulada.",
+            resumen=resumen,
+            registros=[RegistroResponse.model_validate(reg)],
+        )
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al anular entrada: {exc}") from exc
+
+
+# ── Historial de movimientos ─────────────────────────────────────────────────
+
+@router.get("/planillas/{planilla_id}/movimientos")
+def endpoint_movimientos(
+    planilla_id: int,
+    db: DB,
+    current_user: LectorIN,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+):
+    """Lista el historial de movimientos (paginado). LectorIN requerido."""
+    offset = (page - 1) * page_size
+    total = db.execute(
+        text("SELECT COUNT(*) FROM inventario_historial_movimientos WHERE planilla_id = :pid"),
+        {"pid": planilla_id},
+    ).scalar() or 0
+
+    rows = db.execute(
+        text(
+            "SELECT id, planilla_id, tipo, usuario_id, fecha, "
+            "detalle_items, datos_despacho, motivo, resumen_texto "
+            "FROM inventario_historial_movimientos "
+            "WHERE planilla_id = :pid "
+            "ORDER BY fecha DESC "
+            "LIMIT :limit OFFSET :offset"
+        ),
+        {"pid": planilla_id, "limit": page_size, "offset": offset},
+    ).fetchall()
+
+    movimientos = [
+        {
+            "id": r[0], "planilla_id": r[1], "tipo": r[2], "usuario_id": r[3],
+            "fecha": r[4].isoformat() if r[4] else None,
+            "detalle_items": r[5], "datos_despacho": r[6],
+            "motivo": r[7], "resumen_texto": r[8],
+        }
+        for r in rows
+    ]
+    return {"total": total, "page": page, "page_size": page_size, "movimientos": movimientos}
