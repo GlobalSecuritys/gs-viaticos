@@ -1,0 +1,110 @@
+================================================================================
+ANALISIS PUNTOS 3, 4, 5 Y 6 (COMWARE VS AMERICAN GLOBAL)
+================================================================================
+
+================================================================================
+PUNTO 6: ESTRUCTURA DEL EXCEL AMERICAN GLOBAL (REFERENCIA)
+================================================================================
+Hojas en American Global:
+  01. 'FILTROS' (estado: hidden, filas_datos: 28, cols: 1)
+      Columnas: ['TECNICOS']
+  02. 'INVENTARIO GENERAL' (estado: visible, filas_datos: 176, cols: 11)
+      Columnas: ['FECHA', 'FACTURA', 'CODIGO DE  BARRAS', 'DESCRIPCIÓN', 'CANTIDAD', 'ID. EQUIPO', 'SERIALES GSB', 'CONCATENADO', 'OFICINA', 'TECNICO', 'FECHA DE DESPACHO']
+  03. 'CANTIDAD TOTAL' (estado: visible, filas_datos: 0, cols: 0)
+      Columnas: []
+  04. 'SALIDAS' (estado: visible, filas_datos: 470, cols: 15)
+      Columnas: ['FECHA COMPRA EQUIPO', 'FACTURA', 'CODIGO DE  BARRAS', 'DESCRIPCIÓN', 'CANTIDAD', 'ID. EQUIPO', 'SERIALES GSB', 'CONCATENADO', 'OFICINA', 'TECNICO', 'FECHA DE DESPACHO', 'OBSERVACION', 'NUMERO DE ORDEN', 'OFICINA INSTALDA', 'FECHA DE INSTALACION']
+  05. 'PRESTAMOS' (estado: visible, filas_datos: 14, cols: 2)
+      Columnas: ['DESCRIPCIÓN', 'CANTIDAD']
+  06. 'FILTRO ACTA' (estado: hidden, filas_datos: 1, cols: 6)
+      Columnas: ['TECNICO', 'LUIS FRANCISCO ANGULO MADERA', 'FECHA', '2024-08-30', 'OFICINA', 'EL COPEY-CESAR MANTENIMIENTOS']
+
+================================================================================
+PUNTO 3: HOJA DE STOCK VS SALIDAS VS PRODUCTOS EN COMWARE
+================================================================================
+Hoja 'INVENTARIO GENERAL': 8385 filas max, encabezados en fila 1
+Hoja 'SALIDAS ': 562 filas max, encabezados en fila 1
+Hojas de Préstamos: []
+Hojas de Devoluciones: []
+Hojas por Técnico: []
+Total hojas de productos individuales (categorías): 27
+
+================================================================================
+PUNTO 4: LLAVE DE IDENTIDAD (SERIAL GSB, ID EQUIPO, CONCATENADO) EN COMWARE
+================================================================================
+
+--- Análisis de identidades en 'INVENTARIO GENERAL' ---
+  Columnas mapeadas: SERIAL=7, ID_EQUIPO=6, CONCAT=8, DESC=4, CANT=5
+  Filas con datos: 1125
+  SERIALES GSB: 301 con valor, 824 vacíos / N/A
+  Seriales repetidos: 0 distintos (aparecen 0 veces en total)
+  ID EQUIPO: 0 con valor, 1125 vacíos / N/A
+  ID Equipo repetidos: 0 distintos (aparecen 0 veces en total)
+  CONCATENADO: 1125 con valor, 0 vacíos / N/A
+  CONCATENADOS repetidos: 2 distintos
+  Seriales con formato anómalo detectados: 0
+
+--- Análisis de identidades en 'SALIDAS ' ---
+  Columnas mapeadas: SERIAL=7, ID_EQUIPO=6, CONCAT=8, DESC=4, CANT=5
+  Filas con datos: 34
+  SERIALES GSB: 4 con valor, 30 vacíos / N/A
+  Seriales repetidos: 0 distintos (aparecen 0 veces en total)
+  ID EQUIPO: 0 con valor, 34 vacíos / N/A
+  ID Equipo repetidos: 0 distintos (aparecen 0 veces en total)
+  CONCATENADO: 31 con valor, 3 vacíos / N/A
+  CONCATENADOS repetidos: 2 distintos
+  Seriales con formato anómalo detectados: 0
+
+================================================================================
+PUNTO 5: FECHAS, CANTIDADES, SIN SERIAL Y TEXTO LIBRE
+================================================================================
+
+--- Análisis en 'INVENTARIO GENERAL' ---
+  Distribución de CANTIDADES: {1.0: 1125}
+  Filas con CANTIDAD != 1: 0 filas. Valores: {}
+  Ítems sin serial (manejados por cantidad): 4 referencias distintas, sumando 824 unidades.
+    * 'GABINETE 90X60X25 NEGRO': 63 unidades
+    * 'CARRETA DE CABLE UTP CAT 5E': 521 unidades
+    * 'CONTACTO MAGNETICO LIVIANO': 100 unidades
+    * '': 140 unidades
+  Fechas anómalas / inválidas (0):
+  Variantes de OFICINA (0 distintas). Top 10:
+  Variantes de OBSERVACION (0 distintas). Top 5:
+
+--- Análisis en 'SALIDAS ' ---
+  Distribución de CANTIDADES: {1.0: 34}
+  Filas con CANTIDAD != 1: 0 filas. Valores: {}
+  Ítems sin serial (manejados por cantidad): 6 referencias distintas, sumando 30 unidades.
+    * 'GABINETE 90X60X25 NEGRO': 1 unidades
+    * 'CARRETA DE CABLE UTP CAT 5E': 19 unidades
+    * '': 7 unidades
+    * 'yuly.gonzalez@comware.com.co': 1 unidades
+    * 'july.melendez@comware.com.co': 1 unidades
+    * 'daniel.correa@comware.com.co': 1 unidades
+  Fechas anómalas / inválidas (0):
+  Variantes de OFICINA (6 distintas). Top 10:
+    * 'ANCUYA NARIÑO': 9
+    * 'PUERTO BERRIO / ANTIOQUIA': 3
+    * 'PEREIRA - RISARALDA': 3
+    * 'MOMIL - CORDOBA': 3
+    * 'BARRANQUILLA PRADO': 3
+    * 'CUMBAL NARIÑO': 3
+  Variantes de OBSERVACION (1 distintas). Top 5:
+    * 'UT-GBSCOM': 24
+
+================================================================================
+RELACION ENTRE 'INVENTARIO GENERAL' Y LAS 27 HOJAS DE PRODUCTOS
+================================================================================
+Total filas sumadas de las 27 hojas de productos: 10216
+Filas en INVENTARIO GENERAL: 1,125
+Detalle por hoja de producto (primeras 10):
+  - 'PANEL DE ALARMA BOSCH B8512G': 404 filas
+  - 'PANEL DE ALARMA BOSCH B9512G': 404 filas
+  - ' TECLADO B926F': 404 filas
+  - 'SISMICO ISN-SM-50  GMX-P0 ': 404 filas
+  - 'PLACA MONTAJE ': 404 filas
+  - 'SENSOR DE HUMO FCP‑320': 404 filas
+  - 'BASE SENSOR DE HUMO FCP‑320': 404 filas
+  - 'SENSOR DE AUDIO DS1102I': 404 filas
+  - 'PULSADORES 270 R': 404 filas
+  - 'PULSADOR INALAMBRICO RFPB-SB': 404 filas

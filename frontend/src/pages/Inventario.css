@@ -1473,3 +1473,37 @@
   .sgc-stock-th--registros,
   .sgc-stock-td--registros { display: none; }
 }
+
+/* ── Comware: hoja-pill vacía (plantilla sin diligenciar) ── */
+.sgc-inv-hoja-pill--vacia {
+  opacity: 0.55;
+  font-style: italic;
+}
+.sgc-inv-hoja-pill--vacia:hover {
+  opacity: 0.75;
+}
+
+/* ── Comware: badges de estado en hoja SALIDAS ── */
+.sgc-inv-th--estado { width: 160px; white-space: nowrap; }
+.sgc-inv-td--estado { white-space: nowrap; }
+
+.sgc-inv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sgc-inv-badge--verde {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+.sgc-inv-badge--ambar {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}

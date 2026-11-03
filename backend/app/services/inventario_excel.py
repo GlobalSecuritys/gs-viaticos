@@ -21,6 +21,9 @@ warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 # Constante para el piloto Mantenimiento 2026
 PLANILLA_PILOTO_EXCEL: int = 1
 
+# Planilla RTC – Comware (lectura exclusiva desde Excel)
+PLANILLA_COMWARE_ID: int = 2
+
 # Carpetas de búsqueda en orden de prioridad
 DIRECTORIOS_DATOS = [
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "migracion_inventario")),
@@ -225,16 +228,29 @@ def _convertir_valor(val: Any) -> Any:
 def _cargar_excel_desde_disco(ruta_archivo: str, nombre_archivo: str) -> Dict[str, Any]:
     """Carga todas las hojas del archivo Excel con sus columnas limpias y filas."""
     wb = openpyxl.load_workbook(ruta_archivo, data_only=True, read_only=True)
-    hojas_raw = wb.sheetnames
 
-    # Excluir hojas rotas conocidas en Mantenimiento
-    es_mantenimiento = "mantenimiento" in _normalizar_texto(nombre_archivo)
+    # Determinar el tipo de archivo para aplicar reglas específicas
+    nombre_norm = _normalizar_texto(nombre_archivo)
+    es_mantenimiento = "mantenimiento" in nombre_norm
+    es_comware = "comware" in nombre_norm
+
+    # ── Selección de hojas visibles (excluir ocultas y hojas rotas conocidas) ──
+    # openpyxl en read_only no expone la visibilidad; excluimos por nombre
+    EXCLUIR_MANTENIMIENTO = {"CANTIDAD TOTAL", "FILTRO ACTA"}
+    EXCLUIR_COMWARE = {"FILTRO ACTA"}
+
+    hojas_raw = wb.sheetnames
     if es_mantenimiento:
-        hojas = [h for h in hojas_raw if _normalizar_nombre_hoja(h) not in {"CANTIDAD TOTAL", "FILTRO ACTA"}]
+        hojas = [h for h in hojas_raw if _normalizar_nombre_hoja(h) not in EXCLUIR_MANTENIMIENTO]
+    elif es_comware:
+        hojas = [h for h in hojas_raw if _normalizar_nombre_hoja(h) not in EXCLUIR_COMWARE]
     else:
         hojas = hojas_raw
 
     datos_hojas: Dict[str, Dict[str, Any]] = {}
+
+    # Índice de la hoja de salidas Comware (normalizado)
+    SALIDAS_COMWARE_NORM = "SALIDAS"
 
     for sheet_name in hojas:
         ws = wb[sheet_name]
@@ -258,11 +274,13 @@ def _cargar_excel_desde_disco(ruta_archivo: str, nombre_archivo: str) -> Dict[st
                     for i, c in enumerate(row)
                 ]
 
-                # Filtrar CONCATENADO en Mantenimiento
+                # Filtrar columnas no deseadas según el tipo
                 cols_filtradas = []
                 for i, col in enumerate(encabezados_raw):
-                    if es_mantenimiento and col.upper().startswith("CONCATENADO"):
+                    # Omitir CONCATENADO en Mantenimiento y Comware
+                    if (es_mantenimiento or es_comware) and col.upper().startswith("CONCATENADO"):
                         continue
+                    # Omitir columnas sin nombre real (Col_N en extremo derecho)
                     cols_filtradas.append((i, col))
 
                 # Asegurar columnas únicas
@@ -283,11 +301,25 @@ def _cargar_excel_desde_disco(ruta_archivo: str, nombre_archivo: str) -> Dict[st
                 cols_mapeo = cols_unicas
                 continue
 
-            # Descartar filas fantasma en INVENTARIO GENERAL sin DESCRIPCIÓN
+            # ── Filtrado de filas fantasma ────────────────────────────────────
+
+            # Para Mantenimiento: descartar INVENTARIO GENERAL sin DESCRIPCIÓN
             if es_mantenimiento and _normalizar_nombre_hoja(sheet_name) == "INVENTARIO GENERAL":
                 desc_val = row[desc_col_idx] if desc_col_idx is not None and desc_col_idx < len(row) else None
                 if not _limpiar_valor(desc_val):
                     continue
+
+            # Para Comware: descartar filas sin descripción o con correos en INVENTARIO GENERAL / SALIDAS
+            if es_comware and desc_col_idx is not None:
+                desc_val = _limpiar_valor(row[desc_col_idx] if desc_col_idx < len(row) else None)
+                hoja_norm = _normalizar_nombre_hoja(sheet_name)
+                es_hoja_datos = hoja_norm == "INVENTARIO GENERAL" or hoja_norm == SALIDAS_COMWARE_NORM
+                if es_hoja_datos:
+                    if not desc_val:
+                        continue
+                    # Descartar filas de correo (descripción contiene '@')
+                    if "@" in desc_val:
+                        continue
 
             fila_dict: Dict[str, Any] = {}
             tiene_datos = False
@@ -299,12 +331,40 @@ def _cargar_excel_desde_disco(ruta_archivo: str, nombre_archivo: str) -> Dict[st
                     tiene_datos = True
 
             if tiene_datos:
+                # ── Enriquecer filas de SALIDAS Comware con badge de estado ──
+                if es_comware and _normalizar_nombre_hoja(sheet_name) == SALIDAS_COMWARE_NORM:
+                    ofic_inst = fila_dict.get("OFICINA INSTALDA", "").strip()
+                    fecha_inst = fila_dict.get("FECHA DE INSTALACION", "").strip()
+                    has_instalacion = bool(ofic_inst and ofic_inst.upper() not in ("", "N/A", "NA", "-"))
+                    has_fecha = bool(fecha_inst and fecha_inst.upper() not in ("", "N/A", "NA", "-"))
+                    fila_dict["_estado"] = "instalado" if (has_instalacion or has_fecha) else "pendiente"
+
                 filas.append(fila_dict)
+
+        # ── Detectar hojas vacías Comware (plantillas sin diligenciar) ────────
+        es_vacia = False
+        if es_comware:
+            sheet_norm = _normalizar_nombre_hoja(sheet_name)
+            hojas_datos = {"INVENTARIO GENERAL", SALIDAS_COMWARE_NORM, "CANTIDAD TOTAL"}
+            if sheet_norm not in hojas_datos:
+                # Hoja de producto: vacía si no tiene ninguna celda con valor real
+                # (excepto CANTIDAD que siempre viene pre-llenada con '1')
+                COLS_IGNORAR = {"CANTIDAD"}
+                def _fila_es_template(f: Dict[str, Any]) -> bool:
+                    return all(
+                        (not str(v).strip() or str(v).strip() == "1")
+                        for k, v in f.items()
+                        if k.upper().strip() not in COLS_IGNORAR
+                    )
+                es_vacia = len(filas) == 0 or all(_fila_es_template(f) for f in filas)
+            elif sheet_norm == "CANTIDAD TOTAL":
+                es_vacia = len(filas) == 0
 
         datos_hojas[sheet_name] = {
             "columnas": encabezados,
             "total_filas": len(filas),
             "filas": filas,
+            "vacia": es_vacia,
         }
 
     wb.close()
@@ -390,11 +450,19 @@ def obtener_datos_inventario_excel(
     fin = inicio + limit
     filas_paginadas = todas_las_filas[inicio:fin]
 
+    # Metadata de hojas (incluye flag vacia para Comware)
+    hojas_meta = {
+        h: {"vacia": bool(datos_hojas.get(h, {}).get("vacia", False))}
+        for h in hojas
+    }
+
     return {
         "existe": True,
         "archivo": nombre_archivo,
         "hojas": hojas,
+        "hojas_meta": hojas_meta,
         "hoja_activa": hoja_activa,
+        "hoja_vacia": bool(hoja_info.get("vacia", False)),
         "columnas": columnas,
         "total_filas": total_filas,
         "filas": filas_paginadas,
@@ -483,6 +551,348 @@ def buscar_en_excel(
         "criterios": criterios,
         "resultados": resultados,
     }
+
+
+# =============================================================================
+# MÓDULO RTC – COMWARE (PLANILLA_COMWARE_ID = 2)
+# Lee exclusivamente desde el Excel; sin kardex ni legacy en BD.
+# =============================================================================
+
+def calcular_resumen_comware(planilla_id: Optional[int] = None) -> Dict[str, Any]:
+    """Calcula (total_stock, total_salidas, instaladas, pendientes) leyendo el Excel de Comware.
+
+    Reglas:
+    - INVENTARIO GENERAL: fila real = descripción no vacía y no contiene '@'.
+    - SALIDAS (hoja con trailing space): fila real = descripción no vacía y no correo.
+      Estado = instalado si OFICINA INSTALDA o FECHA DE INSTALACION tiene valor.
+    - Filas residuales (con descripción vacía o '@') se contabilizan como anomalías.
+    """
+    ruta, nombre = resolver_ruta_excel(
+        planilla_id=planilla_id or PLANILLA_COMWARE_ID,
+        planilla_nombre="RTC - Comware",
+    )
+    if not ruta or not os.path.exists(ruta):
+        return {"total_stock": 0, "total_salidas": 0, "instaladas": 0, "pendientes": 0,
+                "anomalias": [], "encontrado": False}
+
+    wb = openpyxl.load_workbook(ruta, data_only=True, read_only=True)
+
+    # ── INVENTARIO GENERAL ────────────────────────────────────────────────────
+    ws_ig = wb["INVENTARIO GENERAL"]
+    rows_ig = list(ws_ig.iter_rows(values_only=True))
+    # Col 3 = DESCRIPCIÓN (índice 0-based)
+    D_IDX_IG = 3
+    total_stock = 0
+    anomalias_ig = 0
+    for r in rows_ig[1:]:
+        desc = _limpiar_valor(r[D_IDX_IG] if D_IDX_IG < len(r) else None)
+        if not desc or "@" in desc:
+            anomalias_ig += 1
+            continue
+        total_stock += 1
+
+    # ── SALIDAS (nombre con trailing space) ───────────────────────────────────
+    # Buscar la hoja de salidas con strip+upper
+    hoja_salidas = next(
+        (h for h in wb.sheetnames if h.strip().upper() == "SALIDAS"),
+        None,
+    )
+    total_salidas = 0
+    instaladas = 0
+    pendientes = 0
+    anomalias_sal = 0
+
+    if hoja_salidas:
+        ws_sal = wb[hoja_salidas]
+        rows_sal = list(ws_sal.iter_rows(values_only=True))
+        # Col 3 = DESCRIPCIÓN, Col 13 = OFICINA INSTALDA, Col 14 = FECHA DE INSTALACION
+        D_IDX_SAL = 3
+        OFIC_INST_IDX = 13
+        FECHA_INST_IDX = 14
+        for r in rows_sal[1:]:
+            desc = _limpiar_valor(r[D_IDX_SAL] if D_IDX_SAL < len(r) else None)
+            if not desc or "@" in desc:
+                anomalias_sal += 1
+                continue
+            total_salidas += 1
+            ofic_inst = _limpiar_valor(r[OFIC_INST_IDX] if OFIC_INST_IDX < len(r) else None)
+            fecha_inst = _limpiar_valor(r[FECHA_INST_IDX] if FECHA_INST_IDX < len(r) else None)
+            if ofic_inst or fecha_inst:
+                instaladas += 1
+            else:
+                pendientes += 1
+
+    wb.close()
+
+    anomalias = []
+    if anomalias_ig:
+        anomalias.append(f"INVENTARIO GENERAL: {anomalias_ig} filas residuales/correos omitidas")
+    if anomalias_sal:
+        anomalias.append(f"SALIDAS: {anomalias_sal} filas residuales/correos omitidas")
+
+    return {
+        "encontrado": True,
+        "total_stock": total_stock,
+        "total_salidas": total_salidas,
+        "instaladas": instaladas,
+        "pendientes": pendientes,
+        "anomalias": anomalias,
+    }
+
+
+_cache_menu_lock = threading.Lock()
+_cache_menu: Dict[str, Dict[str, Any]] = {}
+
+
+def obtener_resumen_menu(
+    planilla_id: int,
+    planilla_nombre: Optional[str] = None,
+    forzar: bool = False,
+) -> Dict[str, Any]:
+    """Calcula indicadores y datos de las 5 tarjetas para el menú lateral (drawer).
+
+    Cálculos determinísticos para Comware y reutilizable para otras planillas:
+    1. Cantidad total: stock agrupado por descripción normalizada.
+    2. Salidas: total despachos, instaladas y pendientes con desglose de estados.
+    3. Equipos en técnicos: salidas pendientes agrupadas por técnico activo.
+    4. Préstamos: detecta si existe hoja PRESTAMOS (si no, tarjeta deshabilitada).
+    5. Compras recibidas: stock de GENERAL + SALIDAS agrupado por orden/factura.
+    """
+    global _cache_menu
+    ruta, nombre = resolver_ruta_excel(
+        planilla_id=planilla_id,
+        planilla_nombre=planilla_nombre or ("RTC - Comware" if planilla_id == PLANILLA_COMWARE_ID else None),
+    )
+    if not ruta or not os.path.exists(ruta):
+        return {
+            "encontrado": False,
+            "indicadores": {
+                "unidades_bodega": 0,
+                "salidas_totales": 0,
+                "pendientes_instalar": 0,
+                "excel_actualizado": "--/--/---- --:--",
+            },
+            "tarjetas": {},
+        }
+
+    mtime = os.path.getmtime(ruta)
+    with _cache_menu_lock:
+        cached = _cache_menu.get(ruta)
+        if not forzar and cached and cached.get("mtime") == mtime:
+            return cached["datos"]
+
+    excel_act = datetime.datetime.fromtimestamp(mtime).strftime("%d/%m/%Y %H:%M")
+    wb = openpyxl.load_workbook(ruta, data_only=True, read_only=True)
+    sheetnames = wb.sheetnames
+    tiene_prestamos = any(h.strip().upper() == "PRESTAMOS" for h in sheetnames)
+
+    # 1. INVENTARIO GENERAL
+    total_stock_ig = 0
+    ig_prods: Dict[str, Dict[str, Any]] = {}
+    compras_por_orden: Dict[str, Dict[str, Any]] = {}
+
+    hoja_ig = next((h for h in sheetnames if _normalizar_nombre_hoja(h) == "INVENTARIO GENERAL"), None)
+    if hoja_ig:
+        ws_ig = wb[hoja_ig]
+        rows_ig = list(ws_ig.iter_rows(values_only=True))
+        if len(rows_ig) > 1:
+            h_ig = [_normalizar_header(c) for c in rows_ig[0]]
+            d_idx = h_ig.index("DESCRIPCIÓN") if "DESCRIPCIÓN" in h_ig else (h_ig.index("DESCRIPCION") if "DESCRIPCION" in h_ig else 3)
+            s_idx = [i for i, c in enumerate(h_ig) if "SERIAL" in c][0] if any("SERIAL" in c for c in h_ig) else 6
+            f_idx = 0
+            ord_idx = [i for i, c in enumerate(h_ig) if "ORDEN" in c or "FACTURA" in c][0] if any("ORDEN" in c or "FACTURA" in c for c in h_ig) else 1
+
+            for r in rows_ig[1:]:
+                desc = _limpiar_valor(r[d_idx] if len(r) > d_idx else None)
+                if not desc or "@" in desc:
+                    continue
+                total_stock_ig += 1
+
+                d_norm = re.sub(r"\s+", " ", desc).strip().upper()
+                if d_norm == "TRANSFORMADOR":
+                    d_norm = "TRANSFORMADOR GENERICO"
+
+                serial = _limpiar_valor(r[s_idx] if len(r) > s_idx else None).upper()
+                tiene_serial = bool(serial and serial not in ("", "N/A", "NA", "-") and not serial.endswith("N/A"))
+
+                if d_norm not in ig_prods:
+                    ig_prods[d_norm] = {
+                        "descripcion": d_norm,
+                        "unidades": 0,
+                        "con_serial": 0,
+                        "sin_serial": 0,
+                    }
+                ig_prods[d_norm]["unidades"] += 1
+                if tiene_serial:
+                    ig_prods[d_norm]["con_serial"] += 1
+                else:
+                    ig_prods[d_norm]["sin_serial"] += 1
+
+                orden = _limpiar_valor(r[ord_idx] if len(r) > ord_idx else None)
+                if orden.endswith(".0"):
+                    orden = orden[:-2]
+                orden_key = orden or "SIN_ORDEN"
+                fecha_val = _convertir_valor(r[f_idx] if len(r) > f_idx else None)
+                if orden_key not in compras_por_orden:
+                    compras_por_orden[orden_key] = {"orden": orden_key, "fecha": fecha_val, "unidades": 0}
+                compras_por_orden[orden_key]["unidades"] += 1
+
+    # 2. SALIDAS
+    hoja_sal = next((h for h in sheetnames if _normalizar_nombre_hoja(h) == "SALIDAS"), None)
+    total_salidas = 0
+    instaladas = 0
+    pendientes = 0
+    tecnicos_pendientes: Dict[str, Dict[str, Any]] = {}
+    salidas_items: List[Dict[str, Any]] = []
+
+    if hoja_sal:
+        ws_sal = wb[hoja_sal]
+        rows_sal = list(ws_sal.iter_rows(values_only=True))
+        if len(rows_sal) > 1:
+            h_sal = [_normalizar_header(c) for c in rows_sal[0]]
+            d_idx = h_sal.index("DESCRIPCIÓN") if "DESCRIPCIÓN" in h_sal else (h_sal.index("DESCRIPCION") if "DESCRIPCION" in h_sal else 3)
+            s_idx = [i for i, c in enumerate(h_sal) if "SERIAL" in c][0] if any("SERIAL" in c for c in h_sal) else 6
+            ofic_inst_idx = [i for i, c in enumerate(h_sal) if "OFICINA INSTAL" in c][0] if any("OFICINA INSTAL" in c for c in h_sal) else 13
+            f_inst_idx = [i for i, c in enumerate(h_sal) if "FECHA DE INSTALACION" in c][0] if any("FECHA DE INSTALACION" in c for c in h_sal) else 14
+            tec_idx = [i for i, c in enumerate(h_sal) if "TECNICO" in c][0] if any("TECNICO" in c for c in h_sal) else 9
+            ofic_idx = [i for i, c in enumerate(h_sal) if c == "OFICINA" or "OFICINA" in c][0] if any("OFICINA" in c for c in h_sal) else 8
+            f_desp_idx = [i for i, c in enumerate(h_sal) if "FECHA DE DESPACHO" in c][0] if any("FECHA DE DESPACHO" in c for c in h_sal) else 10
+            ord_idx = [i for i, c in enumerate(h_sal) if "ORDEN" in c or "FACTURA" in c][0] if any("ORDEN" in c or "FACTURA" in c for c in h_sal) else 1
+
+            for idx, r in enumerate(rows_sal[1:], start=1):
+                desc = _limpiar_valor(r[d_idx] if len(r) > d_idx else None)
+                if not desc or "@" in desc:
+                    continue
+                total_salidas += 1
+                ofic_inst = _limpiar_valor(r[ofic_inst_idx] if len(r) > ofic_inst_idx else None)
+                fecha_inst = _limpiar_valor(r[f_inst_idx] if len(r) > f_inst_idx else None)
+                has_inst = bool(ofic_inst and ofic_inst.upper() not in ("", "N/A", "NA", "-")) or bool(fecha_inst and fecha_inst.upper() not in ("", "N/A", "NA", "-"))
+                estado = "instalado" if has_inst else "pendiente"
+
+                orden = _limpiar_valor(r[ord_idx] if len(r) > ord_idx else None)
+                if orden.endswith(".0"):
+                    orden = orden[:-2]
+                orden_key = orden or "SIN_ORDEN"
+                fecha_val = _convertir_valor(r[0] if len(r) > 0 else None)
+                if orden_key not in compras_por_orden:
+                    compras_por_orden[orden_key] = {"orden": orden_key, "fecha": fecha_val, "unidades": 0}
+                compras_por_orden[orden_key]["unidades"] += 1
+
+                tecnico = _limpiar_valor(r[tec_idx] if len(r) > tec_idx else None)
+                oficina_dest = _limpiar_valor(r[ofic_idx] if len(r) > ofic_idx else None)
+                fecha_desp = _convertir_valor(r[f_desp_idx] if len(r) > f_desp_idx else None)
+                serial_val = _limpiar_valor(r[s_idx] if len(r) > s_idx else None)
+
+                if has_inst:
+                    instaladas += 1
+                else:
+                    pendientes += 1
+                    tec_key = re.sub(r"\s+", " ", tecnico).strip().upper() or "SIN ASIGNAR"
+                    if tec_key not in tecnicos_pendientes:
+                        tecnicos_pendientes[tec_key] = {
+                            "tecnico": tec_key.title(),
+                            "unidades": 0,
+                            "oficinas": set(),
+                            "equipos": [],
+                        }
+                    tecnicos_pendientes[tec_key]["unidades"] += 1
+                    if oficina_dest:
+                        tecnicos_pendientes[tec_key]["oficinas"].add(oficina_dest)
+                    tecnicos_pendientes[tec_key]["equipos"].append({
+                        "descripcion": desc,
+                        "serial": serial_val,
+                        "oficina": oficina_dest,
+                        "fecha_despacho": fecha_desp,
+                    })
+
+                salidas_items.append({
+                    "id": idx,
+                    "descripcion": desc,
+                    "serial": serial_val,
+                    "tecnico": tecnico,
+                    "oficina": oficina_dest,
+                    "fecha_despacho": fecha_desp,
+                    "oficina_instalada": ofic_inst,
+                    "fecha_instalacion": fecha_inst,
+                    "estado": estado,
+                })
+
+    wb.close()
+
+    tecnicos_lista = []
+    for t_data in sorted(tecnicos_pendientes.values(), key=lambda x: -x["unidades"]):
+        tecnicos_lista.append({
+            "tecnico": t_data["tecnico"],
+            "unidades": t_data["unidades"],
+            "oficinas": sorted(list(t_data["oficinas"])),
+            "equipos": t_data["equipos"],
+        })
+
+    total_compras = sum(c["unidades"] for c in compras_por_orden.values())
+    compras_lista = sorted(compras_por_orden.values(), key=lambda x: -x["unidades"])
+    prods_lista = sorted(ig_prods.values(), key=lambda x: -x["unidades"])
+
+    datos = {
+        "encontrado": True,
+        "indicadores": {
+            "unidades_bodega": total_stock_ig,
+            "salidas_totales": total_salidas,
+            "pendientes_instalar": pendientes,
+            "excel_actualizado": excel_act,
+        },
+        "tarjetas": {
+            "cantidad_total": {
+                "disponible": True,
+                "titulo": "Cantidad total",
+                "numero": f"{total_stock_ig} uds en bodega",
+                "subtitulo": f"{len(prods_lista)} productos con stock en bodega",
+                "total_productos": len(prods_lista),
+                "total_unidades": total_stock_ig,
+                "items": prods_lista,
+            },
+            "salidas": {
+                "disponible": True,
+                "titulo": "Salidas",
+                "numero": f"{total_salidas} despachos",
+                "subtitulo": f"{pendientes} pendientes de instalación",
+                "resumen_estados": {
+                    "total": total_salidas,
+                    "instaladas": instaladas,
+                    "pendientes": pendientes,
+                },
+                "items": salidas_items,
+            },
+            "equipos_tecnicos": {
+                "disponible": True,
+                "titulo": "Equipos en técnicos",
+                "numero": f"{len(tecnicos_lista)} técnicos activos",
+                "subtitulo": f"{pendientes} unidades en manos de técnicos",
+                "total_tecnicos": len(tecnicos_lista),
+                "total_unidades": pendientes,
+                "items": tecnicos_lista,
+            },
+            "prestamos": {
+                "disponible": tiene_prestamos,
+                "titulo": "Préstamos",
+                "numero": "0 uds prestadas",
+                "subtitulo": "Sin hoja de préstamos en el Excel",
+                "items": [],
+            },
+            "compras": {
+                "disponible": True,
+                "titulo": "Compras recibidas",
+                "numero": f"{total_compras:,} unidades".replace(",", "."),
+                "subtitulo": "Ingresos por compras registradas",
+                "total_unidades": total_compras,
+                "items": compras_lista,
+            },
+        },
+    }
+
+    with _cache_menu_lock:
+        _cache_menu[ruta] = {"mtime": mtime, "datos": datos}
+
+    return datos
 
 
 # =============================================================================

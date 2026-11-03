@@ -1,0 +1,745 @@
+/* =============================================================================
+   MENÚ LATERAL INVENTARIO (DRAWER) - ESTILOS SGC
+   ============================================================================= */
+
+/* ── Botón Pestaña Fijo en el borde lateral derecho ── */
+.gsb-drawer-trigger-btn {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 990;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--menu-color, #dc2626);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px 0 0 10px;
+  padding: 14px 10px;
+  cursor: pointer;
+  box-shadow: -3px 4px 14px rgba(220, 38, 38, 0.35);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.gsb-drawer-trigger-btn:hover {
+  padding-left: 14px;
+  box-shadow: -5px 6px 18px rgba(220, 38, 38, 0.5);
+  filter: brightness(1.08);
+}
+
+.gsb-drawer-trigger-btn:active {
+  transform: translateY(-50%) scale(0.97);
+}
+
+.gsb-drawer-trigger-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.gsb-drawer-trigger-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Backdrop ── */
+.gsb-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2.5px);
+  z-index: 1050;
+  transition: opacity 0.25s ease;
+}
+
+/* ── Panel Drawer Lateral ── */
+.gsb-drawer-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 620px;
+  max-width: 100vw;
+  background: #f8fafc;
+  box-shadow: -6px 0 28px rgba(15, 23, 42, 0.16);
+  z-index: 1060;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.gsb-drawer-panel--abierto {
+  transform: translateX(0);
+}
+
+/* ── Cabecera ── */
+.gsb-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: #ffffff;
+  border-bottom: 1.5px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.gsb-drawer-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gsb-drawer-btn-volver {
+  align-self: flex-start;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: all 0.15s ease;
+}
+
+.gsb-drawer-btn-volver:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.gsb-drawer-tag-badge {
+  align-self: flex-start;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+
+.gsb-drawer-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.gsb-drawer-subtitle {
+  margin: 0;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.gsb-drawer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gsb-drawer-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gsb-drawer-btn-icon:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.gsb-drawer-btn-close:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+/* ── Cuerpo con Scroll ── */
+.gsb-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.gsb-drawer-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 16px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.gsb-drawer-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #dc2626;
+  border-radius: 50%;
+  animation: gsb-spin 0.75s linear infinite;
+}
+
+@keyframes gsb-spin {
+  to { transform: rotate(360deg); }
+}
+
+.gsb-drawer-alerta {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.gsb-drawer-alerta--err {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #f87171;
+}
+
+/* ── A) Indicadores Rápidos (Grilla 2x2) ── */
+.gsb-drawer-seccion-indicadores {
+  display: flex;
+  flex-direction: column;
+}
+
+.gsb-drawer-indicadores-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.gsb-indicador-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.15s ease;
+}
+
+.gsb-indicador-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+.gsb-indicador-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.gsb-indicador-card--verde .gsb-indicador-icon-wrap {
+  background: rgba(16, 185, 129, 0.12);
+}
+.gsb-indicador-card--azul .gsb-indicador-icon-wrap {
+  background: rgba(59, 130, 246, 0.12);
+}
+.gsb-indicador-card--ambar .gsb-indicador-icon-wrap {
+  background: rgba(245, 158, 11, 0.12);
+}
+.gsb-indicador-card--gris .gsb-indicador-icon-wrap {
+  background: rgba(100, 116, 139, 0.12);
+}
+
+.gsb-indicador-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gsb-indicador-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gsb-indicador-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.gsb-indicador-val--sm {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* ── B) Tarjetas Grandes (Grilla 2 Columnas) ── */
+.gsb-drawer-seccion-cards {
+  display: flex;
+  flex-direction: column;
+}
+
+.gsb-drawer-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.gsb-card-modulo {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 16px 18px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  position: relative;
+  overflow: hidden;
+}
+
+.gsb-card-modulo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+  background: transparent;
+  transition: background 0.18s ease;
+}
+
+.gsb-card-modulo:hover:not(.gsb-card-modulo--deshabilitado) {
+  transform: translateY(-2px);
+  border-color: #94a3b8;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07);
+}
+
+.gsb-card-modulo--total:hover::before { background: #10b981; }
+.gsb-card-modulo--salidas:hover::before { background: #3b82f6; }
+.gsb-card-modulo--tecnicos:hover::before { background: #8b5cf6; }
+.gsb-card-modulo--prestamos:hover::before { background: #f59e0b; }
+.gsb-card-modulo--compras:hover::before { background: #06b6d4; }
+
+.gsb-card-modulo--deshabilitado {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+.gsb-card-modulo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.gsb-card-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  font-size: 19px;
+  flex-shrink: 0;
+}
+
+.gsb-card-icon-box--verde { background: #ecfdf5; }
+.gsb-card-icon-box--azul { background: #eff6ff; }
+.gsb-card-icon-box--purpura { background: #f5f3ff; }
+.gsb-card-icon-box--ambar { background: #fffbeb; }
+.gsb-card-icon-box--cian { background: #ecfeff; }
+
+.gsb-card-flecha {
+  font-size: 18px;
+  color: #94a3b8;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.gsb-card-modulo:hover:not(.gsb-card-modulo--deshabilitado) .gsb-card-flecha {
+  color: #dc2626;
+  transform: translateX(4px);
+}
+
+.gsb-card-modulo-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gsb-card-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.gsb-card-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-top: 2px;
+}
+
+.gsb-card-sub {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+/* ── Sub-vistas de Detalle ── */
+.gsb-drawer-detalle-seccion {
+  display: flex;
+  flex-direction: column;
+}
+
+.gsb-detalle-box {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gsb-detalle-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gsb-detalle-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.gsb-detalle-input:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+}
+
+.gsb-detalle-conteo {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.gsb-filtro-chips-row {
+  display: flex;
+  gap: 8px;
+}
+
+.gsb-chip-btn {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gsb-chip-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.gsb-chip-btn--activo {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.gsb-btn-ir-excel {
+  padding: 7px 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.gsb-btn-ir-excel:hover {
+  background: #dbeafe;
+}
+
+/* Tablas de detalle */
+.gsb-detalle-tabla-wrapper {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: auto;
+  max-height: 480px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.gsb-detalle-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  text-align: left;
+}
+
+.gsb-detalle-tabla th {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-bottom: 1.5px solid #cbd5e1;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.gsb-detalle-tabla td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.gsb-detalle-tabla tr:hover td {
+  background: #f8fafc;
+}
+
+.th-num, .td-num {
+  text-align: right;
+}
+
+.td-idx {
+  color: #94a3b8;
+  font-size: 11px;
+  width: 30px;
+}
+
+.td-nombre {
+  color: #0f172a;
+  max-width: 220px;
+}
+
+.td-fecha {
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.td-muted {
+  color: #cbd5e1;
+}
+
+.badge-stock-num {
+  display: inline-block;
+  padding: 2px 7px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.gsb-badge-estado {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.gsb-badge-estado--verde {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.gsb-badge-estado--ambar {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.gsb-detalle-footer {
+  font-size: 13px;
+  color: #475569;
+  text-align: right;
+  padding-top: 4px;
+}
+
+.gsb-detalle-footer strong {
+  color: #0f172a;
+}
+
+/* ── Tarjetas de Técnicos en subvista ── */
+.gsb-tecnicos-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gsb-tecnico-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.gsb-tecnico-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gsb-tecnico-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f5f3ff;
+  color: #7c3aed;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.gsb-tecnico-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.gsb-tecnico-nombre {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.gsb-tecnico-oficinas {
+  font-size: 11.5px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gsb-tecnico-unidades-badge {
+  padding: 4px 10px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.gsb-tecnico-equipos-list {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gsb-tecnico-equipo-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #334155;
+  background: #f8fafc;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+
+.eq-desc {
+  flex: 1;
+  font-weight: 500;
+}
+
+.eq-serial {
+  font-family: monospace;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.eq-fecha {
+  color: #64748b;
+  font-size: 11px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .gsb-drawer-panel {
+    width: 100vw;
+  }
+
+  .gsb-drawer-indicadores-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gsb-drawer-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gsb-drawer-header {
+    padding: 16px;
+  }
+
+  .gsb-drawer-body {
+    padding: 16px;
+  }
+}
+

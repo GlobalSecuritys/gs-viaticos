@@ -12,6 +12,7 @@ import {
   obtenerLecturaInteligente,
 } from '../services/inventario';
 import MantenimientoView from '../components/inventario/mantenimiento/MantenimientoView';
+import MenuLateralInventario from '../components/inventario/MenuLateralInventario';
 import './Inventario.css';
 
 // Constante para el piloto Mantenimiento 2026
@@ -62,7 +63,9 @@ export default function Inventario() {
     existe: false,
     archivo: '',
     hojas: [],
+    hojas_meta: {},
     hoja_activa: null,
+    hoja_vacia: false,
     columnas: [],
     total_filas: 0,
     filas: [],
@@ -89,6 +92,7 @@ export default function Inventario() {
   });
   const [guardandoSalida, setGuardandoSalida] = useState(false);
   const [mensajeExitoSalida, setMensajeExitoSalida] = useState('');
+  const [refreshMenuCounter, setRefreshMenuCounter] = useState(0);
 
   // ── Cargar ficha SGC para botón Volver ────────────────────────────────────
   useEffect(() => {
@@ -256,6 +260,7 @@ export default function Inventario() {
       });
       setMensajeExitoSalida('✓ Registro de salida guardado correctamente.');
       setFormSalida({ orden: '', oficina_instalada: '', fecha: new Date().toISOString().split('T')[0] });
+      setRefreshMenuCounter((c) => c + 1);
     } catch (err) {
       setError(formatApiError(err, 'No se pudo guardar el registro de salida.'));
     } finally {
@@ -676,16 +681,20 @@ export default function Inventario() {
             <div className="sgc-inv-hojas-bar">
               <span className="sgc-inv-hojas-label">Hojas del Excel:</span>
               <div className="sgc-inv-hojas-pills">
-                {excelData.hojas.map((h) => (
-                  <button
-                    key={h}
-                    type="button"
-                    className={`sgc-inv-hoja-pill ${hojaSeleccionada === h ? 'sgc-inv-hoja-pill--activa' : ''}`}
-                    onClick={() => cambiarHoja(h)}
-                  >
-                    📄 {h}
-                  </button>
-                ))}
+                {excelData.hojas.map((h) => {
+                  const esVacia = excelData.hojas_meta?.[h]?.vacia ?? false;
+                  return (
+                    <button
+                      key={h}
+                      type="button"
+                      className={`sgc-inv-hoja-pill ${hojaSeleccionada === h ? 'sgc-inv-hoja-pill--activa' : ''} ${esVacia ? 'sgc-inv-hoja-pill--vacia' : ''}`}
+                      onClick={() => cambiarHoja(h)}
+                      title={esVacia ? `${h.trim()} — Plantilla sin diligenciar` : h.trim()}
+                    >
+                      {esVacia ? '📋' : '📄'} {h.trim()}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -755,67 +764,92 @@ export default function Inventario() {
                 Reintentar lectura
               </button>
             </div>
+          ) : excelData.hoja_vacia ? (
+            <div className="sgc-inv-vacio-box">
+              <span className="sgc-inv-vacio-icono">📋</span>
+              <h3>Plantilla sin diligenciar</h3>
+              <p>La hoja <strong>{hojaSeleccionada?.trim()}</strong> es una plantilla de producto que aún no tiene registros.</p>
+            </div>
           ) : excelData.filas.length === 0 ? (
             <div className="sgc-inv-vacio-box">
               <span className="sgc-inv-vacio-icono">📋</span>
               <h3>Sin datos en esta hoja</h3>
               <p>La hoja <strong>{hojaSeleccionada}</strong> está vacía o no se encontraron filas.</p>
             </div>
-          ) : (
-            <>
-              {(filtroTextoGlobal || Object.values(filtrosColumnas).some(Boolean)) && (
-                <div className="sgc-inv-filtro-resumen">
-                  Mostrando <strong>{filasFiltradas.length}</strong> de{' '}
-                  <strong>{excelData.filas.length}</strong> registros
-                  <button
-                    type="button"
-                    className="sgc-inv-btn-limpiar sgc-inv-btn-limpiar--inline"
-                    onClick={() => { setFiltroTextoGlobal(''); setFiltrosColumnas({}); }}
-                  >
-                    ✕ Quitar filtros
-                  </button>
-                </div>
-              )}
-              <div className="sgc-inv-tabla-wrapper">
-                <table className="sgc-inv-tabla">
-                  <thead>
-                    <tr>
-                      {excelData.columnas.map((col) => (
-                        <th key={col} className="sgc-inv-th">{col}</th>
-                      ))}
-                      {puedeEditar && <th className="sgc-inv-th sgc-inv-th--accion">Acción</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filasFiltradas.slice(0, 500).map((fila, idx) => (
-                      <tr key={idx} className="sgc-inv-tr">
-                        {excelData.columnas.map((col) => (
-                          <td key={col} className="sgc-inv-td">{fila[col] ?? ''}</td>
-                        ))}
-                        {puedeEditar && (
-                          <td className="sgc-inv-td sgc-inv-td--accion">
-                            <button
-                              type="button"
-                              className="sgc-inv-btn-tabla-accion"
-                              onClick={() => irASalidaDesdeFila(fila)}
-                              title="Usar este equipo para registrar una salida"
-                            >
-                              📤 Salida
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {filasFiltradas.length > 500 && (
-                  <p className="sgc-inv-tabla-aviso">
-                    Mostrando primeros 500 de {filasFiltradas.length} resultados filtrados.
-                  </p>
+          ) : (() => {
+            // Detectar si estamos en la hoja SALIDAS de Comware para mostrar badge de estado
+            const esHojaSalidas = hojaSeleccionada?.trim().toUpperCase() === 'SALIDAS';
+            const esComware = planillaSeleccionada?.nombre?.toLowerCase().includes('comware');
+            const mostrarEstado = esHojaSalidas && esComware;
+            // Columnas visibles: excluir _estado (campo interno)
+            const columnasMostrar = excelData.columnas.filter(c => !c.startsWith('_'));
+
+            return (
+              <>
+                {(filtroTextoGlobal || Object.values(filtrosColumnas).some(Boolean)) && (
+                  <div className="sgc-inv-filtro-resumen">
+                    Mostrando <strong>{filasFiltradas.length}</strong> de{' '}
+                    <strong>{excelData.filas.length}</strong> registros
+                    <button
+                      type="button"
+                      className="sgc-inv-btn-limpiar sgc-inv-btn-limpiar--inline"
+                      onClick={() => { setFiltroTextoGlobal(''); setFiltrosColumnas({}); }}
+                    >
+                      ✕ Quitar filtros
+                    </button>
+                  </div>
                 )}
-              </div>
-            </>
-          )}
+                <div className="sgc-inv-tabla-wrapper">
+                  <table className="sgc-inv-tabla">
+                    <thead>
+                      <tr>
+                        {mostrarEstado && <th className="sgc-inv-th sgc-inv-th--estado">Estado</th>}
+                        {columnasMostrar.map((col) => (
+                          <th key={col} className="sgc-inv-th">{col}</th>
+                        ))}
+                        {puedeEditar && <th className="sgc-inv-th sgc-inv-th--accion">Acción</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filasFiltradas.slice(0, 500).map((fila, idx) => (
+                        <tr key={idx} className="sgc-inv-tr">
+                          {mostrarEstado && (
+                            <td className="sgc-inv-td sgc-inv-td--estado">
+                              {fila['_estado'] === 'instalado' ? (
+                                <span className="sgc-inv-badge sgc-inv-badge--verde">✓ Instalado</span>
+                              ) : (
+                                <span className="sgc-inv-badge sgc-inv-badge--ambar">⏳ Pendiente – en técnico</span>
+                              )}
+                            </td>
+                          )}
+                          {columnasMostrar.map((col) => (
+                            <td key={col} className="sgc-inv-td">{fila[col] ?? ''}</td>
+                          ))}
+                          {puedeEditar && (
+                            <td className="sgc-inv-td sgc-inv-td--accion">
+                              <button
+                                type="button"
+                                className="sgc-inv-btn-tabla-accion"
+                                onClick={() => irASalidaDesdeFila(fila)}
+                                title="Usar este equipo para registrar una salida"
+                              >
+                                📤 Salida
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {filasFiltradas.length > 500 && (
+                    <p className="sgc-inv-tabla-aviso">
+                      Mostrando primeros 500 de {filasFiltradas.length} resultados filtrados.
+                    </p>
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </section>
       )}
 
@@ -1023,6 +1057,15 @@ export default function Inventario() {
           </form>
         </section>
       )}
+
+      {/* ── Menú Lateral Drawer (Pestaña "Menú" fija a la derecha) ── */}
+      <MenuLateralInventario
+        planillaId={planillaSeleccionada.id}
+        planillaNombre={planillaSeleccionada.nombre}
+        color={metaActiva.color === 'planilla-red' ? '#dc2626' : undefined}
+        onSeleccionarHoja={(nombreHoja) => cambiarHoja(nombreHoja)}
+        refreshTrigger={refreshMenuCounter}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { obtenerExcelResumen, obtenerExcelTecnicos } from '../../../services/inv
 import { formatApiError } from '../../../utils/formatError';
 import VistaTabla from './VistaTabla';
 import VistaTecnicos from './VistaTecnicos';
+import VisorExcelPlegable from './VisorExcelPlegable';
 import './Mantenimiento.css';
 
 export default function MantenimientoView({ planilla, onVolver }) {
@@ -307,9 +308,7 @@ export default function MantenimientoView({ planilla, onVolver }) {
 
             {excelAbierto && (
               <div className="mnt-excel-panel-abierto" id="panel-vista-excel">
-                <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '13.5px' }}>
-                  📊 El visor plegable de hojas originales se integrará en el paso 4 usando <code>GET /inventario/excel</code>.
-                </p>
+                <VisorExcelPlegable planillaId={planillaId} />
               </div>
             )}
           </section>

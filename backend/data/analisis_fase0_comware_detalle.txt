@@ -1,0 +1,711 @@
+================================================================================
+FASE 0 - ANALISIS DETALLADO DEL EXCEL COMWARE RTC 2026
+================================================================================
+
+1. LISTA EXACTA DE HOJAS Y VISIBILIDAD:
+  01. 'INVENTARIO GENERAL' (visibilidad: visible)
+  02. 'CANTIDAD TOTAL' (visibilidad: visible)
+  03. 'SALIDAS ' (visibilidad: visible)
+  04. 'PANEL DE ALARMA BOSCH B8512G' (visibilidad: visible)
+  05. 'PANEL DE ALARMA BOSCH B9512G' (visibilidad: visible)
+  06. ' TECLADO B926F' (visibilidad: visible)
+  07. 'SISMICO ISN-SM-50  GMX-P0 ' (visibilidad: visible)
+  08. 'PLACA MONTAJE ' (visibilidad: visible)
+  09. 'SENSOR DE HUMO FCP‑320' (visibilidad: visible)
+  10. 'BASE SENSOR DE HUMO FCP‑320' (visibilidad: visible)
+  11. 'SENSOR DE AUDIO DS1102I' (visibilidad: visible)
+  12. 'PULSADORES 270 R' (visibilidad: visible)
+  13. 'PULSADOR INALAMBRICO RFPB-SB' (visibilidad: visible)
+  14. 'RECEPTOR INALAMBRICA B812' (visibilidad: visible)
+  15. 'INFRARROJO LINEAL CDL2-15G' (visibilidad: visible)
+  16. 'INFRARROJO ANTIMASKIN CDL2-A15G' (visibilidad: visible)
+  17. 'INFRARROJO EXTERIOR VXI-DAM' (visibilidad: visible)
+  18. 'TAMPER SFTAMP02' (visibilidad: visible)
+  19. 'DETECTOR DE TEMPERATURA  MAS BA' (visibilidad: visible)
+  20. 'REGULADOR DE CORRIENTE PROPC100' (visibilidad: visible)
+  21. 'SUPRESOR DE PICOS RETIE  GENERI' (visibilidad: visible)
+  22. 'MODULO EXPANSOR DE ZONAS BOSCH ' (visibilidad: visible)
+  23. 'MODELO DE RELEVO BOSCH B308' (visibilidad: visible)
+  24. ' MODELO GPRS Bosch B443444 ' (visibilidad: visible)
+  25. 'TRANSFORMADOR GENERICO' (visibilidad: visible)
+  26. 'FUENTE SWICHADA GENERICO' (visibilidad: visible)
+  27. ' BATERIA 12 V GENERICO' (visibilidad: visible)
+  28. 'SIRENA DOBLE TONO GENERICO' (visibilidad: visible)
+  29. ' SENSOR DE HUMO FCP‑350-P  MAS ' (visibilidad: visible)
+  30. 'CONTACTO MAGNETICO LIVIANO' (visibilidad: visible)
+  31. 'FILTRO ACTA' (visibilidad: hidden)
+
+================================================================================
+2. ANALISIS HOJA POR HOJA (Encabezados, filas, combinadas, formulas, colores, bloques)
+================================================================================
+
+>>> HOJA #01: 'INVENTARIO GENERAL' (Estado: visible)
+  Dimensiones reportadas: A1:O8385 (max_row: 8385, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'NUMERO DE ORDEN '
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 1125 (filas vacias intermedias/finales: 7259)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 125760}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #02: 'CANTIDAD TOTAL' (Estado: visible)
+  Dimensiones reportadas: A1:Y992 (max_row: 992, max_column: 25)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila None
+  Columnas: No se detectaron encabezados claros en las primeras 25 filas.
+  Filas con datos: 0 (filas vacias intermedias/finales: 992)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (2 tipos): {'FFC9DAF8': 27, 'FFFFFFFF': 27}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #03: 'SALIDAS ' (Estado: visible)
+  Dimensiones reportadas: A1:U562 (max_row: 562, max_column: 21)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (15):
+    Col 01 (A1): 'FECHA COMPRA\nEQUIPO'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+    Col 12 (L1): 'OBSERVACION '
+    Col 13 (M1): 'NUMERO DE ORDEN '
+    Col 14 (N1): 'OFICINA INSTALDA'
+    Col 15 (O1): 'FECHA DE INSTALACION'
+  Filas con datos: 34 (filas vacias intermedias/finales: 527)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (2 tipos): {'FFFFFFFF': 11517, 'FFD9EAD3': 264}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #04: 'PANEL DE ALARMA BOSCH B8512G' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #05: 'PANEL DE ALARMA BOSCH B9512G' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #06: ' TECLADO B926F' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #07: 'SISMICO ISN-SM-50  GMX-P0 ' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #08: 'PLACA MONTAJE ' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #09: 'SENSOR DE HUMO FCP‑320' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #10: 'BASE SENSOR DE HUMO FCP‑320' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #11: 'SENSOR DE AUDIO DS1102I' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #12: 'PULSADORES 270 R' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #13: 'PULSADOR INALAMBRICO RFPB-SB' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #14: 'RECEPTOR INALAMBRICA B812' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #15: 'INFRARROJO LINEAL CDL2-15G' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #16: 'INFRARROJO ANTIMASKIN CDL2-A15G' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #17: 'INFRARROJO EXTERIOR VXI-DAM' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #18: 'TAMPER SFTAMP02' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #19: 'DETECTOR DE TEMPERATURA  MAS BA' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #20: 'REGULADOR DE CORRIENTE PROPC100' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 291 (filas vacias intermedias/finales: 113)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #21: 'SUPRESOR DE PICOS RETIE  GENERI' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 0 (filas vacias intermedias/finales: 404)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #22: 'MODULO EXPANSOR DE ZONAS BOSCH ' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #23: 'MODELO DE RELEVO BOSCH B308' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #24: ' MODELO GPRS Bosch B443444 ' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #25: 'TRANSFORMADOR GENERICO' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 379 (filas vacias intermedias/finales: 25)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #26: 'FUENTE SWICHADA GENERICO' (Estado: visible)
+  Dimensiones reportadas: A1:O406 (max_row: 406, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 401 (filas vacias intermedias/finales: 4)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6075}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #27: ' BATERIA 12 V GENERICO' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 374 (filas vacias intermedias/finales: 30)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #28: 'SIRENA DOBLE TONO GENERICO' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 387 (filas vacias intermedias/finales: 17)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #29: ' SENSOR DE HUMO FCP‑350-P  MAS ' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 404 (filas vacias intermedias/finales: 0)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #30: 'CONTACTO MAGNETICO LIVIANO' (Estado: visible)
+  Dimensiones reportadas: A1:O405 (max_row: 405, max_column: 15)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (11):
+    Col 01 (A1): 'FECHA'
+    Col 02 (B1): 'FACTURA'
+    Col 03 (C1): 'CODIGO DE \nBARRAS'
+    Col 04 (D1): 'DESCRIPCIÓN'
+    Col 05 (E1): 'CANTIDAD '
+    Col 06 (F1): 'ID. EQUIPO'
+    Col 07 (G1): 'SERIALES GSB'
+    Col 08 (H1): 'CONCATENADO'
+    Col 09 (I1): 'OFICINA '
+    Col 10 (J1): 'TECNICO'
+    Col 11 (K1): 'FECHA DE DESPACHO'
+  Filas con datos: 304 (filas vacias intermedias/finales: 100)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 0
+  Colores de relleno detectados (1 tipos): {'FFFFFFFF': 6060}
+  Bloques sueltos fuera de columnas: Ninguno.
+
+>>> HOJA #31: 'FILTRO ACTA' (Estado: hidden)
+  Dimensiones reportadas: A1:F5 (max_row: 5, max_column: 6)
+  Celdas combinadas (0): []
+  Fila de encabezado detectada: Fila 1
+  Columnas (6):
+    Col 01 (A1): 'TECNICO'
+    Col 02 (B1): 'LUIS FRANCISCO ANGULO MADERA'
+    Col 03 (C1): 'FECHA'
+    Col 04 (D1): '2024-08-30'
+    Col 05 (E1): 'OFICINA'
+    Col 06 (F1): 'EL COPEY-CESAR MANTENIMIENTOS'
+  Filas con datos: 1 (filas vacias intermedias/finales: 3)
+  Formulas rotas (#REF!, #VALUE!, etc.): 0
+  Formulas QUERY / Google Sheets: 1
+    * A3: =IFERROR(__xludf.DUMMYFUNCTION("QUERY(SALIDAS!A:G,""SELECT C,E WHERE (F= '""&B1&""' AND B= date '""&D1&""')"",1)"),"#REF!")
+  Colores de relleno detectados (0 tipos): {}
+  Bloques sueltos fuera de columnas: Ninguno.

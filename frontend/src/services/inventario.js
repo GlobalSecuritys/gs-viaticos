@@ -125,3 +125,14 @@ export async function obtenerExcelDetalleTecnico(planillaId = 1, nombreHoja, { q
   return res.data;
 }
 
+/**
+ * Obtiene el resumen de indicadores y tarjetas para el menú lateral (drawer) de la planilla.
+ */
+export async function obtenerResumenMenu(planillaId, { forzar = false } = {}) {
+  const res = await api.get(`/inventario/planillas/${planillaId}/resumen-menu`, {
+    params: forzar ? { forzar: true } : {},
+  });
+  return res.data;
+}
+
+

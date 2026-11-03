@@ -55,10 +55,13 @@ from app.services.auditoria import registrar_auditoria
 from app.services.inventario_duplicados import buscar_duplicados
 from app.services.inventario_excel import (
     PLANILLA_PILOTO_EXCEL,
+    PLANILLA_COMWARE_ID,
     buscar_en_excel,
+    calcular_resumen_comware,
     obtener_datos_inventario_excel,
     obtener_detalle_tecnico_mantenimiento,
     obtener_resumen_mantenimiento,
+    obtener_resumen_menu,
     obtener_tecnicos_mantenimiento,
     obtener_vista_mantenimiento,
 )
@@ -156,6 +159,42 @@ def _obtener_item_o_404(db: Session, item_id: int, for_update: bool = False) -> 
 
 def _conteo_planilla(db: Session, planilla_id: int) -> tuple[int, int]:
     """Retorna (total_items, total_unidades) para una planilla calculando desde el kardex."""
+
+    # ── RTC – Comware: base Excel + movimientos kardex en BD si existen ──────
+    if planilla_id == PLANILLA_COMWARE_ID:
+        resumen = calcular_resumen_comware(planilla_id=planilla_id)
+        base_stock = resumen["total_stock"] if resumen.get("encontrado") else 0
+
+        # Sumar ítems y movimientos registrados en Kardex para Comware
+        kardex_items = db.scalar(
+            select(func.count(InventarioItem.id)).where(
+                InventarioItem.planilla_id == planilla_id,
+                InventarioItem.eliminado_en.is_(None),
+            )
+        ) or 0
+        kardex_unidades = db.scalar(
+            select(
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (InventarioMovimiento.tipo.in_(TIPOS_MOVIMIENTO_ENTRADA), InventarioMovimiento.cantidad),
+                            (InventarioMovimiento.tipo.in_(TIPOS_MOVIMIENTO_SALIDA), -InventarioMovimiento.cantidad),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                )
+            )
+            .select_from(InventarioItem)
+            .join(InventarioMovimiento, InventarioMovimiento.item_id == InventarioItem.id)
+            .where(
+                InventarioItem.planilla_id == planilla_id,
+                InventarioItem.eliminado_en.is_(None),
+            )
+        ) or 0
+
+        return int(base_stock + kardex_items), int(base_stock + kardex_unidades)
+
     total_items = db.scalar(
         select(func.count(InventarioItem.id)).where(
             InventarioItem.planilla_id == planilla_id,
@@ -332,6 +371,43 @@ def listar_planillas(
             )
         )
     return resultado
+
+
+@router.get("/planillas/{planilla_id}/resumen-comware")
+def resumen_comware(planilla_id: int, current_user: LectorIN):
+    """Retorna el resumen del Excel de Comware: stock, salidas, instaladas, pendientes y anomalías."""
+    if planilla_id != PLANILLA_COMWARE_ID:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Este endpoint es exclusivo para la planilla Comware (id={PLANILLA_COMWARE_ID}).",
+        )
+    result = calcular_resumen_comware(planilla_id=planilla_id)
+    if not result.get("encontrado"):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No se encontró el archivo Excel de Comware en el servidor.",
+        )
+    return result
+
+
+@router.get("/planillas/{planilla_id}/resumen-menu")
+def resumen_menu_lateral(
+    planilla_id: int,
+    db: DB,
+    current_user: LectorIN,
+    forzar: bool = Query(False, description="Forzar recálculo en memoria"),
+):
+    """Retorna los indicadores y tarjetas de acceso para el menú lateral (drawer) de la planilla."""
+    pl = db.get(InventarioPlanilla, planilla_id)
+    nombre_pl = pl.nombre if pl else None
+
+    datos = obtener_resumen_menu(planilla_id=planilla_id, planilla_nombre=nombre_pl, forzar=forzar)
+    if not datos.get("encontrado"):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No se encontró el archivo Excel correspondiente a la planilla {planilla_id}.",
+        )
+    return datos
 
 
 @router.post("/planillas", response_model=PlanillaResponse, status_code=status.HTTP_201_CREATED)

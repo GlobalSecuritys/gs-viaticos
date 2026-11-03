@@ -1,4 +1,4 @@
-﻿from datetime import date, datetime
+from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
@@ -45,7 +45,9 @@ class ExcelContenidoResponse(BaseModel):
     existe: bool
     archivo: str
     hojas: List[str]
+    hojas_meta: Dict[str, Any] = {}
     hoja_activa: Optional[str] = None
+    hoja_vacia: bool = False
     columnas: List[str] = []
     total_filas: int = 0
     filas: List[Dict[str, Any]] = []
