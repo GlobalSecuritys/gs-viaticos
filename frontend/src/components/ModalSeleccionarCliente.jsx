@@ -9,7 +9,7 @@ export default function ModalSeleccionarCliente({ clienteSeleccionado, onSelecci
         if (!busqueda.trim()) return clientesData;
         const q = busqueda.toLowerCase().trim();
         return clientesData.filter(
-            (c) => c.nombre.toLowerCase().includes(q) || c.nit.includes(q)
+            (c) => c.nombre.toLowerCase().includes(q) || (c.nit && c.nit.toLowerCase().includes(q))
         );
     }, [busqueda]);
 
@@ -49,7 +49,7 @@ export default function ModalSeleccionarCliente({ clienteSeleccionado, onSelecci
                             const esSeleccionado = clienteSeleccionado === item.nombre;
                             return (
                                 <button
-                                    key={item.nit}
+                                    key={item.nit || item.nombre}
                                     type="button"
                                     className={`mc-item ${esSeleccionado ? 'mc-item--selected' : ''}`}
                                     onClick={() => {
@@ -59,7 +59,7 @@ export default function ModalSeleccionarCliente({ clienteSeleccionado, onSelecci
                                 >
                                     <div className="mc-item-info">
                                         <span className="mc-item-nombre">{item.nombre}</span>
-                                        <span className="mc-item-nit">NIT: {item.nit}</span>
+                                        {item.nit && <span className="mc-item-nit">NIT: {item.nit}</span>}
                                     </div>
                                     {esSeleccionado && <span className="mc-item-check">✓</span>}
                                 </button>

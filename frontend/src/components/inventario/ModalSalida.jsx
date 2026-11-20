@@ -293,3 +293,4 @@ export default function ModalSalida({ planillaId, onClose, onSuccess }) {
     </div>
   );
 }
+

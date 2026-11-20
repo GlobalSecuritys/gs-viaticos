@@ -273,3 +273,4 @@ export default function ModalEntrada({ planillaId, onClose, onSuccess }) {
     </div>
   );
 }
+
