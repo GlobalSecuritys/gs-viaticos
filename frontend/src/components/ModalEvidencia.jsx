@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { parseDescripcion } from '../utils/descripcion';
 import { formatMiles, limpiarNumero } from '../utils/personal';
 import api from '../services/api';
@@ -36,6 +36,15 @@ function esArchivoPdf(url) {
     if (!url) return false;
     const cleanUrl = url.split('?')[0].toLowerCase();
     return cleanUrl.endsWith('.pdf');
+}
+
+function optimizarUrlCloudinary(url) {
+    if (!url || typeof url !== 'string') return url;
+    // Añadir f_auto,q_auto a Cloudinary para compatibilidad universal de formatos (HEIC, WebP, JPEG)
+    if (url.includes('/image/upload/') && !url.includes('/image/upload/f_auto') && !esArchivoPdf(url)) {
+        return url.replace('/image/upload/', '/image/upload/f_auto,q_auto/');
+    }
+    return url;
 }
 
 function handleDescargarSoporte(url, nombre = 'evidencia-viatico.pdf') {
@@ -78,6 +87,11 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
     // Estado para eliminación de evidencia
     const [eliminandoEvidencia, setEliminandoEvidencia] = useState(false);
     const [confirmarEliminarEv, setConfirmarEliminarEv] = useState(false);
+    const [errorCargaImg, setErrorCargaImg] = useState(false);
+
+    useEffect(() => {
+        setErrorCargaImg(false);
+    }, [indiceActivo, viatico?.id]);
 
     function notificarPadre(vActualizado) {
         if (onViaticoActualizado) onViaticoActualizado(vActualizado);
@@ -269,11 +283,26 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                                             className="modal-pdf-frame"
                                         />
                                     </div>
+                                ) : errorCargaImg ? (
+                                    <div className="modal-img-error-fallback">
+                                        <span className="modal-img-error-icon">⚠️</span>
+                                        <p className="modal-img-error-title">No se pudo cargar la vista previa</p>
+                                        <p className="modal-img-error-desc">El navegador no pudo procesar la imagen o el formato no es compatible.</p>
+                                        <a
+                                            href={evActiva?.secure_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="modal-btn-ver-original-fallback"
+                                        >
+                                            ↗️ Abrir archivo original
+                                        </a>
+                                    </div>
                                 ) : (
                                     <img
-                                        src={evActiva?.secure_url}
+                                        src={optimizarUrlCloudinary(evActiva?.secure_url)}
                                         alt={`Evidencia ${indiceActivo + 1}`}
                                         className="modal-imagen-principal"
+                                        onError={() => setErrorCargaImg(true)}
                                     />
                                 )}
 
@@ -308,6 +337,18 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                                 </span>
                                 
                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    {!esPdfActiva && evActiva?.secure_url && (
+                                        <a
+                                            href={evActiva.secure_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="modal-btn-ver-original"
+                                            title="Abrir imagen original en nueva pestaña"
+                                        >
+                                            ↗️ Ver original
+                                        </a>
+                                    )}
+
                                     {esPdfActiva && (
                                         <button
                                             type="button"
@@ -370,9 +411,10 @@ export default function ModalEvidencia({ viatico: viaticoInicial, onClose, onApr
                                                     </div>
                                                 ) : (
                                                     <img
-                                                        src={ev.secure_url}
+                                                        src={optimizarUrlCloudinary(ev.secure_url)}
                                                         alt={`Miniatura ${i + 1}`}
                                                         className="modal-thumb"
+                                                        loading="lazy"
                                                     />
                                                 )}
                                                 <span className={`modal-thumb-tag ${esAdminThumb ? 'modal-thumb-tag--admin' : 'modal-thumb-tag--tecnico'}`}>

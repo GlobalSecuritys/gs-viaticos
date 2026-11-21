@@ -105,6 +105,28 @@ def _validate_file(file: UploadFile, content: bytes) -> None:
             detail=f"El archivo '{file.filename}' está vacío.",
         )
 
+    # Verificación de integridad: detectar si la imagen está 100% en blanco o vacía
+    if ext in (".jpg", ".jpeg", ".png", ".webp") or content_type.startswith("image/"):
+        try:
+            from PIL import Image
+            import io
+            pil_img = Image.open(io.BytesIO(content))
+            if pil_img.size[0] > 15 and pil_img.size[1] > 15:
+                gray = pil_img.convert("L")
+                extrema = gray.getextrema()
+                if extrema[0] >= 253 and extrema[1] >= 253:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=(
+                            f"El archivo '{file.filename}' está completamente en blanco (sin contenido visible). "
+                            "Por favor toma la fotografía nuevamente o adjunta el soporte original legible."
+                        ),
+                    )
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+
 
 def _upload_a_cloudinary_sync(content: bytes) -> dict:
     """
@@ -210,6 +232,28 @@ def _validate_cuenta_cobro_file(file: UploadFile, content: bytes) -> None:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"El archivo '{file.filename}' está vacío.",
         )
+
+    # Verificación de integridad: detectar si la imagen está 100% en blanco o vacía
+    if ext in (".jpg", ".jpeg", ".png", ".webp") or content_type.startswith("image/"):
+        try:
+            from PIL import Image
+            import io
+            pil_img = Image.open(io.BytesIO(content))
+            if pil_img.size[0] > 15 and pil_img.size[1] > 15:
+                gray = pil_img.convert("L")
+                extrema = gray.getextrema()
+                if extrema[0] >= 253 and extrema[1] >= 253:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=(
+                            f"El archivo '{file.filename}' está completamente en blanco (sin contenido visible). "
+                            "Por favor toma la fotografía nuevamente o adjunta el soporte original legible."
+                        ),
+                    )
+        except HTTPException:
+            raise
+        except Exception:
+            pass
 
 
 def _upload_cuenta_cobro_sync(content: bytes) -> dict:
@@ -352,6 +396,28 @@ def _validate_calidad_documento_file(file: UploadFile, content: bytes) -> None:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"El archivo '{file.filename}' está vacío.",
         )
+
+    # Verificación de integridad: detectar si la imagen está 100% en blanco o vacía
+    if ext in (".jpg", ".jpeg", ".png", ".webp") or content_type.startswith("image/"):
+        try:
+            from PIL import Image
+            import io
+            pil_img = Image.open(io.BytesIO(content))
+            if pil_img.size[0] > 15 and pil_img.size[1] > 15:
+                gray = pil_img.convert("L")
+                extrema = gray.getextrema()
+                if extrema[0] >= 253 and extrema[1] >= 253:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=(
+                            f"El archivo '{file.filename}' está completamente en blanco (sin contenido visible). "
+                            "Por favor toma la fotografía nuevamente o adjunta el soporte original legible."
+                        ),
+                    )
+        except HTTPException:
+            raise
+        except Exception:
+            pass
 
     if len(content) > MAX_FILE_SIZE_BYTES:
         raise HTTPException(

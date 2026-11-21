@@ -720,3 +720,78 @@
         padding: 1.5rem;
     }
 }
+
+/* Fallback para errores de carga de imagen */
+.modal-img-error-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: #F8FAFC;
+    background: #1E293B;
+    border-radius: var(--radius-md);
+    width: 100%;
+    min-height: 240px;
+}
+
+.modal-img-error-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.modal-img-error-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 0.4rem 0;
+    color: #F1F5F9;
+}
+
+.modal-img-error-desc {
+    font-size: 0.85rem;
+    color: #94A3B8;
+    margin: 0 0 1.25rem 0;
+    max-width: 320px;
+    line-height: 1.4;
+}
+
+.modal-btn-ver-original-fallback {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 1rem;
+    background: #3B82F6;
+    color: #FFFFFF;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s ease;
+}
+
+.modal-btn-ver-original-fallback:hover {
+    background: #2563EB;
+}
+
+/* Botón Ver original en la barra de acciones */
+.modal-btn-ver-original {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    padding: 0.25rem 0.55rem;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.modal-btn-ver-original:hover {
+    color: #3B82F6;
+    border-color: #3B82F6;
+    background: #EFF6FF;
+}
