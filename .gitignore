@@ -13,3 +13,5 @@ dist/
 .pytest_cache/
 .vscode/
 ~$*
+backend/data/inventario_vivo/
+*_BACKUP_OLD.xlsx
