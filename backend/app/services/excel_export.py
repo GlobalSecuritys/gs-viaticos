@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import unicodedata
 import zipfile
 from copy import copy
 from datetime import date
@@ -63,6 +64,29 @@ def _formato_fecha_viaje(f: Optional[date]) -> str:
     if isinstance(f, date):
         return f"{f.day:02d}-{MESES_ABR[f.month]}"
     return str(f)
+
+# ═══════════════════════════════════════════════════════════════════
+#  Ordenamiento de viáticos por concepto para el Excel de asignación
+# ═══════════════════════════════════════════════════════════════════
+_ORDEN_CONCEPTO_EXCEL = {
+    "transporte": 0,
+    "alimentacion": 1,
+    "hotel": 2,
+}
+
+def _normalizar_str(s: str) -> str:
+    """Lowercase, elimina tildes y espacios extra."""
+    s = s.strip().lower()
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
+    return s
+
+def _clave_orden_viatico(v) -> tuple:
+    """Clave de ordenamiento: (grupo_concepto, nombre_concepto, fecha_viaje)."""
+    tipo = _normalizar_str(str(v.tipo_gasto or ""))
+    grupo = _ORDEN_CONCEPTO_EXCEL.get(tipo, 3)
+    fecha = v.fecha if isinstance(v.fecha, date) else date.min
+    return (grupo, tipo, fecha)
 
 MAPA_CONCEPTOS = {
     "alimentacion": "Alimentación",
@@ -540,6 +564,11 @@ def generar_excel_viaticos_asignacion(
     total_items = len(viaticos)
     base_slots = 14  # filas 11 a 24 en la plantilla original
 
+    # Ordenar viáticos por concepto (Transporte→Alimentación→Hotel→otros)
+    # y dentro de cada grupo por fecha ascendente. Orden estable preserva
+    # el orden original de registro en caso de empate de fecha.
+    viaticos_ordenados = sorted(viaticos, key=_clave_orden_viatico)
+
     if total_items > base_slots:
         extra = total_items - base_slots
         ws.insert_rows(25, amount=extra)
@@ -557,7 +586,7 @@ def generar_excel_viaticos_asignacion(
     else:
         last_item_row = 24
 
-    for idx, v in enumerate(viaticos):
+    for idx, v in enumerate(viaticos_ordenados):
         r = 11 + idx
         try:
             meta = json.loads(v.descripcion or "{}")
